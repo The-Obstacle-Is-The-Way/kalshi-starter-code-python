@@ -18,8 +18,8 @@ Extend the existing bare-bones Kalshi client to cover ALL public and authenticat
 - Proper async support with httpx
 - Robust error handling with custom exceptions
 - Automatic pagination handling
-- Configurable rate limiting and retry logic
-- Full type safety with Pydantic models
+- **Robust Rate Limiting:** Use `tenacity` for process-safe retries on 429 errors
+- Full type safety with Pydantic models (using `Decimal` for money)
 
 ### 1.2 Non-Goals
 
@@ -45,7 +45,7 @@ These are critical for research - we can fetch market data without API keys.
 | `/markets/{ticker}` | GET | Single market details | P0 |
 | `/markets/{ticker}/orderbook` | GET | Current orderbook | P0 |
 | `/markets/trades` | GET | Public trade history | P0 |
-| `/markets/{ticker}/candlesticks` | GET | OHLC price history | P0 |
+| `/markets/{ticker}/candlesticks` | GET | OHLC price history (Verify path) | P0 |
 
 ### 2.2 Authenticated Endpoints (Trading/Portfolio)
 
@@ -86,7 +86,6 @@ src/kalshi_research/
 │   │   └── portfolio.py    # Portfolio models
 │   ├── exceptions.py       # Custom exceptions
 │   ├── auth.py             # Authentication logic
-│   ├── rate_limiter.py     # Rate limiting
 │   └── pagination.py       # Pagination helpers
 ```
 
@@ -176,13 +175,13 @@ class Orderbook(BaseModel):
         return best_ask - best_bid
 
     @property
-    def midpoint(self) -> Optional[float]:
+    def midpoint(self) -> Optional[Decimal]:
         """Calculate midpoint price."""
         if not self.yes_bids or not self.yes_asks:
             return None
         best_bid = max(level.price for level in self.yes_bids)
         best_ask = min(level.price for level in self.yes_asks)
-        return (best_bid + best_ask) / 2
+        return (Decimal(best_bid) + Decimal(best_ask)) / 2
 
 
 class Trade(BaseModel):
@@ -214,13 +213,19 @@ class Candlestick(BaseModel):
 ```python
 # src/kalshi_research/api/client.py
 from typing import AsyncIterator, Optional
+from decimal import Decimal
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    RetryError
+)
 
 from .models.market import Market, Orderbook, Trade, Candlestick
 from .models.event import Event
 from .exceptions import KalshiAPIError, RateLimitError
-from .rate_limiter import RateLimiter
 from .auth import KalshiAuth
 
 
@@ -236,15 +241,13 @@ class KalshiPublicClient:
     def __init__(
         self,
         timeout: float = 30.0,
-        max_retries: int = 3,
-        rate_limit_rps: float = 10.0,
+        max_retries: int = 5,
     ):
         self._client = httpx.AsyncClient(
             base_url=self.BASE_URL,
             timeout=timeout,
             headers={"Accept": "application/json"},
         )
-        self._rate_limiter = RateLimiter(requests_per_second=rate_limit_rps)
         self._max_retries = max_retries
 
     async def __aenter__(self) -> "KalshiPublicClient":
@@ -254,16 +257,18 @@ class KalshiPublicClient:
         await self._client.aclose()
 
     @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=1, max=60),
     )
     async def _get(self, path: str, params: Optional[dict] = None) -> dict:
         """Make rate-limited GET request with retry."""
-        await self._rate_limiter.acquire()
         response = await self._client.get(path, params=params)
 
         if response.status_code == 429:
+            # Raise exception to trigger tenacity retry
             raise RateLimitError("Rate limit exceeded")
+            
         if response.status_code >= 400:
             raise KalshiAPIError(
                 status_code=response.status_code,
@@ -282,15 +287,6 @@ class KalshiPublicClient:
     ) -> list[Market]:
         """
         Fetch markets with optional filters.
-
-        Args:
-            status: Filter by status (open, closed, settled)
-            event_ticker: Filter by parent event
-            series_ticker: Filter by series
-            limit: Max results per page (max 1000)
-
-        Returns:
-            List of Market objects
         """
         params = {"limit": min(limit, 1000)}
         if status:
@@ -306,15 +302,15 @@ class KalshiPublicClient:
     async def get_all_markets(
         self,
         status: Optional[str] = None,
+        max_pages: int = 100,
     ) -> AsyncIterator[Market]:
         """
         Iterate through ALL markets with automatic pagination.
-
-        Yields:
-            Market objects one at a time
+        Includes a safety limit to prevent infinite loops.
         """
         cursor = None
-        while True:
+        pages = 0
+        while pages < max_pages:
             params = {"limit": 1000}
             if status:
                 params["status"] = status
@@ -330,6 +326,7 @@ class KalshiPublicClient:
             cursor = data.get("cursor")
             if not cursor or not markets:
                 break
+            pages += 1
 
     async def get_market(self, ticker: str) -> Market:
         """Fetch single market by ticker."""
@@ -339,10 +336,6 @@ class KalshiPublicClient:
     async def get_orderbook(self, ticker: str, depth: int = 10) -> Orderbook:
         """
         Fetch current orderbook for a market.
-
-        Args:
-            ticker: Market ticker
-            depth: Number of price levels (default 10)
         """
         data = await self._get(
             f"/markets/{ticker}/orderbook",
@@ -378,12 +371,6 @@ class KalshiPublicClient:
     ) -> list[Candlestick]:
         """
         Fetch OHLC candlestick data.
-
-        Args:
-            ticker: Market ticker
-            period_interval: Candle interval in minutes (1, 5, 15, 60, 1440)
-            start_ts: Start timestamp (Unix seconds)
-            end_ts: End timestamp (Unix seconds)
         """
         params = {"period_interval": period_interval}
         if start_ts:
@@ -391,6 +378,8 @@ class KalshiPublicClient:
         if end_ts:
             params["end_ts"] = end_ts
 
+        # Note: API path might vary between markets/series. 
+        # Using markets/{ticker}/candlesticks as per V2 docs for specific contracts.
         data = await self._get(f"/markets/{ticker}/candlesticks", params)
         return [Candlestick.model_validate(c) for c in data.get("candlesticks", [])]
 
@@ -427,8 +416,6 @@ class KalshiPublicClient:
 class KalshiClient(KalshiPublicClient):
     """
     Authenticated client extending public client with portfolio endpoints.
-
-    Inherits all public methods and adds authenticated operations.
     """
 
     def __init__(
@@ -448,12 +435,22 @@ class KalshiClient(KalshiPublicClient):
                 timeout=kwargs.get("timeout", 30.0),
             )
 
+    @retry(
+        retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=1, max=60),
+    )
     async def _auth_get(self, path: str, params: Optional[dict] = None) -> dict:
-        """Authenticated GET request."""
-        await self._rate_limiter.acquire()
+        """Authenticated GET request with retry."""
         headers = self._auth.get_headers("GET", path)
         response = await self._client.get(path, params=params, headers=headers)
-        # ... error handling
+        
+        if response.status_code == 429:
+            raise RateLimitError("Rate limit exceeded")
+
+        if response.status_code >= 400:
+            raise KalshiAPIError(response.status_code, response.text)
+            
         return response.json()
 
     async def get_balance(self) -> dict:
@@ -480,47 +477,7 @@ class KalshiClient(KalshiPublicClient):
         return data.get("orders", [])
 ```
 
-### 3.4 Rate Limiter
-
-```python
-# src/kalshi_research/api/rate_limiter.py
-import asyncio
-import time
-from dataclasses import dataclass
-
-
-@dataclass
-class RateLimiter:
-    """Token bucket rate limiter for API calls."""
-
-    requests_per_second: float = 10.0
-    burst_size: int = 20
-
-    def __post_init__(self):
-        self._tokens = float(self.burst_size)
-        self._last_update = time.monotonic()
-        self._lock = asyncio.Lock()
-
-    async def acquire(self) -> None:
-        """Wait until a request token is available."""
-        async with self._lock:
-            now = time.monotonic()
-            elapsed = now - self._last_update
-            self._tokens = min(
-                self.burst_size,
-                self._tokens + elapsed * self.requests_per_second
-            )
-            self._last_update = now
-
-            if self._tokens < 1:
-                wait_time = (1 - self._tokens) / self.requests_per_second
-                await asyncio.sleep(wait_time)
-                self._tokens = 0
-            else:
-                self._tokens -= 1
-```
-
-### 3.5 Custom Exceptions
+### 3.4 Custom Exceptions
 
 ```python
 # src/kalshi_research/api/exceptions.py
@@ -568,20 +525,18 @@ class MarketNotFoundError(KalshiAPIError):
 - [ ] Create module structure under `src/kalshi_research/api/`
 - [ ] Implement base Pydantic models for Market, Event, Trade
 - [ ] Implement custom exception hierarchy
-- [ ] Implement token bucket rate limiter
-- [ ] Write unit tests for rate limiter
+- [ ] Implement `KalshiPublicClient` using `tenacity` for robust retries
 
 ### 4.2 Phase 2: Public Client
 
-- [ ] Implement `KalshiPublicClient` with httpx
-- [ ] Add `/markets` endpoint with pagination
+- [ ] Add `/markets` endpoint with pagination and safety limits
 - [ ] Add `/markets/{ticker}` endpoint
 - [ ] Add `/markets/{ticker}/orderbook` endpoint
 - [ ] Add `/markets/trades` endpoint
 - [ ] Add `/markets/{ticker}/candlesticks` endpoint
 - [ ] Add `/events` endpoints
 - [ ] Add `/exchange/status` endpoint
-- [ ] Write comprehensive unit tests with mocked responses
+- [ ] Write comprehensive unit tests with `respx` mocking
 
 ### 4.3 Phase 3: Authenticated Client
 
@@ -592,8 +547,7 @@ class MarketNotFoundError(KalshiAPIError):
 
 ### 4.4 Phase 4: Sync Wrapper
 
-- [ ] Add synchronous wrapper for non-async contexts
-- [ ] Ensure backwards compatibility with existing code
+- [ ] Add synchronous wrapper for non-async contexts (optional but nice)
 
 ---
 
@@ -601,7 +555,7 @@ class MarketNotFoundError(KalshiAPIError):
 
 1. **Public Data**: Can fetch all open markets without API keys
 2. **Pagination**: `get_all_markets()` iterates through 1000+ markets
-3. **Rate Limiting**: Respects 10 RPS default, configurable
+3. **Robustness**: Automatically retries on 429 and network errors, handling concurrency safely
 4. **Error Handling**: Proper exceptions for 4xx/5xx responses
 5. **Type Safety**: All responses validated through Pydantic models
 6. **Tests**: >90% coverage on public client code
@@ -637,15 +591,3 @@ async def main():
 
 asyncio.run(main())
 ```
-
----
-
-## 7. API Rate Limit Reference
-
-| Tier | Requests/Second | Notes |
-|------|-----------------|-------|
-| Default | 10 RPS | Most users |
-| Elevated | 25 RPS | Apply to Kalshi |
-| High | 100 RPS | Market makers |
-
-We default to 10 RPS with burst of 20 to be safe.

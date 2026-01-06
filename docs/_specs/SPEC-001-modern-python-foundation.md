@@ -34,6 +34,7 @@ kalshi-research/
 ├── pyproject.toml           # Single source of truth for project config
 ├── uv.lock                   # Lockfile for reproducible builds
 ├── .python-version           # Pin Python version (3.11+)
+├── .env.example              # Template for environment variables
 ├── .gitignore                # Updated for Python/uv
 ├── .pre-commit-config.yaml   # Pre-commit hooks
 ├── .github/
@@ -47,7 +48,7 @@ kalshi-research/
 │       └── py.typed          # PEP 561 marker
 ├── tests/
 │   ├── __init__.py
-│   ├── conftest.py           # Shared fixtures
+│   ├── conftest.py           # Shared fixtures (load .env here)
 │   ├── unit/
 │   │   ├── __init__.py
 │   │   └── test_clients.py
@@ -77,16 +78,20 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "requests>=2.32.0",
-    "cryptography>=44.0.0",
-    "websockets>=14.0",
+    "cryptography>=46.0.0",        # Updated for 2026
+    "websockets>=15.0.0",          # Updated
     "python-dotenv>=1.0.0",
-    "pydantic>=2.10.0",        # Data validation
-    "httpx>=0.28.0",           # Modern HTTP client (async support)
-    "tenacity>=9.0.0",         # Retry logic
-    "structlog>=24.0.0",       # Structured logging
+    "pydantic>=2.12.0",            # Updated
+    "httpx>=0.28.0",               # Modern HTTP client (async support)
+    "tenacity>=9.1.0",             # Retry logic
+    "structlog>=25.0.0",           # Structured logging
+    "sqlalchemy>=2.0.40",          # Database ORM
+    "alembic>=1.14.0",             # Database migrations
+    "duckdb>=1.1.0",               # Analytical OLAP database
 ]
 
 [project.optional-dependencies]
@@ -94,14 +99,14 @@ dev = [
     "pytest>=8.3.0",
     "pytest-cov>=6.0.0",
     "pytest-sugar>=1.0.0",
-    "pytest-xdist>=3.5.0",     # Parallel test execution
+    "pytest-xdist>=3.6.0",     # Parallel test execution
     "pytest-asyncio>=0.25.0",  # Async test support
     "pytest-mock>=3.14.0",
     "ruff>=0.9.0",
     "mypy>=1.14.0",
     "pre-commit>=4.0.0",
     "respx>=0.22.0",           # Mock httpx requests
-    "polyfactory>=2.18.0",     # Test data factories
+    "polyfactory>=3.0.0",      # Test data factories
     "hypothesis>=6.122.0",     # Property-based testing
 ]
 research = [
@@ -163,7 +168,7 @@ warn_unused_configs = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["websockets.*", "respx.*"]
+module = ["websockets.*", "respx.*", "scipy.*", "matplotlib.*", "pandas.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -240,7 +245,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
@@ -280,9 +285,10 @@ jobs:
       - name: Run integration tests
         env:
           DEMO_KEYID: ${{ secrets.DEMO_KEYID }}
-          DEMO_KEYFILE_CONTENT: ${{ secrets.DEMO_KEYFILE_CONTENT }}
+          # Base64 encoded private key to avoid newline issues
+          DEMO_KEYFILE_CONTENT_B64: ${{ secrets.DEMO_KEYFILE_CONTENT_B64 }}
         run: |
-          echo "$DEMO_KEYFILE_CONTENT" > /tmp/demo_key.pem
+          echo "$DEMO_KEYFILE_CONTENT_B64" | base64 -d > /tmp/demo_key.pem
           export DEMO_KEYFILE=/tmp/demo_key.pem
           uv run pytest tests/integration -m integration --timeout=60
 ```
@@ -304,7 +310,8 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          - pydantic>=2.10.0
+          - pydantic>=2.12.0
+          - types-requests
         args: [--config-file=pyproject.toml]
         pass_filenames: false
         entry: mypy src/
@@ -367,7 +374,7 @@ coverage.xml
 # Type checking
 .mypy_cache/
 .dmypy.json
-dmypy.json
+dmpy.json
 
 # IDEs
 .idea/
@@ -386,6 +393,7 @@ dmypy.json
 # Data (will be tracked selectively)
 data/*.db
 data/*.json
+data/exports/
 !data/.gitkeep
 
 # OS
@@ -414,7 +422,7 @@ Thumbs.db
 
 ### 3.3 Phase 3: Testing Infrastructure
 - [ ] Create `tests/` directory structure
-- [ ] Write `conftest.py` with shared fixtures
+- [ ] Write `conftest.py` with shared fixtures (auto-load dotenv)
 - [ ] Write initial unit tests for `clients.py`
 - [ ] Set up pytest markers (unit, integration, slow)
 - [ ] Configure coverage reporting
@@ -422,19 +430,19 @@ Thumbs.db
 ### 3.4 Phase 4: CI/CD
 - [ ] Create `.github/workflows/ci.yml`
 - [ ] Test CI pipeline on a branch
-- [ ] Document required GitHub secrets
+- [ ] Document required GitHub secrets (base64 encoded key)
 - [ ] Add status badges to README
 
 ---
 
 ## 4. Acceptance Criteria
 
-1. **Build**: `uv sync` installs all dependencies successfully
+1. **Build**: `uv sync` installs all dependencies successfully (including Python 3.14 if available)
 2. **Lint**: `uv run ruff check .` passes with no errors
 3. **Format**: `uv run ruff format --check .` passes
 4. **Types**: `uv run mypy src/` passes with no errors
 5. **Tests**: `uv run pytest tests/unit` passes with >80% coverage
-6. **CI**: GitHub Actions pipeline passes on all Python versions
+6. **CI**: GitHub Actions pipeline passes on all Python versions (3.11-3.14)
 7. **Pre-commit**: All hooks pass on clean checkout
 
 ---
@@ -445,7 +453,7 @@ Thumbs.db
 |------|------------|--------|------------|
 | Breaking existing code during migration | Medium | High | Comprehensive tests before moving files |
 | Type hint complexity in crypto code | Medium | Low | Use `# type: ignore` sparingly where needed |
-| CI secrets management | Low | Medium | Use GitHub encrypted secrets, never commit keys |
+| CI secrets management | Low | Medium | Use Base64 encoding for keys in GitHub Secrets |
 
 ---
 

@@ -13,10 +13,10 @@ Implement a local data storage layer for persisting Kalshi market data, enabling
 
 ### 1.1 Goals
 
-- SQLite database for structured market data storage
-- Efficient schema for time-series price/probability data
+- SQLite database for structured market data storage (Transaction Layer)
+- **DuckDB Integration:** Efficient OLAP for analytical queries and large history
 - Data fetching scheduler for automated snapshots
-- Export capabilities (CSV, JSON, Parquet)
+- Export capabilities (Parquet/CSV) for analysis
 - Query interface for analysis
 
 ### 1.2 Non-Goals
@@ -46,7 +46,7 @@ Implement a local data storage layer for persisting Kalshi market data, enabling
 - ~3,000 active markets at any time
 - ~500 events
 - Price snapshots: 3000 markets × 96 snapshots/day × 365 days = ~100M rows/year
-- Storage: ~5-10 GB/year (SQLite handles this fine)
+- **Strategy:** SQLite for recent/hot data and transaction integrity. Offload to DuckDB/Parquet for deep history and analytics.
 
 ---
 
@@ -68,10 +68,11 @@ src/kalshi_research/
 │   │   └── trades.py       # Trade repository
 │   ├── fetcher.py          # Data fetching orchestrator
 │   ├── scheduler.py        # Scheduled data collection
-│   └── export.py           # CSV/JSON/Parquet export
+│   └── export.py           # DuckDB/Parquet export
 data/
 ├── kalshi.db               # Main SQLite database
-├── exports/                # Exported data files
+├── analytics.duckdb        # Analytical database (optional)
+├── exports/                # Exported Parquet files
 └── backups/                # Database backups
 ```
 
@@ -146,109 +147,24 @@ CREATE TABLE price_snapshots (
 
 CREATE INDEX idx_snapshots_ticker_time ON price_snapshots(ticker, snapshot_time DESC);
 CREATE INDEX idx_snapshots_time ON price_snapshots(snapshot_time DESC);
-
--- Orderbook Snapshots (for liquidity analysis)
-CREATE TABLE orderbook_snapshots (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ticker TEXT NOT NULL,
-    snapshot_time TIMESTAMP NOT NULL,
-    depth INTEGER NOT NULL,         -- number of levels
-
-    -- Store as JSON for flexibility
-    yes_bids JSON NOT NULL,         -- [{"price": 45, "quantity": 100}, ...]
-    yes_asks JSON NOT NULL,
-
-    -- Calculated summary stats
-    total_bid_volume INTEGER,
-    total_ask_volume INTEGER,
-    best_bid INTEGER,
-    best_ask INTEGER,
-
-    FOREIGN KEY (ticker) REFERENCES markets(ticker),
-    UNIQUE(ticker, snapshot_time)
-);
-
-CREATE INDEX idx_orderbook_ticker_time ON orderbook_snapshots(ticker, snapshot_time DESC);
-
--- Trade History
-CREATE TABLE trades (
-    trade_id TEXT PRIMARY KEY,
-    ticker TEXT NOT NULL,
-    trade_time TIMESTAMP NOT NULL,
-    price INTEGER NOT NULL,
-    count INTEGER NOT NULL,         -- contracts
-    taker_side TEXT NOT NULL,       -- yes, no
-
-    FOREIGN KEY (ticker) REFERENCES markets(ticker)
-);
-
-CREATE INDEX idx_trades_ticker_time ON trades(ticker, trade_time DESC);
-CREATE INDEX idx_trades_time ON trades(trade_time DESC);
-
--- Candlesticks (OHLC data)
-CREATE TABLE candlesticks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ticker TEXT NOT NULL,
-    period_start TIMESTAMP NOT NULL,
-    period_end TIMESTAMP NOT NULL,
-    interval_minutes INTEGER NOT NULL,  -- 1, 5, 15, 60, 1440
-
-    open_price INTEGER NOT NULL,
-    high_price INTEGER NOT NULL,
-    low_price INTEGER NOT NULL,
-    close_price INTEGER NOT NULL,
-    volume INTEGER NOT NULL,
-
-    FOREIGN KEY (ticker) REFERENCES markets(ticker),
-    UNIQUE(ticker, period_start, interval_minutes)
-);
-
-CREATE INDEX idx_candles_ticker_time ON candlesticks(ticker, period_start DESC);
-
--- Settlement Outcomes (for calibration)
-CREATE TABLE settlements (
-    ticker TEXT PRIMARY KEY,
-    event_ticker TEXT NOT NULL,
-    settled_at TIMESTAMP NOT NULL,
-    result TEXT NOT NULL,           -- yes, no, void
-
-    -- Final price before settlement
-    final_yes_price INTEGER,
-    final_no_price INTEGER,
-
-    -- Payout per contract (in cents)
-    yes_payout INTEGER,
-    no_payout INTEGER,
-
-    FOREIGN KEY (ticker) REFERENCES markets(ticker)
-);
-
-CREATE INDEX idx_settlements_event ON settlements(event_ticker);
-CREATE INDEX idx_settlements_time ON settlements(settled_at DESC);
-
--- Data collection metadata
-CREATE TABLE collection_runs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_type TEXT NOT NULL,         -- full_snapshot, price_update, trade_sync
-    started_at TIMESTAMP NOT NULL,
-    completed_at TIMESTAMP,
-    markets_processed INTEGER DEFAULT 0,
-    errors INTEGER DEFAULT 0,
-    error_details JSON
-);
 ```
 
-### 3.3 SQLAlchemy Models
+### 3.3 SQLAlchemy Models (Timezone Aware)
 
 ```python
 # src/kalshi_research/data/models.py
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, DateTime, JSON,
     ForeignKey, Index, text
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
+
+
+def utc_now():
+    """Return current UTC time with timezone info."""
+    return datetime.now(timezone.utc)
 
 
 class Base(DeclarativeBase):
@@ -266,15 +182,15 @@ class Market(Base):
     status = Column(String, nullable=False)
     result = Column(String)
 
-    open_time = Column(DateTime, nullable=False)
-    close_time = Column(DateTime, nullable=False)
-    expiration_time = Column(DateTime, nullable=False)
+    open_time = Column(DateTime(timezone=True), nullable=False)
+    close_time = Column(DateTime(timezone=True), nullable=False)
+    expiration_time = Column(DateTime(timezone=True), nullable=False)
 
     category = Column(String)
     subcategory = Column(String)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     # Relationships
     event = relationship("Event", back_populates="markets")
@@ -287,7 +203,7 @@ class PriceSnapshot(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     ticker = Column(String, ForeignKey("markets.ticker"), nullable=False)
-    snapshot_time = Column(DateTime, nullable=False)
+    snapshot_time = Column(DateTime(timezone=True), nullable=False)
 
     yes_bid = Column(Integer, nullable=False)
     yes_ask = Column(Integer, nullable=False)
@@ -319,301 +235,18 @@ class PriceSnapshot(Base):
     def implied_probability(self) -> float:
         """Convert midpoint to probability (0-1 scale)."""
         return self.midpoint / 100.0
-
-
-class Settlement(Base):
-    __tablename__ = "settlements"
-
-    ticker = Column(String, ForeignKey("markets.ticker"), primary_key=True)
-    event_ticker = Column(String, nullable=False)
-    settled_at = Column(DateTime, nullable=False)
-    result = Column(String, nullable=False)  # yes, no, void
-
-    final_yes_price = Column(Integer)
-    final_no_price = Column(Integer)
-    yes_payout = Column(Integer)
-    no_payout = Column(Integer)
-
-    # Relationships
-    market = relationship("Market", back_populates="settlement")
 ```
 
 ### 3.4 Repository Pattern
 
-```python
-# src/kalshi_research/data/repositories/prices.py
-from datetime import datetime, timedelta
-from typing import Optional
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
-import pandas as pd
+Standard Repository pattern (as in SPEC-003 Draft) but ensuring all datetime objects are timezone-aware (UTC) before persistence.
 
-from ..models import PriceSnapshot, Market
-
-
-class PriceRepository:
-    """Repository for price snapshot data operations."""
-
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-    async def save_snapshot(self, snapshot: PriceSnapshot) -> None:
-        """Save a single price snapshot."""
-        self.session.add(snapshot)
-        await self.session.commit()
-
-    async def save_snapshots_batch(self, snapshots: list[PriceSnapshot]) -> int:
-        """Bulk insert price snapshots. Returns count inserted."""
-        self.session.add_all(snapshots)
-        await self.session.commit()
-        return len(snapshots)
-
-    async def get_latest(self, ticker: str) -> Optional[PriceSnapshot]:
-        """Get most recent snapshot for a market."""
-        stmt = (
-            select(PriceSnapshot)
-            .where(PriceSnapshot.ticker == ticker)
-            .order_by(PriceSnapshot.snapshot_time.desc())
-            .limit(1)
-        )
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
-
-    async def get_history(
-        self,
-        ticker: str,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
-        limit: int = 1000,
-    ) -> list[PriceSnapshot]:
-        """Get historical snapshots for a market."""
-        stmt = select(PriceSnapshot).where(PriceSnapshot.ticker == ticker)
-
-        if start_time:
-            stmt = stmt.where(PriceSnapshot.snapshot_time >= start_time)
-        if end_time:
-            stmt = stmt.where(PriceSnapshot.snapshot_time <= end_time)
-
-        stmt = stmt.order_by(PriceSnapshot.snapshot_time.desc()).limit(limit)
-
-        result = await self.session.execute(stmt)
-        return list(result.scalars().all())
-
-    async def get_history_as_dataframe(
-        self,
-        ticker: str,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
-    ) -> pd.DataFrame:
-        """Get price history as pandas DataFrame for analysis."""
-        snapshots = await self.get_history(ticker, start_time, end_time, limit=100000)
-
-        if not snapshots:
-            return pd.DataFrame()
-
-        data = [
-            {
-                "time": s.snapshot_time,
-                "yes_bid": s.yes_bid,
-                "yes_ask": s.yes_ask,
-                "midpoint": s.midpoint,
-                "spread": s.spread,
-                "volume": s.volume,
-                "volume_24h": s.volume_24h,
-                "open_interest": s.open_interest,
-                "implied_prob": s.implied_probability,
-            }
-            for s in snapshots
-        ]
-
-        df = pd.DataFrame(data)
-        df.set_index("time", inplace=True)
-        df.sort_index(inplace=True)
-        return df
-
-    async def get_probability_at_time(
-        self,
-        ticker: str,
-        target_time: datetime,
-    ) -> Optional[float]:
-        """Get implied probability at a specific point in time."""
-        stmt = (
-            select(PriceSnapshot)
-            .where(PriceSnapshot.ticker == ticker)
-            .where(PriceSnapshot.snapshot_time <= target_time)
-            .order_by(PriceSnapshot.snapshot_time.desc())
-            .limit(1)
-        )
-        result = await self.session.execute(stmt)
-        snapshot = result.scalar_one_or_none()
-
-        if snapshot:
-            return snapshot.implied_probability
-        return None
-
-    async def get_markets_by_price_change(
-        self,
-        hours: int = 24,
-        min_change_cents: int = 5,
-    ) -> list[dict]:
-        """Find markets with significant price movement."""
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
-
-        # Get current and past prices
-        stmt = """
-        WITH current_prices AS (
-            SELECT ticker, yes_bid, yes_ask,
-                   (yes_bid + yes_ask) / 2.0 as current_mid
-            FROM price_snapshots ps1
-            WHERE snapshot_time = (
-                SELECT MAX(snapshot_time)
-                FROM price_snapshots ps2
-                WHERE ps2.ticker = ps1.ticker
-            )
-        ),
-        past_prices AS (
-            SELECT ticker,
-                   (yes_bid + yes_ask) / 2.0 as past_mid
-            FROM price_snapshots ps1
-            WHERE snapshot_time = (
-                SELECT MAX(snapshot_time)
-                FROM price_snapshots ps2
-                WHERE ps2.ticker = ps1.ticker
-                AND ps2.snapshot_time <= :cutoff
-            )
-        )
-        SELECT
-            c.ticker,
-            c.current_mid,
-            p.past_mid,
-            (c.current_mid - p.past_mid) as change
-        FROM current_prices c
-        JOIN past_prices p ON c.ticker = p.ticker
-        WHERE ABS(c.current_mid - p.past_mid) >= :min_change
-        ORDER BY ABS(c.current_mid - p.past_mid) DESC
-        """
-
-        result = await self.session.execute(
-            text(stmt),
-            {"cutoff": cutoff, "min_change": min_change_cents}
-        )
-        return [dict(row._mapping) for row in result.fetchall()]
-```
-
-### 3.5 Data Fetcher
-
-```python
-# src/kalshi_research/data/fetcher.py
-from datetime import datetime
-from typing import Optional
-import structlog
-
-from ..api import KalshiPublicClient
-from .database import get_async_session
-from .models import Market, PriceSnapshot, Event
-from .repositories.markets import MarketRepository
-from .repositories.prices import PriceRepository
-
-logger = structlog.get_logger()
-
-
-class DataFetcher:
-    """Orchestrates data fetching from Kalshi API to local storage."""
-
-    def __init__(
-        self,
-        client: Optional[KalshiPublicClient] = None,
-    ):
-        self.client = client or KalshiPublicClient()
-
-    async def fetch_all_markets(self) -> int:
-        """
-        Fetch and store all current markets.
-
-        Returns:
-            Number of markets processed
-        """
-        count = 0
-        async with get_async_session() as session:
-            repo = MarketRepository(session)
-
-            async for api_market in self.client.get_all_markets():
-                market = Market(
-                    ticker=api_market.ticker,
-                    event_ticker=api_market.event_ticker,
-                    series_ticker=api_market.series_ticker,
-                    title=api_market.title,
-                    subtitle=api_market.subtitle,
-                    status=api_market.status.value,
-                    result=api_market.result.value if api_market.result else None,
-                    open_time=api_market.open_time,
-                    close_time=api_market.close_time,
-                    expiration_time=api_market.expiration_time,
-                )
-                await repo.upsert(market)
-                count += 1
-
-                if count % 100 == 0:
-                    logger.info("Fetched markets", count=count)
-
-        logger.info("Completed market fetch", total=count)
-        return count
-
-    async def snapshot_all_prices(self) -> int:
-        """
-        Take price snapshot of all open markets.
-
-        Returns:
-            Number of snapshots saved
-        """
-        snapshot_time = datetime.utcnow()
-        snapshots = []
-
-        async with get_async_session() as session:
-            async for api_market in self.client.get_all_markets(status="open"):
-                snapshot = PriceSnapshot(
-                    ticker=api_market.ticker,
-                    snapshot_time=snapshot_time,
-                    yes_bid=api_market.yes_bid,
-                    yes_ask=api_market.yes_ask,
-                    no_bid=api_market.no_bid,
-                    no_ask=api_market.no_ask,
-                    last_price=api_market.last_price,
-                    volume=api_market.volume,
-                    volume_24h=api_market.volume_24h,
-                    open_interest=api_market.open_interest,
-                    liquidity=api_market.liquidity,
-                )
-                snapshots.append(snapshot)
-
-            # Batch insert
-            repo = PriceRepository(session)
-            count = await repo.save_snapshots_batch(snapshots)
-
-        logger.info("Price snapshot complete", count=count, time=snapshot_time)
-        return count
-
-    async def fetch_market_history(
-        self,
-        ticker: str,
-        days: int = 30,
-    ) -> int:
-        """
-        Fetch historical candlestick data for a market.
-
-        Returns:
-            Number of candlesticks saved
-        """
-        # Implementation for backfilling historical data
-        pass
-```
-
-### 3.6 Scheduler
+### 3.5 Scheduler (Drift Corrected)
 
 ```python
 # src/kalshi_research/data/scheduler.py
 import asyncio
-from datetime import datetime
+import time
 from typing import Callable, Awaitable
 import structlog
 
@@ -621,7 +254,7 @@ logger = structlog.get_logger()
 
 
 class DataScheduler:
-    """Simple async scheduler for data collection tasks."""
+    """Async scheduler for data collection tasks with drift correction."""
 
     def __init__(self):
         self.tasks: list[asyncio.Task] = []
@@ -633,17 +266,30 @@ class DataScheduler:
         func: Callable[[], Awaitable],
         interval_seconds: int,
     ) -> None:
-        """Schedule a function to run at fixed intervals."""
-
+        """
+        Schedule a function to run at fixed intervals.
+        Corrects for execution time drift.
+        """
         async def runner():
+            next_run = time.time()
             while self.running:
-                try:
-                    logger.info("Running scheduled task", task=name)
-                    await func()
-                except Exception as e:
-                    logger.error("Scheduled task failed", task=name, error=str(e))
-
-                await asyncio.sleep(interval_seconds)
+                now = time.time()
+                if now >= next_run:
+                    try:
+                        logger.info("Running scheduled task", task=name)
+                        await func()
+                    except Exception as e:
+                        logger.error("Scheduled task failed", task=name, error=str(e))
+                    
+                    # Calculate next run time
+                    next_run += interval_seconds
+                    # If we fell way behind, skip intervals to catch up
+                    while next_run <= time.time():
+                         next_run += interval_seconds
+                
+                # Sleep until next run
+                sleep_duration = max(0, next_run - time.time())
+                await asyncio.sleep(sleep_duration)
 
         task = asyncio.create_task(runner())
         self.tasks.append(task)
@@ -660,37 +306,39 @@ class DataScheduler:
             task.cancel()
         await asyncio.gather(*self.tasks, return_exceptions=True)
         logger.info("Scheduler stopped")
+```
 
+### 3.6 Data Export & Analytical Storage
 
-# Example usage
-async def run_data_collection():
-    """Run continuous data collection."""
-    from .fetcher import DataFetcher
+To handle 100M+ rows, we provide utilities to export data to DuckDB or Parquet files.
 
-    fetcher = DataFetcher()
-    scheduler = DataScheduler()
+```python
+# src/kalshi_research/data/export.py
+import duckdb
+import pandas as pd
+from sqlalchemy import create_engine
 
-    # Schedule tasks
-    await scheduler.schedule_interval(
-        "price_snapshots",
-        fetcher.snapshot_all_prices,
-        interval_seconds=900,  # Every 15 minutes
-    )
-
-    await scheduler.schedule_interval(
-        "market_sync",
-        fetcher.fetch_all_markets,
-        interval_seconds=3600,  # Every hour
-    )
-
-    await scheduler.start()
-
-    # Run until interrupted
-    try:
-        while True:
-            await asyncio.sleep(60)
-    except KeyboardInterrupt:
-        await scheduler.stop()
+def export_to_parquet(sqlite_path: str, output_dir: str):
+    """
+    Export SQLite data to partitioned Parquet files for efficient analysis.
+    Uses DuckDB for high-performance data transfer.
+    """
+    conn = duckdb.connect()
+    
+    # Attach SQLite database
+    conn.execute(f"INSTALL sqlite; LOAD sqlite;")
+    conn.execute(f"ATTACH '{sqlite_path}' AS kalshi (TYPE SQLITE);")
+    
+    # Export price snapshots partitioned by month
+    conn.execute(f"""
+        COPY (
+            SELECT *, strftime('%Y-%m', snapshot_time) as month 
+            FROM kalshi.price_snapshots
+        ) TO '{output_dir}/snapshots' 
+        (FORMAT PARQUET, PARTITION_BY (month), OVERWRITE_OR_IGNORE true);
+    """)
+    
+    conn.close()
 ```
 
 ---
@@ -700,8 +348,8 @@ async def run_data_collection():
 ### 4.1 Phase 1: Database Setup
 
 - [ ] Create SQLite database schema
-- [ ] Implement SQLAlchemy models
-- [ ] Set up Alembic for migrations
+- [ ] Implement SQLAlchemy models with timezone-aware datetimes
+- [ ] Set up **Alembic** for migrations
 - [ ] Write database connection management
 
 ### 4.2 Phase 2: Repositories
@@ -710,7 +358,6 @@ async def run_data_collection():
 - [ ] Implement PriceRepository
 - [ ] Implement OrderbookRepository
 - [ ] Implement TradeRepository
-- [ ] Implement SettlementRepository
 - [ ] Write unit tests for all repositories
 
 ### 4.3 Phase 3: Data Fetching
@@ -719,26 +366,23 @@ async def run_data_collection():
 - [ ] Add market sync functionality
 - [ ] Add price snapshot functionality
 - [ ] Add trade history sync
-- [ ] Add candlestick backfill
 
 ### 4.4 Phase 4: Scheduler & Export
 
-- [ ] Implement async scheduler
+- [ ] Implement drift-corrected async scheduler
 - [ ] Add CLI commands for data collection
-- [ ] Implement CSV export
-- [ ] Implement JSON export
-- [ ] Implement Parquet export (for pandas)
+- [ ] Implement DuckDB/Parquet export functionality
 
 ---
 
 ## 5. Acceptance Criteria
 
 1. **Storage**: Can store 100k+ price snapshots without performance issues
-2. **Queries**: Historical price query returns in <100ms
+2. **Time Handling**: All stored timestamps are UTC and timezone-aware
 3. **Sync**: Can sync all markets in <5 minutes
-4. **Snapshots**: Can snapshot all open market prices in <2 minutes
-5. **Export**: Can export market history to CSV/Parquet
-6. **Reliability**: Handles API failures gracefully with retries
+4. **Reliability**: Scheduler runs indefinitely without drifting
+5. **Analytics**: Can export history to Parquet for efficient querying
+6. **Recovery**: Handles API failures gracefully with retries
 
 ---
 
@@ -751,25 +395,9 @@ kalshi data init
 # Sync all markets
 kalshi data sync-markets
 
-# Take price snapshot
-kalshi data snapshot
-
 # Run continuous collection
 kalshi data collect --interval 15m
 
-# Export data
-kalshi data export --ticker KXBTC-24DEC31-T100000 --format parquet
-
-# Show database stats
-kalshi data stats
+# Export to Parquet for analysis
+kalshi data export-parquet --output ./data/exports
 ```
-
----
-
-## 7. Future Considerations
-
-- Add PostgreSQL support for production deployment
-- Implement data partitioning for large datasets
-- Add data quality checks and anomaly detection
-- Consider TimescaleDB for time-series optimization
-- Add backup/restore utilities
