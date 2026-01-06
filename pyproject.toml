@@ -100,6 +100,8 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLC0415"]  # Allow imports inside fixtures for lazy loading
 "src/kalshi_research/cli.py" = ["PLC0415"]  # Allow lazy imports in CLI for faster startup
+"src/kalshi_research/api/auth.py" = ["PLC0415"]  # Allow lazy import to prevent circular imports
+"src/kalshi_research/api/models/*.py" = ["TC003"]  # Pydantic models need datetime at runtime
 
 [tool.ruff.lint.isort]
 known-first-party = ["kalshi_research"]
