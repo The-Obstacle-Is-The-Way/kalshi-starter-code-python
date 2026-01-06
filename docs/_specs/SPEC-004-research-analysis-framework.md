@@ -92,7 +92,6 @@ notebooks/
 ```python
 # src/kalshi_research/analysis/calibration.py
 from dataclasses import dataclass
-from typing import Optional
 import numpy as np
 
 

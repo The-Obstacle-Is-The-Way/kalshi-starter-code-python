@@ -101,9 +101,9 @@ src/kalshi_research/
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class MarketStatus(str, Enum):
@@ -224,42 +224,77 @@ class Trade(BaseModel):
     trade_id: str
     ticker: str
     created_time: datetime  # Note: API uses created_time, not timestamp
-    yes_price: int = Field(..., ge=1, le=99, description="YES price in cents")
-    no_price: int = Field(..., ge=1, le=99, description="NO price in cents")
+    yes_price: int = Field(..., ge=0, le=100, description="YES price in cents (rounded)")
+    no_price: int = Field(..., ge=0, le=100, description="NO price in cents (rounded)")
     count: int = Field(..., ge=1, description="Number of contracts")
     taker_side: Literal["yes", "no"]
 
 
 # src/kalshi_research/api/models/candlestick.py
-class Candlestick(BaseModel):
-    """OHLC price data for a single period."""
+class CandleSide(BaseModel):
+    """Bid/ask series for a candlestick."""
 
     model_config = ConfigDict(frozen=True)
 
-    # Timestamps as Unix seconds
-    start_ts: int = Field(..., description="Period start timestamp (Unix seconds)")
-    end_ts: int = Field(..., description="Period end timestamp (Unix seconds)")
+    open: int | None = None
+    high: int | None = None
+    low: int | None = None
+    close: int | None = None
 
-    # OHLC prices in cents
-    open: int
-    high: int
-    low: int
-    close: int
-    volume: int
+    open_dollars: str | None = None
+    high_dollars: str | None = None
+    low_dollars: str | None = None
+    close_dollars: str | None = None
 
-    @property
-    def period_start(self) -> datetime:
-        """Period start as datetime (UTC)."""
-        from datetime import timezone
 
-        return datetime.fromtimestamp(self.start_ts, tz=timezone.utc)
+class CandlePrice(BaseModel):
+    """Trade/mark price series for a candlestick."""
+
+    model_config = ConfigDict(frozen=True)
+
+    open: int | None = None
+    high: int | None = None
+    low: int | None = None
+    close: int | None = None
+
+    open_dollars: str | None = None
+    high_dollars: str | None = None
+    low_dollars: str | None = None
+    close_dollars: str | None = None
+
+    mean: int | None = None
+    mean_dollars: str | None = None
+
+    min: int | None = None
+    max: int | None = None
+    previous: int | None = None
+    previous_dollars: str | None = None
+
+
+class Candlestick(BaseModel):
+    """
+    Candlestick record as returned by the Kalshi API.
+
+    Note: The API uses `end_period_ts` (Unix seconds) and nested objects for `price`, `yes_bid`,
+    and `yes_ask`.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    end_period_ts: int = Field(..., description="Period end timestamp (Unix seconds)")
+    open_interest: int = Field(..., ge=0)
+    volume: int = Field(..., ge=0)
+
+    price: CandlePrice
+    yes_bid: CandleSide
+    yes_ask: CandleSide
 
     @property
     def period_end(self) -> datetime:
         """Period end as datetime (UTC)."""
         from datetime import timezone
 
-        return datetime.fromtimestamp(self.end_ts, tz=timezone.utc)
+        return datetime.fromtimestamp(self.end_period_ts, tz=timezone.utc)
 
 
 class CandlestickResponse(BaseModel):
@@ -269,6 +304,33 @@ class CandlestickResponse(BaseModel):
 
     market_ticker: str
     candlesticks: list[Candlestick]
+
+
+# src/kalshi_research/api/models/event.py
+class Event(BaseModel):
+    """Event as returned by the Kalshi API."""
+
+    model_config = ConfigDict(frozen=True)
+
+    event_ticker: str = Field(..., description="Unique event identifier")
+    series_ticker: str = Field(..., description="Parent series ticker")
+    title: str
+    sub_title: str = ""
+    category: str | None = None
+
+    mutually_exclusive: bool = False
+    available_on_brokers: bool = False
+
+    collateral_return_type: str = ""
+    strike_period: str = ""
+    strike_date: datetime | None = None
+
+    @field_validator("strike_date", mode="before")
+    @classmethod
+    def _empty_str_to_none(cls, value: Any) -> Any:
+        if value in ("", None):
+            return None
+        return value
 ```
 
 ### 3.3 Client Architecture
@@ -289,7 +351,7 @@ class KalshiAuth:
     Handles Kalshi API authentication (RSA-PSS signing).
     """
 
-    def __init__(self, key_id: str, private_key_path: str):
+    def __init__(self, key_id: str, private_key_path: str) -> None:
         self.key_id = key_id
         self.private_key = self._load_private_key(private_key_path)
 
@@ -360,15 +422,11 @@ from tenacity import (
 
 from .auth import KalshiAuth
 from .exceptions import KalshiAPIError, RateLimitError
-from .models.market import (
-    Candlestick,
-    CandlestickResponse,
-    Market,
-    MarketFilterStatus,
-    Orderbook,
-    Trade,
-)
+from .models.candlestick import Candlestick, CandlestickResponse
 from .models.event import Event
+from .models.market import Market, MarketFilterStatus
+from .models.orderbook import Orderbook
+from .models.trade import Trade
 
 
 class KalshiPublicClient:
@@ -384,7 +442,7 @@ class KalshiPublicClient:
         self,
         timeout: float = 30.0,
         max_retries: int = 5,
-    ):
+    ) -> None:
         self._client = httpx.AsyncClient(
             base_url=self.BASE_URL,
             timeout=timeout,
@@ -590,14 +648,14 @@ class KalshiPublicClient:
 
     async def get_events(
         self,
-        status: str | None = None,
+        status: MarketFilterStatus | str | None = None,
         series_ticker: str | None = None,
         limit: int = 100,
     ) -> list[Event]:
         """Fetch events with optional filters."""
         params: dict[str, Any] = {"limit": min(limit, 1000)}
         if status:
-            params["status"] = status
+            params["status"] = status.value if isinstance(status, MarketFilterStatus) else status
         if series_ticker:
             params["series_ticker"] = series_ticker
 
@@ -634,7 +692,7 @@ class KalshiClient(KalshiPublicClient):
         private_key_path: str,
         environment: str = "prod",
         timeout: float = 30.0,
-    ):
+    ) -> None:
         # Don't call super().__init__() - we create client with environment-specific URL
         base_host = self.DEMO_BASE if environment == "demo" else self.PROD_BASE
         self._base_url = base_host + self.API_PATH
@@ -723,7 +781,7 @@ class KalshiError(Exception):
 class KalshiAPIError(KalshiError):
     """HTTP API error with status code."""
 
-    def __init__(self, status_code: int, message: str):
+    def __init__(self, status_code: int, message: str) -> None:
         self.status_code = status_code
         self.message = message
         super().__init__(f"API Error {status_code}: {message}")
@@ -732,21 +790,21 @@ class KalshiAPIError(KalshiError):
 class RateLimitError(KalshiAPIError):
     """Rate limit exceeded (HTTP 429)."""
 
-    def __init__(self, message: str = "Rate limit exceeded"):
+    def __init__(self, message: str = "Rate limit exceeded") -> None:
         super().__init__(429, message)
 
 
 class AuthenticationError(KalshiAPIError):
     """Authentication failed (HTTP 401)."""
 
-    def __init__(self, message: str = "Authentication failed"):
+    def __init__(self, message: str = "Authentication failed") -> None:
         super().__init__(401, message)
 
 
 class MarketNotFoundError(KalshiAPIError):
     """Market ticker not found (HTTP 404)."""
 
-    def __init__(self, ticker: str):
+    def __init__(self, ticker: str) -> None:
         super().__init__(404, f"Market not found: {ticker}")
 ```
 
@@ -888,7 +946,6 @@ def mock_market_response() -> dict:
         "market": {
             "ticker": "KXBTC-25JAN-T100000",
             "event_ticker": "KXBTC-25JAN",
-            "series_ticker": "KXBTC",
             "title": "Bitcoin above $100,000?",
             "subtitle": "On January 25, 2025",
             "status": "active",
@@ -1033,8 +1090,14 @@ class TestKalshiPublicClient:
                     {
                         "market_ticker": "KXBTC-25JAN-T100000",
                         "candlesticks": [
-                            {"start_ts": 1700000000, "end_ts": 1700003600,
-                             "open": 45, "high": 48, "low": 44, "close": 47, "volume": 1000},
+                            {
+                                "end_period_ts": 1700003600,
+                                "open_interest": 123,
+                                "volume": 1000,
+                                "price": {"open": 45, "high": 48, "low": 44, "close": 47},
+                                "yes_bid": {"open": 44, "high": 45, "low": 43, "close": 44},
+                                "yes_ask": {"open": 46, "high": 47, "low": 45, "close": 46},
+                            },
                         ]
                     }
                 ]
@@ -1051,6 +1114,8 @@ class TestKalshiPublicClient:
         assert len(responses) == 1
         assert responses[0].market_ticker == "KXBTC-25JAN-T100000"
         assert len(responses[0].candlesticks) == 1
+        assert responses[0].candlesticks[0].end_period_ts == 1700003600
+        assert responses[0].candlesticks[0].price.close == 47
 ```
 
 ---
@@ -1071,7 +1136,9 @@ import pytest
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from kalshi_research.api.models.market import Market, MarketStatus, Orderbook, Trade
+from kalshi_research.api.models.market import Market, MarketStatus
+from kalshi_research.api.models.orderbook import Orderbook
+from kalshi_research.api.models.trade import Trade
 
 
 class TestMarketModel:

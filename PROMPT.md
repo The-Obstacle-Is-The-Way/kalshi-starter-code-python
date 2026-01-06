@@ -28,7 +28,7 @@ Complete these phases IN ORDER. Do not skip ahead.
 9. Update `.gitignore` as specified
 10. Create `.pre-commit-config.yaml` as specified
 11. Create `.github/workflows/ci.yml` as specified
-12. Run `uv sync` to install dependencies
+12. Run `uv sync --all-extras` to install dependencies
 13. Run `uv run ruff check . --fix` to fix lint errors
 14. Run `uv run ruff format .` to format code
 15. Add type hints to `clients.py` for mypy compliance
@@ -46,15 +46,19 @@ Complete these phases IN ORDER. Do not skip ahead.
 3. Create `src/kalshi_research/api/exceptions.py` with all exception classes
 4. Create `src/kalshi_research/api/models/` directory
 5. Create `src/kalshi_research/api/models/__init__.py`
-6. Create `src/kalshi_research/api/models/market.py` with Market, Orderbook, Trade, Candlestick
-7. Create `src/kalshi_research/api/models/event.py` with Event model
-8. Create `src/kalshi_research/api/auth.py` with KalshiAuth (port from clients.py)
-9. Create `src/kalshi_research/api/client.py` with KalshiPublicClient and KalshiClient
-10. Update `src/kalshi_research/__init__.py` to export client classes
-11. Create `tests/unit/test_api_client.py` with mocked tests using respx
-12. Create `tests/unit/test_api_models.py` with model validation tests
-13. Run `uv run pytest tests/unit -v` - all tests must pass
-14. Run `uv run mypy src/` - no errors
+6. Create Pydantic models exactly as specified in SPEC-002:
+   - `src/kalshi_research/api/models/market.py` (Market + enums)
+   - `src/kalshi_research/api/models/orderbook.py` (Orderbook)
+   - `src/kalshi_research/api/models/trade.py` (Trade)
+   - `src/kalshi_research/api/models/candlestick.py` (Candlestick models)
+   - `src/kalshi_research/api/models/event.py` (Event)
+7. Create `src/kalshi_research/api/auth.py` with KalshiAuth (port from clients.py)
+8. Create `src/kalshi_research/api/client.py` with KalshiPublicClient and KalshiClient
+9. Update `src/kalshi_research/__init__.py` to export client classes
+10. Create `tests/unit/test_api_client.py` with mocked tests using respx
+11. Create `tests/unit/test_api_models.py` with model validation tests
+12. Run `uv run pytest tests/unit -v` - all tests must pass
+13. Run `uv run mypy src/` - no errors
 
 **Phase 2 Checkpoint:** Can import and instantiate `KalshiPublicClient`, all tests pass
 
@@ -68,17 +72,19 @@ Complete these phases IN ORDER. Do not skip ahead.
 6. Create `src/kalshi_research/data/repositories/__init__.py`
 7. Create `src/kalshi_research/data/repositories/markets.py`
 8. Create `src/kalshi_research/data/repositories/prices.py`
-9. Create `src/kalshi_research/data/fetcher.py` with DataFetcher class
-10. Create `src/kalshi_research/data/scheduler.py` with drift-corrected scheduler
-11. Create `src/kalshi_research/data/export.py` with Parquet export
-12. Create `data/.gitkeep` to ensure directory exists
-13. Set up Alembic: `uv run alembic init alembic`
-14. Configure `alembic.ini` (async url) and `alembic/env.py` (import `Base`, set `target_metadata`)
-15. Create initial migration: `uv run alembic revision --autogenerate -m "initial"`
-16. Create `tests/unit/test_data_models.py` with ORM tests
-17. Create `tests/unit/test_repositories.py` with repository tests
-18. Run `uv run pytest tests/unit -v` - all tests pass
-19. Run `uv run mypy src/` - no errors
+9. Create `src/kalshi_research/data/repositories/orderbooks.py`
+10. Create `src/kalshi_research/data/repositories/trades.py`
+11. Create `src/kalshi_research/data/fetcher.py` with DataFetcher class
+12. Create `src/kalshi_research/data/scheduler.py` with drift-corrected scheduler
+13. Create `src/kalshi_research/data/export.py` with Parquet export
+14. Create `data/.gitkeep` to ensure directory exists
+15. Set up Alembic: `uv run alembic init alembic`
+16. Configure `alembic.ini` (async url) and `alembic/env.py` (import `Base`, set `target_metadata`)
+17. Create initial migration: `uv run alembic revision --autogenerate -m "initial"`
+18. Create `tests/unit/test_data_models.py` with ORM tests
+19. Create `tests/unit/test_repositories.py` with repository tests
+20. Run `uv run pytest tests/unit -v` - all tests pass
+21. Run `uv run mypy src/` - no errors
 
 **Phase 3 Checkpoint:** Can create database, run migrations, save/load data
 
@@ -134,7 +140,7 @@ Complete these phases IN ORDER. Do not skip ahead.
 ## Success Criteria
 
 ALL of the following must be true:
-- [ ] `uv sync` installs without errors
+- [ ] `uv sync --all-extras` installs without errors
 - [ ] `uv run ruff check .` passes
 - [ ] `uv run ruff format --check .` passes
 - [ ] `uv run mypy src/` passes with no errors
@@ -266,7 +272,7 @@ async def db_session():
 
 async def test_market_repository_save_and_load(db_session):
     repo = MarketRepository(db_session)
-    market = Market(ticker="TEST-123", ...)  # Real object
+    market = Market(ticker="TEST-123")  # Real object (fill required fields in real test)
 
     await repo.save(market)
     loaded = await repo.get_by_ticker("TEST-123")

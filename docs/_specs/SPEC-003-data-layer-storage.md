@@ -157,13 +157,9 @@ CREATE INDEX idx_snapshots_time ON price_snapshots(snapshot_time DESC);
 ```python
 # src/kalshi_research/data/models.py
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, relationship
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 def utc_now() -> datetime:
@@ -180,27 +176,30 @@ class Market(Base):
 
     __tablename__ = "markets"
 
-    ticker: Mapped[str] = Column(String, primary_key=True)
-    event_ticker: Mapped[str] = Column(String, ForeignKey("events.ticker"), nullable=False)
+    # NOTE: Use mapped_column (not Column) for mypy --strict compatibility.
+    ticker: Mapped[str] = mapped_column(String, primary_key=True)
+    event_ticker: Mapped[str] = mapped_column(String, ForeignKey("events.ticker"), nullable=False)
     # Note: series_ticker may not be present in all API responses
-    series_ticker: Mapped[str | None] = Column(String, nullable=True)
-    title: Mapped[str] = Column(String, nullable=False)
-    subtitle: Mapped[str | None] = Column(String)
+    series_ticker: Mapped[str | None] = mapped_column(String, nullable=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    subtitle: Mapped[str | None] = mapped_column(String, nullable=True)
     # API returns: active, closed, determined, finalized
-    status: Mapped[str] = Column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
     # Result: yes, no, void, or "" (empty string if undetermined)
-    result: Mapped[str | None] = Column(String)
+    result: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    open_time: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
-    close_time: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
-    expiration_time: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
+    open_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    close_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expiration_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    category: Mapped[str | None] = Column(String)
-    subcategory: Mapped[str | None] = Column(String)
+    category: Mapped[str | None] = mapped_column(String, nullable=True)
+    subcategory: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    created_at: Mapped[datetime | None] = Column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime | None] = Column(
-        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     # Relationships
@@ -218,20 +217,20 @@ class PriceSnapshot(Base):
 
     __tablename__ = "price_snapshots"
 
-    id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
-    ticker: Mapped[str] = Column(String, ForeignKey("markets.ticker"), nullable=False)
-    snapshot_time: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String, ForeignKey("markets.ticker"), nullable=False)
+    snapshot_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    yes_bid: Mapped[int] = Column(Integer, nullable=False)
-    yes_ask: Mapped[int] = Column(Integer, nullable=False)
-    no_bid: Mapped[int] = Column(Integer, nullable=False)
-    no_ask: Mapped[int] = Column(Integer, nullable=False)
-    last_price: Mapped[int | None] = Column(Integer)
+    yes_bid: Mapped[int] = mapped_column(Integer, nullable=False)
+    yes_ask: Mapped[int] = mapped_column(Integer, nullable=False)
+    no_bid: Mapped[int] = mapped_column(Integer, nullable=False)
+    no_ask: Mapped[int] = mapped_column(Integer, nullable=False)
+    last_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    volume: Mapped[int] = Column(Integer, nullable=False)
-    volume_24h: Mapped[int] = Column(Integer, nullable=False)
-    open_interest: Mapped[int] = Column(Integer, nullable=False)
-    liquidity: Mapped[int] = Column(Integer, nullable=False)
+    volume: Mapped[int] = mapped_column(Integer, nullable=False)
+    volume_24h: Mapped[int] = mapped_column(Integer, nullable=False)
+    open_interest: Mapped[int] = mapped_column(Integer, nullable=False)
+    liquidity: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Relationships
     market: Mapped["Market"] = relationship("Market", back_populates="price_snapshots")
@@ -257,17 +256,19 @@ class Event(Base):
 
     __tablename__ = "events"
 
-    ticker: Mapped[str] = Column(String, primary_key=True)
-    series_ticker: Mapped[str] = Column(String, nullable=False)
-    title: Mapped[str] = Column(String, nullable=False)
+    ticker: Mapped[str] = mapped_column(String, primary_key=True)
+    series_ticker: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
     # Note: API may not return status for events, so we allow NULL
-    status: Mapped[str | None] = Column(String, nullable=True)
-    category: Mapped[str | None] = Column(String)
-    mutually_exclusive: Mapped[bool] = Column(Boolean, default=False)
+    status: Mapped[str | None] = mapped_column(String, nullable=True)
+    category: Mapped[str | None] = mapped_column(String, nullable=True)
+    mutually_exclusive: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    created_at: Mapped[datetime | None] = Column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime | None] = Column(
-        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     # Relationships
@@ -279,15 +280,15 @@ class Settlement(Base):
 
     __tablename__ = "settlements"
 
-    ticker: Mapped[str] = Column(String, ForeignKey("markets.ticker"), primary_key=True)
-    event_ticker: Mapped[str] = Column(String, nullable=False)
-    settled_at: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
-    result: Mapped[str] = Column(String, nullable=False)  # yes, no, void
+    ticker: Mapped[str] = mapped_column(String, ForeignKey("markets.ticker"), primary_key=True)
+    event_ticker: Mapped[str] = mapped_column(String, nullable=False)
+    settled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    result: Mapped[str] = mapped_column(String, nullable=False)  # yes, no, void
 
-    final_yes_price: Mapped[int | None] = Column(Integer)
-    final_no_price: Mapped[int | None] = Column(Integer)
-    yes_payout: Mapped[int | None] = Column(Integer)
-    no_payout: Mapped[int | None] = Column(Integer)
+    final_yes_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    final_no_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    yes_payout: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    no_payout: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Relationships
     market: Mapped["Market"] = relationship("Market", back_populates="settlement")
@@ -380,7 +381,13 @@ class DataScheduler:
         async def runner() -> None:
             # Use monotonic time for drift correction (safer than wall clock)
             next_run = time.monotonic()
-            while self.running:
+            while True:
+                if not self.running:
+                    # Allow scheduling before start(); tasks will wait until running = True.
+                    await asyncio.sleep(0.1)
+                    next_run = time.monotonic()
+                    continue
+
                 now = time.monotonic()
                 if now >= next_run:
                     try:
