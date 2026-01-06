@@ -23,25 +23,22 @@ from kalshi_research.api.models import (
 )
 
 __all__ = [
-    # Clients
-    "KalshiAuth",
-    "KalshiClient",
-    "KalshiPublicClient",
-    # Exceptions
     "AuthenticationError",
-    "KalshiAPIError",
-    "KalshiError",
-    "MarketNotFoundError",
-    "RateLimitError",
-    # Models
     "CandlePrice",
     "CandleSide",
     "Candlestick",
     "CandlestickResponse",
     "Event",
+    "KalshiAPIError",
+    "KalshiAuth",
+    "KalshiClient",
+    "KalshiError",
+    "KalshiPublicClient",
     "Market",
     "MarketFilterStatus",
+    "MarketNotFoundError",
     "MarketStatus",
     "Orderbook",
+    "RateLimitError",
     "Trade",
 ]
