@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -68,7 +68,7 @@ class Candlestick(BaseModel):
     @property
     def period_end(self) -> datetime:
         """Period end as datetime (UTC)."""
-        return datetime.fromtimestamp(self.end_period_ts, tz=timezone.utc)
+        return datetime.fromtimestamp(self.end_period_ts, tz=UTC)
 
 
 class CandlestickResponse(BaseModel):
