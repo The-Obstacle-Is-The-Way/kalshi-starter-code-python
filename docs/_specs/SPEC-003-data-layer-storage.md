@@ -297,7 +297,56 @@ class Settlement(Base):
 
 Standard Repository pattern (as in SPEC-003 Draft) but ensuring all datetime objects are timezone-aware (UTC) before persistence.
 
-### 3.5 Scheduler (Drift Corrected)
+### 3.5 Alembic Configuration
+
+**alembic/env.py configuration:**
+Critical for async SQLAlchemy and autogeneration.
+
+```python
+# alembic/env.py (partial)
+import asyncio
+from logging.config import fileConfig
+
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
+
+from alembic import context
+
+# Import your models
+from kalshi_research.data.models import Base
+
+# Set target metadata for autogenerate
+target_metadata = Base.metadata
+
+config = context.config
+
+# ... (standard alembic setup) ...
+
+def do_run_migrations(connection: Connection) -> None:
+    context.configure(connection=connection, target_metadata=target_metadata)
+    with context.begin_transaction():
+        context.run_migrations()
+
+async def run_async_migrations() -> None:
+    """In this scenario we need to create an Engine and associate a connection with the context."""
+    connectable = async_engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+
+    await connectable.dispose()
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+    asyncio.run(run_async_migrations())
+```
+
+### 3.6 Scheduler (Drift Corrected)
 
 ```python
 # src/kalshi_research/data/scheduler.py

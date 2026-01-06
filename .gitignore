@@ -1,2 +1,24 @@
+# Environment and secrets - NEVER COMMIT
 .env
-__pycache__
+.env.local
+*.pem
+*.key
+kalshi_private_key*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Data files (created at runtime)
+data/*.db
+data/exports/

@@ -274,6 +274,79 @@ class CandlestickResponse(BaseModel):
 ### 3.3 Client Architecture
 
 ```python
+# src/kalshi_research/api/auth.py
+import base64
+import time
+from typing import Any
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+
+
+class KalshiAuth:
+    """
+    Handles Kalshi API authentication (RSA-PSS signing).
+    """
+
+    def __init__(self, key_id: str, private_key_path: str):
+        self.key_id = key_id
+        self.private_key = self._load_private_key(private_key_path)
+
+    def _load_private_key(self, path: str) -> rsa.RSAPrivateKey:
+        """Load RSA private key from PEM file."""
+        with open(path, "rb") as key_file:
+            private_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=None,
+            )
+        if not isinstance(private_key, rsa.RSAPrivateKey):
+            raise ValueError("Invalid key type: expected RSA private key")
+        return private_key
+
+    def sign_pss_text(self, text: str) -> str:
+        """Sign text using RSA-PSS and return base64 signature."""
+        message = text.encode("utf-8")
+        try:
+            signature = self.private_key.sign(
+                message,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.DIGEST_LENGTH,
+                ),
+                hashes.SHA256(),
+            )
+            return base64.b64encode(signature).decode("utf-8")
+        except InvalidSignature as e:
+            raise ValueError("RSA signing failed") from e
+
+    def get_headers(self, method: str, path: str) -> dict[str, str]:
+        """
+        Generate authentication headers.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            path: Full API path (e.g., /trade-api/v2/portfolio/balance)
+                  MUST exclude query parameters.
+        """
+        # Timestamp in milliseconds
+        timestamp_str = str(int(time.time() * 1000))
+
+        # Remove query params from path if present (safety check)
+        clean_path = path.split("?")[0]
+
+        # Signature payload: timestamp + method + path
+        msg_string = timestamp_str + method + clean_path
+        signature = self.sign_pss_text(msg_string)
+
+        return {
+            "Content-Type": "application/json",
+            "KALSHI-ACCESS-KEY": self.key_id,
+            "KALSHI-ACCESS-SIGNATURE": signature,
+            "KALSHI-ACCESS-TIMESTAMP": timestamp_str,
+        }
+
+
 # src/kalshi_research/api/client.py
 from typing import Any, AsyncIterator
 
@@ -285,6 +358,7 @@ from tenacity import (
     wait_exponential,
 )
 
+from .auth import KalshiAuth
 from .exceptions import KalshiAPIError, RateLimitError
 from .models.market import (
     Candlestick,

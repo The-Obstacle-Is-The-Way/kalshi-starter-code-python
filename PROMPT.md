@@ -73,7 +73,7 @@ Complete these phases IN ORDER. Do not skip ahead.
 11. Create `src/kalshi_research/data/export.py` with Parquet export
 12. Create `data/.gitkeep` to ensure directory exists
 13. Set up Alembic: `uv run alembic init alembic`
-14. Configure `alembic.ini` and `alembic/env.py` for async SQLAlchemy
+14. Configure `alembic.ini` (async url) and `alembic/env.py` (import `Base`, set `target_metadata`)
 15. Create initial migration: `uv run alembic revision --autogenerate -m "initial"`
 16. Create `tests/unit/test_data_models.py` with ORM tests
 17. Create `tests/unit/test_repositories.py` with repository tests
