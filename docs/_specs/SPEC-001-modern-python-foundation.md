@@ -443,21 +443,58 @@ Thumbs.db
 - [ ] Set up pytest markers (unit, integration, slow)
 - [ ] Configure coverage reporting
 
-**Required conftest.py fixtures:**
+**Required conftest.py fixtures (REAL OBJECTS, minimal mocking):**
 
 ```python
 # tests/conftest.py
+"""
+Shared test fixtures.
+
+PHILOSOPHY: Use REAL objects wherever possible. Only mock at system boundaries.
+- Real Pydantic models (not dicts pretending to be models)
+- Real SQLite in-memory for repository tests
+- respx ONLY for HTTP boundary
+"""
 import os
-from collections.abc import AsyncIterator
-from typing import Any
+from datetime import datetime, timezone
 
 import pytest
 from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 # Load environment variables from .env for integration tests
 load_dotenv()
 
 
+# ============================================================================
+# Database Fixtures (REAL in-memory SQLite, not mocks)
+# ============================================================================
+@pytest.fixture
+async def db_engine():
+    """Create real async SQLite engine for testing."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        echo=False,
+    )
+    yield engine
+    await engine.dispose()
+
+
+@pytest.fixture
+async def db_session(db_engine):
+    """Create real database session with schema."""
+    from kalshi_research.data.models import Base
+
+    async with db_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async with AsyncSession(db_engine, expire_on_commit=False) as session:
+        yield session
+
+
+# ============================================================================
+# API Credentials (for integration tests only)
+# ============================================================================
 @pytest.fixture(scope="session")
 def api_credentials() -> dict[str, str | None]:
     """API credentials from environment (may be None for public-only tests)."""
@@ -468,119 +505,207 @@ def api_credentials() -> dict[str, str | None]:
     }
 
 
-@pytest.fixture
-def sample_market_data() -> dict[str, Any]:
-    """Sample market data matching real API response structure."""
-    return {
-        "ticker": "KXBTC-25JAN-T100000",
-        "event_ticker": "KXBTC-25JAN",
-        "series_ticker": "KXBTC",
-        "title": "Bitcoin above $100,000?",
-        "subtitle": "On January 25, 2025",
-        "status": "active",
-        "result": "",
-        "yes_bid": 45,
-        "yes_ask": 47,
-        "no_bid": 53,
-        "no_ask": 55,
-        "last_price": 46,
-        "volume": 125000,
-        "volume_24h": 5000,
-        "open_interest": 50000,
-        "liquidity": 10000,
-        "open_time": "2024-01-01T00:00:00Z",
-        "close_time": "2025-01-25T00:00:00Z",
-        "expiration_time": "2025-01-26T00:00:00Z",
-    }
-
+# ============================================================================
+# Domain Object Builders (create REAL objects, not dicts)
+# ============================================================================
+# NOTE: These will be replaced with actual model imports in Phase 2.
+# For now, they return dicts that match API response structure.
+# After Phase 2, update to return REAL Pydantic models.
 
 @pytest.fixture
-def sample_orderbook_data() -> dict[str, Any]:
-    """Sample orderbook matching real API response (yes/no are bid lists)."""
-    return {
-        "orderbook": {
-            "yes": [[45, 100], [44, 200], [43, 500]],  # [price, qty]
-            "no": [[53, 150], [54, 250], [55, 400]],
+def make_market():
+    """Factory to create REAL Market objects with sensible defaults."""
+    def _make(
+        ticker: str = "TEST-MARKET",
+        status: str = "active",
+        yes_bid: int = 45,
+        yes_ask: int = 47,
+        **overrides,
+    ):
+        # After Phase 2, this becomes:
+        # from kalshi_research.api.models.market import Market
+        # return Market(ticker=ticker, status=status, ...)
+        base = {
+            "ticker": ticker,
+            "event_ticker": "TEST-EVENT",
+            "series_ticker": "TEST",
+            "title": f"Test Market {ticker}",
+            "subtitle": "",
+            "status": status,
+            "result": "",
+            "yes_bid": yes_bid,
+            "yes_ask": yes_ask,
+            "no_bid": 100 - yes_ask,
+            "no_ask": 100 - yes_bid,
+            "last_price": (yes_bid + yes_ask) // 2,
+            "volume": 10000,
+            "volume_24h": 1000,
+            "open_interest": 5000,
+            "liquidity": 10000,
+            "open_time": "2024-01-01T00:00:00Z",
+            "close_time": "2025-12-31T00:00:00Z",
+            "expiration_time": "2026-01-01T00:00:00Z",
         }
-    }
+        base.update(overrides)
+        return base
+    return _make
 
 
 @pytest.fixture
-def sample_trade_data() -> dict[str, Any]:
-    """Sample trade matching real API response."""
-    return {
-        "trade_id": "abc123",
-        "ticker": "KXBTC-25JAN-T100000",
-        "created_time": "2024-01-15T10:30:00Z",
-        "yes_price": 46,
-        "no_price": 54,
-        "count": 10,
-        "taker_side": "yes",
-    }
+def make_orderbook():
+    """Factory to create REAL Orderbook objects."""
+    def _make(
+        yes_bids: list[tuple[int, int]] | None = None,
+        no_bids: list[tuple[int, int]] | None = None,
+    ):
+        # After Phase 2: return Orderbook(yes=yes_bids, no=no_bids)
+        return {
+            "yes": yes_bids or [(45, 100), (44, 200), (43, 500)],
+            "no": no_bids or [(53, 150), (54, 250), (55, 400)],
+        }
+    return _make
+
+
+@pytest.fixture
+def make_trade():
+    """Factory to create REAL Trade objects."""
+    def _make(
+        ticker: str = "TEST-MARKET",
+        yes_price: int = 46,
+        count: int = 10,
+        taker_side: str = "yes",
+        **overrides,
+    ):
+        base = {
+            "trade_id": f"trade-{ticker}-{yes_price}",
+            "ticker": ticker,
+            "created_time": datetime.now(timezone.utc).isoformat(),
+            "yes_price": yes_price,
+            "no_price": 100 - yes_price,
+            "count": count,
+            "taker_side": taker_side,
+        }
+        base.update(overrides)
+        return base
+    return _make
 
 
 # ============================================================================
-# Polyfactory Factories (create once polyfactory is implemented)
+# Time Injection (for testability without mocking)
 # ============================================================================
-# These will be added in Phase 2 when models exist:
-#
-# from polyfactory.factories.pydantic_factory import ModelFactory
-# from kalshi_research.api.models.market import Market
-#
-# class MarketFactory(ModelFactory):
-#     __model__ = Market
-#
-# @pytest.fixture
-# def market_factory() -> type[MarketFactory]:
-#     return MarketFactory
+@pytest.fixture
+def fixed_clock():
+    """Returns a clock function that always returns the same time."""
+    fixed_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+
+    def clock() -> datetime:
+        return fixed_time
+
+    clock.time = fixed_time  # Access the fixed time directly
+    return clock
 ```
 
-**Test file template:**
+**Test file template (behavior-focused, minimal mocks):**
 
 ```python
 # tests/unit/test_example.py
+"""
+Example test module demonstrating BEHAVIOR-FOCUSED testing.
+
+Key principles:
+1. Test BEHAVIOR, not implementation details
+2. Use REAL objects (Pydantic models, domain objects)
+3. Mock ONLY at system boundaries (HTTP, filesystem)
+4. Use factories to create test data, not raw dicts
+"""
 import pytest
 from hypothesis import given, strategies as st
 
 
-class TestExampleModule:
-    """Tests for example module - demonstrates patterns."""
+class TestDomainBehavior:
+    """Tests that verify actual business logic with REAL objects."""
 
-    def test_basic_functionality(self, sample_market_data: dict) -> None:
-        """Test basic happy path."""
-        # Arrange
-        data = sample_market_data
+    def test_orderbook_spread_with_real_object(self, make_orderbook) -> None:
+        """
+        GOOD: Test real computed property behavior.
+        After Phase 2, this uses a real Orderbook model.
+        """
+        orderbook_data = make_orderbook(
+            yes_bids=[(45, 100), (44, 200)],
+            no_bids=[(53, 150), (54, 250)],
+        )
 
-        # Act
-        result = data["ticker"]
+        # After Phase 2:
+        # orderbook = Orderbook(**orderbook_data)
+        # assert orderbook.best_yes_bid == 45
+        # assert orderbook.spread == 1  # 100 - 45 - 54
 
-        # Assert
-        assert result == "KXBTC-25JAN-T100000"
+        # For now, verify data structure
+        assert orderbook_data["yes"][0][0] == 45
+
+    def test_market_factory_creates_consistent_data(self, make_market) -> None:
+        """Test that factory creates valid, internally consistent data."""
+        market = make_market(yes_bid=40, yes_ask=45)
+
+        # Verify internal consistency
+        assert market["no_bid"] == 55  # 100 - yes_ask
+        assert market["no_ask"] == 60  # 100 - yes_bid
+        assert market["last_price"] == 42  # midpoint
 
     @pytest.mark.parametrize(
-        "input_value,expected",
+        "yes_bid,yes_ask,expected_spread",
         [
-            (0, 0),
-            (50, 0.5),
-            (100, 1.0),
+            (45, 47, 2),
+            (50, 50, 0),
+            (10, 90, 80),
         ],
     )
-    def test_parametrized(self, input_value: int, expected: float) -> None:
-        """Test multiple cases with parametrize."""
-        result = input_value / 100
-        assert result == expected
+    def test_spread_calculation(
+        self, yes_bid: int, yes_ask: int, expected_spread: int
+    ) -> None:
+        """Test spread calculation with various inputs."""
+        spread = yes_ask - yes_bid
+        assert spread == expected_spread
 
-    def test_error_handling(self) -> None:
-        """Test that errors are raised correctly."""
-        with pytest.raises(ValueError, match="Invalid"):
-            raise ValueError("Invalid input")
 
-    @given(st.integers(min_value=0, max_value=100))
-    def test_property_based(self, price: int) -> None:
-        """Property-based test with hypothesis."""
-        # Property: price / 100 should always be in [0, 1]
-        prob = price / 100
-        assert 0 <= prob <= 1
+class TestPureFunctions:
+    """Tests for pure functions - NO MOCKS NEEDED."""
+
+    @given(st.integers(min_value=1, max_value=99))
+    def test_price_to_probability_always_in_range(self, price: int) -> None:
+        """Property: any valid price converts to probability in [0, 1]."""
+        probability = price / 100
+        assert 0 < probability < 1
+
+    @given(
+        st.lists(st.floats(min_value=0, max_value=1), min_size=1, max_size=100),
+        st.lists(st.integers(min_value=0, max_value=1), min_size=1, max_size=100),
+    )
+    def test_brier_score_properties(
+        self, forecasts: list[float], outcomes: list[int]
+    ) -> None:
+        """Property: Brier score is always between 0 and 1."""
+        if len(forecasts) != len(outcomes):
+            return  # Skip mismatched lengths
+
+        # Brier score formula: mean((forecast - outcome)^2)
+        brier = sum((f - o) ** 2 for f, o in zip(forecasts, outcomes)) / len(forecasts)
+        assert 0 <= brier <= 1
+
+
+class TestTimeInjection:
+    """Demonstrate testability via dependency injection, not mocking."""
+
+    def test_with_fixed_time(self, fixed_clock) -> None:
+        """Use injected clock instead of mocking datetime."""
+        # GOOD: Pass clock as dependency
+        current_time = fixed_clock()
+
+        assert current_time.year == 2024
+        assert current_time.month == 6
+
+        # Can also access fixed time directly
+        assert fixed_clock.time.day == 15
 ```
 
 ### 3.4 Phase 4: CI/CD

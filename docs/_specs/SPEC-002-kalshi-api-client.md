@@ -781,9 +781,20 @@ asyncio.run(main())
 
 ---
 
-## 7. Testing Patterns (respx)
+## 7. Testing Patterns (Minimal Mocking)
 
-**All unit tests MUST mock HTTP requests using `respx`. Never hit the real API in unit tests.**
+**PHILOSOPHY: Mock ONLY at system boundaries. Everything else uses REAL objects.**
+
+The API client is a boundary - it's the ONLY place where `respx` mocking is appropriate.
+The tests below verify:
+1. HTTP responses are correctly parsed into REAL Pydantic models
+2. Error handling works with real exceptions
+3. Retry logic actually retries
+
+**Do NOT mock:**
+- The Market, Orderbook, Trade models - use real instances
+- Client methods when testing services that use the client
+- Computed properties or business logic
 
 ```python
 # tests/unit/test_api_client.py

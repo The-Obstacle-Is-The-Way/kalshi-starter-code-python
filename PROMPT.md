@@ -179,14 +179,168 @@ ALL of the following must be true:
    uv run pytest tests/unit -v  # Still passes
    ```
 
-**Test Requirements:**
-- Every public function/method must have at least one test
+## Testing Philosophy: Behavior Over Mocks
+
+**CRITICAL: Avoid over-mocking. Tests that mock everything test nothing.**
+
+### The Testing Pyramid
+
+```
+        /\
+       /  \     Integration Tests (few) - Real DB, real API calls
+      /----\
+     /      \   Behavioral Tests (many) - Real objects, real logic
+    /--------\
+   /          \ Unit Tests (pure functions) - No mocks needed
+  --------------
+```
+
+### When to Mock vs When NOT to Mock
+
+**ONLY mock at system boundaries:**
+- HTTP calls to external APIs (use `respx` ONLY for KalshiPublicClient)
+- File system operations (use `tmp_path` fixture instead when possible)
+- Current time (use dependency injection, not `unittest.mock.patch`)
+
+**NEVER mock:**
+- Your own domain objects (Market, Trade, Orderbook, etc.)
+- Pydantic models - use REAL instances
+- Pure functions (calibration math, edge detection logic)
+- Repository methods when testing services - use real in-memory SQLite
+- Internal class collaborations
+
+### Test Categories
+
+**1. Pure Function Tests (NO MOCKS):**
+```python
+# GOOD: Test actual behavior with real data
+def test_brier_score_perfect_forecast():
+    analyzer = CalibrationAnalyzer()
+    forecasts = np.array([1.0, 0.0, 1.0])
+    outcomes = np.array([1, 0, 1])
+
+    score = analyzer.compute_brier_score(forecasts, outcomes)
+
+    assert score == 0.0  # Perfect score
+
+def test_brier_score_worst_forecast():
+    analyzer = CalibrationAnalyzer()
+    forecasts = np.array([0.0, 1.0, 0.0])
+    outcomes = np.array([1, 0, 1])
+
+    score = analyzer.compute_brier_score(forecasts, outcomes)
+
+    assert score == 1.0  # Worst possible
+```
+
+**2. Domain Object Tests (REAL OBJECTS):**
+```python
+# GOOD: Create real Pydantic models, test real behavior
+def test_orderbook_spread_calculation():
+    orderbook = Orderbook(
+        yes=[(45, 100), (44, 200)],
+        no=[(53, 150), (54, 250)],
+    )
+
+    assert orderbook.best_yes_bid == 45
+    assert orderbook.best_no_bid == 54
+    assert orderbook.spread == 1  # 100 - 45 - 54
+
+# BAD: Mocking the object you're testing
+def test_orderbook_spread_BAD():
+    orderbook = Mock()
+    orderbook.spread = 1  # This tests NOTHING
+    assert orderbook.spread == 1
+```
+
+**3. Repository Tests (REAL IN-MEMORY DATABASE):**
+```python
+# GOOD: Use real SQLite in-memory database
+@pytest.fixture
+async def db_session():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    async with AsyncSession(engine) as session:
+        yield session
+
+async def test_market_repository_save_and_load(db_session):
+    repo = MarketRepository(db_session)
+    market = Market(ticker="TEST-123", ...)  # Real object
+
+    await repo.save(market)
+    loaded = await repo.get_by_ticker("TEST-123")
+
+    assert loaded.ticker == market.ticker
+```
+
+**4. HTTP Client Tests (MOCK ONLY THE BOUNDARY):**
+```python
+# GOOD: Mock only the HTTP layer, test everything else real
+@respx.mock
+async def test_get_market_parses_response():
+    respx.get(...).mock(return_value=Response(200, json={...}))
+
+    async with KalshiPublicClient() as client:
+        market = await client.get_market("TICKER")
+
+    # Assert on REAL parsed Market object
+    assert isinstance(market, Market)
+    assert market.ticker == "TICKER"
+```
+
+### Dependency Injection for Testability
+
+**Instead of mocking time:**
+```python
+# BAD: Patching datetime
+@patch('kalshi_research.analysis.edge.datetime')
+def test_edge_detection(mock_dt):
+    mock_dt.now.return_value = datetime(2024, 1, 1)
+    ...
+
+# GOOD: Inject time as dependency
+class EdgeDetector:
+    def __init__(self, clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc)):
+        self._clock = clock
+
+def test_edge_detection():
+    fixed_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    detector = EdgeDetector(clock=lambda: fixed_time)
+    ...
+```
+
+**Instead of mocking the client:**
+```python
+# BAD: Mocking the entire client
+def test_data_fetcher():
+    mock_client = Mock()
+    mock_client.get_markets.return_value = [Mock(), Mock()]
+    fetcher = DataFetcher(mock_client)
+    ...
+
+# GOOD: Use a real client with mocked HTTP (or a fake/stub)
+@respx.mock
+async def test_data_fetcher():
+    respx.get(...).mock(return_value=Response(200, json={"markets": [...]}))
+
+    async with KalshiPublicClient() as client:
+        fetcher = DataFetcher(client)
+        markets = await fetcher.fetch_all_markets()
+
+    assert len(markets) > 0
+    assert all(isinstance(m, Market) for m in markets)
+```
+
+### Test Requirements
+
+- Every public function/method must have at least one **behavioral** test
 - Use `pytest.mark.parametrize` for multiple test cases
-- Use `respx` for mocking HTTP requests (never hit real API in unit tests)
-- Use `polyfactory` for test data generation
+- Use `respx` ONLY for HTTP boundary (KalshiPublicClient)
+- Use real in-memory SQLite for repository tests
 - Use `hypothesis` for property-based testing on pure functions
-- Test edge cases: empty inputs, None values, boundary conditions
-- Test error paths: exceptions, invalid inputs, API failures
+- Test edge cases with REAL objects: empty lists, None values, boundaries
+- Test error paths: real exceptions, real validation errors
 
 ## Clean Code Principles (Uncle Bob / Gang of Four)
 
