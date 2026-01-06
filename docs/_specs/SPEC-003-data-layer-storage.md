@@ -80,14 +80,16 @@ data/
 
 ```sql
 -- Markets (reference data)
+-- Note: API status values are: active, closed, determined, finalized
+-- Filter params use different values: unopened, open, closed, settled
 CREATE TABLE markets (
     ticker TEXT PRIMARY KEY,
     event_ticker TEXT NOT NULL,
-    series_ticker TEXT NOT NULL,
+    series_ticker TEXT,    -- May be NULL (not always in API response)
     title TEXT NOT NULL,
     subtitle TEXT,
-    status TEXT NOT NULL,  -- open, closed, settled
-    result TEXT,           -- yes, no, void, null if unsettled
+    status TEXT NOT NULL,  -- active, closed, determined, finalized
+    result TEXT,           -- yes, no, void, "" (empty string if undetermined)
 
     open_time TIMESTAMP NOT NULL,
     close_time TIMESTAMP NOT NULL,
@@ -108,11 +110,12 @@ CREATE INDEX idx_markets_event ON markets(event_ticker);
 CREATE INDEX idx_markets_expiration ON markets(expiration_time);
 
 -- Events (reference data)
+-- Note: API may not return status field for events
 CREATE TABLE events (
     ticker TEXT PRIMARY KEY,
     series_ticker TEXT NOT NULL,
     title TEXT NOT NULL,
-    status TEXT NOT NULL,
+    status TEXT,  -- May be NULL if API doesn't provide it
     category TEXT,
     mutually_exclusive BOOLEAN DEFAULT FALSE,
 
@@ -154,15 +157,16 @@ CREATE INDEX idx_snapshots_time ON price_snapshots(snapshot_time DESC);
 ```python
 # src/kalshi_research/data/models.py
 from datetime import datetime, timezone
-from typing import Optional
-from sqlalchemy import (
-    Column, Integer, String, Float, Boolean, DateTime, JSON,
-    ForeignKey, Index, text
-)
-from sqlalchemy.orm import DeclarativeBase, relationship
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, relationship
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
-def utc_now():
+def utc_now() -> datetime:
     """Return current UTC time with timezone info."""
     return datetime.now(timezone.utc)
 
@@ -172,56 +176,67 @@ class Base(DeclarativeBase):
 
 
 class Market(Base):
+    """Market (reference data) - stores market metadata from Kalshi API."""
+
     __tablename__ = "markets"
 
-    ticker = Column(String, primary_key=True)
-    event_ticker = Column(String, ForeignKey("events.ticker"), nullable=False)
-    series_ticker = Column(String, nullable=False)
-    title = Column(String, nullable=False)
-    subtitle = Column(String)
-    status = Column(String, nullable=False)
-    result = Column(String)
+    ticker: Mapped[str] = Column(String, primary_key=True)
+    event_ticker: Mapped[str] = Column(String, ForeignKey("events.ticker"), nullable=False)
+    # Note: series_ticker may not be present in all API responses
+    series_ticker: Mapped[str | None] = Column(String, nullable=True)
+    title: Mapped[str] = Column(String, nullable=False)
+    subtitle: Mapped[str | None] = Column(String)
+    # API returns: active, closed, determined, finalized
+    status: Mapped[str] = Column(String, nullable=False)
+    # Result: yes, no, void, or "" (empty string if undetermined)
+    result: Mapped[str | None] = Column(String)
 
-    open_time = Column(DateTime(timezone=True), nullable=False)
-    close_time = Column(DateTime(timezone=True), nullable=False)
-    expiration_time = Column(DateTime(timezone=True), nullable=False)
+    open_time: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
+    close_time: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
+    expiration_time: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
 
-    category = Column(String)
-    subcategory = Column(String)
+    category: Mapped[str | None] = Column(String)
+    subcategory: Mapped[str | None] = Column(String)
 
-    created_at = Column(DateTime(timezone=True), default=utc_now)
-    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    created_at: Mapped[datetime | None] = Column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime | None] = Column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     # Relationships
-    event = relationship("Event", back_populates="markets")
-    price_snapshots = relationship("PriceSnapshot", back_populates="market")
-    settlement = relationship("Settlement", back_populates="market", uselist=False)
+    event: Mapped["Event"] = relationship("Event", back_populates="markets")
+    price_snapshots: Mapped[list["PriceSnapshot"]] = relationship(
+        "PriceSnapshot", back_populates="market"
+    )
+    settlement: Mapped["Settlement | None"] = relationship(
+        "Settlement", back_populates="market", uselist=False
+    )
 
 
 class PriceSnapshot(Base):
+    """Price snapshot for a market at a point in time."""
+
     __tablename__ = "price_snapshots"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ticker = Column(String, ForeignKey("markets.ticker"), nullable=False)
-    snapshot_time = Column(DateTime(timezone=True), nullable=False)
+    id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = Column(String, ForeignKey("markets.ticker"), nullable=False)
+    snapshot_time: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
 
-    yes_bid = Column(Integer, nullable=False)
-    yes_ask = Column(Integer, nullable=False)
-    no_bid = Column(Integer, nullable=False)
-    no_ask = Column(Integer, nullable=False)
-    last_price = Column(Integer)
+    yes_bid: Mapped[int] = Column(Integer, nullable=False)
+    yes_ask: Mapped[int] = Column(Integer, nullable=False)
+    no_bid: Mapped[int] = Column(Integer, nullable=False)
+    no_ask: Mapped[int] = Column(Integer, nullable=False)
+    last_price: Mapped[int | None] = Column(Integer)
 
-    volume = Column(Integer, nullable=False)
-    volume_24h = Column(Integer, nullable=False)
-    open_interest = Column(Integer, nullable=False)
-    liquidity = Column(Integer, nullable=False)
+    volume: Mapped[int] = Column(Integer, nullable=False)
+    volume_24h: Mapped[int] = Column(Integer, nullable=False)
+    open_interest: Mapped[int] = Column(Integer, nullable=False)
+    liquidity: Mapped[int] = Column(Integer, nullable=False)
 
     # Relationships
-    market = relationship("Market", back_populates="price_snapshots")
+    market: Mapped["Market"] = relationship("Market", back_populates="price_snapshots")
 
-    __table_args__ = (
-        Index("idx_snapshots_ticker_time", "ticker", "snapshot_time"),
-    )
+    __table_args__ = (Index("idx_snapshots_ticker_time", "ticker", "snapshot_time"),)
 
     @property
     def midpoint(self) -> float:
@@ -239,38 +254,43 @@ class PriceSnapshot(Base):
 
 class Event(Base):
     """Event containing multiple related markets."""
+
     __tablename__ = "events"
 
-    ticker = Column(String, primary_key=True)
-    series_ticker = Column(String, nullable=False)
-    title = Column(String, nullable=False)
-    status = Column(String, nullable=False)
-    category = Column(String)
-    mutually_exclusive = Column(Boolean, default=False)
+    ticker: Mapped[str] = Column(String, primary_key=True)
+    series_ticker: Mapped[str] = Column(String, nullable=False)
+    title: Mapped[str] = Column(String, nullable=False)
+    # Note: API may not return status for events, so we allow NULL
+    status: Mapped[str | None] = Column(String, nullable=True)
+    category: Mapped[str | None] = Column(String)
+    mutually_exclusive: Mapped[bool] = Column(Boolean, default=False)
 
-    created_at = Column(DateTime(timezone=True), default=utc_now)
-    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    created_at: Mapped[datetime | None] = Column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime | None] = Column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     # Relationships
-    markets = relationship("Market", back_populates="event")
+    markets: Mapped[list["Market"]] = relationship("Market", back_populates="event")
 
 
 class Settlement(Base):
     """Settlement outcome for a resolved market."""
+
     __tablename__ = "settlements"
 
-    ticker = Column(String, ForeignKey("markets.ticker"), primary_key=True)
-    event_ticker = Column(String, nullable=False)
-    settled_at = Column(DateTime(timezone=True), nullable=False)
-    result = Column(String, nullable=False)  # yes, no, void
+    ticker: Mapped[str] = Column(String, ForeignKey("markets.ticker"), primary_key=True)
+    event_ticker: Mapped[str] = Column(String, nullable=False)
+    settled_at: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
+    result: Mapped[str] = Column(String, nullable=False)  # yes, no, void
 
-    final_yes_price = Column(Integer)
-    final_no_price = Column(Integer)
-    yes_payout = Column(Integer)
-    no_payout = Column(Integer)
+    final_yes_price: Mapped[int | None] = Column(Integer)
+    final_no_price: Mapped[int | None] = Column(Integer)
+    yes_payout: Mapped[int | None] = Column(Integer)
+    no_payout: Mapped[int | None] = Column(Integer)
 
     # Relationships
-    market = relationship("Market", back_populates="settlement")
+    market: Mapped["Market"] = relationship("Market", back_populates="settlement")
 ```
 
 ### 3.4 Repository Pattern
@@ -283,7 +303,8 @@ Standard Repository pattern (as in SPEC-003 Draft) but ensuring all datetime obj
 # src/kalshi_research/data/scheduler.py
 import asyncio
 import time
-from typing import Callable, Awaitable
+from collections.abc import Awaitable, Callable
+
 import structlog
 
 logger = structlog.get_logger()
@@ -292,50 +313,52 @@ logger = structlog.get_logger()
 class DataScheduler:
     """Async scheduler for data collection tasks with drift correction."""
 
-    def __init__(self):
-        self.tasks: list[asyncio.Task] = []
+    def __init__(self) -> None:
+        self.tasks: list[asyncio.Task[None]] = []
         self.running = False
 
     async def schedule_interval(
         self,
         name: str,
-        func: Callable[[], Awaitable],
+        func: Callable[[], Awaitable[None]],
         interval_seconds: int,
     ) -> None:
         """
         Schedule a function to run at fixed intervals.
-        Corrects for execution time drift.
+        Corrects for execution time drift using monotonic clock.
         """
-        async def runner():
-            next_run = time.time()
+
+        async def runner() -> None:
+            # Use monotonic time for drift correction (safer than wall clock)
+            next_run = time.monotonic()
             while self.running:
-                now = time.time()
+                now = time.monotonic()
                 if now >= next_run:
                     try:
                         logger.info("Running scheduled task", task=name)
                         await func()
                     except Exception as e:
                         logger.error("Scheduled task failed", task=name, error=str(e))
-                    
+
                     # Calculate next run time
                     next_run += interval_seconds
                     # If we fell way behind, skip intervals to catch up
-                    while next_run <= time.time():
-                         next_run += interval_seconds
-                
+                    while next_run <= time.monotonic():
+                        next_run += interval_seconds
+
                 # Sleep until next run
-                sleep_duration = max(0, next_run - time.time())
+                sleep_duration = max(0, next_run - time.monotonic())
                 await asyncio.sleep(sleep_duration)
 
         task = asyncio.create_task(runner())
         self.tasks.append(task)
 
-    async def start(self):
+    async def start(self) -> None:
         """Start the scheduler."""
         self.running = True
         logger.info("Scheduler started")
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop all scheduled tasks."""
         self.running = False
         for task in self.tasks:
@@ -347,6 +370,10 @@ class DataScheduler:
 ### 3.6 Data Export & Analytical Storage
 
 To handle 100M+ rows, we provide utilities to export data to DuckDB or Parquet files.
+
+**Note:** The export uses DuckDB's SQLite extension which is downloaded at runtime via
+`INSTALL sqlite;`. This may fail in offline/locked-down CI runners. For CI environments,
+either pre-install the extension or skip Parquet export tests.
 
 ```python
 # src/kalshi_research/data/export.py

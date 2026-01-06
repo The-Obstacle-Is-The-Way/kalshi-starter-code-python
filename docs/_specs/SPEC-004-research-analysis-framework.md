@@ -128,7 +128,7 @@ class CalibrationResult:
 class CalibrationAnalyzer:
     """Analyze prediction market calibration."""
 
-    def __init__(self, n_bins: int = 10):
+    def __init__(self, n_bins: int = 10) -> None:
         self.n_bins = n_bins
 
     def compute_brier_score(
@@ -226,10 +226,8 @@ class CalibrationAnalyzer:
 # src/kalshi_research/analysis/edge.py
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
 from enum import Enum
-from decimal import Decimal
-import numpy as np
+from typing import Any
 
 
 class EdgeType(str, Enum):
@@ -237,7 +235,7 @@ class EdgeType(str, Enum):
     VOLATILITY = "volatility"   # Unusual price movement
     SPREAD = "spread"           # Wide spread opportunity
     VOLUME = "volume"           # Volume spike
-    CORRELATION = "correlation" # Related market inconsistency
+    CORRELATION = "correlation"  # Related market inconsistency
 
 
 @dataclass
@@ -248,14 +246,14 @@ class Edge:
     edge_type: EdgeType
     confidence: float          # 0-1 confidence in edge
     market_price: float        # Current market probability
-    your_estimate: Optional[float]  # Your probability estimate
-    expected_value: Optional[float]  # Expected profit per contract (cents)
+    your_estimate: float | None  # Your probability estimate
+    expected_value: float | None  # Expected profit per contract (cents)
 
     description: str
     detected_at: datetime
 
-    # Supporting data
-    metadata: dict
+    # Supporting data (mypy strict requires parameterized dict)
+    metadata: dict[str, Any]
 
     def __str__(self) -> str:
         yours = f"{self.your_estimate:.0%}" if self.your_estimate is not None else "N/A"
@@ -275,7 +273,7 @@ class EdgeDetector:
         min_spread_cents: int = 5,
         min_volume_spike: float = 3.0,
         min_price_move: float = 0.10,
-    ):
+    ) -> None:
         self.min_spread_cents = min_spread_cents
         self.min_volume_spike = min_volume_spike
         self.min_price_move = min_price_move
@@ -286,7 +284,7 @@ class EdgeDetector:
         market_prob: float,
         your_prob: float,
         min_edge: float = 0.05,
-    ) -> Optional[Edge]:
+    ) -> Edge | None:
         """
         Detect edge when your estimate differs from market.
         
@@ -334,7 +332,7 @@ class EdgeDetector:
         bid: int,
         ask: int,
         typical_spread: int = 2,
-    ) -> Optional[Edge]:
+    ) -> Edge | None:
         """Detect unusually wide spreads."""
         spread = ask - bid
 
@@ -367,9 +365,8 @@ Same as previous draft, but ensure usage of `datetime.now(timezone.utc)` where a
 # src/kalshi_research/research/thesis.py
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 from enum import Enum
-import json
+from typing import Any
 
 
 class ThesisStatus(str, Enum):
@@ -403,11 +400,11 @@ class Thesis:
     # Tracking
     status: ThesisStatus = ThesisStatus.DRAFT
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    resolved_at: Optional[datetime] = None
-    actual_outcome: Optional[str] = None  # yes, no, void
+    resolved_at: datetime | None = None
+    actual_outcome: str | None = None  # yes, no, void
 
-    # Notes over time
-    updates: list[dict] = field(default_factory=list)
+    # Notes over time (mypy strict requires parameterized dict)
+    updates: list[dict[str, Any]] = field(default_factory=list)
 
     def add_update(self, note: str) -> None:
         """Add a timestamped update to the thesis."""
@@ -428,7 +425,7 @@ class Thesis:
         return self.your_probability - self.market_probability
 
     @property
-    def was_correct(self) -> Optional[bool]:
+    def was_correct(self) -> bool | None:
         """Did your thesis predict correctly?"""
         if self.actual_outcome is None:
             return None

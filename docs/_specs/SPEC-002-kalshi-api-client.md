@@ -45,7 +45,8 @@ These are critical for research - we can fetch market data without API keys.
 | `/markets/{ticker}` | GET | Single market details | P0 |
 | `/markets/{ticker}/orderbook` | GET | Current orderbook | P0 |
 | `/markets/trades` | GET | Public trade history | P0 |
-| `/markets/{ticker}/candlesticks` | GET | OHLC price history (Verify path) | P0 |
+| `/markets/candlesticks` | GET | OHLC price history (batch, requires market_tickers param) | P0 |
+| `/series/{series_ticker}/markets/{ticker}/candlesticks` | GET | Single market candlesticks | P1 |
 
 ### 2.2 Authenticated Endpoints (Trading/Portfolio)
 
@@ -91,47 +92,61 @@ src/kalshi_research/
 
 ### 3.2 Data Models (Pydantic)
 
+**Important:** The Kalshi API uses different values for filter parameters vs response fields:
+- **Filter status** (query param): `unopened`, `open`, `closed`, `settled`
+- **Response status** (field value): `active`, `closed`, `determined`, `finalized`
+
 ```python
 # src/kalshi_research/api/models/market.py
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MarketStatus(str, Enum):
+    """Market status as returned in API responses."""
+
+    ACTIVE = "active"
+    CLOSED = "closed"
+    DETERMINED = "determined"
+    FINALIZED = "finalized"
+
+
+class MarketFilterStatus(str, Enum):
+    """Market status values for API filter parameters."""
+
+    UNOPENED = "unopened"
     OPEN = "open"
     CLOSED = "closed"
     SETTLED = "settled"
 
 
-class MarketResult(str, Enum):
-    YES = "yes"
-    NO = "no"
-    VOID = "void"
-    UNDETERMINED = ""
-
-
 class Market(BaseModel):
     """Represents a Kalshi prediction market."""
 
+    model_config = ConfigDict(frozen=True)
+
     ticker: str = Field(..., description="Unique market identifier")
     event_ticker: str = Field(..., description="Parent event ticker")
-    series_ticker: str = Field(..., description="Parent series ticker")
+    # Note: series_ticker may not be present in all responses
+    series_ticker: str | None = Field(default=None, description="Parent series ticker")
 
     title: str = Field(..., description="Market question/title")
     subtitle: str = Field(default="", description="Additional context")
 
     status: MarketStatus
-    result: Optional[MarketResult] = None
+    # Result can be "yes", "no", "void", or "" (empty string when undetermined)
+    result: Literal["yes", "no", "void", ""] = ""
 
-    # Pricing (in cents, 1-99)
+    # Pricing (in cents, 0-100)
     yes_bid: int = Field(..., ge=0, le=100, description="Best yes bid in cents")
     yes_ask: int = Field(..., ge=0, le=100, description="Best yes ask in cents")
     no_bid: int = Field(..., ge=0, le=100, description="Best no bid in cents")
     no_ask: int = Field(..., ge=0, le=100, description="Best no ask in cents")
-    last_price: Optional[int] = Field(None, ge=0, le=100)
+    last_price: int | None = Field(default=None, ge=0, le=100)
 
     # Volume
     volume: int = Field(..., ge=0, description="Total contracts traded")
@@ -146,86 +161,140 @@ class Market(BaseModel):
     # Liquidity
     liquidity: int = Field(..., ge=0, description="Dollar liquidity")
 
-    class Config:
-        frozen = True  # Immutable
 
-
-class OrderbookLevel(BaseModel):
-    """Single level in orderbook."""
-
-    price: int = Field(..., ge=1, le=99, description="Price in cents")
-    quantity: int = Field(..., ge=0, description="Contracts available")
-
-
+# src/kalshi_research/api/models/orderbook.py
 class Orderbook(BaseModel):
-    """Market orderbook snapshot."""
+    """
+    Market orderbook snapshot.
 
-    ticker: str
-    timestamp: datetime
-    yes_bids: list[OrderbookLevel] = Field(default_factory=list)
-    yes_asks: list[OrderbookLevel] = Field(default_factory=list)
+    Note: API returns yes/no as list of [price, quantity] tuples, or null if empty.
+    The API only returns bids (no asks) - use yes for YES bids, no for NO bids.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    # Each level is [price_cents, quantity]
+    yes: list[tuple[int, int]] | None = None
+    no: list[tuple[int, int]] | None = None
+    # Dollar-denominated versions (optional in response)
+    yes_dollars: list[tuple[str, int]] | None = None
+    no_dollars: list[tuple[str, int]] | None = None
 
     @property
-    def spread(self) -> Optional[int]:
-        """Calculate bid-ask spread in cents."""
-        if not self.yes_bids or not self.yes_asks:
+    def best_yes_bid(self) -> int | None:
+        """Best YES bid price in cents."""
+        if not self.yes:
             return None
-        best_bid = max(level.price for level in self.yes_bids)
-        best_ask = min(level.price for level in self.yes_asks)
-        return best_ask - best_bid
+        return max(price for price, _ in self.yes)
 
     @property
-    def midpoint(self) -> Optional[Decimal]:
-        """Calculate midpoint price."""
-        if not self.yes_bids or not self.yes_asks:
+    def best_no_bid(self) -> int | None:
+        """Best NO bid price in cents."""
+        if not self.no:
             return None
-        best_bid = max(level.price for level in self.yes_bids)
-        best_ask = min(level.price for level in self.yes_asks)
-        return (Decimal(best_bid) + Decimal(best_ask)) / 2
+        return max(price for price, _ in self.no)
+
+    @property
+    def spread(self) -> int | None:
+        """
+        Calculate implied spread in cents.
+
+        Since orderbook only has bids, spread = 100 - best_yes_bid - best_no_bid.
+        """
+        if self.best_yes_bid is None or self.best_no_bid is None:
+            return None
+        return 100 - self.best_yes_bid - self.best_no_bid
+
+    @property
+    def midpoint(self) -> Decimal | None:
+        """Calculate midpoint price for YES side."""
+        if self.best_yes_bid is None or self.best_no_bid is None:
+            return None
+        # Implied YES ask = 100 - best_no_bid
+        implied_yes_ask = 100 - self.best_no_bid
+        return (Decimal(self.best_yes_bid) + Decimal(implied_yes_ask)) / 2
 
 
+# src/kalshi_research/api/models/trade.py
 class Trade(BaseModel):
     """Public trade record."""
 
+    model_config = ConfigDict(frozen=True)
+
     trade_id: str
     ticker: str
-    timestamp: datetime
-    price: int = Field(..., ge=1, le=99)
+    created_time: datetime  # Note: API uses created_time, not timestamp
+    yes_price: int = Field(..., ge=1, le=99, description="YES price in cents")
+    no_price: int = Field(..., ge=1, le=99, description="NO price in cents")
     count: int = Field(..., ge=1, description="Number of contracts")
-    taker_side: str  # "yes" or "no"
+    taker_side: Literal["yes", "no"]
 
 
+# src/kalshi_research/api/models/candlestick.py
 class Candlestick(BaseModel):
-    """OHLC price data."""
+    """OHLC price data for a single period."""
 
-    ticker: str
-    period_start: datetime
-    period_end: datetime
+    model_config = ConfigDict(frozen=True)
+
+    # Timestamps as Unix seconds
+    start_ts: int = Field(..., description="Period start timestamp (Unix seconds)")
+    end_ts: int = Field(..., description="Period end timestamp (Unix seconds)")
+
+    # OHLC prices in cents
     open: int
     high: int
     low: int
     close: int
     volume: int
+
+    @property
+    def period_start(self) -> datetime:
+        """Period start as datetime (UTC)."""
+        from datetime import timezone
+
+        return datetime.fromtimestamp(self.start_ts, tz=timezone.utc)
+
+    @property
+    def period_end(self) -> datetime:
+        """Period end as datetime (UTC)."""
+        from datetime import timezone
+
+        return datetime.fromtimestamp(self.end_ts, tz=timezone.utc)
+
+
+class CandlestickResponse(BaseModel):
+    """Response from batch candlesticks endpoint."""
+
+    model_config = ConfigDict(frozen=True)
+
+    market_ticker: str
+    candlesticks: list[Candlestick]
 ```
 
 ### 3.3 Client Architecture
 
 ```python
 # src/kalshi_research/api/client.py
-from typing import AsyncIterator, Optional
-from decimal import Decimal
+from typing import Any, AsyncIterator
+
 import httpx
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
-from .models.market import Market, Orderbook, Trade, Candlestick
-from .models.event import Event
 from .exceptions import KalshiAPIError, RateLimitError
-from .auth import KalshiAuth
+from .models.market import (
+    Candlestick,
+    CandlestickResponse,
+    Market,
+    MarketFilterStatus,
+    Orderbook,
+    Trade,
+)
+from .models.event import Event
 
 
 class KalshiPublicClient:
@@ -252,44 +321,59 @@ class KalshiPublicClient:
     async def __aenter__(self) -> "KalshiPublicClient":
         return self
 
-    async def __aexit__(self, *args) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
         await self._client.aclose()
 
     @retry(
-        retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
-        stop=stop_after_attempt(5),
+        retry=retry_if_exception_type(
+            (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+        ),
+        stop=stop_after_attempt(5),  # TODO: Use self._max_retries when tenacity supports it
         wait=wait_exponential(multiplier=1, min=1, max=60),
     )
-    async def _get(self, path: str, params: Optional[dict] = None) -> dict:
+    async def _get(
+        self, path: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Make rate-limited GET request with retry."""
         response = await self._client.get(path, params=params)
 
         if response.status_code == 429:
             # Raise exception to trigger tenacity retry
+            # TODO: Respect Retry-After header if present
             raise RateLimitError("Rate limit exceeded")
-            
+
         if response.status_code >= 400:
             raise KalshiAPIError(
                 status_code=response.status_code,
                 message=response.text,
             )
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
 
     # ==================== Markets ====================
 
     async def get_markets(
         self,
-        status: Optional[str] = None,
-        event_ticker: Optional[str] = None,
-        series_ticker: Optional[str] = None,
+        status: MarketFilterStatus | str | None = None,
+        event_ticker: str | None = None,
+        series_ticker: str | None = None,
         limit: int = 100,
     ) -> list[Market]:
         """
         Fetch markets with optional filters.
+
+        Note: status filter uses different values than response status field.
+        Filter: unopened, open, closed, settled
+        Response: active, closed, determined, finalized
         """
-        params = {"limit": min(limit, 1000)}
+        params: dict[str, Any] = {"limit": min(limit, 1000)}
         if status:
-            params["status"] = status
+            params["status"] = status.value if isinstance(status, MarketFilterStatus) else status
         if event_ticker:
             params["event_ticker"] = event_ticker
         if series_ticker:
@@ -300,19 +384,21 @@ class KalshiPublicClient:
 
     async def get_all_markets(
         self,
-        status: Optional[str] = None,
+        status: MarketFilterStatus | str | None = None,
         max_pages: int = 100,
     ) -> AsyncIterator[Market]:
         """
         Iterate through ALL markets with automatic pagination.
         Includes a safety limit to prevent infinite loops.
         """
-        cursor = None
+        cursor: str | None = None
         pages = 0
         while pages < max_pages:
-            params = {"limit": 1000}
+            params: dict[str, Any] = {"limit": 1000}
             if status:
-                params["status"] = status
+                params["status"] = (
+                    status.value if isinstance(status, MarketFilterStatus) else status
+                )
             if cursor:
                 params["cursor"] = cursor
 
@@ -335,22 +421,24 @@ class KalshiPublicClient:
     async def get_orderbook(self, ticker: str, depth: int = 10) -> Orderbook:
         """
         Fetch current orderbook for a market.
+
+        Note: Orderbook returns yes/no bids only (no asks).
+        Each is a list of [price, quantity] tuples, or null if empty.
         """
         data = await self._get(
-            f"/markets/{ticker}/orderbook",
-            params={"depth": depth}
+            f"/markets/{ticker}/orderbook", params={"depth": depth}
         )
         return Orderbook.model_validate(data["orderbook"])
 
     async def get_trades(
         self,
-        ticker: Optional[str] = None,
+        ticker: str | None = None,
         limit: int = 100,
-        min_ts: Optional[int] = None,
-        max_ts: Optional[int] = None,
+        min_ts: int | None = None,
+        max_ts: int | None = None,
     ) -> list[Trade]:
         """Fetch public trade history."""
-        params = {"limit": min(limit, 1000)}
+        params: dict[str, Any] = {"limit": min(limit, 1000)}
         if ticker:
             params["ticker"] = ticker
         if min_ts:
@@ -363,35 +451,77 @@ class KalshiPublicClient:
 
     async def get_candlesticks(
         self,
+        market_tickers: list[str],
+        start_ts: int,
+        end_ts: int,
+        period_interval: int = 60,  # Minutes: 1, 60, or 1440
+    ) -> list[CandlestickResponse]:
+        """
+        Fetch OHLC candlestick data for multiple markets (batch endpoint).
+
+        Args:
+            market_tickers: List of market tickers (max 100)
+            start_ts: Start timestamp (Unix seconds)
+            end_ts: End timestamp (Unix seconds)
+            period_interval: Candle period in minutes (1, 60, or 1440)
+
+        Returns:
+            List of CandlestickResponse, one per market
+        """
+        if len(market_tickers) > 100:
+            raise ValueError("Maximum 100 market tickers per request")
+
+        params: dict[str, Any] = {
+            "market_tickers": ",".join(market_tickers),
+            "start_ts": start_ts,
+            "end_ts": end_ts,
+            "period_interval": period_interval,
+        }
+
+        data = await self._get("/markets/candlesticks", params)
+        return [
+            CandlestickResponse.model_validate(m) for m in data.get("markets", [])
+        ]
+
+    async def get_series_candlesticks(
+        self,
+        series_ticker: str,
         ticker: str,
-        period_interval: int = 60,  # Minutes
-        start_ts: Optional[int] = None,
-        end_ts: Optional[int] = None,
+        start_ts: int | None = None,
+        end_ts: int | None = None,
+        period_interval: int = 60,
     ) -> list[Candlestick]:
         """
-        Fetch OHLC candlestick data.
+        Fetch OHLC candlestick data for a single market within a series.
+
+        Args:
+            series_ticker: The series ticker
+            ticker: The market ticker
+            start_ts: Optional start timestamp (Unix seconds)
+            end_ts: Optional end timestamp (Unix seconds)
+            period_interval: Candle period in minutes (1, 60, or 1440)
         """
-        params = {"period_interval": period_interval}
+        params: dict[str, Any] = {"period_interval": period_interval}
         if start_ts:
             params["start_ts"] = start_ts
         if end_ts:
             params["end_ts"] = end_ts
 
-        # Note: API path might vary between markets/series. 
-        # Using markets/{ticker}/candlesticks as per V2 docs for specific contracts.
-        data = await self._get(f"/markets/{ticker}/candlesticks", params)
+        data = await self._get(
+            f"/series/{series_ticker}/markets/{ticker}/candlesticks", params
+        )
         return [Candlestick.model_validate(c) for c in data.get("candlesticks", [])]
 
     # ==================== Events ====================
 
     async def get_events(
         self,
-        status: Optional[str] = None,
-        series_ticker: Optional[str] = None,
+        status: str | None = None,
+        series_ticker: str | None = None,
         limit: int = 100,
     ) -> list[Event]:
         """Fetch events with optional filters."""
-        params = {"limit": min(limit, 1000)}
+        params: dict[str, Any] = {"limit": min(limit, 1000)}
         if status:
             params["status"] = status
         if series_ticker:
@@ -407,7 +537,7 @@ class KalshiPublicClient:
 
     # ==================== Exchange ====================
 
-    async def get_exchange_status(self) -> dict:
+    async def get_exchange_status(self) -> dict[str, Any]:
         """Check if exchange is operational."""
         return await self._get("/exchange/status")
 
@@ -415,10 +545,14 @@ class KalshiPublicClient:
 class KalshiClient(KalshiPublicClient):
     """
     Authenticated client extending public client with portfolio endpoints.
+
+    IMPORTANT: Auth signing requires the FULL path including /trade-api/v2 prefix.
+    The signature is computed over: timestamp + method + full_path (without query params).
     """
 
-    DEMO_URL = "https://demo-api.kalshi.co/trade-api/v2"
-    PROD_URL = "https://api.elections.kalshi.com/trade-api/v2"
+    DEMO_BASE = "https://demo-api.kalshi.co"
+    PROD_BASE = "https://api.elections.kalshi.com"
+    API_PATH = "/trade-api/v2"
 
     def __init__(
         self,
@@ -427,12 +561,14 @@ class KalshiClient(KalshiPublicClient):
         environment: str = "prod",
         timeout: float = 30.0,
     ):
-        # Don't call super().__init__() - we'll create client with correct URL
+        # Don't call super().__init__() - we create client with environment-specific URL
+        base_host = self.DEMO_BASE if environment == "demo" else self.PROD_BASE
+        self._base_url = base_host + self.API_PATH
         self._auth = KalshiAuth(key_id, private_key_path)
+        self._max_retries = 5
 
-        base_url = self.DEMO_URL if environment == "demo" else self.PROD_URL
         self._client = httpx.AsyncClient(
-            base_url=base_url,
+            base_url=self._base_url,
             timeout=timeout,
             headers={"Accept": "application/json"},
         )
@@ -440,48 +576,64 @@ class KalshiClient(KalshiPublicClient):
     async def __aenter__(self) -> "KalshiClient":
         return self
 
-    async def __aexit__(self, *args) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
         await self._client.aclose()
 
     @retry(
-        retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
+        retry=retry_if_exception_type(
+            (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+        ),
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=1, max=60),
     )
-    async def _auth_get(self, path: str, params: Optional[dict] = None) -> dict:
-        """Authenticated GET request with retry."""
-        headers = self._auth.get_headers("GET", path)
+    async def _auth_get(
+        self, path: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """
+        Authenticated GET request with retry.
+
+        CRITICAL: Auth signing uses the FULL path including /trade-api/v2 prefix.
+        """
+        # Sign with full path (e.g., /trade-api/v2/portfolio/balance)
+        full_path = self.API_PATH + path
+        headers = self._auth.get_headers("GET", full_path)
         response = await self._client.get(path, params=params, headers=headers)
-        
+
         if response.status_code == 429:
             raise RateLimitError("Rate limit exceeded")
 
         if response.status_code >= 400:
             raise KalshiAPIError(response.status_code, response.text)
-            
-        return response.json()
 
-    async def get_balance(self) -> dict:
+        result: dict[str, Any] = response.json()
+        return result
+
+    async def get_balance(self) -> dict[str, Any]:
         """Get account balance."""
         return await self._auth_get("/portfolio/balance")
 
-    async def get_positions(self) -> list[dict]:
+    async def get_positions(self) -> list[dict[str, Any]]:
         """Get current positions."""
         data = await self._auth_get("/portfolio/positions")
         return data.get("positions", [])
 
     async def get_orders(
         self,
-        ticker: Optional[str] = None,
-        status: Optional[str] = None,
-    ) -> list[dict]:
+        ticker: str | None = None,
+        status: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Get order history."""
-        params = {}
+        params: dict[str, Any] = {}
         if ticker:
             params["ticker"] = ticker
         if status:
             params["status"] = status
-        data = await self._auth_get("/portfolio/orders", params)
+        data = await self._auth_get("/portfolio/orders", params or None)
         return data.get("orders", [])
 ```
 
@@ -541,7 +693,8 @@ class MarketNotFoundError(KalshiAPIError):
 - [ ] Add `/markets/{ticker}` endpoint
 - [ ] Add `/markets/{ticker}/orderbook` endpoint
 - [ ] Add `/markets/trades` endpoint
-- [ ] Add `/markets/{ticker}/candlesticks` endpoint
+- [ ] Add `/markets/candlesticks` batch endpoint
+- [ ] Add `/series/{series_ticker}/markets/{ticker}/candlesticks` endpoint
 - [ ] Add `/events` endpoints
 - [ ] Add `/exchange/status` endpoint
 - [ ] Write comprehensive unit tests with `respx` mocking
@@ -576,26 +729,52 @@ class MarketNotFoundError(KalshiAPIError):
 ```python
 # Research usage - no API keys needed
 import asyncio
-from kalshi_research.api import KalshiPublicClient
+import time
 
-async def main():
+from kalshi_research.api import KalshiPublicClient
+from kalshi_research.api.models.market import MarketFilterStatus
+
+
+async def main() -> None:
     async with KalshiPublicClient() as client:
-        # Get all open markets
-        markets = await client.get_markets(status="open")
+        # Get all open markets (filter status != response status)
+        # Filter uses: unopened, open, closed, settled
+        # Response returns: active, closed, determined, finalized
+        markets = await client.get_markets(status=MarketFilterStatus.OPEN)
         print(f"Found {len(markets)} open markets")
 
         # Get specific market details
         market = await client.get_market("KXBTC-24DEC31-T100000")
         print(f"{market.title}: {market.yes_bid}c / {market.yes_ask}c")
+        print(f"Status: {market.status.value}")  # e.g., "active"
 
-        # Get orderbook
+        # Get orderbook (returns yes/no bids as [[price, qty], ...])
         orderbook = await client.get_orderbook(market.ticker)
-        print(f"Spread: {orderbook.spread}c, Midpoint: {orderbook.midpoint}c")
+        if orderbook.spread is not None:
+            print(f"Spread: {orderbook.spread}c, Midpoint: {orderbook.midpoint}c")
+
+        # Get trades (note: created_time, yes_price, no_price)
+        trades = await client.get_trades(ticker=market.ticker, limit=10)
+        for trade in trades:
+            print(f"Trade: {trade.yes_price}c @ {trade.created_time}")
+
+        # Get candlesticks (batch endpoint)
+        now = int(time.time())
+        week_ago = now - 7 * 24 * 60 * 60
+        candles = await client.get_candlesticks(
+            market_tickers=[market.ticker],
+            start_ts=week_ago,
+            end_ts=now,
+            period_interval=60,  # 1 hour candles
+        )
+        for response in candles:
+            print(f"{response.market_ticker}: {len(response.candlesticks)} candles")
 
         # Iterate through ALL markets
-        async for market in client.get_all_markets(status="open"):
-            if market.volume_24h > 10000:
-                print(f"High volume: {market.ticker}")
+        async for mkt in client.get_all_markets(status=MarketFilterStatus.OPEN):
+            if mkt.volume_24h > 10000:
+                print(f"High volume: {mkt.ticker}")
+
 
 asyncio.run(main())
 ```

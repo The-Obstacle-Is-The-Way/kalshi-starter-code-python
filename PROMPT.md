@@ -19,22 +19,23 @@ Complete these phases IN ORDER. Do not skip ahead.
 
 1. Create `src/kalshi_research/` directory structure
 2. Move `clients.py` to `src/kalshi_research/clients.py`
-3. Create `src/kalshi_research/__init__.py` with version
-4. Create `src/kalshi_research/py.typed` marker
-5. Write `pyproject.toml` exactly as specified in SPEC-001
-6. Create `.python-version` with `3.11`
-7. Create `.env.example` template
-8. Update `.gitignore` as specified
-9. Create `.pre-commit-config.yaml` as specified
-10. Create `.github/workflows/ci.yml` as specified
-11. Run `uv sync` to install dependencies
-12. Run `uv run ruff check . --fix` to fix lint errors
-13. Run `uv run ruff format .` to format code
-14. Add type hints to `clients.py` for mypy compliance
-15. Run `uv run mypy src/` and fix all errors
-16. Create `tests/conftest.py` with shared fixtures
-17. Create `tests/unit/test_clients.py` with basic tests
-18. Run `uv run pytest tests/unit -v` - all tests must pass
+3. Update `main.py` imports to use new path: `from kalshi_research.clients import ...`
+4. Create `src/kalshi_research/__init__.py` with version
+5. Create `src/kalshi_research/py.typed` marker
+6. Write `pyproject.toml` exactly as specified in SPEC-001
+7. Create `.python-version` with `3.11`
+8. Create `.env.example` template
+9. Update `.gitignore` as specified
+10. Create `.pre-commit-config.yaml` as specified
+11. Create `.github/workflows/ci.yml` as specified
+12. Run `uv sync` to install dependencies
+13. Run `uv run ruff check . --fix` to fix lint errors
+14. Run `uv run ruff format .` to format code
+15. Add type hints to `clients.py` for mypy compliance
+16. Run `uv run mypy src/` and fix all errors
+17. Create `tests/conftest.py` with shared fixtures
+18. Create `tests/unit/test_clients.py` with basic tests
+19. Run `uv run pytest tests/unit -v` - all tests must pass
 
 **Phase 1 Checkpoint:** `uv run ruff check . && uv run mypy src/ && uv run pytest tests/unit` all pass
 
@@ -147,9 +148,22 @@ ALL of the following must be true:
 1. Read the specs in `docs/_specs/` before implementing each phase
 2. Run tests after EVERY file creation to catch errors early
 3. Fix all ruff/mypy errors before moving to next phase
-4. Use EXACT code from specs - do not improvise
+4. Use code from specs as the starting point. Minor corrections are allowed when:
+   - Code has syntax errors or typos
+   - mypy strict mode requires additional type annotations
+   - Live API behavior differs from spec (test against real API when possible)
 5. If a test fails, debug and fix before continuing
 6. Commit after each phase: `git add -A && git commit -m "Phase N: description"`
+
+## Important API Notes
+
+**Read these before implementing SPEC-002:**
+
+- **Market status filter vs response:** Filter params use `unopened/open/closed/settled`, but API responses return `active/closed/determined/finalized`
+- **Candlesticks:** Use batch endpoint `/markets/candlesticks` (not `/markets/{ticker}/candlesticks`)
+- **Orderbook:** Returns `{"yes": [[price,qty],...], "no": [...]}` not objects with `yes_bids/yes_asks`
+- **Trade fields:** Use `created_time` + `yes_price/no_price`, not `timestamp` + `price`
+- **Auth signing:** Sign the FULL path including `/trade-api/v2` prefix, not just the relative endpoint
 
 ## Completion
 

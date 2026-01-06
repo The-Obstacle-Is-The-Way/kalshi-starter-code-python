@@ -112,6 +112,7 @@ dev = [
     "respx>=0.22.0",           # Mock httpx requests
     "polyfactory>=3.0.0",      # Test data factories
     "hypothesis>=6.122.0",     # Property-based testing
+    "types-requests>=2.32.0",  # Type stubs for requests (required for mypy strict)
 ]
 research = [
     "pandas>=2.2.0",
@@ -235,7 +236,8 @@ jobs:
       - name: Set up Python
         run: uv python install 3.11
       - name: Install dependencies
-        run: uv sync --dev
+        # Include research extra for numpy type checking in analysis modules
+        run: uv sync --all-extras
       - name: Run ruff check
         run: uv run ruff check .
       - name: Run ruff format check
@@ -416,6 +418,16 @@ Thumbs.db
 - [ ] Create `py.typed` marker file
 - [ ] Write `pyproject.toml` with all configurations
 - [ ] Update `.gitignore`
+- [ ] Update `main.py` imports to use new package path:
+  ```python
+  # main.py - updated imports
+  from kalshi_research.clients import KalshiHttpClient, KalshiWebSocketClient, Environment
+  ```
+  Alternatively, keep a root `clients.py` shim that re-exports:
+  ```python
+  # clients.py (root shim for backwards compatibility)
+  from kalshi_research.clients import *  # noqa: F401, F403
+  ```
 
 ### 3.2 Phase 2: Tooling Setup
 - [ ] Initialize uv and generate lockfile
