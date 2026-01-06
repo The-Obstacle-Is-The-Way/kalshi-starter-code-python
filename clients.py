@@ -1,16 +1,20 @@
+from __future__ import annotations
+
 import base64
 import json
 import time
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 import websockets
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
-from websockets.asyncio.client import ClientConnection
+
+if TYPE_CHECKING:
+    from websockets.asyncio.client import ClientConnection
 
 
 class Environment(Enum):

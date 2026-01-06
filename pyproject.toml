@@ -99,6 +99,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLC0415"]  # Allow imports inside fixtures for lazy loading
+"src/kalshi_research/cli.py" = ["PLC0415"]  # Allow lazy imports in CLI for faster startup
 
 [tool.ruff.lint.isort]
 known-first-party = ["kalshi_research"]
