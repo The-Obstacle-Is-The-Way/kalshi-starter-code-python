@@ -57,15 +57,11 @@ class KalshiPublicClient:
         await self._client.aclose()
 
     @retry(
-        retry=retry_if_exception_type(
-            (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
-        ),
+        retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=1, max=60),
     )
-    async def _get(
-        self, path: str, params: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Make rate-limited GET request with retry."""
         response = await self._client.get(path, params=params)
 
@@ -304,15 +300,11 @@ class KalshiClient(KalshiPublicClient):
         await self._client.aclose()
 
     @retry(
-        retry=retry_if_exception_type(
-            (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
-        ),
+        retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=1, max=60),
     )
-    async def _auth_get(
-        self, path: str, params: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def _auth_get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Authenticated GET request with retry.
 
