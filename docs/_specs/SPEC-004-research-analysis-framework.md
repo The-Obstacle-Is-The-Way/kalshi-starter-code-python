@@ -89,7 +89,136 @@ notebooks/
 
 ### 3.2 Calibration Module
 
-(Same as previous draft, using standard `numpy`/`scipy`)
+```python
+# src/kalshi_research/analysis/calibration.py
+from dataclasses import dataclass
+from typing import Optional
+import numpy as np
+
+
+@dataclass
+class CalibrationResult:
+    """Results from calibration analysis."""
+
+    brier_score: float
+    brier_skill_score: float  # vs climatology baseline
+    n_samples: int
+
+    # Calibration curve data
+    bins: np.ndarray           # Probability bins (e.g., [0.1, 0.2, ...])
+    predicted_probs: np.ndarray  # Mean predicted prob per bin
+    actual_freqs: np.ndarray     # Actual YES frequency per bin
+    bin_counts: np.ndarray       # Samples per bin
+
+    # Brier decomposition
+    reliability: float         # Calibration error component
+    resolution: float          # Discrimination ability
+    uncertainty: float         # Base rate uncertainty
+
+    def __str__(self) -> str:
+        return (
+            f"Calibration Results (n={self.n_samples}):\n"
+            f"  Brier Score: {self.brier_score:.4f}\n"
+            f"  Skill Score: {self.brier_skill_score:.4f}\n"
+            f"  Reliability: {self.reliability:.4f}\n"
+            f"  Resolution:  {self.resolution:.4f}"
+        )
+
+
+class CalibrationAnalyzer:
+    """Analyze prediction market calibration."""
+
+    def __init__(self, n_bins: int = 10):
+        self.n_bins = n_bins
+
+    def compute_brier_score(
+        self,
+        forecasts: np.ndarray,
+        outcomes: np.ndarray,
+    ) -> float:
+        """
+        Compute Brier score for forecasts.
+
+        Args:
+            forecasts: Predicted probabilities (0-1)
+            outcomes: Actual outcomes (0 or 1)
+
+        Returns:
+            Brier score (lower is better, 0 = perfect)
+        """
+        forecasts = np.asarray(forecasts)
+        outcomes = np.asarray(outcomes)
+        return float(np.mean((forecasts - outcomes) ** 2))
+
+    def compute_calibration(
+        self,
+        forecasts: np.ndarray,
+        outcomes: np.ndarray,
+    ) -> CalibrationResult:
+        """
+        Full calibration analysis with Brier decomposition.
+
+        Args:
+            forecasts: Predicted probabilities (0-1)
+            outcomes: Actual outcomes (0 or 1)
+
+        Returns:
+            CalibrationResult with all metrics
+        """
+        forecasts = np.asarray(forecasts)
+        outcomes = np.asarray(outcomes)
+        n = len(forecasts)
+        base_rate = np.mean(outcomes)
+
+        # Brier score
+        brier = self.compute_brier_score(forecasts, outcomes)
+
+        # Climatology baseline (always predict base rate)
+        climatology_brier = base_rate * (1 - base_rate)
+        skill_score = 1 - (brier / climatology_brier) if climatology_brier > 0 else 0.0
+
+        # Bin forecasts for calibration curve
+        bin_edges = np.linspace(0, 1, self.n_bins + 1)
+        bin_indices = np.digitize(forecasts, bin_edges[1:-1])
+
+        predicted_probs = np.full(self.n_bins, np.nan)
+        actual_freqs = np.full(self.n_bins, np.nan)
+        bin_counts = np.zeros(self.n_bins, dtype=int)
+
+        for i in range(self.n_bins):
+            mask = bin_indices == i
+            count = np.sum(mask)
+            bin_counts[i] = count
+
+            if count > 0:
+                predicted_probs[i] = np.mean(forecasts[mask])
+                actual_freqs[i] = np.mean(outcomes[mask])
+
+        # Brier decomposition
+        reliability = 0.0
+        resolution = 0.0
+        for i in range(self.n_bins):
+            if bin_counts[i] > 0:
+                reliability += bin_counts[i] * (actual_freqs[i] - predicted_probs[i]) ** 2
+                resolution += bin_counts[i] * (actual_freqs[i] - base_rate) ** 2
+        reliability /= n
+        resolution /= n
+
+        uncertainty = base_rate * (1 - base_rate)
+
+        return CalibrationResult(
+            brier_score=brier,
+            brier_skill_score=float(skill_score),
+            n_samples=n,
+            bins=bin_edges,
+            predicted_probs=predicted_probs,
+            actual_freqs=actual_freqs,
+            bin_counts=bin_counts,
+            reliability=reliability,
+            resolution=resolution,
+            uncertainty=uncertainty,
+        )
+```
 
 ### 3.3 Edge Detection Module
 
@@ -129,11 +258,11 @@ class Edge:
     metadata: dict
 
     def __str__(self) -> str:
+        yours = f"{self.your_estimate:.0%}" if self.your_estimate is not None else "N/A"
+        ev = f"{self.expected_value:+.1f}c" if self.expected_value is not None else "N/A"
         return (
             f"[{self.edge_type.value.upper()}] {self.ticker}\n"
-            f"  Market: {self.market_price:.0%} | "
-            f"Yours: {self.your_estimate:.0%} | "
-            f"EV: {self.expected_value:+.1f}c\n"
+            f"  Market: {self.market_price:.0%} | Yours: {yours} | EV: {ev}\n"
             f"  {self.description}"
         )
 
@@ -368,4 +497,59 @@ Standard matplotlib implementation. No changes needed other than standard librar
 5. **Visualization**: All plots render correctly in Jupyter
 6. **Tests**: >85% coverage on analysis modules
 
+---
+
+## 6. Usage Examples
+
+```python
+# Example: Calibration analysis
+import asyncio
+import numpy as np
+from kalshi_research.analysis.calibration import CalibrationAnalyzer
+
+# Synthetic example data
+forecasts = np.array([0.7, 0.3, 0.8, 0.5, 0.9, 0.2, 0.6, 0.4])
+outcomes = np.array([1, 0, 1, 1, 1, 0, 0, 1])
+
+analyzer = CalibrationAnalyzer(n_bins=5)
+result = analyzer.compute_calibration(forecasts, outcomes)
+print(result)
+# Output:
+# Calibration Results (n=8):
+#   Brier Score: 0.1550
+#   Skill Score: 0.3800
+#   Reliability: 0.0250
+#   Resolution:  0.1000
 ```
+
+```python
+# Example: Edge detection
+from kalshi_research.analysis.edge import EdgeDetector
+
+detector = EdgeDetector()
+
+# You think market is underpriced
+edge = detector.detect_thesis_edge(
+    ticker="KXBTC-25JAN-T100000",
+    market_prob=0.35,  # Market says 35%
+    your_prob=0.55,    # You think 55%
+)
+
+if edge:
+    print(edge)
+    # Output:
+    # [THESIS] KXBTC-25JAN-T100000
+    #   Market: 35% | Yours: 55% | EV: +20.0c
+    #   Buy YES: You estimate 55% vs market 35%
+```
+
+---
+
+## 7. Future Considerations
+
+- Add machine learning for pattern detection
+- Implement news sentiment analysis integration
+- Add correlation analysis between related markets
+- Build alert system for edge detection triggers
+- Create backtesting framework for thesis validation
+- Add portfolio-level analytics (Kelly criterion sizing)

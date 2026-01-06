@@ -220,7 +220,6 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
-    RetryError
 )
 
 from .models.market import Market, Orderbook, Trade, Candlestick
@@ -418,22 +417,31 @@ class KalshiClient(KalshiPublicClient):
     Authenticated client extending public client with portfolio endpoints.
     """
 
+    DEMO_URL = "https://demo-api.kalshi.co/trade-api/v2"
+    PROD_URL = "https://api.elections.kalshi.com/trade-api/v2"
+
     def __init__(
         self,
         key_id: str,
         private_key_path: str,
         environment: str = "prod",
-        **kwargs,
+        timeout: float = 30.0,
     ):
-        super().__init__(**kwargs)
+        # Don't call super().__init__() - we'll create client with correct URL
         self._auth = KalshiAuth(key_id, private_key_path)
 
-        # Override base URL for demo if needed
-        if environment == "demo":
-            self._client = httpx.AsyncClient(
-                base_url="https://demo-api.kalshi.co/trade-api/v2",
-                timeout=kwargs.get("timeout", 30.0),
-            )
+        base_url = self.DEMO_URL if environment == "demo" else self.PROD_URL
+        self._client = httpx.AsyncClient(
+            base_url=base_url,
+            timeout=timeout,
+            headers={"Accept": "application/json"},
+        )
+
+    async def __aenter__(self) -> "KalshiClient":
+        return self
+
+    async def __aexit__(self, *args) -> None:
+        await self._client.aclose()
 
     @retry(
         retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),

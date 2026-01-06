@@ -235,6 +235,42 @@ class PriceSnapshot(Base):
     def implied_probability(self) -> float:
         """Convert midpoint to probability (0-1 scale)."""
         return self.midpoint / 100.0
+
+
+class Event(Base):
+    """Event containing multiple related markets."""
+    __tablename__ = "events"
+
+    ticker = Column(String, primary_key=True)
+    series_ticker = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    status = Column(String, nullable=False)
+    category = Column(String)
+    mutually_exclusive = Column(Boolean, default=False)
+
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    # Relationships
+    markets = relationship("Market", back_populates="event")
+
+
+class Settlement(Base):
+    """Settlement outcome for a resolved market."""
+    __tablename__ = "settlements"
+
+    ticker = Column(String, ForeignKey("markets.ticker"), primary_key=True)
+    event_ticker = Column(String, nullable=False)
+    settled_at = Column(DateTime(timezone=True), nullable=False)
+    result = Column(String, nullable=False)  # yes, no, void
+
+    final_yes_price = Column(Integer)
+    final_no_price = Column(Integer)
+    yes_payout = Column(Integer)
+    no_payout = Column(Integer)
+
+    # Relationships
+    market = relationship("Market", back_populates="settlement")
 ```
 
 ### 3.4 Repository Pattern
@@ -314,31 +350,60 @@ To handle 100M+ rows, we provide utilities to export data to DuckDB or Parquet f
 
 ```python
 # src/kalshi_research/data/export.py
+from pathlib import Path
 import duckdb
-import pandas as pd
-from sqlalchemy import create_engine
+import structlog
 
-def export_to_parquet(sqlite_path: str, output_dir: str):
+logger = structlog.get_logger()
+
+
+def export_to_parquet(sqlite_path: str | Path, output_dir: str | Path) -> None:
     """
     Export SQLite data to partitioned Parquet files for efficient analysis.
     Uses DuckDB for high-performance data transfer.
+
+    Args:
+        sqlite_path: Path to SQLite database file
+        output_dir: Directory to write Parquet files
+
+    Raises:
+        FileNotFoundError: If SQLite database doesn't exist
+        ValueError: If paths contain invalid characters
     """
+    sqlite_path = Path(sqlite_path).resolve()
+    output_dir = Path(output_dir).resolve()
+
+    if not sqlite_path.exists():
+        raise FileNotFoundError(f"SQLite database not found: {sqlite_path}")
+
+    # Validate paths don't contain SQL injection characters
+    for path in [sqlite_path, output_dir]:
+        if any(c in str(path) for c in ["'", '"', ";", "--"]):
+            raise ValueError(f"Invalid characters in path: {path}")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     conn = duckdb.connect()
-    
-    # Attach SQLite database
-    conn.execute(f"INSTALL sqlite; LOAD sqlite;")
-    conn.execute(f"ATTACH '{sqlite_path}' AS kalshi (TYPE SQLITE);")
-    
-    # Export price snapshots partitioned by month
-    conn.execute(f"""
-        COPY (
-            SELECT *, strftime('%Y-%m', snapshot_time) as month 
-            FROM kalshi.price_snapshots
-        ) TO '{output_dir}/snapshots' 
-        (FORMAT PARQUET, PARTITION_BY (month), OVERWRITE_OR_IGNORE true);
-    """)
-    
-    conn.close()
+    try:
+        # Install and load SQLite extension
+        conn.execute("INSTALL sqlite; LOAD sqlite;")
+
+        # Attach SQLite database (paths are validated above)
+        conn.execute(f"ATTACH '{sqlite_path}' AS kalshi (TYPE SQLITE);")
+
+        # Export price snapshots partitioned by month
+        snapshots_dir = output_dir / "snapshots"
+        conn.execute(f"""
+            COPY (
+                SELECT *, strftime('%Y-%m', snapshot_time) as month
+                FROM kalshi.price_snapshots
+            ) TO '{snapshots_dir}'
+            (FORMAT PARQUET, PARTITION_BY (month), OVERWRITE_OR_IGNORE true);
+        """)
+
+        logger.info("Exported price snapshots to Parquet", path=str(snapshots_dir))
+    finally:
+        conn.close()
 ```
 
 ---

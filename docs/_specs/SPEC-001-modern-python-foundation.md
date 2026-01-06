@@ -82,16 +82,19 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.32.0",
-    "cryptography>=46.0.0",        # Updated for 2026
-    "websockets>=15.0.0",          # Updated
+    "cryptography>=46.0.0",
+    "websockets>=15.0.0",
     "python-dotenv>=1.0.0",
-    "pydantic>=2.12.0",            # Updated
-    "httpx>=0.28.0",               # Modern HTTP client (async support)
-    "tenacity>=9.1.0",             # Retry logic
+    "pydantic>=2.12.0",
+    "httpx>=0.28.0",               # Modern async HTTP client
+    "tenacity>=9.1.0",             # Retry logic with backoff
     "structlog>=25.0.0",           # Structured logging
-    "sqlalchemy>=2.0.40",          # Database ORM
+    "sqlalchemy[asyncio]>=2.0.40", # Database ORM with async support
+    "aiosqlite>=0.20.0",           # Async SQLite driver (required for SQLAlchemy async)
     "alembic>=1.14.0",             # Database migrations
-    "duckdb>=1.1.0",               # Analytical OLAP database
+    "duckdb>=1.4.0",               # Analytical OLAP database (updated)
+    "typer>=0.15.0",               # CLI framework
+    "rich>=13.9.0",                # Beautiful terminal output
 ]
 
 [project.optional-dependencies]
@@ -102,6 +105,7 @@ dev = [
     "pytest-xdist>=3.6.0",     # Parallel test execution
     "pytest-asyncio>=0.25.0",  # Async test support
     "pytest-mock>=3.14.0",
+    "pytest-timeout>=2.3.0",   # Test timeout (used in CI)
     "ruff>=0.9.0",
     "mypy>=1.14.0",
     "pre-commit>=4.0.0",
@@ -121,7 +125,7 @@ research = [
 all = ["kalshi-research[dev,research]"]
 
 [project.scripts]
-kalshi = "kalshi_research.cli:main"
+kalshi = "kalshi_research.cli:app"  # Typer CLI entry point
 
 [build-system]
 requires = ["hatchling"]
@@ -168,7 +172,7 @@ warn_unused_configs = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["websockets.*", "respx.*", "scipy.*", "matplotlib.*", "pandas.*"]
+module = ["websockets.*", "respx.*", "scipy.*", "matplotlib.*", "pandas.*", "duckdb.*", "aiosqlite.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
