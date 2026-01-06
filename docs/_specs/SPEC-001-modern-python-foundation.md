@@ -443,6 +443,146 @@ Thumbs.db
 - [ ] Set up pytest markers (unit, integration, slow)
 - [ ] Configure coverage reporting
 
+**Required conftest.py fixtures:**
+
+```python
+# tests/conftest.py
+import os
+from collections.abc import AsyncIterator
+from typing import Any
+
+import pytest
+from dotenv import load_dotenv
+
+# Load environment variables from .env for integration tests
+load_dotenv()
+
+
+@pytest.fixture(scope="session")
+def api_credentials() -> dict[str, str | None]:
+    """API credentials from environment (may be None for public-only tests)."""
+    return {
+        "key_id": os.getenv("KALSHI_KEY_ID"),
+        "private_key_path": os.getenv("KALSHI_PRIVATE_KEY_PATH"),
+        "environment": os.getenv("KALSHI_ENVIRONMENT", "demo"),
+    }
+
+
+@pytest.fixture
+def sample_market_data() -> dict[str, Any]:
+    """Sample market data matching real API response structure."""
+    return {
+        "ticker": "KXBTC-25JAN-T100000",
+        "event_ticker": "KXBTC-25JAN",
+        "series_ticker": "KXBTC",
+        "title": "Bitcoin above $100,000?",
+        "subtitle": "On January 25, 2025",
+        "status": "active",
+        "result": "",
+        "yes_bid": 45,
+        "yes_ask": 47,
+        "no_bid": 53,
+        "no_ask": 55,
+        "last_price": 46,
+        "volume": 125000,
+        "volume_24h": 5000,
+        "open_interest": 50000,
+        "liquidity": 10000,
+        "open_time": "2024-01-01T00:00:00Z",
+        "close_time": "2025-01-25T00:00:00Z",
+        "expiration_time": "2025-01-26T00:00:00Z",
+    }
+
+
+@pytest.fixture
+def sample_orderbook_data() -> dict[str, Any]:
+    """Sample orderbook matching real API response (yes/no are bid lists)."""
+    return {
+        "orderbook": {
+            "yes": [[45, 100], [44, 200], [43, 500]],  # [price, qty]
+            "no": [[53, 150], [54, 250], [55, 400]],
+        }
+    }
+
+
+@pytest.fixture
+def sample_trade_data() -> dict[str, Any]:
+    """Sample trade matching real API response."""
+    return {
+        "trade_id": "abc123",
+        "ticker": "KXBTC-25JAN-T100000",
+        "created_time": "2024-01-15T10:30:00Z",
+        "yes_price": 46,
+        "no_price": 54,
+        "count": 10,
+        "taker_side": "yes",
+    }
+
+
+# ============================================================================
+# Polyfactory Factories (create once polyfactory is implemented)
+# ============================================================================
+# These will be added in Phase 2 when models exist:
+#
+# from polyfactory.factories.pydantic_factory import ModelFactory
+# from kalshi_research.api.models.market import Market
+#
+# class MarketFactory(ModelFactory):
+#     __model__ = Market
+#
+# @pytest.fixture
+# def market_factory() -> type[MarketFactory]:
+#     return MarketFactory
+```
+
+**Test file template:**
+
+```python
+# tests/unit/test_example.py
+import pytest
+from hypothesis import given, strategies as st
+
+
+class TestExampleModule:
+    """Tests for example module - demonstrates patterns."""
+
+    def test_basic_functionality(self, sample_market_data: dict) -> None:
+        """Test basic happy path."""
+        # Arrange
+        data = sample_market_data
+
+        # Act
+        result = data["ticker"]
+
+        # Assert
+        assert result == "KXBTC-25JAN-T100000"
+
+    @pytest.mark.parametrize(
+        "input_value,expected",
+        [
+            (0, 0),
+            (50, 0.5),
+            (100, 1.0),
+        ],
+    )
+    def test_parametrized(self, input_value: int, expected: float) -> None:
+        """Test multiple cases with parametrize."""
+        result = input_value / 100
+        assert result == expected
+
+    def test_error_handling(self) -> None:
+        """Test that errors are raised correctly."""
+        with pytest.raises(ValueError, match="Invalid"):
+            raise ValueError("Invalid input")
+
+    @given(st.integers(min_value=0, max_value=100))
+    def test_property_based(self, price: int) -> None:
+        """Property-based test with hypothesis."""
+        # Property: price / 100 should always be in [0, 1]
+        prob = price / 100
+        assert 0 <= prob <= 1
+```
+
 ### 3.4 Phase 4: CI/CD
 - [ ] Create `.github/workflows/ci.yml`
 - [ ] Test CI pipeline on a branch

@@ -155,6 +155,80 @@ ALL of the following must be true:
 5. If a test fails, debug and fix before continuing
 6. Commit after each phase: `git add -A && git commit -m "Phase N: description"`
 
+## Test-Driven Development (TDD) Workflow
+
+**For EVERY new module, follow RED-GREEN-REFACTOR:**
+
+1. **RED:** Write failing test FIRST
+   ```bash
+   # Create test file before implementation
+   # Example: tests/unit/test_calibration.py BEFORE src/kalshi_research/analysis/calibration.py
+   uv run pytest tests/unit/test_<module>.py -v  # Should FAIL (no implementation)
+   ```
+
+2. **GREEN:** Write minimal code to pass
+   ```bash
+   # Create implementation
+   uv run pytest tests/unit/test_<module>.py -v  # Should PASS
+   ```
+
+3. **REFACTOR:** Clean up while tests stay green
+   ```bash
+   uv run ruff check . --fix && uv run ruff format .
+   uv run mypy src/
+   uv run pytest tests/unit -v  # Still passes
+   ```
+
+**Test Requirements:**
+- Every public function/method must have at least one test
+- Use `pytest.mark.parametrize` for multiple test cases
+- Use `respx` for mocking HTTP requests (never hit real API in unit tests)
+- Use `polyfactory` for test data generation
+- Use `hypothesis` for property-based testing on pure functions
+- Test edge cases: empty inputs, None values, boundary conditions
+- Test error paths: exceptions, invalid inputs, API failures
+
+## Clean Code Principles (Uncle Bob / Gang of Four)
+
+**SOLID Principles - Enforce These:**
+- **S**ingle Responsibility: Each class/module does ONE thing
+- **O**pen/Closed: Extend via composition, not modification
+- **L**iskov Substitution: Subtypes must be substitutable
+- **I**nterface Segregation: Small, focused interfaces
+- **D**ependency Inversion: Depend on abstractions, not concretions
+
+**DRY (Don't Repeat Yourself):**
+- Extract common code into shared utilities
+- Use base classes/mixins for shared behavior
+- Constants in `src/kalshi_research/constants.py` (create if needed)
+
+**Gang of Four Patterns to Use:**
+- **Repository Pattern**: Data access (already in SPEC-003)
+- **Factory Pattern**: Object creation (use `polyfactory` for tests)
+- **Strategy Pattern**: Interchangeable algorithms (edge detection)
+- **Observer Pattern**: Event handling (scheduler callbacks)
+- **Decorator Pattern**: Cross-cutting concerns (retries via `tenacity`)
+
+**Code Smells to AVOID:**
+- God classes (>300 lines)
+- Long methods (>30 lines)
+- Deep nesting (>3 levels)
+- Magic numbers (use constants)
+- Commented-out code (delete it)
+- Duplicate code (extract to function)
+
+## Quality Gates (Must Pass Before Phase Completion)
+
+```bash
+# Run ALL checks before moving to next phase:
+uv run ruff check .           # No lint errors
+uv run ruff format --check .  # Properly formatted
+uv run mypy src/              # No type errors
+uv run pytest tests/unit -v --cov=kalshi_research --cov-fail-under=80  # >80% coverage
+```
+
+If ANY check fails, fix it before proceeding. No exceptions.
+
 ## Important API Notes
 
 **Read these before implementing SPEC-002:**

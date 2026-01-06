@@ -778,3 +778,192 @@ async def main() -> None:
 
 asyncio.run(main())
 ```
+
+---
+
+## 7. Testing Patterns (respx)
+
+**All unit tests MUST mock HTTP requests using `respx`. Never hit the real API in unit tests.**
+
+```python
+# tests/unit/test_api_client.py
+import pytest
+import respx
+from httpx import Response
+
+from kalshi_research.api.client import KalshiPublicClient
+from kalshi_research.api.exceptions import KalshiAPIError, RateLimitError
+from kalshi_research.api.models.market import Market, MarketStatus
+
+
+@pytest.fixture
+def mock_market_response() -> dict:
+    """Mock market response matching real API structure."""
+    return {
+        "market": {
+            "ticker": "KXBTC-25JAN-T100000",
+            "event_ticker": "KXBTC-25JAN",
+            "series_ticker": "KXBTC",
+            "title": "Bitcoin above $100,000?",
+            "subtitle": "On January 25, 2025",
+            "status": "active",
+            "result": "",
+            "yes_bid": 45,
+            "yes_ask": 47,
+            "no_bid": 53,
+            "no_ask": 55,
+            "last_price": 46,
+            "volume": 125000,
+            "volume_24h": 5000,
+            "open_interest": 50000,
+            "liquidity": 10000,
+            "open_time": "2024-01-01T00:00:00Z",
+            "close_time": "2025-01-25T00:00:00Z",
+            "expiration_time": "2025-01-26T00:00:00Z",
+        }
+    }
+
+
+class TestKalshiPublicClient:
+    """Tests for KalshiPublicClient."""
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_market_success(self, mock_market_response: dict) -> None:
+        """Test successful market fetch."""
+        # Arrange
+        ticker = "KXBTC-25JAN-T100000"
+        respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}").mock(
+            return_value=Response(200, json=mock_market_response)
+        )
+
+        # Act
+        async with KalshiPublicClient() as client:
+            market = await client.get_market(ticker)
+
+        # Assert
+        assert market.ticker == ticker
+        assert market.status == MarketStatus.ACTIVE
+        assert market.yes_bid == 45
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_market_not_found(self) -> None:
+        """Test 404 handling."""
+        ticker = "NONEXISTENT"
+        respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}").mock(
+            return_value=Response(404, json={"error": "Market not found"})
+        )
+
+        async with KalshiPublicClient() as client:
+            with pytest.raises(KalshiAPIError) as exc_info:
+                await client.get_market(ticker)
+
+        assert exc_info.value.status_code == 404
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_rate_limit_retry(self, mock_market_response: dict) -> None:
+        """Test that 429 triggers retry."""
+        ticker = "KXBTC-25JAN-T100000"
+        route = respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}")
+
+        # First call returns 429, second succeeds
+        route.side_effect = [
+            Response(429, json={"error": "Rate limited"}),
+            Response(200, json=mock_market_response),
+        ]
+
+        async with KalshiPublicClient() as client:
+            market = await client.get_market(ticker)
+
+        assert market.ticker == ticker
+        assert route.call_count == 2  # Verify retry happened
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_markets_pagination(self) -> None:
+        """Test pagination through multiple pages."""
+        page1 = {
+            "markets": [{"ticker": f"MKT-{i}", "event_ticker": "EVT", "title": f"Market {i}",
+                        "subtitle": "", "status": "active", "result": "", "yes_bid": 50,
+                        "yes_ask": 52, "no_bid": 48, "no_ask": 50, "last_price": 51,
+                        "volume": 1000, "volume_24h": 100, "open_interest": 500,
+                        "liquidity": 1000, "open_time": "2024-01-01T00:00:00Z",
+                        "close_time": "2025-01-01T00:00:00Z",
+                        "expiration_time": "2025-01-02T00:00:00Z"} for i in range(3)],
+            "cursor": "page2_cursor",
+        }
+        page2 = {
+            "markets": [{"ticker": f"MKT-{i+3}", "event_ticker": "EVT", "title": f"Market {i+3}",
+                        "subtitle": "", "status": "active", "result": "", "yes_bid": 50,
+                        "yes_ask": 52, "no_bid": 48, "no_ask": 50, "last_price": 51,
+                        "volume": 1000, "volume_24h": 100, "open_interest": 500,
+                        "liquidity": 1000, "open_time": "2024-01-01T00:00:00Z",
+                        "close_time": "2025-01-01T00:00:00Z",
+                        "expiration_time": "2025-01-02T00:00:00Z"} for i in range(2)],
+            "cursor": None,  # No more pages
+        }
+
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/markets")
+        route.side_effect = [
+            Response(200, json=page1),
+            Response(200, json=page2),
+        ]
+
+        async with KalshiPublicClient() as client:
+            markets = [m async for m in client.get_all_markets()]
+
+        assert len(markets) == 5
+        assert route.call_count == 2
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_orderbook(self) -> None:
+        """Test orderbook parsing with [[price, qty], ...] format."""
+        ticker = "KXBTC-25JAN-T100000"
+        respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}/orderbook").mock(
+            return_value=Response(200, json={
+                "orderbook": {
+                    "yes": [[45, 100], [44, 200], [43, 500]],
+                    "no": [[53, 150], [54, 250]],
+                }
+            })
+        )
+
+        async with KalshiPublicClient() as client:
+            orderbook = await client.get_orderbook(ticker)
+
+        assert orderbook.best_yes_bid == 45
+        assert orderbook.best_no_bid == 54
+        assert orderbook.spread == 100 - 45 - 54  # = 1 cent
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_candlesticks_batch(self) -> None:
+        """Test batch candlesticks endpoint."""
+        respx.get("https://api.elections.kalshi.com/trade-api/v2/markets/candlesticks").mock(
+            return_value=Response(200, json={
+                "markets": [
+                    {
+                        "market_ticker": "KXBTC-25JAN-T100000",
+                        "candlesticks": [
+                            {"start_ts": 1700000000, "end_ts": 1700003600,
+                             "open": 45, "high": 48, "low": 44, "close": 47, "volume": 1000},
+                        ]
+                    }
+                ]
+            })
+        )
+
+        async with KalshiPublicClient() as client:
+            responses = await client.get_candlesticks(
+                market_tickers=["KXBTC-25JAN-T100000"],
+                start_ts=1700000000,
+                end_ts=1700100000,
+            )
+
+        assert len(responses) == 1
+        assert responses[0].market_ticker == "KXBTC-25JAN-T100000"
+        assert len(responses[0].candlesticks) == 1
+```
