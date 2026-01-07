@@ -238,9 +238,7 @@ class TestPriceRepository:
         assert len(snapshots) == 5
 
     @pytest.mark.asyncio
-    async def test_get_for_market_with_time_range(
-        self, seeded_session: AsyncSession
-    ) -> None:
+    async def test_get_for_market_with_time_range(self, seeded_session: AsyncSession) -> None:
         """Can filter snapshots by time range."""
         repo = PriceRepository(seeded_session)
         now = datetime.now(UTC)

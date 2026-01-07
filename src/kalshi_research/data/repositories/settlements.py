@@ -45,8 +45,6 @@ class SettlementRepository(BaseRepository[Settlement]):
         """Count settlements by result."""
         from sqlalchemy import func
 
-        stmt = select(Settlement.result, func.count(Settlement.ticker)).group_by(
-            Settlement.result
-        )
+        stmt = select(Settlement.result, func.count(Settlement.ticker)).group_by(Settlement.result)
         result = await self._session.execute(stmt)
         return {str(row[0]): int(row[1]) for row in result.all()}

@@ -71,9 +71,7 @@ class TestKalshiAuth:
         decoded = base64.b64decode(signature)
         assert len(decoded) > 0
 
-    def test_get_headers_structure(
-        self, key_file: tuple[Path, rsa.RSAPrivateKey]
-    ) -> None:
+    def test_get_headers_structure(self, key_file: tuple[Path, rsa.RSAPrivateKey]) -> None:
         """get_headers returns proper header structure."""
         path, _ = key_file
         auth = KalshiAuth(key_id="my-api-key", private_key_path=str(path))
@@ -110,7 +108,4 @@ class TestKalshiAuth:
         post_headers = auth.get_headers("POST", "/api/test")
 
         # Signatures should differ (method is part of signed payload)
-        assert (
-            get_headers["KALSHI-ACCESS-SIGNATURE"]
-            != post_headers["KALSHI-ACCESS-SIGNATURE"]
-        )
+        assert get_headers["KALSHI-ACCESS-SIGNATURE"] != post_headers["KALSHI-ACCESS-SIGNATURE"]

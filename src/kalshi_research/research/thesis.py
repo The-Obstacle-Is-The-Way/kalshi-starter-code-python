@@ -139,9 +139,7 @@ class Thesis:
             status=ThesisStatus(data["status"]),
             created_at=datetime.fromisoformat(data["created_at"]),
             resolved_at=(
-                datetime.fromisoformat(data["resolved_at"])
-                if data.get("resolved_at")
-                else None
+                datetime.fromisoformat(data["resolved_at"]) if data.get("resolved_at") else None
             ),
             actual_outcome=data.get("actual_outcome"),
             updates=data.get("updates", []),

@@ -38,9 +38,7 @@ class MarketRepository(BaseRepository[Market]):
     async def get_expiring_before(self, before: datetime) -> Sequence[Market]:
         """Get markets expiring before a given time."""
         stmt = (
-            select(Market)
-            .where(Market.expiration_time < before)
-            .where(Market.status == "active")
+            select(Market).where(Market.expiration_time < before).where(Market.status == "active")
         )
         result = await self._session.execute(stmt)
         return result.scalars().all()

@@ -147,9 +147,7 @@ class TestKalshiPublicClient:
     async def test_get_orderbook(self) -> None:
         """Test orderbook parsing with [[price, qty], ...] format."""
         ticker = "KXBTC-25JAN-T100000"
-        respx.get(
-            f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}/orderbook"
-        ).mock(
+        respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}/orderbook").mock(
             return_value=Response(
                 200,
                 json={

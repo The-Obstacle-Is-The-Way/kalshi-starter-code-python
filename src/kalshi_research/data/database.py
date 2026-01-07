@@ -56,9 +56,7 @@ class DatabaseManager:
 
             # Enable foreign keys for SQLite
             @event.listens_for(self._engine.sync_engine, "connect")
-            def set_sqlite_pragma(
-                dbapi_connection: Any, _connection_record: Any
-            ) -> None:
+            def set_sqlite_pragma(dbapi_connection: Any, _connection_record: Any) -> None:
                 cursor = dbapi_connection.cursor()
                 cursor.execute("PRAGMA foreign_keys=ON")
                 cursor.execute("PRAGMA journal_mode=WAL")

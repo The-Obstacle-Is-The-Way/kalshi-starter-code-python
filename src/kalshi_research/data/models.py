@@ -49,9 +49,7 @@ class Market(Base):
     __tablename__ = "markets"
 
     ticker: Mapped[str] = mapped_column(String, primary_key=True)
-    event_ticker: Mapped[str] = mapped_column(
-        String, ForeignKey("events.ticker"), nullable=False
-    )
+    event_ticker: Mapped[str] = mapped_column(String, ForeignKey("events.ticker"), nullable=False)
     # Note: series_ticker may not be present in all API responses
     series_ticker: Mapped[str | None] = mapped_column(String, nullable=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
@@ -63,9 +61,7 @@ class Market(Base):
 
     open_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     close_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    expiration_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    expiration_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     category: Mapped[str | None] = mapped_column(String, nullable=True)
     subcategory: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -99,12 +95,8 @@ class PriceSnapshot(Base):
     __tablename__ = "price_snapshots"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    ticker: Mapped[str] = mapped_column(
-        String, ForeignKey("markets.ticker"), nullable=False
-    )
-    snapshot_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    ticker: Mapped[str] = mapped_column(String, ForeignKey("markets.ticker"), nullable=False)
+    snapshot_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     yes_bid: Mapped[int] = mapped_column(Integer, nullable=False)
     yes_ask: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -146,9 +138,7 @@ class Settlement(Base):
 
     __tablename__ = "settlements"
 
-    ticker: Mapped[str] = mapped_column(
-        String, ForeignKey("markets.ticker"), primary_key=True
-    )
+    ticker: Mapped[str] = mapped_column(String, ForeignKey("markets.ticker"), primary_key=True)
     event_ticker: Mapped[str] = mapped_column(String, nullable=False)
     settled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     result: Mapped[str] = mapped_column(String, nullable=False)  # yes, no, void
