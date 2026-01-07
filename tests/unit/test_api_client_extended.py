@@ -25,7 +25,7 @@ class TestKalshiClientAuthenticated:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_get_balance(self, mock_auth):  # noqa: ARG002
+    async def test_get_balance(self, mock_auth):
         """Test getting account balance."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/balance").mock(
             return_value=Response(200, json={"balance": 10000})
@@ -38,7 +38,7 @@ class TestKalshiClientAuthenticated:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_get_positions(self, mock_auth):  # noqa: ARG002
+    async def test_get_positions(self, mock_auth):
         """Test getting positions."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/positions").mock(
             return_value=Response(200, json={"positions": [{"ticker": "TEST", "count": 10}]})
@@ -52,7 +52,7 @@ class TestKalshiClientAuthenticated:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_get_orders(self, mock_auth):  # noqa: ARG002
+    async def test_get_orders(self, mock_auth):
         """Test getting orders."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/orders").mock(
             return_value=Response(200, json={"orders": [{"order_id": "123"}]})

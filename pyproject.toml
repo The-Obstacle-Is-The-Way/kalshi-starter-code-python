@@ -97,12 +97,15 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["PLC0415"]  # Allow imports inside fixtures for lazy loading
+"tests/*" = ["PLC0415", "ERA001", "ARG001", "ARG002"]  # Allow imports inside fixtures, test code patterns
 "src/kalshi_research/cli.py" = ["PLC0415"]  # Allow lazy imports in CLI for faster startup
 "src/kalshi_research/api/auth.py" = ["PLC0415"]  # Allow lazy import to prevent circular imports
 "src/kalshi_research/api/models/*.py" = ["TC003"]  # Pydantic models need datetime at runtime
 "src/kalshi_research/data/export.py" = ["PLC0415"]  # DuckDB is optional, lazy import
 "src/kalshi_research/data/repositories/*.py" = ["PLC0415", "TC003"]  # Lazy sqlalchemy imports and datetime
+"src/kalshi_research/research/notebook_utils.py" = ["TC001", "PLC0415", "E501"]  # Notebook utils need runtime imports, HTML strings
+"src/kalshi_research/research/backtest.py" = ["TC001", "TC003", "SIM108", "B905"]  # Type-checking imports, acceptable patterns for clarity
+"notebooks/**/*.ipynb" = ["ERA001", "F401", "E501", "I001"]  # Notebooks are templates/examples
 
 [tool.ruff.lint.isort]
 known-first-party = ["kalshi_research"]
@@ -115,8 +118,12 @@ warn_unused_configs = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["websockets.*", "respx.*", "scipy.*", "matplotlib.*", "pandas.*", "duckdb.*", "aiosqlite.*"]
+module = ["websockets.*", "respx.*", "scipy.*", "matplotlib.*", "pandas.*", "duckdb.*", "aiosqlite.*", "nest_asyncio", "IPython.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["kalshi_research.research.notebook_utils"]
+disable_error_code = ["no-untyped-call", "attr-defined"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

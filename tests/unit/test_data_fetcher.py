@@ -31,7 +31,7 @@ def data_fetcher(mock_db, mock_client):
 
 
 @pytest.mark.asyncio
-async def test_sync_events(data_fetcher, mock_client, mock_db):  # noqa: ARG001
+async def test_sync_events(data_fetcher, mock_client, mock_db):
     # Mock API events
     mock_event = MagicMock(spec=Event)
     mock_event.event_ticker = "TEST-EVENT"
@@ -54,7 +54,7 @@ async def test_sync_events(data_fetcher, mock_client, mock_db):  # noqa: ARG001
 
 
 @pytest.mark.asyncio
-async def test_sync_markets(data_fetcher, mock_client, mock_db):  # noqa: ARG001
+async def test_sync_markets(data_fetcher, mock_client, mock_db):
     # Mock API markets
     mock_market = MagicMock(spec=Market)
     mock_market.ticker = "TEST-MARKET"
@@ -69,7 +69,7 @@ async def test_sync_markets(data_fetcher, mock_client, mock_db):  # noqa: ARG001
     mock_market.expiration_time = "2025-01-01T00:00:00Z"
 
     # Correctly mock async generator
-    async def market_gen(status=None):  # noqa: ARG001
+    async def market_gen(status=None):
         yield mock_market
 
     # REPLACE the AsyncMock method with a MagicMock that returns the generator
@@ -107,7 +107,7 @@ async def test_take_snapshot(data_fetcher, mock_client, mock_db):
     mock_market.open_interest = 500
     mock_market.liquidity = 10000
 
-    async def market_gen(status=None):  # noqa: ARG001
+    async def market_gen(status=None):
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)

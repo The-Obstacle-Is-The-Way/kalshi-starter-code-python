@@ -40,7 +40,7 @@ These implement the user's original requirements beyond core platform:
   - Creates `src/kalshi_research/analysis/visualization.py`
   - Satisfies BUG-004 (metrics.py, visualization.py)
 
-- [ ] **SPEC-008**: Research Notebooks & Backtesting → See `docs/_specs/SPEC-008-research-notebooks-backtesting.md`
+- [x] **SPEC-008**: Research Notebooks & Backtesting → See `docs/_specs/SPEC-008-research-notebooks-backtesting.md`
   - Creates `notebooks/` directory with templates
   - Creates `src/kalshi_research/research/backtest.py`
   - Creates `src/kalshi_research/research/notebook_utils.py`
@@ -53,6 +53,15 @@ These implement the user's original requirements beyond core platform:
 - [ ] **FINAL-003**: CI/CD passes on Python 3.11, 3.12, 3.13
 - [ ] **FINAL-004**: All CLI commands work: `kalshi --help`, `kalshi data --help`, `kalshi scan --help`
 - [ ] **FINAL-005**: All imports work without error
+
+## Phase 5: Cleanup (Optional)
+
+Non-blocking cleanup tasks:
+
+- [ ] **BUG-008**: Restructure tests to mirror src/ → See `docs/_bugs/BUG-008-inconsistent-test-structure.md`
+  - Move flat test files (test_api_*.py, test_data_*.py, test_analysis_*.py) into nested directories
+  - Should match: api/, data/, analysis/, alerts/, research/
+  - Use `git mv` to preserve history
 
 ---
 
