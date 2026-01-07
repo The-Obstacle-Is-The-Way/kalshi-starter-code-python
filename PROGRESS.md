@@ -1,6 +1,6 @@
 # Kalshi Research Platform - Progress Tracker
 
-**Last Updated:** 2026-01-07
+**Last Updated:** 2026-01-06
 **Purpose:** State file for Ralph Wiggum loop - each iteration reads this to find next task
 
 ---
@@ -132,13 +132,14 @@ done
 - All blocking bugs fixed
 - All specs 001-011 implemented
 - All quality gates pass
-- 314 unit tests passing, ~87% coverage
+- 325 unit tests passing, ~87% coverage
 
-**Phase 7 (Optional Polish):** ⏳ OPEN
-- 2 low-priority bugs (P3-P4)
-- 1 DevX spec (P3)
+**Phase 7 (Optional Polish):** ✅ COMPLETE
+- BUG-009: CLI completeness (P3) - Fixed
+- BUG-010: Portfolio-thesis linking (P4) - Fixed
+- SPEC-012: Developer Experience (P3) - Implemented
 
-The platform is fully functional. Phase 7 is optional polish.
+The platform is fully complete with all optional polish.
 
 When ALL boxes are checked AND all quality gates pass, the loop can output:
 
