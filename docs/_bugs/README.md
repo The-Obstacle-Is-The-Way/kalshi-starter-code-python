@@ -14,7 +14,7 @@
 | `uv run mypy src/ --strict` | ✅ PASS |
 | `uv run pytest -m "not integration and not slow"` | ✅ PASS |
 
-**Test Results:** `398 passed, 34 deselected` (integration + slow excluded).
+**Test Results:** `400 passed, 34 deselected` (integration + slow excluded).
 
 ---
 
@@ -54,6 +54,7 @@
 | BUG-031 | P2 | ✅ Fixed | `kalshi scan movers` percent units wrong |
 | BUG-032 | P3 | ✅ Fixed | `kalshi scan arbitrage` silently truncates tickers |
 | BUG-033 | P0 | ✅ Fixed | Market model API schema mismatch (negative liquidity, missing status) |
+| BUG-034 | P4 | ✅ Fixed | Portfolio positions hides 0¢ mark price |
 
 ---
 

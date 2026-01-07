@@ -1,4 +1,4 @@
-# BUG-033: Portfolio Positions Hides 0¢ Mark Price (P4)
+# BUG-034: Portfolio Positions Hides 0¢ Mark Price (P4)
 
 **Priority:** P4 (Low - UX correctness)
 **Status:** ✅ Fixed (2026-01-07)
@@ -38,4 +38,3 @@
 ## Regression Tests Added
 
 - `tests/unit/test_cli_extended.py::test_portfolio_positions_shows_zero_mark_price`
-

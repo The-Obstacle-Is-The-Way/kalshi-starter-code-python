@@ -14,7 +14,7 @@ The platform is stable and test-gated. Linting, formatting, strict mypy, and the
 - `uv run ruff check .` ✅
 - `uv run ruff format --check .` ✅
 - `uv run mypy src/ --strict` ✅
-- `uv run pytest -m "not integration and not slow"` ✅ → `398 passed, 34 deselected`
+- `uv run pytest -m "not integration and not slow"` ✅ → `400 passed, 34 deselected`
 
 **Note:** Integration tests are excluded from the fast local suite.
 
