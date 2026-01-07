@@ -1,53 +1,49 @@
-"""
-Tests for data export - basic path validation tests.
-"""
-
-from __future__ import annotations
-
-import tempfile
-
 import pytest
+from unittest.mock import MagicMock, patch
+from pathlib import Path
+from kalshi_research.data.export import export_to_parquet, export_to_csv
 
-from kalshi_research.data.export import export_to_csv, export_to_parquet
+@patch("duckdb.connect")
+def test_export_to_parquet_success(mock_connect, tmp_path):
+    mock_conn = MagicMock()
+    mock_connect.return_value = mock_conn
+    
+    db_path = tmp_path / "test.db"
+    db_path.touch()
+    output_dir = tmp_path / "exports"
+    
+    export_to_parquet(db_path, output_dir)
+    
+    mock_connect.assert_called_once()
+    assert mock_conn.execute.call_count >= 3 
 
+def test_export_to_parquet_invalid_path(tmp_path):
+    db_path = tmp_path / "test.db"
+    db_path.touch()
+    # Check for invalid characters check, NOT file not found
+    with pytest.raises(ValueError, match="Invalid characters"):
+        export_to_parquet(db_path, "bad;path")
 
-class TestExportValidation:
-    """Test export path validation."""
+def test_export_to_parquet_db_not_found():
+    with pytest.raises(FileNotFoundError):
+        export_to_parquet("nonexistent.db", "out")
 
-    def test_export_parquet_file_not_found(self) -> None:
-        """Export raises error for missing database."""
-        with pytest.raises(FileNotFoundError, match="not found"):
-            export_to_parquet(
-                sqlite_path="/nonexistent/path.db",
-                output_dir="/tmp/output",
-            )
+@patch("duckdb.connect")
+def test_export_to_csv_success(mock_connect, tmp_path):
+    mock_conn = MagicMock()
+    mock_connect.return_value = mock_conn
+    
+    db_path = tmp_path / "test.db"
+    db_path.touch()
+    output_dir = tmp_path / "exports"
+    
+    export_to_csv(db_path, output_dir)
+    
+    mock_connect.assert_called_once()
+    assert mock_conn.execute.call_count >= 3
 
-    def test_export_csv_file_not_found(self) -> None:
-        """Export raises error for missing database."""
-        with pytest.raises(FileNotFoundError, match="not found"):
-            export_to_csv(
-                sqlite_path="/nonexistent/path.db",
-                output_dir="/tmp/output",
-            )
-
-    def test_export_parquet_invalid_path(self) -> None:
-        """Export raises error for paths with invalid characters."""
-        with (
-            tempfile.NamedTemporaryFile(suffix=".db") as f,
-            pytest.raises(ValueError, match="Invalid characters"),
-        ):
-            export_to_parquet(
-                sqlite_path=f.name,
-                output_dir="/tmp/'; DROP TABLE users; --/output",
-            )
-
-    def test_export_csv_invalid_path(self) -> None:
-        """Export raises error for paths with invalid characters."""
-        with (
-            tempfile.NamedTemporaryFile(suffix=".db") as f,
-            pytest.raises(ValueError, match="Invalid characters"),
-        ):
-            export_to_csv(
-                sqlite_path=f.name,
-                output_dir="/tmp/'; DROP TABLE users; --/output",
-            )
+def test_export_to_csv_invalid_path(tmp_path):
+    db_path = tmp_path / "test.db"
+    db_path.touch()
+    with pytest.raises(ValueError, match="Invalid characters"):
+        export_to_csv(db_path, "bad;path")
