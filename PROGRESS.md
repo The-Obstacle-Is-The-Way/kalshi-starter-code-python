@@ -19,7 +19,7 @@ Fix any remaining code quality issues:
 
 - [x] **QUALITY-001**: Fix mypy error in `src/kalshi_research/cli.py:467`
 - [x] **QUALITY-002**: Fix ruff import sorting in `alembic/env.py`
-- [ ] **QUALITY-003**: Ensure all quality gates pass: `ruff check`, `ruff format --check`, `mypy src/`, `pytest`
+- [x] **QUALITY-003**: Ensure all quality gates pass: `ruff check`, `ruff format --check`, `mypy src/`, `pytest`
 
 ## Phase 3: Extended Features (SPEC-005 through SPEC-008)
 
