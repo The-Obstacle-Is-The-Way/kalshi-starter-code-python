@@ -35,6 +35,8 @@ Current status of the Kalshi Research Platform after SPEC-001 through SPEC-011 i
 | BUG-008 | P4 | ✅ Fixed | Test structure reorganized |
 | BUG-009 | P3 | ✅ Fixed | CLI commands complete (SPEC-010) |
 | BUG-010 | P4 | ✅ Fixed | Portfolio-thesis link implemented (SPEC-011) |
+| BUG-011 | P0 | ✅ Fixed | API limit 1000 exceeds /events max of 200 |
+| BUG-012 | P1 | ✅ Fixed | MarketStatus enum missing 'initialized' |
 
 ---
 

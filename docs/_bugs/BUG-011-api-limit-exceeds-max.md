@@ -1,8 +1,9 @@
 # BUG-011: API Limit Parameter Exceeds Maximum (P0 - BLOCKING)
 
 **Priority:** P0 (Critical - Blocks core functionality)
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-07
+**Fixed:** 2026-01-07
 **Spec:** SPEC-002-kalshi-api-client.md, SPEC-003-data-layer-storage.md
 
 ---

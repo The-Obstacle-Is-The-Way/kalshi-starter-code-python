@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class MarketStatus(str, Enum):
     """Market status as returned in API responses."""
 
+    INITIALIZED = "initialized"  # New markets not yet open
     ACTIVE = "active"
     CLOSED = "closed"
     DETERMINED = "determined"

@@ -125,7 +125,8 @@ class DataFetcher:
             Number of events synced
         """
         logger.info("Starting event sync")
-        events = await self.client.get_events(limit=1000)
+        # Events API max limit is 200 (will be capped in client)
+        events = await self.client.get_events(limit=200)
 
         async with self._db.session_factory() as session:
             repo = EventRepository(session)

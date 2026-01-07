@@ -236,7 +236,8 @@ class KalshiPublicClient:
         limit: int = 100,
     ) -> list[Event]:
         """Fetch events with optional filters."""
-        params: dict[str, Any] = {"limit": min(limit, 1000)}
+        # Events endpoint max limit is 200 (not 1000 like markets)
+        params: dict[str, Any] = {"limit": min(limit, 200)}
         if status:
             params["status"] = status.value if isinstance(status, MarketFilterStatus) else status
         if series_ticker:
