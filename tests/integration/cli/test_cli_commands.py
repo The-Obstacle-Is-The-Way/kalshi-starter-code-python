@@ -121,12 +121,24 @@ def test_data_sync_snapshot_and_collect_once(runner: CliRunner) -> None:
         assert "Synced 1 events and 1 markets" in sync.stdout
 
         snapshot = runner.invoke(
-            app, ["data", "snapshot", "--db", str(db_path), "--status", "open"]
+            app,
+            [
+                "data",
+                "snapshot",
+                "--db",
+                str(db_path),
+                "--status",
+                "open",
+                "--max-pages",
+                "1",
+            ],
         )
         assert snapshot.exit_code == 0
         assert "Took 1 price snapshots" in snapshot.stdout
 
-        collect = runner.invoke(app, ["data", "collect", "--db", str(db_path), "--once"])
+        collect = runner.invoke(
+            app, ["data", "collect", "--db", str(db_path), "--once", "--max-pages", "1"]
+        )
         assert collect.exit_code == 0
         assert "Full sync complete" in collect.stdout
 
@@ -206,7 +218,7 @@ def test_scan_commands(runner: CliRunner) -> None:
         ]
         _mock_events_and_markets(markets=markets)
 
-        opp = runner.invoke(app, ["scan", "opportunities", "--top", "5"])
+        opp = runner.invoke(app, ["scan", "opportunities", "--top", "5", "--max-pages", "1"])
         assert opp.exit_code == 0
         assert "Scan Results" in opp.stdout
 
