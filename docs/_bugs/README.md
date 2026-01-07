@@ -53,27 +53,13 @@
 | BUG-030 | P3 | ✅ Fixed | Arbitrage scan false positives from 0/0 markets |
 | BUG-031 | P2 | ✅ Fixed | `kalshi scan movers` percent units wrong |
 | BUG-032 | P3 | ✅ Fixed | `kalshi scan arbitrage` silently truncates tickers |
-| BUG-033 | P0 | 🟡 Open | Market model API schema mismatch (negative liquidity, missing status) |
+| BUG-033 | P0 | ✅ Fixed | Market model API schema mismatch (negative liquidity, missing status) |
 
 ---
 
 ## Open Bugs
 
-### BUG-033: Market Model API Schema Mismatch
-**Priority:** P0 - CRITICAL (Blocks all live API operations)
-
-The `Market` Pydantic model has two validation constraints that don't match actual Kalshi API responses:
-
-1. **`liquidity: ge=0`** - API returns negative values like `-170750`
-2. **`MarketStatus` enum** - Missing `"inactive"` status value
-
-**Impact:** ALL scanner and data collection commands fail against live API:
-- `kalshi scan opportunities` - BROKEN
-- `kalshi scan arbitrage` - BROKEN
-- `kalshi scan movers` - BROKEN
-- `kalshi data collect` - BROKEN
-
-See `BUG-033-market-model-api-schema-mismatch.md` for fix details.
+None. All bugs have been fixed. 🎉
 
 ---
 

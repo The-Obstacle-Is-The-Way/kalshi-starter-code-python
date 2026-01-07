@@ -1,101 +1,53 @@
-# BUG-033: Market Model API Schema Mismatch
+# BUG-033: Market Model API Schema Mismatch (P0)
 
-## Status: :yellow_circle: Open
+**Priority:** P0 (Critical - breaks public market ingestion)
+**Status:** ✅ Fixed (2026-01-07)
+**Found:** 2026-01-07
+**Fixed:** 2026-01-07
+**Spec:** SPEC-002-kalshi-api-client.md
+**Checklist Ref:** CODE_AUDIT_CHECKLIST.md Section 11 (Incomplete Implementations)
 
-## Priority: **CRITICAL** - Blocks all live API operations
+---
 
 ## Summary
 
-The `Market` Pydantic model has validation constraints that don't match actual Kalshi API responses, causing `ValidationError` on live data and blocking ALL scanner/collector operations.
+The `Market` Pydantic model rejected legitimate live API values, causing `ValidationError` mid-pagination and breaking any command that iterates through market lists.
+
+---
 
 ## Root Cause
 
-Two fields in `src/kalshi_research/api/models/market.py` are too restrictive:
+Two fields in `src/kalshi_research/api/models/market.py` were too restrictive:
 
-### Issue 1: `liquidity` field rejects negative values
+- `MarketStatus` enum did not include `inactive`
+- `liquidity` was constrained to `ge=0`, but live API may return negative values
 
-```python
-# Line 66
-liquidity: int = Field(..., ge=0, description="Dollar liquidity")
-```
-
-**API returns:** `liquidity: -170750` (negative value)
-**Error:**
-```
-ValidationError: 1 validation error for Market
-liquidity
-  Input should be greater than or equal to 0 [type=greater_than_equal,
-  input_value=-170750, input_type=int]
-```
-
-### Issue 2: `status` enum missing `inactive` value
-
-```python
-# Lines 12-19
-class MarketStatus(str, Enum):
-    INITIALIZED = "initialized"
-    ACTIVE = "active"
-    CLOSED = "closed"
-    DETERMINED = "determined"
-    FINALIZED = "finalized"
-```
-
-**API returns:** `status: "inactive"`
-**Error:**
-```
-ValidationError: 1 validation error for Market
-status
-  Input should be 'initialized', 'active', 'closed', 'determined' or 'finalized'
-  [type=enum, input_value='inactive', input_type=str]
-```
+---
 
 ## Impact
 
-- **`kalshi scan opportunities`** - BROKEN
-- **`kalshi scan arbitrage`** - BROKEN
-- **`kalshi scan movers`** - BROKEN
-- **`kalshi data collect`** - BROKEN
-- Any operation that fetches live market lists from API fails
+- Public scanners and data collection could crash when an `inactive` market appears in `/markets` pagination.
 
-## Evidence
+Confirmed via live API (2026-01-07): `KXEPLGOAL-26JAN07BURMUN-BUROSONNE22-1` returned `status="inactive"`.
 
-```bash
-$ uv run kalshi scan opportunities --filter close-race --top 20 --min-volume 50
-# ValidationError: liquidity >= 0 violated
+---
 
-$ uv run kalshi data collect --once
-# ValidationError: status must be in ['initialized', 'active', ...]
-```
+## Fix Applied
 
-## Recommended Fix
+- Added `MarketStatus.INACTIVE = "inactive"`
+- Removed the non-negative constraint on `Market.liquidity`
 
-```python
-# src/kalshi_research/api/models/market.py
-
-class MarketStatus(str, Enum):
-    INITIALIZED = "initialized"
-    ACTIVE = "active"
-    INACTIVE = "inactive"  # ADD THIS
-    CLOSED = "closed"
-    DETERMINED = "determined"
-    FINALIZED = "finalized"
-
-# ...
-
-class Market(BaseModel):
-    # ...
-    # Remove ge=0 constraint - API can return negative liquidity
-    liquidity: int = Field(..., description="Dollar liquidity (can be negative)")
-```
+---
 
 ## Acceptance Criteria
 
-- [ ] All scanner commands work against live API
-- [ ] `kalshi data collect --once` completes successfully
-- [ ] Tests updated to cover edge cases
+- [x] `KalshiPublicClient.get_all_markets()` no longer raises validation errors on `status="inactive"`
+- [x] Market model accepts negative `liquidity`
+- [x] Unit tests cover both cases
 
-## Related
+---
 
-- Discovered during live API testing on 2026-01-07
-- Ticker with negative liquidity: `KXPAYROLLS-26OCT-*` markets
-- Ticker with `inactive` status: Soccer goal scorer markets
+## Regression Tests Added
+
+- `tests/unit/api/test_models.py::TestMarketModel.test_market_status_enum_parsing` (includes `inactive`)
+- `tests/unit/api/test_models.py::TestMarketModel.test_market_allows_negative_liquidity`

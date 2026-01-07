@@ -14,6 +14,7 @@ class MarketStatus(str, Enum):
 
     INITIALIZED = "initialized"  # New markets not yet open
     ACTIVE = "active"
+    INACTIVE = "inactive"
     CLOSED = "closed"
     DETERMINED = "determined"
     FINALIZED = "finalized"
@@ -63,4 +64,4 @@ class Market(BaseModel):
     expiration_time: datetime
 
     # Liquidity
-    liquidity: int = Field(..., ge=0, description="Dollar liquidity")
+    liquidity: int = Field(..., description="Dollar liquidity (can be negative)")

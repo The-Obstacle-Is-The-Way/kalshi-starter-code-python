@@ -37,6 +37,7 @@ class TestMarketModel:
         for status_str, expected_enum in [
             ("initialized", MarketStatus.INITIALIZED),
             ("active", MarketStatus.ACTIVE),
+            ("inactive", MarketStatus.INACTIVE),
             ("closed", MarketStatus.CLOSED),
             ("determined", MarketStatus.DETERMINED),
             ("finalized", MarketStatus.FINALIZED),
@@ -63,6 +64,12 @@ class TestMarketModel:
                 }
             )
             assert market.status == expected_enum
+
+    def test_market_allows_negative_liquidity(self, make_market: Any) -> None:
+        """API may return negative liquidity; model should accept it."""
+        data = make_market(liquidity=-170750)
+        market = Market.model_validate(data)
+        assert market.liquidity == -170750
 
     def test_market_immutability(self, make_market: Any) -> None:
         """Market model is frozen (immutable)."""
