@@ -531,7 +531,9 @@ def scan_opportunities(
             ) as progress:
                 progress.add_task("Fetching markets...", total=None)
                 # Fetch all open markets for scanning
-                markets = [m async for m in client.get_all_markets(status="open", max_pages=max_pages)]
+                markets = [
+                    m async for m in client.get_all_markets(status="open", max_pages=max_pages)
+                ]
 
         scanner = MarketScanner()
 
@@ -673,7 +675,9 @@ def scan_arbitrage(
                 console=console,
             ) as progress:
                 progress.add_task("Fetching markets...", total=None)
-                markets = [m async for m in client.get_all_markets(status="open", max_pages=max_pages)]
+                markets = [
+                    m async for m in client.get_all_markets(status="open", max_pages=max_pages)
+                ]
 
         if not markets:
             console.print("[yellow]No open markets found[/yellow]")
@@ -795,7 +799,9 @@ def scan_movers(  # noqa: PLR0915
                 console=console,
             ) as progress:
                 progress.add_task("Fetching current markets...", total=None)
-                markets = [m async for m in client.get_all_markets(status="open", max_pages=max_pages)]
+                markets = [
+                    m async for m in client.get_all_markets(status="open", max_pages=max_pages)
+                ]
 
         market_lookup = {m.ticker: m for m in markets}
 

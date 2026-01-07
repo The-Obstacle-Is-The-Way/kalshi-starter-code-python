@@ -187,7 +187,9 @@ class DataFetcher:
         logger.info("Synced %d total markets", count)
         return count
 
-    async def take_snapshot(self, status: str | None = "open", *, max_pages: int | None = None) -> int:
+    async def take_snapshot(
+        self, status: str | None = "open", *, max_pages: int | None = None
+    ) -> int:
         """
         Take a price snapshot of all markets.
 

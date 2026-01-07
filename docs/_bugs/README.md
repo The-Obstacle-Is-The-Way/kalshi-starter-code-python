@@ -55,6 +55,7 @@
 | BUG-032 | P3 | ✅ Fixed | `kalshi scan arbitrage` silently truncates tickers |
 | BUG-033 | P0 | ✅ Fixed | Market model API schema mismatch (negative liquidity, missing status) |
 | BUG-034 | P4 | ✅ Fixed | Portfolio positions hides 0¢ mark price |
+| BUG-035 | P3 | ✅ Fixed | Scan/snapshot commands missing `--max-pages` safety limit |
 
 ---
 
