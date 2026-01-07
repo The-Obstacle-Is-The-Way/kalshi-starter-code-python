@@ -30,7 +30,7 @@ Adversarial audit of the "KALSHI RESEARCH PLATFORM COMPLETE" claim against:
 | ID | Priority | Status | Summary |
 |----|----------|--------|---------|
 | BUG-001 | **P1** | ✓ Fixed | `scan` CLI command implemented |
-| BUG-002 | **P2** | Open | Missing Alembic migrations (PROMPT.md Phase 3) |
+| BUG-002 | **P2** | ✓ Fixed | Alembic migrations configured |
 | BUG-006 | **P1** | Open | Missing alerts system (original context: "notify me when conditions met") |
 | BUG-007 | **P1** | Open | CI/CD test failures on all Python versions (tests pass locally) |
 
@@ -62,14 +62,14 @@ Adversarial audit of the "KALSHI RESEARCH PLATFORM COMPLETE" claim against:
 - [x] Async context managers
 - [x] All public endpoints implemented
 
-### SPEC-003: Data Layer & Storage ⚠️ PARTIAL
+### SPEC-003: Data Layer & Storage ✓ COMPLETE
 - [x] SQLAlchemy 2.0 async models
 - [x] Repository pattern
 - [x] DatabaseManager
 - [x] DataFetcher
 - [x] DataScheduler (drift-corrected)
 - [x] DuckDB/Parquet export
-- [ ] **BUG-002**: Alembic migrations not configured
+- [x] **BUG-002**: Alembic migrations ✓ Fixed
 
 ### SPEC-004: Research & Analysis ✓ COMPLETE
 - [x] CalibrationAnalyzer (Brier score, decomposition)
@@ -110,14 +110,14 @@ Adversarial audit of the "KALSHI RESEARCH PLATFORM COMPLETE" claim against:
 To legitimately claim "KALSHI RESEARCH PLATFORM COMPLETE" for SPEC-001 through SPEC-004:
 
 1. ~~**BUG-001**: Add `scan` CLI command~~ ✓ FIXED
-2. **BUG-002**: Set up Alembic migrations (medium)
+2. ~~**BUG-002**: Set up Alembic migrations~~ ✓ FIXED
 3. **BUG-007**: Fix CI/CD test failures (investigation needed)
 
 To satisfy original user context ("CONTEXT FOR CLAUDE"):
 
 4. **BUG-006**: Implement alerts system ("notify me when conditions met")
 
-After fixing BUG-002, BUG-006, and BUG-007, the platform meets:
+After fixing BUG-006 and BUG-007, the platform meets:
 - All PROMPT.md success criteria
 - All original user requirements
 - CI/CD green across all supported Python versions

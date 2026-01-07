@@ -1,7 +1,7 @@
 # BUG-001: Missing `scan` CLI Command
 
 **Priority:** P1
-**Status:** Open
+**Status:** ✓ FIXED (2026-01-06)
 **Discovered:** 2026-01-06
 **Spec Reference:** PROMPT.md Phase 4, SPEC-004
 
