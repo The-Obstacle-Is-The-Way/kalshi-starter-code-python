@@ -1,8 +1,9 @@
 # BUG-008: Inconsistent Test Directory Structure
 
-**Status:** Open
+**Status:** ✅ Fixed (2026-01-07)
 **Priority:** P4 (Cleanup)
 **Created:** 2026-01-06
+**Fixed:** 2026-01-07
 **Category:** Code Organization
 
 ---
@@ -15,27 +16,15 @@ The test directory structure is inconsistent. Newer modules (created by Ralph lo
 
 ```
 tests/unit/
-├── alerts/                    # ✅ NESTED (mirrors src/kalshi_research/alerts/)
-│   ├── __init__.py
-│   ├── test_conditions.py
-│   ├── test_monitor.py
-│   └── test_notifiers.py
-├── research/                  # ✅ NESTED (mirrors src/kalshi_research/research/)
-│   ├── __init__.py
-│   ├── test_backtest.py
-│   └── test_notebook_utils.py
-├── test_api_client.py         # ❌ FLAT (should be api/test_client.py)
-├── test_api_models.py         # ❌ FLAT (should be api/test_models.py)
-├── test_api_auth.py           # ❌ FLAT (should be api/test_auth.py)
-├── test_data_database.py      # ❌ FLAT (should be data/test_database.py)
-├── test_data_models.py        # ❌ FLAT (should be data/test_models.py)
-├── test_data_repositories.py  # ❌ FLAT (should be data/test_repositories.py)
-├── test_data_fetcher.py       # ❌ FLAT (should be data/test_fetcher.py)
-├── test_data_scheduler.py     # ❌ FLAT (should be data/test_scheduler.py)
-├── test_data_export.py        # ❌ FLAT (should be data/test_export.py)
-├── test_analysis_*.py         # ❌ FLAT (should be analysis/*.py)
-├── test_cli.py                # ✅ OK (cli.py is at root level)
-└── test_clients.py            # ❌ FLAT (unclear what this tests)
+├── alerts/
+├── analysis/
+├── api/
+├── data/
+├── portfolio/
+├── research/
+├── test_cli.py
+├── test_cli_extended.py
+└── test_clients.py
 ```
 
 ### Desired State (Consistent)
@@ -74,28 +63,17 @@ tests/unit/
 
 ---
 
-## Files to Move
+## Fix Applied
 
-| Current Location | New Location |
-|-----------------|--------------|
-| `test_api_client.py` | `api/test_client.py` |
-| `test_api_client_extended.py` | `api/test_client_extended.py` |
-| `test_api_models.py` | `api/test_models.py` |
-| `test_api_auth.py` | `api/test_auth.py` |
-| `test_data_database.py` | `data/test_database.py` |
-| `test_data_models.py` | `data/test_models.py` |
-| `test_data_repositories.py` | `data/test_repositories.py` |
-| `test_data_fetcher.py` | `data/test_fetcher.py` |
-| `test_data_scheduler.py` | `data/test_scheduler.py` |
-| `test_data_export.py` | `data/test_export.py` |
-| `test_analysis_calibration.py` | `analysis/test_calibration.py` |
-| `test_analysis_correlation.py` | `analysis/test_correlation.py` |
-| `test_analysis_edge.py` | `analysis/test_edge.py` |
-| `test_analysis_metrics.py` | `analysis/test_metrics.py` |
-| `test_analysis_scanner.py` | `analysis/test_scanner.py` |
-| `test_analysis_visualization.py` | `analysis/test_visualization.py` |
-| `test_clients.py` | Investigate & move appropriately |
-| `test_research_thesis.py` | `research/test_thesis.py` |
+Reorganized unit tests to mirror the `src/` layout:
+
+- `tests/unit/api/`
+- `tests/unit/data/`
+- `tests/unit/analysis/`
+- `tests/unit/portfolio/`
+- `tests/unit/research/`
+
+Root-level unit tests remain only for truly root-level concerns (`cli.py` and legacy client glue).
 
 ---
 
@@ -129,3 +107,7 @@ diff <(find src/kalshi_research -type d | sed 's|src/kalshi_research|tests/unit|
 - Improves codebase navigability
 - Makes it easier to find tests for specific modules
 - Priority P4 - can be done after all functional work is complete
+
+## Verification
+
+- `uv run pytest -m "not integration and not slow"`
