@@ -1,11 +1,15 @@
 """
 Extended API client tests for authenticated endpoints.
 """
+
 from unittest.mock import MagicMock, patch
+
 import pytest
 import respx
 from httpx import Response
+
 from kalshi_research.api.client import KalshiClient
+
 
 @pytest.fixture
 def mock_auth():
@@ -15,12 +19,13 @@ def mock_auth():
         MockAuth.return_value = mock_instance
         yield MockAuth
 
+
 class TestKalshiClientAuthenticated:
     """Tests for authenticated KalshiClient methods."""
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_get_balance(self, mock_auth):
+    async def test_get_balance(self, mock_auth):  # noqa: ARG002
         """Test getting account balance."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/balance").mock(
             return_value=Response(200, json={"balance": 10000})
@@ -33,7 +38,7 @@ class TestKalshiClientAuthenticated:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_get_positions(self, mock_auth):
+    async def test_get_positions(self, mock_auth):  # noqa: ARG002
         """Test getting positions."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/positions").mock(
             return_value=Response(200, json={"positions": [{"ticker": "TEST", "count": 10}]})
@@ -47,7 +52,7 @@ class TestKalshiClientAuthenticated:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_get_orders(self, mock_auth):
+    async def test_get_orders(self, mock_auth):  # noqa: ARG002
         """Test getting orders."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/orders").mock(
             return_value=Response(200, json={"orders": [{"order_id": "123"}]})

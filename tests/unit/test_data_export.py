@@ -1,21 +1,24 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from pathlib import Path
-from kalshi_research.data.export import export_to_parquet, export_to_csv
+
+import pytest
+
+from kalshi_research.data.export import export_to_csv, export_to_parquet
+
 
 @patch("duckdb.connect")
 def test_export_to_parquet_success(mock_connect, tmp_path):
     mock_conn = MagicMock()
     mock_connect.return_value = mock_conn
-    
+
     db_path = tmp_path / "test.db"
     db_path.touch()
     output_dir = tmp_path / "exports"
-    
+
     export_to_parquet(db_path, output_dir)
-    
+
     mock_connect.assert_called_once()
-    assert mock_conn.execute.call_count >= 3 
+    assert mock_conn.execute.call_count >= 3
+
 
 def test_export_to_parquet_invalid_path(tmp_path):
     db_path = tmp_path / "test.db"
@@ -24,23 +27,26 @@ def test_export_to_parquet_invalid_path(tmp_path):
     with pytest.raises(ValueError, match="Invalid characters"):
         export_to_parquet(db_path, "bad;path")
 
+
 def test_export_to_parquet_db_not_found():
     with pytest.raises(FileNotFoundError):
         export_to_parquet("nonexistent.db", "out")
+
 
 @patch("duckdb.connect")
 def test_export_to_csv_success(mock_connect, tmp_path):
     mock_conn = MagicMock()
     mock_connect.return_value = mock_conn
-    
+
     db_path = tmp_path / "test.db"
     db_path.touch()
     output_dir = tmp_path / "exports"
-    
+
     export_to_csv(db_path, output_dir)
-    
+
     mock_connect.assert_called_once()
     assert mock_conn.execute.call_count >= 3
+
 
 def test_export_to_csv_invalid_path(tmp_path):
     db_path = tmp_path / "test.db"
