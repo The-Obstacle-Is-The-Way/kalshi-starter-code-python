@@ -1,7 +1,7 @@
 # Kalshi Research Platform - Bug Tracker
 
 **Audit Date:** 2026-01-07
-**Auditor:** Codex CLI (GPT-5.2)
+**Auditor:** Gemini CLI (Deep Audit)
 
 ---
 
@@ -39,12 +39,18 @@
 | BUG-014 | P1 | ✅ Fixed | `kalshi analysis calibration` crash |
 | BUG-015 | P1 | ✅ Fixed | `kalshi scan movers` timezone crash |
 | BUG-016 | P1 | ✅ Fixed | `kalshi data snapshot` missing init |
+| BUG-017 | P1 | 🔴 Open | `Event` model mismatch (`ticker` vs `event_ticker`) |
+| BUG-018 | P2 | 🔴 Open | API Client lacks strict typing (`Any`, `dict`) |
+| BUG-019 | P3 | 🔴 Open | Portfolio sync incomplete (`TODO`s) |
+| BUG-020 | P3 | 🔴 Open | Visualization type ignores |
+| BUG-021 | P2 | 🔴 Open | Broad exception handling patterns |
+| BUG-022 | P3 | 🔴 Open | Potential N+1 queries in data layer |
 
 ---
 
 ## Open Bugs
 
-None tracked as open in `docs/_bugs/` as of this audit.
+See `docs/_bugs/BUG-*.md` for details on open issues.
 
 ---
 
