@@ -11,7 +11,7 @@ These must be fixed before claiming "complete":
 
 - [x] **BUG-001**: Add `scan` CLI command → `kalshi scan opportunities` works
 - [x] **BUG-002**: Set up Alembic migrations → `alembic/` configured with initial migration
-- [ ] **BUG-007**: Fix CI/CD test failures → See `docs/_bugs/BUG-007-cicd-test-failures.md`
+- [x] **BUG-007**: Fix CI/CD test failures → See `docs/_bugs/BUG-007-cicd-test-failures.md`
 
 ## Phase 2: Quality Fixes
 
