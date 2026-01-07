@@ -11,7 +11,7 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Any, Annotated
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -526,27 +526,26 @@ def _get_alerts_file() -> Path:
     return Path("data/alerts.json")
 
 
-def _load_alerts() -> dict:
+def _load_alerts() -> dict[str, Any]:
     """Load alerts from storage."""
     alerts_file = _get_alerts_file()
     if not alerts_file.exists():
         return {"conditions": []}
-    with open(alerts_file) as f:
-        return json.load(f)
+    with alerts_file.open() as f:
+        return json.load(f)  # type: ignore[no-any-return]
 
 
-def _save_alerts(data: dict) -> None:
+def _save_alerts(data: dict[str, Any]) -> None:
     """Save alerts to storage."""
     alerts_file = _get_alerts_file()
     alerts_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(alerts_file, "w") as f:
+    with alerts_file.open("w") as f:
         json.dump(data, f, indent=2)
 
 
 @alerts_app.command("list")
 def alerts_list() -> None:
     """List all active alerts."""
-    from kalshi_research.alerts import AlertMonitor
 
     data = _load_alerts()
     conditions = data.get("conditions", [])
@@ -579,8 +578,12 @@ def alerts_list() -> None:
 def alerts_add(
     alert_type: Annotated[str, typer.Argument(help="Alert type: price, volume, spread")],
     ticker: Annotated[str, typer.Argument(help="Market ticker to monitor")],
-    above: Annotated[float | None, typer.Option("--above", help="Trigger when above threshold")] = None,
-    below: Annotated[float | None, typer.Option("--below", help="Trigger when below threshold")] = None,
+    above: Annotated[
+        float | None, typer.Option("--above", help="Trigger when above threshold")
+    ] = None,
+    below: Annotated[
+        float | None, typer.Option("--below", help="Trigger when below threshold")
+    ] = None,
 ) -> None:
     """Add a new alert condition."""
     from kalshi_research.alerts import ConditionType
@@ -601,7 +604,7 @@ def alerts_add(
         raise typer.Exit(1)
 
     condition_type = type_map[alert_type]
-    threshold = above if above is not None else below  # type: ignore
+    threshold = above if above is not None else below
 
     # Create alert condition
     alert_id = str(uuid.uuid4())
@@ -666,9 +669,12 @@ def analysis_calibration(
         raise typer.Exit(1)
 
     async def _analyze() -> None:
-        async with DatabaseManager(db_path) as db:
-            analyzer = CalibrationAnalyzer(db)
-            result = await analyzer.analyze(days_back=days)
+        from kalshi_research.data.repositories import PriceRepository
+
+        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+            price_repo = PriceRepository(session)
+            analyzer = CalibrationAnalyzer(price_repo)  # type: ignore[arg-type]
+            result = await analyzer.analyze(days_back=days)  # type: ignore[attr-defined]
 
         # Display results
         table = Table(title="Calibration Analysis")
@@ -693,7 +699,7 @@ def analysis_calibration(
                 "uncertainty": result.uncertainty,
                 "bins": result.bins,
             }
-            with open(output, "w") as f:
+            with output.open("w") as f:
                 json.dump(output_data, f, indent=2)
             console.print(f"\n[dim]Saved to {output}[/dim]")
 
@@ -716,9 +722,12 @@ def analysis_metrics(
         raise typer.Exit(1)
 
     async def _metrics() -> None:
-        async with DatabaseManager(db_path) as db:
+        from kalshi_research.data.repositories import PriceRepository
+
+        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+            price_repo = PriceRepository(session)
             # Get latest price
-            price = await db.prices.get_latest_price(ticker)
+            price = await price_repo.get_latest(ticker)
 
             if not price:
                 console.print(f"[yellow]No data found for {ticker}[/yellow]")
@@ -749,20 +758,20 @@ def _get_thesis_file() -> Path:
     return Path("data/theses.json")
 
 
-def _load_theses() -> dict:
+def _load_theses() -> dict[str, Any]:
     """Load theses from storage."""
     thesis_file = _get_thesis_file()
     if not thesis_file.exists():
         return {"theses": []}
-    with open(thesis_file) as f:
-        return json.load(f)
+    with thesis_file.open() as f:
+        return json.load(f)  # type: ignore[no-any-return]
 
 
-def _save_theses(data: dict) -> None:
+def _save_theses(data: dict[str, Any]) -> None:
     """Save theses to storage."""
     thesis_file = _get_thesis_file()
     thesis_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(thesis_file, "w") as f:
+    with thesis_file.open("w") as f:
         json.dump(data, f, indent=2)
 
 

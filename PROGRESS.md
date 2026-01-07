@@ -72,7 +72,7 @@ These specs complete the full vision from the original requirements:
   - Rewrite README.md for new platform
   - Create QUICKSTART.md and USAGE.md
 
-- [ ] **SPEC-010**: CLI Completeness → See `docs/_specs/SPEC-010-cli-completeness.md`
+- [x] **SPEC-010**: CLI Completeness → See `docs/_specs/SPEC-010-cli-completeness.md`
   - Add `kalshi alerts` CLI commands (list, add, remove, monitor)
   - Add `kalshi analysis` CLI commands (calibration, correlation, metrics)
   - Add `kalshi research` CLI commands (thesis, backtest)

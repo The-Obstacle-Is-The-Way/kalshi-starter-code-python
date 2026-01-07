@@ -139,7 +139,7 @@ You are completing [PROJECT]. This prompt runs headless via:
 
 \`\`\`bash
 while true; do
-  cat PROMPT.md | claude -p --allowedTools "Read Write Edit Glob Grep Bash(git* uv* python* pytest* ruff* mypy* rg* cat* ls*)"
+  cat PROMPT.md | claude -p --allowedTools "Read Write Edit Glob Grep Bash(git* uv* rg* cat* ls* mkdir*)"
   sleep 2
 done
 \`\`\`
@@ -283,7 +283,8 @@ for i in $(seq 1 "$MAX_ITERS"); do
   echo "=== Ralph iteration $i/$MAX_ITERS ===" | tee -a .claude/ralph.log
   cat PROMPT.md | claude -p \
     --output-format text \
-    --allowedTools "Read Write Edit Glob Grep Bash(git* uv* python* pytest* ruff* mypy* rg* cat* ls*)" \
+    --allowedTools "Read Write Edit Glob Grep Bash(git* uv* rg* cat* ls* mkdir*)" \
+    --disallowedTools "Bash(rm* sudo* pkill* kill* shutdown* reboot* dd* mkfs*)" \
     | tee -a .claude/ralph.log
 
   if grep -Fq "<promise>${PROMISE}</promise>" .claude/ralph.log; then
@@ -310,7 +311,7 @@ done
 
 ### Tool Permission Hardening
 
-- Prefer `--allowedTools` with Bash patterns (e.g., `Bash(git* uv* rg* cat* ls*)`) and explicitly deny destructive patterns via `--disallowedTools` (e.g., `Bash(rm* sudo* pkill* kill* shutdown* reboot*)`).
+- Prefer `--allowedTools` with Bash patterns (e.g., `Bash(git* uv* rg* cat* ls*)`) and explicitly deny destructive patterns via `--disallowedTools` (e.g., `Bash(rm* sudo* pkill* kill* shutdown* reboot* dd* mkfs*)`).
 - Avoid giving broad execution primitives (`python`, `node`) unless you need them; prefer project runners like `uv run ...`.
 - Real-world gotcha: autonomous loops have been observed to self-terminate via `pkill` when “stuck” — disallow process-kill tools unless you truly want that behavior.
 
@@ -332,6 +333,8 @@ watch -n 5 'head -50 PROGRESS.md'
 # Or check git activity
 watch -n 5 'git log --oneline -10'
 ```
+
+Note: `watch` is not installed by default on macOS. Use `brew install watch` or replace with a small `while true; do ...; sleep 5; done` loop.
 
 ### Check Loop Status
 
@@ -558,7 +561,7 @@ tmux new -s ralph
 MAX_ITERS=50 PROMISE="PROJECT COMPLETE" bash -lc '
   mkdir -p .claude
   for i in $(seq 1 "$MAX_ITERS"); do
-    cat PROMPT.md | claude -p --allowedTools "Read Write Edit Glob Grep Bash(git* uv* python* pytest* ruff* mypy* rg* cat* ls*)" | tee -a .claude/ralph.log
+    cat PROMPT.md | claude -p --allowedTools "Read Write Edit Glob Grep Bash(git* uv* rg* cat* ls* mkdir*)" --disallowedTools "Bash(rm* sudo* pkill* kill* shutdown* reboot* dd* mkfs*)" | tee -a .claude/ralph.log
     grep -Fq "<promise>${PROMISE}</promise>" .claude/ralph.log && break
     sleep 2
   done
