@@ -1097,6 +1097,111 @@ X_test = scaler.transform(X_test)  # Transform test
 
 ---
 
+## 24. Jupyter Notebook Anti-Patterns
+
+**Why it matters:** 73% of published notebooks are non-reproducible. Hidden state, out-of-order execution, and memory leaks are endemic.
+
+### Checklist
+
+**Hidden State & Out-of-Order Execution:**
+- [ ] **Cells executed out of order** — Results don't match code visible in cells
+- [ ] **Deleted cells leave orphaned state** — Variables from deleted cells still exist in kernel
+- [ ] **Re-running cells multiple times** — Accumulating side effects (appends, counter increments)
+- [ ] **No "Restart & Run All" verification** — Notebook works interactively but fails fresh
+
+**Global Variable Pollution & Memory Leaks:**
+- [ ] **Large intermediate variables not deleted** — All cell variables are global scope
+- [ ] **Printing large arrays repeatedly** — Each print leaks memory (7GB per 10 runs in one study)
+- [ ] **Exception in cell leaks locals** — PyTorch tensors can exhaust GPU memory
+- [ ] **Repeated cell execution memory growth** — Memory never released without kernel restart
+
+**Module Reload Issues:**
+- [ ] **Changed module code not reflected** — Need `%autoreload 2` or `importlib.reload()`
+- [ ] **Class imports don't autoreload** — Must import module, not `from module import Class`
+- [ ] **Enum identity breaks after reload** — `MyEnum.VALUE is MyEnum.VALUE` returns False
+- [ ] **C extensions can't autoreload** — NumPy/Pandas changes require kernel restart
+
+**Reproducibility Problems:**
+- [ ] **Ambiguous execution order** — Cell [5] depends on [7] which runs first
+- [ ] **Random seeds not set at start** — Non-deterministic results across runs
+- [ ] **Hardcoded absolute paths** — `/Users/alice/data/...` won't work for others
+- [ ] **Missing dependency versions** — `pip freeze > requirements.txt` not included
+- [ ] **Data files not version controlled** — Notebook references unavailable data
+
+**Production Anti-Patterns:**
+- [ ] **Logic in notebooks, not modules** — Can't unit test notebook cells
+- [ ] **No error handling for %run chains** — Master notebook ignores sub-notebook failures
+- [ ] **Hardcoded credentials** — API keys in cells visible to anyone with notebook access
+- [ ] **Outputs committed to git** — Bloats repo, may contain sensitive data
+
+### Detection Commands
+
+```bash
+# Find notebooks with hardcoded paths (Unix absolute paths)
+grep -rn "/Users/\|/home/" notebooks/ --include="*.ipynb"
+
+# Find notebooks with potential credentials
+grep -rn "api_key\|password\|secret\|token" notebooks/ --include="*.ipynb"
+
+# Strip outputs before commit (install nbstripout)
+nbstripout --install  # Sets up git filter
+
+# Check if notebooks run clean
+jupyter nbconvert --execute --to notebook notebook.ipynb
+```
+
+### Correct Pattern
+
+```python
+# BAD: Global scope pollution
+df = pd.read_csv("data.csv")  # Lives forever
+processed = df[df['col'] > 0]  # Lives forever
+result = processed.groupby('x').mean()  # Lives forever
+
+# GOOD: Use functions to scope variables
+def process_data(path: str) -> pd.DataFrame:
+    df = pd.read_csv(path)
+    processed = df[df['col'] > 0]
+    return processed.groupby('x').mean()
+
+result = process_data("data.csv")  # Only result lives in global
+
+# BAD: Hardcoded path
+data = pd.read_csv("/Users/ray/project/data/train.csv")
+
+# GOOD: Relative or configurable path
+from pathlib import Path
+DATA_DIR = Path(__file__).parent.parent / "data"
+data = pd.read_csv(DATA_DIR / "train.csv")
+
+# GOOD: First cell of every notebook
+%load_ext autoreload
+%autoreload 2
+
+import numpy as np
+import random
+import torch
+
+# Set seeds for reproducibility
+SEED = 42
+np.random.seed(SEED)
+random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
+```
+
+### Sources
+
+- [Bug Analysis in Jupyter Notebook Projects (ICSE 2025)](https://conf.researchr.org/details/icse-2025/icse-2025-journal-first-papers/25/Bug-Analysis-in-Jupyter-Notebook-Projects-An-Empirical-Study)
+- [Understanding and Improving Quality of Jupyter Notebooks (PMC)](https://pmc.ncbi.nlm.nih.gov/articles/PMC8106381/)
+- [Why Do ML Notebooks Crash? (arXiv 2024)](https://arxiv.org/html/2411.16795v2)
+- [Python Memory Management in Jupyter (Mikulski)](https://mikulskibartosz.name/python-memory-management-in-jupyter-notebook)
+- [Jupyter Leaks Local Variables (GitHub Issue)](https://github.com/jupyter/notebook/issues/6147)
+- [IPython Autoreload Documentation](https://ipython.readthedocs.io/en/9.0.2/config/extensions/autoreload.html)
+
+---
+
 ## Audit Statistics (2025-2026 Research)
 
 | Metric | Value | Source |
@@ -1108,6 +1213,8 @@ X_test = scaler.transform(X_test)  # Transform test
 | Data engineers fixing pipelines | 44% of time | Gartner 2025 |
 | AI-generated code with vulns | 30-50% | IEEE/Academic 2025 |
 | Papers with data leakage | 648 across 30 fields | Princeton 2025 |
+| Notebooks non-reproducible | 73% | ICSE 2025 |
+| ML notebook crashes from out-of-order | 19.4% | arXiv 2024 |
 
 ---
 
@@ -1118,6 +1225,7 @@ X_test = scaler.transform(X_test)  # Transform test
 3. `grep -r "api_key\|secret\|password" src/` — Hardcoded secrets
 4. `grep -r "if limit:" src/` — Truthiness traps
 5. Review recent PRs for silent fallbacks
+6. `jupyter nbconvert --execute notebooks/*.ipynb` — Notebooks run clean
 
 ## Monthly Deep Audit (2 hours)
 
@@ -1126,7 +1234,8 @@ X_test = scaler.transform(X_test)  # Transform test
 3. Audit Pydantic models for Strict types
 4. Review async code for race conditions
 5. Verify random seeds are set for ML code
-6. Document findings in `docs/_bugs/`
+6. Verify all notebooks have "Restart & Run All" tested
+7. Document findings in `docs/_bugs/`
 
 ---
 
@@ -1134,5 +1243,6 @@ X_test = scaler.transform(X_test)  # Transform test
 
 | Date       | Change                                           |
 |------------|--------------------------------------------------|
+| 2026-01-07 | Added Jupyter notebook anti-patterns (24)        |
 | 2026-01-07 | Added ML/research categories (14-23)             |
 | 2026-01-07 | Initial creation from web research               |
