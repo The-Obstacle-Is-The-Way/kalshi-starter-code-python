@@ -83,6 +83,27 @@ These specs complete the full vision from the original requirements:
   - Track positions and P&L from actual trades (read-only, no automation)
   - Link theses to positions ("Did my research play out?")
 
+## Phase 7: Polish & DevX (Optional)
+
+Minor gaps and developer experience improvements:
+
+- [ ] **BUG-009**: Complete missing CLI commands → See `docs/_bugs/BUG-009-incomplete-cli-commands.md`
+  - Add `kalshi alerts monitor` (AlertMonitor CLI exposure)
+  - Add `kalshi analysis correlation` (CorrelationAnalyzer CLI)
+  - Add `kalshi scan arbitrage` (ArbitrageDetector CLI)
+  - Add `kalshi scan movers` (Price movers scanner)
+
+- [ ] **BUG-010**: Portfolio-thesis linking → See `docs/_bugs/BUG-010-missing-portfolio-link.md`
+  - Add `kalshi portfolio link TICKER --thesis ID`
+  - Add `kalshi portfolio suggest-links`
+  - Add `--with-positions` flag to thesis show
+
+- [ ] **SPEC-012**: Developer Experience → See `docs/_specs/SPEC-012-developer-experience.md`
+  - Create Makefile with modern 2026 commands
+  - Add VS Code tasks.json (optional)
+  - Add CLI quick reference card
+  - Add mise.toml for version management
+
 ---
 
 ## How to Use This File
@@ -106,6 +127,18 @@ done
 ---
 
 ## Completion Criteria
+
+**Phase 1-6 (Core Platform):** ✅ COMPLETE
+- All blocking bugs fixed
+- All specs 001-011 implemented
+- All quality gates pass
+- 314 unit tests passing, ~87% coverage
+
+**Phase 7 (Optional Polish):** ⏳ OPEN
+- 2 low-priority bugs (P3-P4)
+- 1 DevX spec (P3)
+
+The platform is fully functional. Phase 7 is optional polish.
 
 When ALL boxes are checked AND all quality gates pass, the loop can output:
 
