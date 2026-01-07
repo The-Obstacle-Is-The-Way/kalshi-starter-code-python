@@ -25,7 +25,7 @@ Fix any remaining code quality issues:
 
 These implement the user's original requirements beyond core platform:
 
-- [ ] **SPEC-005**: Alerts & Notifications → See `docs/_specs/SPEC-005-alerts-notifications.md`
+- [x] **SPEC-005**: Alerts & Notifications → See `docs/_specs/SPEC-005-alerts-notifications.md`
   - Creates `src/kalshi_research/alerts/` module
   - Implements AlertCondition, AlertMonitor, Notifiers
   - Satisfies BUG-006 ("notify me when conditions met")
