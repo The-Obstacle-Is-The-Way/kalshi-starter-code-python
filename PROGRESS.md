@@ -58,10 +58,30 @@ These implement the user's original requirements beyond core platform:
 
 Non-blocking cleanup tasks:
 
-- [ ] **BUG-008**: Restructure tests to mirror src/ → See `docs/_bugs/BUG-008-inconsistent-test-structure.md`
+- [x] **BUG-008**: Restructure tests to mirror src/ → See `docs/_bugs/BUG-008-inconsistent-test-structure.md`
   - Move flat test files (test_api_*.py, test_data_*.py, test_analysis_*.py) into nested directories
   - Should match: api/, data/, analysis/, alerts/, research/
   - Use `git mv` to preserve history
+
+## Phase 6: Platform Completeness (Future)
+
+These specs complete the full vision from the original requirements:
+
+- [ ] **SPEC-009**: Legacy Cleanup & Documentation → See `docs/_specs/SPEC-009-cleanup-documentation.md`
+  - Remove `clients.py`, `main.py`, `requirements.txt` from root
+  - Rewrite README.md for new platform
+  - Create QUICKSTART.md and USAGE.md
+
+- [ ] **SPEC-010**: CLI Completeness → See `docs/_specs/SPEC-010-cli-completeness.md`
+  - Add `kalshi alerts` CLI commands (list, add, remove, monitor)
+  - Add `kalshi analysis` CLI commands (calibration, correlation, metrics)
+  - Add `kalshi research` CLI commands (thesis, backtest)
+  - Expose all existing modules through CLI
+
+- [ ] **SPEC-011**: Manual Trading Support → See `docs/_specs/SPEC-011-manual-trading-support.md`
+  - Add `kalshi portfolio` CLI commands (sync, positions, pnl, balance, history)
+  - Track positions and P&L from actual trades (read-only, no automation)
+  - Link theses to positions ("Did my research play out?")
 
 ---
 
