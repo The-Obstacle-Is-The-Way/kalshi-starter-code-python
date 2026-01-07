@@ -258,6 +258,8 @@ This avoids external bash loops and provides built-in iteration limits.
    /ralph-loop "See PROMPT.md. Follow it exactly." --max-iterations 20 --completion-promise "PROJECT COMPLETE"
    ```
 
+The loop advances when Claude tries to exit: the Stop hook blocks the exit and re-feeds the same prompt for the next iteration. Plugin state lives in `.claude/ralph-loop.local.md` (removed by `/cancel-ralph`).
+
 To cancel:
 ```
 /cancel-ralph
