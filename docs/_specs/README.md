@@ -12,12 +12,23 @@ This document indexes all specifications for building a research platform on top
 
 ## Specifications
 
+### Core Platform (Implemented)
+
 | Spec | Name | Priority | Status | Dependencies |
 |------|------|----------|--------|--------------|
-| [SPEC-001](./SPEC-001-modern-python-foundation.md) | Modern Python Foundation | P0 | Draft | None |
-| [SPEC-002](./SPEC-002-kalshi-api-client.md) | Kalshi API Client | P0 | Draft | SPEC-001 |
-| [SPEC-003](./SPEC-003-data-layer-storage.md) | Data Layer & Storage | P1 | Draft | SPEC-001, SPEC-002 |
-| [SPEC-004](./SPEC-004-research-analysis-framework.md) | Research & Analysis | P1 | Draft | SPEC-001, SPEC-002, SPEC-003 |
+| [SPEC-001](./SPEC-001-modern-python-foundation.md) | Modern Python Foundation | P0 | ✅ Complete | None |
+| [SPEC-002](./SPEC-002-kalshi-api-client.md) | Kalshi API Client | P0 | ✅ Complete | SPEC-001 |
+| [SPEC-003](./SPEC-003-data-layer-storage.md) | Data Layer & Storage | P1 | ⚠️ Partial | SPEC-001, SPEC-002 |
+| [SPEC-004](./SPEC-004-research-analysis-framework.md) | Research & Analysis | P1 | ⚠️ Partial | SPEC-001, SPEC-002, SPEC-003 |
+
+### Extended Platform (Not Started)
+
+| Spec | Name | Priority | Status | Dependencies |
+|------|------|----------|--------|--------------|
+| [SPEC-005](./SPEC-005-alerts-notifications.md) | Alerts & Notifications | P1 | ❌ Not Started | SPEC-002, SPEC-003, SPEC-004 |
+| [SPEC-006](./SPEC-006-event-correlation-analysis.md) | Event Correlation Analysis | P2 | ❌ Not Started | SPEC-002, SPEC-003 |
+| [SPEC-007](./SPEC-007-probability-tracking-visualization.md) | Probability Tracking & Visualization | P2 | ❌ Not Started | SPEC-002, SPEC-003, SPEC-004 |
+| [SPEC-008](./SPEC-008-research-notebooks-backtesting.md) | Research Notebooks & Backtesting | P2 | ❌ Not Started | SPEC-002 through SPEC-007 |
 
 ---
 
@@ -172,9 +183,45 @@ kalshi data collect --interval 15m
 
 ---
 
-## Future Specs (Not Yet Written)
+## Extended Implementation Order
 
-- **SPEC-005**: Alerting & Notifications
-- **SPEC-006**: Backtesting Framework
-- **SPEC-007**: Correlation Analysis
-- **SPEC-008**: News Sentiment Integration
+After completing SPEC-001 through SPEC-004 (core platform), the extended features can be implemented:
+
+```
+Phase 5: Alerts & Notifications (SPEC-005)
+├── AlertCondition and Alert models
+├── AlertMonitor with condition checking
+├── Console, File, Webhook notifiers
+├── CLI commands for alert management
+└── Estimated: 4-6 hours
+
+Phase 6: Event Correlation (SPEC-006)
+├── CorrelationAnalyzer class
+├── Pearson/Spearman correlation
+├── Inverse market detection
+├── Arbitrage opportunity finder
+└── Estimated: 4-6 hours
+
+Phase 7: Visualization & Metrics (SPEC-007)
+├── MarketMetrics class (spread, volatility, volume)
+├── Calibration curve plotting
+├── Probability timeline charts
+├── Edge histograms and spread charts
+└── Estimated: 4-6 hours
+
+Phase 8: Notebooks & Backtesting (SPEC-008)
+├── ThesisBacktester class
+├── Notebook utility functions
+├── Template notebooks (exploration, calibration, edge detection)
+├── P&L and accuracy tracking
+└── Estimated: 6-8 hours
+```
+
+## Future Specs (Potential)
+
+Beyond SPEC-008, potential future specs include:
+
+- **SPEC-009**: News Sentiment Integration
+- **SPEC-010**: Portfolio Analytics (Kelly criterion, risk management)
+- **SPEC-011**: Web Dashboard
+- **SPEC-012**: Machine Learning Models

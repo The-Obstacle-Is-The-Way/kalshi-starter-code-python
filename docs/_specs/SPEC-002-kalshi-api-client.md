@@ -693,17 +693,16 @@ class KalshiClient(KalshiPublicClient):
         environment: str = "prod",
         timeout: float = 30.0,
     ) -> None:
-        # Don't call super().__init__() - we create client with environment-specific URL
+        # Determine base URL based on environment
         base_host = self.DEMO_BASE if environment == "demo" else self.PROD_BASE
         self._base_url = base_host + self.API_PATH
+        
+        # Initialize parent with the correct base_url
+        # Note: We override the hardcoded BASE_URL of the parent instance
+        super().__init__(timeout=timeout)
+        self._client.base_url = self._base_url  # Update httpx client base URL
+        
         self._auth = KalshiAuth(key_id, private_key_path)
-        self._max_retries = 5
-
-        self._client = httpx.AsyncClient(
-            base_url=self._base_url,
-            timeout=timeout,
-            headers={"Accept": "application/json"},
-        )
 
     async def __aenter__(self) -> "KalshiClient":
         return self

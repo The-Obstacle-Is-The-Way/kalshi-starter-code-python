@@ -489,6 +489,28 @@ def export_to_parquet(sqlite_path: str | Path, output_dir: str | Path) -> None:
         conn.close()
 ```
 
+### 3.7 Timezone & Storage Strategy
+
+**CRITICAL:** SQLite does not natively support timezones. To prevent data corruption and "naive datetime" errors:
+
+1.  **Application Side:** ALWAYS use timezone-aware UTC datetimes.
+    ```python
+    # GOOD
+    dt = datetime.now(timezone.utc)
+    
+    # BAD
+    dt = datetime.now()  # Naive (local time)
+    ```
+
+2.  **Persistence Boundary:**
+    - SQLAlchemy `DateTime(timezone=True)` is used in models.
+    - `aiosqlite` driver must be configured to convert stored strings back to UTC-aware datetimes.
+    - If automatic conversion fails, Repositories MUST explicitly convert to UTC before saving and attach `timezone.utc` on load.
+
+3.  **Database Storage:**
+    - Datetimes are stored as ISO-8601 strings (e.g., `2024-01-01T12:00:00+00:00`) or Unix timestamps.
+    - Consistency is key. We prefer **ISO-8601 strings** for readability and DuckDB compatibility.
+
 ---
 
 ## 4. Implementation Tasks

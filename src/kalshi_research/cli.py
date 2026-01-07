@@ -415,5 +415,87 @@ def market_list(
     asyncio.run(_list())
 
 
+# ==================== Scan Commands ====================
+
+scan_app = typer.Typer(help="Market scanning commands.")
+app.add_typer(scan_app, name="scan")
+
+
+@scan_app.command("opportunities")
+def scan_opportunities(
+    filter_type: Annotated[
+        str | None,
+        typer.Option(
+            "--filter",
+            "-f",
+            help="Filter type: close-race, high-volume, wide-spread, expiring-soon",
+        ),
+    ] = None,
+    top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
+) -> None:
+    """Scan markets for opportunities."""
+    from kalshi_research.analysis.scanner import MarketScanner
+    from kalshi_research.api import KalshiPublicClient
+
+    async def _scan() -> None:
+        async with KalshiPublicClient() as client:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                progress.add_task("Fetching markets...", total=None)
+                # Fetch all open markets for scanning
+                markets = [
+                    m
+                    async for m in client.get_all_markets(status="open")
+                ]
+
+        scanner = MarketScanner()
+
+        if filter_type:
+            filter_map = {
+                "close-race": scanner.scan_close_races,
+                "high-volume": scanner.scan_high_volume,
+                "wide-spread": scanner.scan_wide_spread,
+                "expiring-soon": scanner.scan_expiring_soon,
+            }
+            if filter_type not in filter_map:
+                console.print(f"[red]Error:[/red] Unknown filter: {filter_type}")
+                raise typer.Exit(1)
+            
+            results = filter_map[filter_type](markets, top_n)
+            title = f"Scan Results ({filter_type})"
+        else:
+            # Default to "interesting" markets logic (e.g. close races for now)
+            # In a real impl, this might combine multiple signals
+            results = scanner.scan_close_races(markets, top_n)
+            title = "Scan Results (Close Races)"
+
+        if not results:
+            console.print("[yellow]No markets found matching criteria.[/yellow]")
+            return
+
+        table = Table(title=title)
+        table.add_column("Ticker", style="cyan", no_wrap=True)
+        table.add_column("Title", style="white")
+        table.add_column("Yes Bid", style="green")
+        table.add_column("Spread", style="yellow")
+        table.add_column("Volume", style="magenta")
+
+        for m in results:
+            table.add_row(
+                m.ticker,
+                m.title[:50],
+                f"{m.yes_bid}¢",
+                f"{m.yes_ask - m.yes_bid}¢",
+                f"{m.volume_24h:,}",
+            )
+
+        console.print(table)
+
+    asyncio.run(_scan())
+
+
 if __name__ == "__main__":
     app()
