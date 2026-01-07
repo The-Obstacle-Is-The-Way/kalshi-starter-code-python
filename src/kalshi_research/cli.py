@@ -674,6 +674,7 @@ def analysis_calibration(
     async def _analyze() -> None:
         from kalshi_research.data.repositories import PriceRepository
 
+        result = None
         async with DatabaseManager(db_path) as db, db.session_factory() as session:
             price_repo = PriceRepository(session)
             analyzer = CalibrationAnalyzer(price_repo)  # type: ignore[arg-type]
@@ -727,6 +728,7 @@ def analysis_metrics(
     async def _metrics() -> None:
         from kalshi_research.data.repositories import PriceRepository
 
+        price = None
         async with DatabaseManager(db_path) as db, db.session_factory() as session:
             price_repo = PriceRepository(session)
             # Get latest price

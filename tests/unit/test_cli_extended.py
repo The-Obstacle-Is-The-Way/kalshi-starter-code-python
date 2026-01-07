@@ -72,7 +72,7 @@ def test_alerts_remove() -> None:
     alert_data = {"conditions": [{"id": "alert-12345678", "label": "test alert"}]}
     mock_file = mock_open(read_data=json.dumps(alert_data))
 
-    with patch("pathlib.Path.exists", return_value=True), patch("builtins.open", mock_file):
+    with patch("pathlib.Path.exists", return_value=True), patch("pathlib.Path.open", mock_file):
         result = runner.invoke(app, ["alerts", "remove", "alert-123"])
 
     assert result.exit_code == 0
@@ -95,9 +95,20 @@ def test_alerts_remove_not_found() -> None:
 @patch("kalshi_research.data.DatabaseManager")
 def test_analysis_calibration(mock_db_cls: MagicMock, mock_analyzer_cls: MagicMock) -> None:
     """Test calibration analysis."""
+    # Mock session
+    mock_session = AsyncMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+
+    # Mock session factory
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value = mock_session
+
+    # Mock db
     mock_db = AsyncMock()
     mock_db.__aenter__.return_value = mock_db
     mock_db.__aexit__.return_value = AsyncMock()
+    mock_db.session_factory = mock_session_factory
     mock_db_cls.return_value = mock_db
 
     mock_analyzer = MagicMock()
@@ -126,11 +137,6 @@ def test_analysis_calibration(mock_db_cls: MagicMock, mock_analyzer_cls: MagicMo
 @patch("kalshi_research.data.DatabaseManager")
 def test_analysis_metrics(mock_db_cls: MagicMock) -> None:
     """Test market metrics analysis."""
-    mock_db = AsyncMock()
-    mock_db.__aenter__.return_value = mock_db
-    mock_db.__aexit__.return_value = AsyncMock()
-    mock_db_cls.return_value = mock_db
-
     # Mock price data
     mock_price = MagicMock()
     mock_price.yes_bid = 50
@@ -140,12 +146,34 @@ def test_analysis_metrics(mock_db_cls: MagicMock) -> None:
     mock_price.volume_24h = 1000
     mock_price.open_interest = 500
 
-    # Mock the prices repository
-    mock_prices_repo = AsyncMock()
-    mock_prices_repo.get_latest_price = AsyncMock(return_value=mock_price)
-    mock_db.prices = mock_prices_repo
+    # Mock the prices repository with async get_latest
+    async def mock_get_latest(ticker):
+        return mock_price
 
-    with patch("pathlib.Path.exists", return_value=True):
+    mock_prices_repo = MagicMock()
+    mock_prices_repo.get_latest = mock_get_latest
+
+    # Mock session
+    mock_session = AsyncMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+
+    # Mock session factory
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value = mock_session
+
+    # Mock db
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = AsyncMock()
+    mock_db.session_factory = mock_session_factory
+    mock_db_cls.return_value = mock_db
+
+    # Patch PriceRepository to return our mock
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("kalshi_research.data.repositories.PriceRepository", return_value=mock_prices_repo),
+    ):
         result = runner.invoke(app, ["analysis", "metrics", "TEST-TICKER"])
 
     assert result.exit_code == 0
@@ -236,7 +264,7 @@ def test_research_thesis_show() -> None:
     }
     mock_file = mock_open(read_data=json.dumps(thesis_data))
 
-    with patch("pathlib.Path.exists", return_value=True), patch("builtins.open", mock_file):
+    with patch("pathlib.Path.exists", return_value=True), patch("pathlib.Path.open", mock_file):
         result = runner.invoke(app, ["research", "thesis", "show", "thesis-1"])
 
     assert result.exit_code == 0
@@ -258,7 +286,7 @@ def test_research_thesis_resolve() -> None:
 
     with (
         patch("pathlib.Path.exists", return_value=True),
-        patch("builtins.open", mock_file),
+        patch("pathlib.Path.open", mock_file),
         patch("pathlib.Path.mkdir"),
     ):
         result = runner.invoke(
