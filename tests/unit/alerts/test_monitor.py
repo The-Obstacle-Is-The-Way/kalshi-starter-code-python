@@ -219,6 +219,56 @@ class TestAlertMonitor:
         assert alert.current_value == 8000.0
 
     @pytest.mark.asyncio
+    async def test_check_price_crosses_triggers_on_cross(self) -> None:
+        """Test PRICE_CROSSES triggers only when the price crosses the threshold."""
+        monitor = AlertMonitor()
+
+        condition = AlertCondition(
+            id="cross-test",
+            condition_type=ConditionType.PRICE_CROSSES,
+            ticker="TEST-CROSS",
+            threshold=0.5,
+            label="Crosses 50%",
+        )
+        monitor.add_condition(condition)
+
+        # First observation establishes baseline; should not trigger.
+        alerts = await monitor.check_conditions([make_market(ticker="TEST-CROSS", yes_price=40)])
+        assert alerts == []
+        assert len(monitor.list_conditions()) == 1
+
+        # Cross upward over 50% should trigger.
+        alerts = await monitor.check_conditions([make_market(ticker="TEST-CROSS", yes_price=60)])
+        assert len(alerts) == 1
+        assert alerts[0].condition.id == "cross-test"
+        assert alerts[0].current_value == 0.60
+
+    @pytest.mark.asyncio
+    async def test_check_edge_detected_triggers_on_large_move(self) -> None:
+        """Test EDGE_DETECTED triggers on large absolute moves since last check."""
+        monitor = AlertMonitor()
+
+        condition = AlertCondition(
+            id="edge-test",
+            condition_type=ConditionType.EDGE_DETECTED,
+            ticker="TEST-EDGE",
+            threshold=0.10,
+            label="Move >= 10%",
+        )
+        monitor.add_condition(condition)
+
+        # First observation establishes baseline; should not trigger.
+        alerts = await monitor.check_conditions([make_market(ticker="TEST-EDGE", yes_price=50)])
+        assert alerts == []
+        assert len(monitor.list_conditions()) == 1
+
+        # Move from 50% -> 65% is +15%, should trigger.
+        alerts = await monitor.check_conditions([make_market(ticker="TEST-EDGE", yes_price=65)])
+        assert len(alerts) == 1
+        assert alerts[0].condition.id == "edge-test"
+        assert alerts[0].current_value == pytest.approx(0.15)
+
+    @pytest.mark.asyncio
     async def test_expired_conditions_removed(self) -> None:
         """Test that expired conditions are automatically removed."""
         monitor = AlertMonitor()

@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any
 
@@ -335,9 +335,14 @@ def market_get(
     from kalshi_research.api import KalshiPublicClient
 
     async def _get() -> None:
+        from kalshi_research.api.exceptions import KalshiAPIError
+
         async with KalshiPublicClient() as client:
             try:
                 market = await client.get_market(ticker)
+            except KalshiAPIError as e:
+                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+                raise typer.Exit(1) from None
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -369,9 +374,14 @@ def market_orderbook(
     from kalshi_research.api import KalshiPublicClient
 
     async def _orderbook() -> None:
+        from kalshi_research.api.exceptions import KalshiAPIError
+
         async with KalshiPublicClient() as client:
             try:
                 orderbook = await client.get_orderbook(ticker, depth=depth)
+            except KalshiAPIError as e:
+                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+                raise typer.Exit(1) from None
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -890,7 +900,7 @@ def alerts_add(
         "ticker": ticker,
         "threshold": threshold,
         "label": f"{alert_type} {ticker} {'>' if above else '<'} {threshold}",
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
     # Save to storage
@@ -1301,7 +1311,7 @@ def research_thesis_create(
         "key_assumptions": [],
         "invalidation_criteria": [],
         "status": "active",
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "resolved_at": None,
         "actual_outcome": None,
         "updates": [],
@@ -1462,7 +1472,7 @@ def research_thesis_resolve(
     for thesis in theses:
         if thesis["id"].startswith(thesis_id):
             thesis["status"] = "resolved"
-            thesis["resolved_at"] = datetime.utcnow().isoformat()
+            thesis["resolved_at"] = datetime.now(UTC).isoformat()
             thesis["actual_outcome"] = outcome
             _save_theses(data)
             console.print(f"[green]✓[/green] Thesis resolved: {thesis['title']}")

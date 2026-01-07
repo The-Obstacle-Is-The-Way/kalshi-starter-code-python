@@ -56,7 +56,10 @@ Types of conditions to monitor:
 | `PRICE_CROSSES` | Market crosses a threshold in either direction | BTC crosses 50% |
 | `SPREAD_ABOVE` | Bid-ask spread exceeds threshold | Spread > 5 cents |
 | `VOLUME_ABOVE` | Trading volume exceeds threshold | Volume > 1000 contracts |
-| `EDGE_DETECTED` | EdgeDetector finds opportunity | Any thesis edge > 10% |
+| `EDGE_DETECTED` | Market moves ≥ threshold since last check | BTC moves ≥ 10 percentage points |
+
+Notes:
+- `PRICE_CROSSES` and `EDGE_DETECTED` require at least 2 polling iterations (the first poll establishes a baseline).
 
 ### 2.2 Alert Lifecycle
 

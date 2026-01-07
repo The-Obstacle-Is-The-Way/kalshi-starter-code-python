@@ -125,6 +125,10 @@ class ThesisBacktester:
         relevant_settlements = [s for s in settlements if s.ticker in thesis.market_tickers]
 
         for settlement in relevant_settlements:
+            # Skip void settlements - they don't affect P&L calculations
+            if settlement.result == "void":
+                continue
+
             # Determine entry price (market prob at thesis creation)
             if snapshots and settlement.ticker in snapshots:
                 # Use closest snapshot to thesis creation
@@ -135,7 +139,7 @@ class ThesisBacktester:
             else:
                 entry_price = thesis.market_probability
 
-            # Determine exit price from settlement
+            # Determine exit price from settlement (yes=1.0, no=0.0)
             exit_price = 1.0 if settlement.result == "yes" else 0.0
 
             # Determine trade side from thesis

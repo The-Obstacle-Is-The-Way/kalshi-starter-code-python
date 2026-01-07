@@ -45,21 +45,23 @@ class PnLCalculator:
         Calculate realized P&L from a list of trades.
 
         Realized P&L is calculated from closed positions (matched buy/sell pairs).
+        Groups by (ticker, side) to handle YES/NO positions separately.
         """
-        # Group trades by ticker
-        ticker_trades: dict[str, list[Trade]] = {}
+        # Group trades by ticker AND side (consistent with _get_closed_trades)
+        ticker_side_trades: dict[tuple[str, str], list[Trade]] = {}
         for trade in trades:
-            if trade.ticker not in ticker_trades:
-                ticker_trades[trade.ticker] = []
-            ticker_trades[trade.ticker].append(trade)
+            key = (trade.ticker, trade.side)
+            if key not in ticker_side_trades:
+                ticker_side_trades[key] = []
+            ticker_side_trades[key].append(trade)
 
         total_realized = 0
 
-        for ticker_trade_list in ticker_trades.values():
+        for group_trades in ticker_side_trades.values():
             # Sort by execution time
-            sorted_trades = sorted(ticker_trade_list, key=lambda t: t.executed_at)
+            sorted_trades = sorted(group_trades, key=lambda t: t.executed_at)
 
-            # Track position for this ticker
+            # Track position for this ticker+side
             position_qty = 0
             position_cost = 0
 

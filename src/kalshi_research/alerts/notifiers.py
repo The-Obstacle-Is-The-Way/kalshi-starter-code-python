@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import httpx
 from rich.console import Console
 from rich.panel import Panel
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from kalshi_research.alerts.conditions import Alert
@@ -103,6 +106,7 @@ class WebhookNotifier:
 
         try:
             with httpx.Client(timeout=self._timeout) as client:
-                client.post(self._webhook_url, json=payload)
-        except httpx.HTTPError:
-            pass  # Silently fail for webhooks
+                response = client.post(self._webhook_url, json=payload)
+                response.raise_for_status()
+        except httpx.HTTPError as e:
+            logger.warning("Webhook notification failed: %s", e)

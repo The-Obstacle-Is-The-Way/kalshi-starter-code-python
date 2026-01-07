@@ -34,6 +34,19 @@ def test_export_to_parquet_db_not_found():
 
 
 @patch("duckdb.connect")
+def test_export_to_parquet_rejects_invalid_table_name(mock_connect, tmp_path):
+    mock_conn = MagicMock()
+    mock_connect.return_value = mock_conn
+
+    db_path = tmp_path / "test.db"
+    db_path.touch()
+    output_dir = tmp_path / "exports"
+
+    with pytest.raises(ValueError, match="Invalid table name"):
+        export_to_parquet(db_path, output_dir, tables=["not_a_table"])
+
+
+@patch("duckdb.connect")
 def test_export_to_csv_success(mock_connect, tmp_path):
     mock_conn = MagicMock()
     mock_connect.return_value = mock_conn
@@ -58,6 +71,19 @@ def test_export_to_csv_invalid_path(tmp_path):
 def test_export_to_csv_db_not_found():
     with pytest.raises(FileNotFoundError):
         export_to_csv("nonexistent.db", "out")
+
+
+@patch("duckdb.connect")
+def test_export_to_csv_rejects_invalid_table_name(mock_connect, tmp_path):
+    mock_conn = MagicMock()
+    mock_connect.return_value = mock_conn
+
+    db_path = tmp_path / "test.db"
+    db_path.touch()
+    output_dir = tmp_path / "exports"
+
+    with pytest.raises(ValueError, match="Invalid table name"):
+        export_to_csv(db_path, output_dir, tables=["not_a_table"])
 
 
 def test_export_to_parquet_rejects_invalid_sqlite_path(tmp_path):

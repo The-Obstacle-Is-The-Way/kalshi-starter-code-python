@@ -268,15 +268,20 @@ def run_async(coro: Any) -> Any:
         markets = run_async(load_markets())
     """
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # Already in async context (e.g., Jupyter with async enabled)
-            try:
-                import nest_asyncio
-
-                nest_asyncio.apply()
-            except ImportError:
-                pass
-        return asyncio.run(coro)
+        # Check if there's already a running event loop
+        loop = asyncio.get_running_loop()
     except RuntimeError:
+        # No running loop - safe to use asyncio.run()
         return asyncio.run(coro)
+
+    # Already in async context (e.g., Jupyter with async enabled)
+    try:
+        import nest_asyncio
+
+        nest_asyncio.apply()
+    except ImportError:
+        raise RuntimeError(
+            "run_async() cannot synchronously wait for a coroutine from a running event loop "
+            "without nest_asyncio installed. Prefer `await coro` in async contexts."
+        ) from None
+    return loop.run_until_complete(coro)

@@ -38,6 +38,7 @@ class AlertMonitor:
         self._conditions: dict[str, AlertCondition] = {}
         self._notifiers: list[Notifier] = []
         self._triggered_alerts: list[Alert] = []
+        self._last_mid_probs: dict[str, float] = {}
 
     def add_condition(self, condition: AlertCondition) -> None:
         """Add a condition to monitor."""
@@ -74,6 +75,7 @@ class AlertMonitor:
         """
         new_alerts: list[Alert] = []
         market_lookup = {m.ticker: m for m in markets}
+        current_mid_probs: dict[str, float] = {}
 
         for condition in list(self._conditions.values()):
             # Skip expired conditions
@@ -82,7 +84,18 @@ class AlertMonitor:
                 continue
 
             # Check if condition matches
-            alert = self._check_condition(condition, market_lookup)
+            market = market_lookup.get(condition.ticker)
+            if market is None:
+                continue
+
+            mid_prob = (market.yes_bid + market.yes_ask) / 200.0
+            current_mid_probs[condition.ticker] = mid_prob
+            alert = self._check_condition(
+                condition,
+                market,
+                mid_prob=mid_prob,
+                prev_mid_prob=self._last_mid_probs.get(condition.ticker),
+            )
             if alert:
                 new_alerts.append(alert)
                 self._triggered_alerts.append(alert)
@@ -94,33 +107,39 @@ class AlertMonitor:
                 # Remove one-shot conditions after triggering
                 del self._conditions[condition.id]
 
+        self._last_mid_probs.update(current_mid_probs)
         return new_alerts
 
     def _check_condition(
         self,
         condition: AlertCondition,
-        markets: dict[str, Market],
+        market: Market,
+        *,
+        mid_prob: float,
+        prev_mid_prob: float | None,
     ) -> Alert | None:
         """Check a single condition against market data."""
-        market = markets.get(condition.ticker)
-        if market is None:
-            return None
-
         triggered = False
         current_value = 0.0
 
         match condition.condition_type:
             case ConditionType.PRICE_ABOVE:
                 # Calculate mid price from bid/ask
-                mid_price = (market.yes_bid + market.yes_ask) / 2.0
-                current_value = mid_price / 100.0
+                current_value = mid_prob
                 triggered = current_value > condition.threshold
 
             case ConditionType.PRICE_BELOW:
                 # Calculate mid price from bid/ask
-                mid_price = (market.yes_bid + market.yes_ask) / 2.0
-                current_value = mid_price / 100.0
+                current_value = mid_prob
                 triggered = current_value < condition.threshold
+
+            case ConditionType.PRICE_CROSSES:
+                # Triggers when the market moves from one side of the threshold to the other.
+                current_value = mid_prob
+                if prev_mid_prob is not None:
+                    crossed_up = prev_mid_prob < condition.threshold <= current_value
+                    crossed_down = prev_mid_prob > condition.threshold >= current_value
+                    triggered = crossed_up or crossed_down
 
             case ConditionType.SPREAD_ABOVE:
                 spread = market.yes_ask - market.yes_bid
@@ -130,6 +149,12 @@ class AlertMonitor:
             case ConditionType.VOLUME_ABOVE:
                 current_value = float(market.volume)
                 triggered = current_value > condition.threshold
+
+            case ConditionType.EDGE_DETECTED:
+                # Treat this as a volatility edge: trigger on large absolute moves since last check.
+                if prev_mid_prob is not None and condition.threshold > 0:
+                    current_value = abs(mid_prob - prev_mid_prob)
+                    triggered = current_value >= condition.threshold
 
         if triggered:
             return Alert(

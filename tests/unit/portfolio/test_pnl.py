@@ -160,6 +160,54 @@ class TestPnLCalculatorRealized:
         # Should have realized profit on the 100 contracts sold
         assert realized > 0
 
+    def test_realized_does_not_mix_yes_no_cost_basis(self) -> None:
+        """Test that YES and NO positions are treated as separate instruments."""
+        trades = [
+            # Buy YES and NO on the same ticker, then only close YES.
+            Trade(
+                kalshi_trade_id="trade_1",
+                ticker="TEST-TICKER",
+                side="yes",
+                action="buy",
+                quantity=100,
+                price_cents=4500,
+                total_cost_cents=450000,
+                fee_cents=225,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+            Trade(
+                kalshi_trade_id="trade_2",
+                ticker="TEST-TICKER",
+                side="no",
+                action="buy",
+                quantity=100,
+                price_cents=5500,
+                total_cost_cents=550000,
+                fee_cents=275,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+            Trade(
+                kalshi_trade_id="trade_3",
+                ticker="TEST-TICKER",
+                side="yes",
+                action="sell",
+                quantity=100,
+                price_cents=5200,
+                total_cost_cents=520000,
+                fee_cents=260,
+                executed_at=datetime(2026, 1, 2, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+        ]
+
+        calculator = PnLCalculator()
+        realized = calculator.calculate_realized(trades)
+
+        # Should only reflect the closed YES leg.
+        assert realized == 520000 - 450000 - 225 - 260
+
     def test_realized_multiple_tickers(self):
         """Test realized P&L across multiple tickers."""
         trades = [

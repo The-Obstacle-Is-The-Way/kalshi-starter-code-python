@@ -188,6 +188,39 @@ class TestThesisBacktester:
         assert tickers == {"KXBTC-25JAN-T100000", "KXBTC-25JAN-T95000"}
 
     @pytest.mark.asyncio
+    async def test_backtest_skips_void_settlements(self, sample_thesis: Thesis) -> None:
+        """Test that void settlements are ignored in backtests."""
+        backtester = ThesisBacktester(default_contracts=1)
+
+        settlements = [
+            Settlement(
+                ticker="KXBTC-25JAN-T100000",
+                event_ticker="KXBTC-25JAN",
+                settled_at=datetime(2025, 1, 31, 0, 0, 0, tzinfo=UTC),
+                result="void",
+                final_yes_price=None,
+                final_no_price=None,
+                yes_payout=None,
+                no_payout=None,
+            ),
+            Settlement(
+                ticker="KXBTC-25JAN-T95000",
+                event_ticker="KXBTC-25JAN",
+                settled_at=datetime(2025, 1, 31, 0, 0, 0, tzinfo=UTC),
+                result="yes",
+                final_yes_price=100,
+                final_no_price=0,
+                yes_payout=100,
+                no_payout=0,
+            ),
+        ]
+
+        result = await backtester.backtest_thesis(thesis=sample_thesis, settlements=settlements)
+
+        assert result.total_trades == 1
+        assert [trade.ticker for trade in result.trades] == ["KXBTC-25JAN-T95000"]
+
+    @pytest.mark.asyncio
     async def test_backtest_determines_side_from_probability(
         self,
         sample_thesis: Thesis,

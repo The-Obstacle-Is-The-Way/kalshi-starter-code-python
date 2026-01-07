@@ -86,3 +86,24 @@ def test_webhook_notifier_swallows_http_errors() -> None:
         mock_client_cls.return_value.__enter__.return_value = mock_client
         notifier = WebhookNotifier("https://example.com/webhook")
         notifier.notify(alert)
+
+
+def test_webhook_notifier_swallows_non_2xx_status() -> None:
+    alert = _make_alert()
+
+    request = httpx.Request("POST", "https://example.com/webhook")
+    response = httpx.Response(500, request=request)
+    status_error = httpx.HTTPStatusError("boom", request=request, response=response)
+
+    response_mock = MagicMock()
+    response_mock.raise_for_status.side_effect = status_error
+
+    mock_client = MagicMock()
+    mock_client.post.return_value = response_mock
+
+    with patch("kalshi_research.alerts.notifiers.httpx.Client") as mock_client_cls:
+        mock_client_cls.return_value.__enter__.return_value = mock_client
+        notifier = WebhookNotifier("https://example.com/webhook")
+        notifier.notify(alert)
+
+    response_mock.raise_for_status.assert_called_once()

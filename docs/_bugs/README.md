@@ -12,7 +12,7 @@
 | `uv run ruff check .` | ✅ PASS |
 | `uv run ruff format --check .` | ✅ PASS |
 | `uv run mypy src/` | ✅ PASS |
-| `uv run pytest` | ✅ PASS (`383 passed, 6 skipped`) |
+| `uv run pytest` | ✅ PASS (`390 passed, 6 skipped`) |
 | Coverage | ⏳ Measured in `AUDIT_REPORT.md` |
 
 **Note:** Live Kalshi API tests are skipped unless `KALSHI_RUN_LIVE_API=1`.

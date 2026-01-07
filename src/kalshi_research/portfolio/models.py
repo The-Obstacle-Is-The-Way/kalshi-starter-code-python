@@ -21,7 +21,7 @@ class Position(Base):
     __tablename__ = "positions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    ticker: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    ticker: Mapped[str] = mapped_column(String(100), nullable=False)
     side: Mapped[str] = mapped_column(String(10), nullable=False)  # "yes" or "no"
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     avg_price_cents: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -50,7 +50,7 @@ class Trade(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     kalshi_trade_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    ticker: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    ticker: Mapped[str] = mapped_column(String(100), nullable=False)
     side: Mapped[str] = mapped_column(String(10), nullable=False)  # "yes" or "no"
     action: Mapped[str] = mapped_column(String(10), nullable=False)  # "buy" or "sell"
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)

@@ -7,6 +7,9 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Allowed tables for export (prevents SQL injection via table names)
+ALLOWED_TABLES = frozenset({"price_snapshots", "markets", "events", "settlements"})
+
 
 def export_to_parquet(
     sqlite_path: str | Path,
@@ -26,6 +29,7 @@ def export_to_parquet(
     Raises:
         FileNotFoundError: If SQLite database doesn't exist
         ValueError: If paths contain invalid characters
+        ValueError: If an invalid table name is requested
     """
     import duckdb
 
@@ -52,7 +56,12 @@ def export_to_parquet(
 
         # Default tables to export
         if tables is None:
-            tables = ["price_snapshots", "markets", "events", "settlements"]
+            tables = list(ALLOWED_TABLES)
+
+        # Validate table names (defense-in-depth against SQL injection)
+        for table in tables:
+            if table not in ALLOWED_TABLES:
+                raise ValueError(f"Invalid table name: {table}. Allowed: {ALLOWED_TABLES}")
 
         for table in tables:
             table_dir = output_dir / table
@@ -94,6 +103,8 @@ def export_to_csv(
 
     Raises:
         FileNotFoundError: If SQLite database doesn't exist
+        ValueError: If paths contain invalid characters
+        ValueError: If an invalid table name is requested
     """
     import duckdb
 
@@ -116,7 +127,12 @@ def export_to_csv(
         conn.execute(f"ATTACH '{sqlite_path}' AS kalshi (TYPE SQLITE);")
 
         if tables is None:
-            tables = ["price_snapshots", "markets", "events", "settlements"]
+            tables = list(ALLOWED_TABLES)
+
+        # Validate table names (defense-in-depth against SQL injection)
+        for table in tables:
+            if table not in ALLOWED_TABLES:
+                raise ValueError(f"Invalid table name: {table}. Allowed: {ALLOWED_TABLES}")
 
         for table in tables:
             output_file = output_dir / f"{table}.csv"
