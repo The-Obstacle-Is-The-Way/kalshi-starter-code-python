@@ -12,11 +12,12 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from kalshi_research.data.models import Base, Event, Market, PriceSnapshot
+from kalshi_research.data.models import Base, Event, Market, PriceSnapshot, Settlement
 from kalshi_research.data.repositories import (
     EventRepository,
     MarketRepository,
     PriceRepository,
+    SettlementRepository,
 )
 
 
@@ -296,3 +297,74 @@ class TestPriceRepository:
         # Verify remaining snapshots are newer
         remaining = await repo.count_for_market("MKT1")
         assert remaining < 5
+
+
+class TestSettlementRepository:
+    """Test SettlementRepository methods."""
+
+    @pytest_asyncio.fixture
+    async def settlement_session(self, async_session: AsyncSession) -> AsyncSession:
+        """Session with settlement data."""
+        now = datetime.now(UTC)
+        settlements = [
+            Settlement(
+                ticker="MKT1",
+                event_ticker="EVT1",
+                result="yes",
+                settled_at=now - timedelta(days=1),
+            ),
+            Settlement(
+                ticker="MKT2",
+                event_ticker="EVT1",
+                result="no",
+                settled_at=now - timedelta(days=2),
+            ),
+            Settlement(
+                ticker="MKT3",
+                event_ticker="EVT2",
+                result="yes",
+                settled_at=now - timedelta(hours=6),
+            ),
+        ]
+        async_session.add_all(settlements)
+        await async_session.commit()
+        return async_session
+
+    @pytest.mark.asyncio
+    async def test_get_by_event(self, settlement_session: AsyncSession) -> None:
+        """Can filter settlements by event."""
+        repo = SettlementRepository(settlement_session)
+        settlements = await repo.get_by_event("EVT1")
+
+        assert len(settlements) == 2
+        assert all(s.event_ticker == "EVT1" for s in settlements)
+
+    @pytest.mark.asyncio
+    async def test_get_by_result(self, settlement_session: AsyncSession) -> None:
+        """Can filter settlements by result."""
+        repo = SettlementRepository(settlement_session)
+
+        yes_settlements = await repo.get_by_result("yes")
+        assert len(yes_settlements) == 2
+
+        no_settlements = await repo.get_by_result("no")
+        assert len(no_settlements) == 1
+
+    @pytest.mark.asyncio
+    async def test_get_settled_after(self, settlement_session: AsyncSession) -> None:
+        """Can filter settlements by settlement time."""
+        repo = SettlementRepository(settlement_session)
+        now = datetime.now(UTC)
+
+        recent = await repo.get_settled_after(now - timedelta(hours=12))
+        assert len(recent) == 1
+        assert recent[0].ticker == "MKT3"
+
+    @pytest.mark.asyncio
+    async def test_count_by_result(self, settlement_session: AsyncSession) -> None:
+        """Can count settlements by result."""
+        repo = SettlementRepository(settlement_session)
+        counts = await repo.count_by_result()
+
+        assert counts["yes"] == 2
+        assert counts["no"] == 1
