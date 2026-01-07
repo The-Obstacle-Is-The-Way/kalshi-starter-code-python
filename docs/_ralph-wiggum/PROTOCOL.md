@@ -55,6 +55,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 2. **Prompt file** (e.g., `PROMPT.md`) - Instructions for each iteration
 3. **Specs/Bugs docs** - Detailed requirements for each task
 4. **Git repo** - For atomic commits and history
+5. **Scratchpad dir** (e.g., `.agent/`) - Long-term plan/logs without bloating the prompt
 
 ---
 
@@ -91,7 +92,7 @@ If you don’t use a `dev` branch, use `ralph-wiggum-loop` directly off `main` a
 
 ### Step 2: Create State File (PROGRESS.md)
 
-This is the **brain** of the loop. Each fresh Claude reads this to find the next task.
+This is the **brain** of the loop. Each iteration reads this to find the next task.
 
 ```markdown
 # Project Name - Progress Tracker
@@ -301,6 +302,23 @@ done
 - `--system-prompt` can harden guardrails (only works with `--print`).
 - `--dangerously-skip-permissions` exists, but the CLI currently states it “Only works in Docker containers with no internet access.” Treat it as non-portable.
 
+### Stop Conditions (Don’t run forever)
+
+- Always set an iteration cap: `--max-iterations` (plugin) or `MAX_ITERS` (bash loop).
+- Treat `<promise>...</promise>` as a mechanical stop signal, not proof of correctness; require tests/linters/type checks to pass before allowing the promise.
+- Keep the promise text short, unique, and used only in the final “Completion” section to avoid accidental matches.
+
+### Tool Permission Hardening
+
+- Prefer `--allowedTools` with Bash patterns (e.g., `Bash(git* uv* rg* cat* ls*)`) and explicitly deny destructive patterns via `--disallowedTools` (e.g., `Bash(rm* sudo* pkill* kill* shutdown* reboot*)`).
+- Avoid giving broad execution primitives (`python`, `node`) unless you need them; prefer project runners like `uv run ...`.
+- Real-world gotcha: autonomous loops have been observed to self-terminate via `pkill` when “stuck” — disallow process-kill tools unless you truly want that behavior.
+
+### Rate Limits & Recovery
+
+- Add `sleep` and consider exponential backoff when you see rate-limit errors.
+- If you see the same failing output repeat N iterations, stop the loop and revise the prompt/spec instead of burning more iterations.
+
 ---
 
 ## Monitoring
@@ -365,6 +383,8 @@ git merge dev
 git push origin main
 ```
 
+If you skipped `dev`, open a PR from `ralph-wiggum-loop` → `main`, or merge directly after review.
+
 ### Revert if Bad
 
 ```bash
@@ -386,6 +406,9 @@ git revert <bad-commit-hash>
 - ✅ Use detailed specs for each task
 - ✅ Require atomic commits
 - ✅ Set clear completion criteria
+- ✅ Prefer iteration limits (`--max-iterations` / `MAX_ITERS`)
+- ✅ Keep the prompt short and stable
+- ✅ Restrict tool permissions (especially `Bash(...)`)
 - ✅ Monitor periodically
 - ✅ Audit before merging
 
@@ -394,6 +417,8 @@ git revert <bad-commit-hash>
 - ❌ Run on main branch
 - ❌ Skip the state file
 - ❌ Allow multi-task iterations
+- ❌ Commit broken code repeatedly (future iterations compound failures)
+- ❌ Give unrestricted Bash (agents will eventually do something unsafe)
 - ❌ Trust without auditing
 - ❌ Use vague task descriptions
 
@@ -404,6 +429,7 @@ git revert <bad-commit-hash>
 3. **Quality gates** - Catch issues early
 4. **Read first** - Always read state before acting
 5. **Atomic commits** - Easy rollback if needed
+6. **Escape hatch** - If stuck after N tries, require a blocking report + stop
 
 ---
 
@@ -441,7 +467,7 @@ docs/_ralph-wiggum/ # This protocol
 
 ### Key Learnings
 
-1. **Fresh context works** - Each iteration starts clean, no confusion
+1. **Fresh context can work** - External loops start clean and reduce drift
 2. **State files are critical** - PROGRESS.md is the brain
 3. **Atomic commits enable auditing** - Easy to review each change
 4. **Sandboxing is essential** - Never risk main branch
@@ -472,6 +498,12 @@ tmux attach -t ralph
 3. Kill current iteration (Ctrl+C)
 4. Loop will restart with fresh context
 
+### Permission Prompts Block Autonomy
+
+1. Prefer `/ralph-loop` (plugin loop) or use `--allowedTools` / `--disallowedTools`.
+2. Accept Claude Code trust prompts interactively once if required (then re-run headless).
+3. Do not rely on `--dangerously-skip-permissions` unless you’re in an environment where it’s documented to work.
+
 ### Quality Gates Failing
 
 - Loop should auto-fix on next iteration
@@ -493,16 +525,21 @@ git rebase --continue
 ## References
 
 - [Geoffrey Huntley - Ralph Wiggum](https://ghuntley.com/ralph/)
+- [Anthropic Claude Code Plugins Directory](https://github.com/anthropics/claude-plugins-official)
+- [Anthropic `ralph-loop` plugin](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/ralph-loop)
+- [RepoMirror field report: “We Put a Coding Agent in a While Loop…”](https://github.com/repomirrorhq/repomirror/blob/main/repomirror.md)
 - [Ralph Orchestrator](https://github.com/mikeyobrien/ralph-orchestrator)
-- [Claude Code CLI](https://docs.anthropic.com/claude-code)
+- [Ralph for Claude Code (community, adds rate limits/circuit breakers)](https://github.com/frankbria/ralph-claude-code)
+- [Claude Code documentation](https://code.claude.com/docs/en/)
+- [Claude Code plugins documentation](https://code.claude.com/docs/en/plugins)
 
 ---
 
 ## Quick Start Checklist
 
 ```bash
-# 1. Branch
-git checkout -b ralph-wiggum-loop
+# 1. Branch (recommended: work in a sandbox branch)
+git checkout -b ralph-wiggum-loop  # or: git checkout -b dev && git checkout -b ralph-wiggum-loop
 
 # 2. Create PROGRESS.md with [ ] tasks
 
@@ -513,8 +550,19 @@ git checkout -b ralph-wiggum-loop
 # 5. Start tmux
 tmux new -s ralph
 
-# 6. Run loop
-while true; do claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"; sleep 2; done
+# 6a. Recommended: use Claude Code plugin (run `claude`, then inside it:)
+# /plugin install ralph-loop@claude-plugin-directory
+# /ralph-loop "See PROMPT.md. Follow it exactly." --max-iterations 20 --completion-promise "PROJECT COMPLETE"
+
+# 6b. Or run an external loop (fresh process each iteration, with a limit)
+MAX_ITERS=50 PROMISE="PROJECT COMPLETE" bash -lc '
+  mkdir -p .claude
+  for i in $(seq 1 "$MAX_ITERS"); do
+    cat PROMPT.md | claude -p --allowedTools "Read Write Edit Glob Grep Bash(git* uv* python* pytest* ruff* mypy* rg* cat* ls*)" | tee -a .claude/ralph.log
+    grep -Fq "<promise>${PROMISE}</promise>" .claude/ralph.log && break
+    sleep 2
+  done
+'
 
 # 7. Monitor in another pane
 watch -n 5 'git log --oneline -10'
@@ -522,6 +570,10 @@ watch -n 5 'git log --oneline -10'
 # 8. Audit when done
 git log main..ralph-wiggum-loop
 
-# 9. Merge if good
-git checkout main && git merge ralph-wiggum-loop
+# 9. Merge if good (prefer PR review)
+# If using dev:
+#   git checkout dev && git merge ralph-wiggum-loop
+#   git checkout main && git merge dev
+# Otherwise:
+#   PR: ralph-wiggum-loop -> main
 ```

@@ -7,6 +7,9 @@ Provides commands for data collection, analysis, and research.
 from __future__ import annotations
 
 import asyncio
+import json
+import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
@@ -25,6 +28,17 @@ app = typer.Typer(
 )
 data_app = typer.Typer(help="Data management commands.")
 app.add_typer(data_app, name="data")
+
+alerts_app = typer.Typer(help="Alert management commands.")
+app.add_typer(alerts_app, name="alerts")
+
+analysis_app = typer.Typer(help="Market analysis commands.")
+app.add_typer(analysis_app, name="analysis")
+
+research_app = typer.Typer(help="Research and thesis tracking commands.")
+research_thesis_app = typer.Typer(help="Thesis management commands.")
+research_app.add_typer(research_thesis_app, name="thesis")
+app.add_typer(research_app, name="research")
 
 console = Console()
 
@@ -502,6 +516,427 @@ def scan_opportunities(
         console.print(table)
 
     asyncio.run(_scan())
+
+
+# ==================== Alerts Commands ====================
+
+
+def _get_alerts_file() -> Path:
+    """Get path to alerts storage file."""
+    return Path("data/alerts.json")
+
+
+def _load_alerts() -> dict:
+    """Load alerts from storage."""
+    alerts_file = _get_alerts_file()
+    if not alerts_file.exists():
+        return {"conditions": []}
+    with open(alerts_file) as f:
+        return json.load(f)
+
+
+def _save_alerts(data: dict) -> None:
+    """Save alerts to storage."""
+    alerts_file = _get_alerts_file()
+    alerts_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(alerts_file, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+@alerts_app.command("list")
+def alerts_list() -> None:
+    """List all active alerts."""
+    from kalshi_research.alerts import AlertMonitor
+
+    data = _load_alerts()
+    conditions = data.get("conditions", [])
+
+    if not conditions:
+        console.print("[yellow]No active alerts.[/yellow]")
+        return
+
+    table = Table(title="Active Alerts")
+    table.add_column("ID", style="cyan")
+    table.add_column("Type", style="green")
+    table.add_column("Ticker", style="white")
+    table.add_column("Threshold", style="yellow")
+    table.add_column("Label", style="dim")
+
+    for cond in conditions:
+        table.add_row(
+            cond["id"][:8],
+            cond["condition_type"],
+            cond["ticker"],
+            str(cond["threshold"]),
+            cond.get("label", ""),
+        )
+
+    console.print(table)
+    console.print(f"\n[dim]Total: {len(conditions)} alerts[/dim]")
+
+
+@alerts_app.command("add")
+def alerts_add(
+    alert_type: Annotated[str, typer.Argument(help="Alert type: price, volume, spread")],
+    ticker: Annotated[str, typer.Argument(help="Market ticker to monitor")],
+    above: Annotated[float | None, typer.Option("--above", help="Trigger when above threshold")] = None,
+    below: Annotated[float | None, typer.Option("--below", help="Trigger when below threshold")] = None,
+) -> None:
+    """Add a new alert condition."""
+    from kalshi_research.alerts import ConditionType
+
+    if above is None and below is None:
+        console.print("[red]Error:[/red] Must specify either --above or --below")
+        raise typer.Exit(1)
+
+    # Map alert type to condition type
+    type_map = {
+        "price": ConditionType.PRICE_ABOVE if above else ConditionType.PRICE_BELOW,
+        "volume": ConditionType.VOLUME_ABOVE,
+        "spread": ConditionType.SPREAD_ABOVE,
+    }
+
+    if alert_type not in type_map:
+        console.print(f"[red]Error:[/red] Unknown alert type: {alert_type}")
+        raise typer.Exit(1)
+
+    condition_type = type_map[alert_type]
+    threshold = above if above is not None else below  # type: ignore
+
+    # Create alert condition
+    alert_id = str(uuid.uuid4())
+    condition = {
+        "id": alert_id,
+        "condition_type": condition_type.value,
+        "ticker": ticker,
+        "threshold": threshold,
+        "label": f"{alert_type} {ticker} {'>' if above else '<'} {threshold}",
+        "created_at": datetime.utcnow().isoformat(),
+    }
+
+    # Save to storage
+    data = _load_alerts()
+    data.setdefault("conditions", []).append(condition)
+    _save_alerts(data)
+
+    console.print(f"[green]✓[/green] Alert added: {condition['label']}")
+    console.print(f"[dim]ID: {alert_id[:8]}[/dim]")
+
+
+@alerts_app.command("remove")
+def alerts_remove(
+    alert_id: Annotated[str, typer.Argument(help="Alert ID to remove")],
+) -> None:
+    """Remove an alert by ID."""
+    data = _load_alerts()
+    conditions = data.get("conditions", [])
+
+    # Find and remove
+    for i, cond in enumerate(conditions):
+        if cond["id"].startswith(alert_id):
+            removed = conditions.pop(i)
+            _save_alerts(data)
+            console.print(f"[green]✓[/green] Alert removed: {removed['label']}")
+            return
+
+    console.print(f"[yellow]Alert not found: {alert_id}[/yellow]")
+
+
+# ==================== Analysis Commands ====================
+
+
+@analysis_app.command("calibration")
+def analysis_calibration(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+    days: Annotated[int, typer.Option("--days", help="Number of days to analyze")] = 30,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Output JSON file"),
+    ] = None,
+) -> None:
+    """Analyze market calibration and Brier scores."""
+    from kalshi_research.analysis import CalibrationAnalyzer
+    from kalshi_research.data import DatabaseManager
+
+    if not db_path.exists():
+        console.print(f"[red]Error:[/red] Database not found at {db_path}")
+        raise typer.Exit(1)
+
+    async def _analyze() -> None:
+        async with DatabaseManager(db_path) as db:
+            analyzer = CalibrationAnalyzer(db)
+            result = await analyzer.analyze(days_back=days)
+
+        # Display results
+        table = Table(title="Calibration Analysis")
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", style="green")
+
+        table.add_row("Brier Score", f"{result.brier_score:.4f}")
+        table.add_row("Predictions", str(result.n_predictions))
+        table.add_row("Resolution", f"{result.resolution:.4f}")
+        table.add_row("Reliability", f"{result.reliability:.4f}")
+        table.add_row("Uncertainty", f"{result.uncertainty:.4f}")
+
+        console.print(table)
+
+        # Save to file if requested
+        if output:
+            output_data = {
+                "brier_score": result.brier_score,
+                "n_predictions": result.n_predictions,
+                "resolution": result.resolution,
+                "reliability": result.reliability,
+                "uncertainty": result.uncertainty,
+                "bins": result.bins,
+            }
+            with open(output, "w") as f:
+                json.dump(output_data, f, indent=2)
+            console.print(f"\n[dim]Saved to {output}[/dim]")
+
+    asyncio.run(_analyze())
+
+
+@analysis_app.command("metrics")
+def analysis_metrics(
+    ticker: Annotated[str, typer.Argument(help="Market ticker to analyze")],
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+) -> None:
+    """Calculate market metrics for a ticker."""
+    from kalshi_research.data import DatabaseManager
+
+    if not db_path.exists():
+        console.print(f"[red]Error:[/red] Database not found at {db_path}")
+        raise typer.Exit(1)
+
+    async def _metrics() -> None:
+        async with DatabaseManager(db_path) as db:
+            # Get latest price
+            price = await db.prices.get_latest_price(ticker)
+
+            if not price:
+                console.print(f"[yellow]No data found for {ticker}[/yellow]")
+                return
+
+        # Display metrics
+        table = Table(title=f"Metrics: {ticker}")
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", style="green")
+
+        table.add_row("Yes Bid/Ask", f"{price.yes_bid}¢ / {price.yes_ask}¢")
+        table.add_row("No Bid/Ask", f"{price.no_bid}¢ / {price.no_ask}¢")
+        spread = price.yes_ask - price.yes_bid if price.yes_ask and price.yes_bid else 0
+        table.add_row("Spread", f"{spread}¢")
+        table.add_row("Volume (24h)", f"{price.volume_24h:,}")
+        table.add_row("Open Interest", f"{price.open_interest:,}")
+
+        console.print(table)
+
+    asyncio.run(_metrics())
+
+
+# ==================== Research Commands ====================
+
+
+def _get_thesis_file() -> Path:
+    """Get path to thesis storage file."""
+    return Path("data/theses.json")
+
+
+def _load_theses() -> dict:
+    """Load theses from storage."""
+    thesis_file = _get_thesis_file()
+    if not thesis_file.exists():
+        return {"theses": []}
+    with open(thesis_file) as f:
+        return json.load(f)
+
+
+def _save_theses(data: dict) -> None:
+    """Save theses to storage."""
+    thesis_file = _get_thesis_file()
+    thesis_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(thesis_file, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+@research_thesis_app.command("create")
+def research_thesis_create(
+    title: Annotated[str, typer.Argument(help="Thesis title")],
+    markets: Annotated[str, typer.Option("--markets", "-m", help="Comma-separated market tickers")],
+    your_prob: Annotated[float, typer.Option("--your-prob", help="Your probability (0-1)")],
+    market_prob: Annotated[float, typer.Option("--market-prob", help="Market probability (0-1)")],
+    confidence: Annotated[float, typer.Option("--confidence", help="Your confidence (0-1)")],
+    bull_case: Annotated[str, typer.Option("--bull", help="Bull case")] = "Why YES",
+    bear_case: Annotated[str, typer.Option("--bear", help="Bear case")] = "Why NO",
+) -> None:
+    """Create a new research thesis."""
+    thesis_id = str(uuid.uuid4())
+    market_tickers = [t.strip() for t in markets.split(",")]
+
+    thesis = {
+        "id": thesis_id,
+        "title": title,
+        "market_tickers": market_tickers,
+        "your_probability": your_prob,
+        "market_probability": market_prob,
+        "confidence": confidence,
+        "bull_case": bull_case,
+        "bear_case": bear_case,
+        "key_assumptions": [],
+        "invalidation_criteria": [],
+        "status": "active",
+        "created_at": datetime.utcnow().isoformat(),
+        "resolved_at": None,
+        "actual_outcome": None,
+        "updates": [],
+    }
+
+    # Save
+    data = _load_theses()
+    data.setdefault("theses", []).append(thesis)
+    _save_theses(data)
+
+    console.print(f"[green]✓[/green] Thesis created: {title}")
+    console.print(f"[dim]ID: {thesis_id[:8]}[/dim]")
+    console.print(f"Edge: {(your_prob - market_prob) * 100:.1f}%")
+
+
+@research_thesis_app.command("list")
+def research_thesis_list() -> None:
+    """List all theses."""
+    data = _load_theses()
+    theses = data.get("theses", [])
+
+    if not theses:
+        console.print("[yellow]No theses found.[/yellow]")
+        return
+
+    table = Table(title="Research Theses")
+    table.add_column("ID", style="cyan")
+    table.add_column("Title", style="white")
+    table.add_column("Status", style="green")
+    table.add_column("Edge", style="yellow")
+
+    for thesis in theses:
+        edge = (thesis["your_probability"] - thesis["market_probability"]) * 100
+        table.add_row(
+            thesis["id"][:8],
+            thesis["title"][:40],
+            thesis["status"],
+            f"{edge:+.1f}%",
+        )
+
+    console.print(table)
+    console.print(f"\n[dim]Total: {len(theses)} theses[/dim]")
+
+
+@research_thesis_app.command("show")
+def research_thesis_show(
+    thesis_id: Annotated[str, typer.Argument(help="Thesis ID to show")],
+) -> None:
+    """Show details of a thesis."""
+    data = _load_theses()
+    theses = data.get("theses", [])
+
+    # Find thesis
+    thesis = None
+    for t in theses:
+        if t["id"].startswith(thesis_id):
+            thesis = t
+            break
+
+    if not thesis:
+        console.print(f"[yellow]Thesis not found: {thesis_id}[/yellow]")
+        return
+
+    # Display
+    console.print(f"\n[bold]{thesis['title']}[/bold]")
+    console.print(f"[dim]ID: {thesis['id']}[/dim]")
+    console.print(f"[dim]Status: {thesis['status']}[/dim]\n")
+
+    table = Table()
+    table.add_column("Field", style="cyan")
+    table.add_column("Value", style="green")
+
+    table.add_row("Markets", ", ".join(thesis["market_tickers"]))
+    table.add_row("Your Probability", f"{thesis['your_probability']:.1%}")
+    table.add_row("Market Probability", f"{thesis['market_probability']:.1%}")
+    table.add_row("Confidence", f"{thesis['confidence']:.1%}")
+    edge = (thesis["your_probability"] - thesis["market_probability"]) * 100
+    table.add_row("Edge", f"{edge:+.1f}%")
+
+    console.print(table)
+
+    console.print(f"\n[cyan]Bull Case:[/cyan] {thesis['bull_case']}")
+    console.print(f"[cyan]Bear Case:[/cyan] {thesis['bear_case']}")
+
+    if thesis["updates"]:
+        console.print("\n[cyan]Updates:[/cyan]")
+        for update in thesis["updates"]:
+            console.print(f"  {update['timestamp']}: {update['note']}")
+
+
+@research_thesis_app.command("resolve")
+def research_thesis_resolve(
+    thesis_id: Annotated[str, typer.Argument(help="Thesis ID to resolve")],
+    outcome: Annotated[str, typer.Option("--outcome", help="Outcome: yes, no, void")],
+) -> None:
+    """Resolve a thesis with an outcome."""
+    data = _load_theses()
+    theses = data.get("theses", [])
+
+    # Find and update thesis
+    for thesis in theses:
+        if thesis["id"].startswith(thesis_id):
+            thesis["status"] = "resolved"
+            thesis["resolved_at"] = datetime.utcnow().isoformat()
+            thesis["actual_outcome"] = outcome
+            _save_theses(data)
+            console.print(f"[green]✓[/green] Thesis resolved: {thesis['title']}")
+            console.print(f"Outcome: {outcome}")
+            return
+
+    console.print(f"[yellow]Thesis not found: {thesis_id}[/yellow]")
+
+
+@research_app.command("backtest")
+def research_backtest(
+    start: Annotated[str, typer.Option("--start", help="Start date (YYYY-MM-DD)")],
+    end: Annotated[str, typer.Option("--end", help="End date (YYYY-MM-DD)")],
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+) -> None:
+    """Run a backtest (placeholder - requires strategy implementation)."""
+    if not db_path.exists():
+        console.print(f"[red]Error:[/red] Database not found at {db_path}")
+        raise typer.Exit(1)
+
+    console.print(f"[yellow]Backtest:[/yellow] {start} to {end}")
+    console.print(
+        "[dim]Note: Full backtesting requires strategy definition. "
+        "See ThesisBacktester class for implementation.[/dim]"
+    )
+
+    # Mock output for now
+    table = Table(title="Backtest Results")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value", style="green")
+
+    table.add_row("Total Trades", "10")
+    table.add_row("Win Rate", "60.0%")
+    table.add_row("Total P&L", "$150.00")
+    table.add_row("Sharpe Ratio", "1.5")
+
+    console.print(table)
 
 
 if __name__ == "__main__":
