@@ -64,7 +64,7 @@ class TestPositionModel:
             side="yes",
             quantity=100,
             avg_price_cents=4500,
-            thesis_id=42,  # Link to thesis
+            thesis_id="thesis-123",  # Link to thesis
             opened_at=datetime.now(UTC),
             last_synced=datetime.now(UTC),
         )
@@ -73,7 +73,7 @@ class TestPositionModel:
         await db_session.commit()
         await db_session.refresh(position)
 
-        assert position.thesis_id == 42
+        assert position.thesis_id == "thesis-123"
 
     async def test_position_nullable_fields(self, db_session: AsyncSession):
         """Test that optional fields can be None."""

@@ -1,9 +1,18 @@
 # SPEC-005: Alerts & Notifications
 
-**Status:** Draft
+**Status:** ✅ Implemented (JSON persistence)
 **Priority:** P1 (Explicitly requested in original context)
 **Estimated Complexity:** Medium
 **Dependencies:** SPEC-002 (API Client), SPEC-003 (Data Layer), SPEC-004 (Analysis)
+
+---
+
+## Implementation References
+
+- `src/kalshi_research/alerts/conditions.py`
+- `src/kalshi_research/alerts/monitor.py`
+- `src/kalshi_research/alerts/notifiers.py`
+- `src/kalshi_research/cli.py` (persists alerts in `data/alerts.json`)
 
 ---
 

@@ -95,39 +95,59 @@ def test_alerts_remove_not_found() -> None:
 @patch("kalshi_research.data.DatabaseManager")
 def test_analysis_calibration(mock_db_cls: MagicMock, mock_analyzer_cls: MagicMock) -> None:
     """Test calibration analysis."""
-    # Mock session
-    mock_session = AsyncMock()
-    mock_session.__aenter__.return_value = mock_session
-    mock_session.__aexit__.return_value = AsyncMock()
+    from datetime import UTC, datetime
 
-    # Mock session factory
-    mock_session_factory = MagicMock()
-    mock_session_factory.return_value = mock_session
+    # Mock session context manager
+    mock_session_cm = AsyncMock()
+    mock_session_cm.__aenter__.return_value = mock_session_cm
+    mock_session_cm.__aexit__.return_value = False
 
-    # Mock db
-    mock_db = AsyncMock()
-    mock_db.__aenter__.return_value = mock_db
-    mock_db.__aexit__.return_value = AsyncMock()
-    mock_db.session_factory = mock_session_factory
-    mock_db_cls.return_value = mock_db
+    mock_session_factory = MagicMock(return_value=mock_session_cm)
 
-    mock_analyzer = MagicMock()
+    # Mock db context manager
+    mock_db_cm = AsyncMock()
+    mock_db_cm.__aenter__.return_value = mock_db_cm
+    mock_db_cm.__aexit__.return_value = False
+    mock_db_cm.session_factory = mock_session_factory
+    mock_db_cls.return_value = mock_db_cm
+
+    settlement = MagicMock()
+    settlement.ticker = "TEST-TICKER"
+    settlement.result = "yes"
+    settlement.settled_at = datetime.now(UTC)
+
+    mock_settlement_repo = MagicMock()
+    mock_settlement_repo.get_settled_after = AsyncMock(return_value=[settlement])
+
+    snapshot = MagicMock()
+    snapshot.midpoint = 60
+
+    mock_price_repo = MagicMock()
+    mock_price_repo.get_for_market = AsyncMock(return_value=[snapshot])
+
     mock_result = MagicMock()
     mock_result.brier_score = 0.15
-    mock_result.n_predictions = 100
+    mock_result.n_samples = 1
+    mock_result.brier_skill_score = 0.4
     mock_result.resolution = 0.1
     mock_result.reliability = 0.05
     mock_result.uncertainty = 0.2
-    mock_result.bins = []
 
-    # Make analyze return a coroutine
-    async def mock_analyze(**kwargs):
-        return mock_result
-
-    mock_analyzer.analyze = mock_analyze
+    mock_analyzer = MagicMock()
+    mock_analyzer.compute_calibration.return_value = mock_result
     mock_analyzer_cls.return_value = mock_analyzer
 
-    with patch("pathlib.Path.exists", return_value=True):
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch(
+            "kalshi_research.data.repositories.SettlementRepository",
+            return_value=mock_settlement_repo,
+        ),
+        patch(
+            "kalshi_research.data.repositories.PriceRepository",
+            return_value=mock_price_repo,
+        ),
+    ):
         result = runner.invoke(app, ["analysis", "calibration"])
 
     assert result.exit_code == 0

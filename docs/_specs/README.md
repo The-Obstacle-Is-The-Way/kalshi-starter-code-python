@@ -12,23 +12,22 @@ This document indexes all specifications for building a research platform on top
 
 ## Specifications
 
-### Core Platform (Implemented)
+### Specs (Current Status)
 
 | Spec | Name | Priority | Status | Dependencies |
 |------|------|----------|--------|--------------|
-| [SPEC-001](./SPEC-001-modern-python-foundation.md) | Modern Python Foundation | P0 | ✅ Complete | None |
-| [SPEC-002](./SPEC-002-kalshi-api-client.md) | Kalshi API Client | P0 | ✅ Complete | SPEC-001 |
-| [SPEC-003](./SPEC-003-data-layer-storage.md) | Data Layer & Storage | P1 | ⚠️ Partial | SPEC-001, SPEC-002 |
-| [SPEC-004](./SPEC-004-research-analysis-framework.md) | Research & Analysis | P1 | ⚠️ Partial | SPEC-001, SPEC-002, SPEC-003 |
-
-### Extended Platform (Not Started)
-
-| Spec | Name | Priority | Status | Dependencies |
-|------|------|----------|--------|--------------|
-| [SPEC-005](./SPEC-005-alerts-notifications.md) | Alerts & Notifications | P1 | ❌ Not Started | SPEC-002, SPEC-003, SPEC-004 |
-| [SPEC-006](./SPEC-006-event-correlation-analysis.md) | Event Correlation Analysis | P2 | ❌ Not Started | SPEC-002, SPEC-003 |
-| [SPEC-007](./SPEC-007-probability-tracking-visualization.md) | Probability Tracking & Visualization | P2 | ❌ Not Started | SPEC-002, SPEC-003, SPEC-004 |
-| [SPEC-008](./SPEC-008-research-notebooks-backtesting.md) | Research Notebooks & Backtesting | P2 | ❌ Not Started | SPEC-002 through SPEC-007 |
+| [SPEC-001](./SPEC-001-modern-python-foundation.md) | Modern Python Foundation | P0 | ✅ Implemented | None |
+| [SPEC-002](./SPEC-002-kalshi-api-client.md) | Kalshi API Client | P0 | ✅ Implemented (core) | SPEC-001 |
+| [SPEC-003](./SPEC-003-data-layer-storage.md) | Data Layer & Storage | P1 | ✅ Implemented (core) | SPEC-001, SPEC-002 |
+| [SPEC-004](./SPEC-004-research-analysis-framework.md) | Research & Analysis | P1 | ✅ Implemented | SPEC-001, SPEC-002, SPEC-003 |
+| [SPEC-005](./SPEC-005-alerts-notifications.md) | Alerts & Notifications | P1 | ✅ Implemented | SPEC-002, SPEC-003, SPEC-004 |
+| [SPEC-006](./SPEC-006-event-correlation-analysis.md) | Event Correlation Analysis | P2 | ✅ Implemented | SPEC-002, SPEC-003 |
+| [SPEC-007](./SPEC-007-probability-tracking-visualization.md) | Probability Tracking & Visualization | P2 | ✅ Implemented | SPEC-002, SPEC-003, SPEC-004 |
+| [SPEC-008](./SPEC-008-research-notebooks-backtesting.md) | Research Notebooks & Backtesting | P2 | ✅ Implemented | SPEC-002 through SPEC-007 |
+| [SPEC-009](./SPEC-009-cleanup-documentation.md) | Legacy Cleanup & Documentation | P2 | ✅ Implemented | SPEC-001 through SPEC-008 |
+| [SPEC-010](./SPEC-010-cli-completeness.md) | CLI Completeness | P2 | ✅ Implemented | SPEC-005 through SPEC-008 |
+| [SPEC-011](./SPEC-011-manual-trading-support.md) | Manual Trading Support | P2 | ✅ Implemented (partial) | SPEC-002, SPEC-004 |
+| [SPEC-012](./SPEC-012-developer-experience.md) | Developer Experience | P3 | ✅ Complete | All previous specs |
 
 ---
 
@@ -82,10 +81,10 @@ kalshi data sync-markets
 kalshi data snapshot
 
 # Run market scanner
-kalshi scan --filter high_volume --filter close_races
+kalshi scan opportunities --filter close-race
 
 # Start continuous collection
-kalshi data collect --interval 15m
+kalshi data collect --interval 15
 ```
 
 ---
@@ -183,45 +182,7 @@ kalshi data collect --interval 15m
 
 ---
 
-## Extended Implementation Order
+## Future Work
 
-After completing SPEC-001 through SPEC-004 (core platform), the extended features can be implemented:
-
-```
-Phase 5: Alerts & Notifications (SPEC-005)
-├── AlertCondition and Alert models
-├── AlertMonitor with condition checking
-├── Console, File, Webhook notifiers
-├── CLI commands for alert management
-└── Estimated: 4-6 hours
-
-Phase 6: Event Correlation (SPEC-006)
-├── CorrelationAnalyzer class
-├── Pearson/Spearman correlation
-├── Inverse market detection
-├── Arbitrage opportunity finder
-└── Estimated: 4-6 hours
-
-Phase 7: Visualization & Metrics (SPEC-007)
-├── MarketMetrics class (spread, volatility, volume)
-├── Calibration curve plotting
-├── Probability timeline charts
-├── Edge histograms and spread charts
-└── Estimated: 4-6 hours
-
-Phase 8: Notebooks & Backtesting (SPEC-008)
-├── ThesisBacktester class
-├── Notebook utility functions
-├── Template notebooks (exploration, calibration, edge detection)
-├── P&L and accuracy tracking
-└── Estimated: 6-8 hours
-```
-
-## Future Specs (Potential)
-
-Beyond SPEC-008, potential future specs include:
-
-- **SPEC-009**: News Sentiment Integration
-- **SPEC-010**: Portfolio Analytics (Kelly criterion, risk management)
-- **SPEC-011**: Web Dashboard
-- **SPEC-012**: Machine Learning Models
+- Portfolio authenticated sync (`kalshi portfolio sync`) once credentials + endpoints are wired.
+- Additional Kalshi endpoints (fills, settlements history, series metadata) as needed.

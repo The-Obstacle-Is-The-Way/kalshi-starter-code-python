@@ -1,8 +1,17 @@
 # SPEC-009: Legacy Cleanup & Documentation
 
-**Status:** Draft
+**Status:** ✅ Implemented
 **Priority:** P2
 **Depends On:** SPEC-001 through SPEC-008 (all complete)
+
+---
+
+## Implementation References
+
+- `README.md`
+- `docs/QUICKSTART.md`
+- `docs/USAGE.md`
+- `docs/CLI_REFERENCE.md`
 
 ---
 

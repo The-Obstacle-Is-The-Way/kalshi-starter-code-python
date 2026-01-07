@@ -29,8 +29,11 @@ async def async_session() -> AsyncSession:
         await conn.run_sync(Base.metadata.create_all)
 
     session_factory = async_sessionmaker(engine, class_=AsyncSession)
-    async with session_factory() as session:
-        yield session
+    try:
+        async with session_factory() as session:
+            yield session
+    finally:
+        await engine.dispose()
 
 
 @pytest_asyncio.fixture

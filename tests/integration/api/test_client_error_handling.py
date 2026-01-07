@@ -8,7 +8,6 @@ from httpx import Response
 from kalshi_research.api.client import KalshiPublicClient
 from kalshi_research.api.exceptions import KalshiAPIError, RateLimitError
 
-
 pytestmark = [pytest.mark.integration]
 
 
@@ -110,4 +109,3 @@ async def test_rate_limit_exhausts_retries_and_raises_rate_limit_error() -> None
             await client.get_exchange_status()
 
     assert route.call_count == 2
-

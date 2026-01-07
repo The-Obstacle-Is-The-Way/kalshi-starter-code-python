@@ -1,9 +1,25 @@
 # SPEC-003: Data Layer & Storage
 
-**Status:** Draft
+**Status:** ✅ Implemented (core storage + export)
 **Priority:** P1 (Required for historical analysis)
 **Estimated Complexity:** Medium
 **Dependencies:** SPEC-001, SPEC-002
+
+---
+
+## Implementation (Current SSOT)
+
+**Primary implementation:**
+- `src/kalshi_research/data/database.py` (SQLite async engine, WAL, FK enforcement)
+- `src/kalshi_research/data/models.py` (events/markets/price_snapshots/settlements)
+- `src/kalshi_research/data/repositories/` (CRUD + query helpers)
+- `src/kalshi_research/data/fetcher.py` (events/markets sync + snapshots)
+- `src/kalshi_research/data/export.py` (DuckDB-based Parquet/CSV export)
+- `alembic/` (migrations; includes portfolio tables)
+
+**Notes / intentional deviations from this draft:**
+- Orderbook snapshots, trade history ingestion, and candlestick persistence are deferred (models/CLI not wired).
+- `price_snapshots` does not currently enforce a `UNIQUE(ticker, snapshot_time)` constraint; snapshots are append-only by design.
 
 ---
 

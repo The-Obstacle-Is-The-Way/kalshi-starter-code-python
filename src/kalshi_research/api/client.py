@@ -59,7 +59,13 @@ class KalshiPublicClient:
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Make rate-limited GET request with retry."""
         async for attempt in AsyncRetrying(
-            retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
+            retry=retry_if_exception_type(
+                (
+                    RateLimitError,
+                    httpx.NetworkError,
+                    httpx.TimeoutException,
+                )
+            ),
             stop=stop_after_attempt(self._max_retries),
             wait=wait_exponential(multiplier=1, min=1, max=60),
             reraise=True,
@@ -383,7 +389,13 @@ class KalshiClient(KalshiPublicClient):
         full_path = self.API_PATH + path
         headers = self._auth.get_headers("GET", full_path)
         async for attempt in AsyncRetrying(
-            retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
+            retry=retry_if_exception_type(
+                (
+                    RateLimitError,
+                    httpx.NetworkError,
+                    httpx.TimeoutException,
+                )
+            ),
             stop=stop_after_attempt(self._max_retries),
             wait=wait_exponential(multiplier=1, min=1, max=60),
             reraise=True,

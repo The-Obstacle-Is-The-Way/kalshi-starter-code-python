@@ -1,9 +1,17 @@
 # SPEC-004: Research & Analysis Framework
 
-**Status:** Draft
+**Status:** ✅ Implemented
 **Priority:** P1 (Core value proposition)
 **Estimated Complexity:** High
 **Dependencies:** SPEC-001, SPEC-002, SPEC-003
+
+---
+
+## Implementation References
+
+- `src/kalshi_research/analysis/` (calibration, correlation, metrics, scanner, visualization)
+- `src/kalshi_research/research/` (thesis + backtesting utilities)
+- `src/kalshi_research/cli.py` (analysis + research command wiring)
 
 ---
 

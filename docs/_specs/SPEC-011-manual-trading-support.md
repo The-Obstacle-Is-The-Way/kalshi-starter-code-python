@@ -1,6 +1,6 @@
 # SPEC-011: Manual Trading Support
 
-**Status:** Draft
+**Status:** ✅ Implemented (local tracking + P&L; auth sync deferred)
 **Priority:** P2
 **Depends On:** SPEC-002 (API Client with auth), SPEC-004 (Thesis tracking)
 
@@ -24,10 +24,11 @@ Currently, the user can:
 - ✅ Research markets
 - ✅ Track theses
 - ✅ Run backtests
-- ❌ See their actual positions
-- ❌ Track P&L on real trades
-- ❌ Connect thesis → position ("Did my thesis play out?")
-- ❌ View account balance/buying power
+- ✅ View locally stored positions and trades (SQLite)
+- ✅ Compute P&L from stored positions/trades
+- ✅ Connect thesis → position via `Position.thesis_id` (string thesis ID)
+- ❌ Sync portfolio data from Kalshi (requires credentials; not implemented)
+- ❌ View live account balance/buying power (requires credentials; not implemented)
 
 The gap: Research tools exist, but no connection to actual trading activity.
 
@@ -47,7 +48,6 @@ kalshi portfolio positions --ticker SPECIFIC-TICKER
 
 # View P&L
 kalshi portfolio pnl
-kalshi portfolio pnl --period today|week|month|all
 kalshi portfolio pnl --ticker SPECIFIC-TICKER
 
 # View account info
@@ -77,7 +77,7 @@ class Position(Base):
     realized_pnl_cents: Mapped[int] = mapped_column(default=0)
 
     # Link to thesis (optional)
-    thesis_id: Mapped[int | None] = mapped_column(ForeignKey("theses.id"))
+    thesis_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     # Timestamps
     opened_at: Mapped[datetime]
@@ -193,11 +193,11 @@ Requires Kalshi API credentials. Document in USAGE.md:
 
 ```bash
 # Set environment variables
-export KALSHI_API_KEY="your-api-key"
+export KALSHI_KEY_ID="your-key-id"
 export KALSHI_PRIVATE_KEY_PATH="/path/to/private_key.pem"
 
 # Or use .env file
-echo "KALSHI_API_KEY=your-key" >> .env
+echo "KALSHI_KEY_ID=your-key-id" >> .env
 echo "KALSHI_PRIVATE_KEY_PATH=/path/to/key.pem" >> .env
 
 # Verify auth works
@@ -246,15 +246,15 @@ kalshi portfolio balance
 
 ## Acceptance Criteria
 
-- [ ] `kalshi portfolio sync` fetches positions from Kalshi API
-- [ ] `kalshi portfolio positions` displays current positions with P&L
-- [ ] `kalshi portfolio pnl` shows realized + unrealized P&L
-- [ ] `kalshi portfolio balance` shows account balance
-- [ ] `kalshi portfolio history` shows trade history
-- [ ] `kalshi portfolio link` connects positions to theses
-- [ ] Position and Trade models created with migrations
-- [ ] Works without auth (graceful error: "Authentication required")
-- [ ] P&L calculations are accurate
+- [ ] `kalshi portfolio sync` fetches positions from Kalshi API (deferred)
+- [x] `kalshi portfolio positions` displays current positions
+- [x] `kalshi portfolio pnl` shows realized + unrealized P&L
+- [ ] `kalshi portfolio balance` shows account balance (deferred)
+- [x] `kalshi portfolio history` shows trade history
+- [x] `kalshi portfolio link` connects positions to theses (string thesis ID)
+- [x] Position and Trade models created with migrations
+- [x] Works without auth (commands that require auth print a clear message)
+- [x] P&L calculations are accurate (unit-tested)
 
 ---
 
@@ -271,13 +271,13 @@ kalshi portfolio balance
 
 ```bash
 # Unit tests for P&L calculator
-uv run pytest tests/unit/test_portfolio_pnl.py
+uv run pytest tests/unit/portfolio/test_pnl.py
 
 # Integration test (requires auth)
-KALSHI_API_KEY=test kalshi portfolio sync
+KALSHI_KEY_ID=... KALSHI_PRIVATE_KEY_PATH=... kalshi portfolio sync
 
 # Mock tests for portfolio syncer
-uv run pytest tests/unit/test_portfolio_syncer.py
+uv run pytest tests/unit/portfolio
 ```
 
 ---

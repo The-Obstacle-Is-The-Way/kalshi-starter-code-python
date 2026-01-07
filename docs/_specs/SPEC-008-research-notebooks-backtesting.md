@@ -1,9 +1,17 @@
 # SPEC-008: Research Notebooks & Backtesting
 
-**Status:** Draft
+**Status:** ✅ Implemented
 **Priority:** P2 (Explicitly requested: notebooks/, backtesting)
 **Estimated Complexity:** Medium
 **Dependencies:** SPEC-002 through SPEC-007 (all previous specs)
+
+---
+
+## Implementation References
+
+- `notebooks/`
+- `src/kalshi_research/research/backtest.py`
+- `src/kalshi_research/research/notebook_utils.py`
 
 ---
 

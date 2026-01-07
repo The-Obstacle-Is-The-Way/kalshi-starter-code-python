@@ -126,8 +126,18 @@ class MarketMetrics:
         sorted_snaps = sorted(snapshots, key=lambda s: s.snapshot_time)
 
         # Compute returns using midpoint as "yes_price"
-        prices = [(s.yes_bid + s.yes_ask) / 200.0 for s in sorted_snaps]
-        returns = np.diff(prices) / np.array(prices[:-1])
+        prices = np.array([(s.yes_bid + s.yes_ask) / 200.0 for s in sorted_snaps], dtype=float)
+        prev_prices = prices[:-1]
+        diffs = np.diff(prices)
+
+        # Avoid divide-by-zero warnings (and filter out invalid returns below).
+        with np.errstate(divide="ignore", invalid="ignore"):
+            returns = np.divide(
+                diffs,
+                prev_prices,
+                out=np.full_like(diffs, np.nan, dtype=float),
+                where=prev_prices != 0,
+            )
 
         # Handle edge cases (0 prices, inf/nan)
         returns = returns[np.isfinite(returns)]

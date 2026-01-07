@@ -1,9 +1,16 @@
 # SPEC-006: Event Correlation Analysis
 
-**Status:** Draft
+**Status:** ✅ Implemented
 **Priority:** P2 (Explicitly requested: "Event Correlation - How do related markets move together?")
 **Estimated Complexity:** Medium
 **Dependencies:** SPEC-002 (API Client), SPEC-003 (Data Layer)
+
+---
+
+## Implementation References
+
+- `src/kalshi_research/analysis/correlation.py`
+- `src/kalshi_research/cli.py` (`kalshi scan arbitrage`, `kalshi analysis correlation`)
 
 ---
 

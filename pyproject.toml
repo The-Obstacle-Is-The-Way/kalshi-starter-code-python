@@ -138,6 +138,7 @@ addopts = [
 markers = [
     "unit: Unit tests (no external dependencies)",
     "integration: Integration tests (requires API keys)",
+    "e2e: End-to-end tests (full pipelines)",
     "slow: Slow tests (>5s)",
 ]
 asyncio_mode = "auto"

@@ -64,4 +64,11 @@ uv run kalshi data sync-markets
 
 Unit tests use **mocked API responses** with known status values. The real API returns status values that weren't in our test fixtures.
 
-**Solution:** Add integration tests that hit the real API (or use recorded responses with all possible status values).
+**Solution:** Add regression tests that include `"initialized"` and add optional live API integration tests.
+
+---
+
+## Regression Tests Added
+
+- `tests/unit/api/test_models.py` (enum parsing includes `"initialized"`)
+- `tests/integration/api/test_public_api_live.py` (live API coverage; skipped unless `KALSHI_RUN_LIVE_API=1`)

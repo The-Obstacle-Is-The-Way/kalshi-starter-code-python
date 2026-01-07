@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kalshi_research.data.export import export_to_csv, export_to_parquet
+from kalshi_research.data.export import export_to_csv, export_to_parquet, query_parquet
 
 
 @patch("duckdb.connect")
@@ -53,3 +53,35 @@ def test_export_to_csv_invalid_path(tmp_path):
     db_path.touch()
     with pytest.raises(ValueError, match="Invalid characters"):
         export_to_csv(db_path, "bad;path")
+
+
+def test_export_to_csv_db_not_found():
+    with pytest.raises(FileNotFoundError):
+        export_to_csv("nonexistent.db", "out")
+
+
+def test_export_to_parquet_rejects_invalid_sqlite_path(tmp_path):
+    db_path = tmp_path / "bad;name.db"
+    db_path.touch()
+    with pytest.raises(ValueError, match="Invalid characters"):
+        export_to_parquet(db_path, tmp_path / "out")
+
+
+@patch("duckdb.connect")
+def test_query_parquet_creates_views_for_existing_exports(mock_connect, tmp_path):
+    mock_conn = MagicMock()
+    mock_connect.return_value = mock_conn
+    mock_conn.execute.return_value.fetchall.return_value = [("ok",)]
+
+    (tmp_path / "markets.parquet").touch()
+    (tmp_path / "events.parquet").touch()
+    # settlements.parquet intentionally absent to cover the conditional branch.
+
+    rows = query_parquet(tmp_path, "SELECT 1")
+
+    assert rows == [("ok",)]
+    executed = [call.args[0] for call in mock_conn.execute.call_args_list]
+    assert any("CREATE VIEW snapshots" in q for q in executed)
+    assert any("CREATE VIEW markets" in q for q in executed)
+    assert any("CREATE VIEW events" in q for q in executed)
+    assert not any("CREATE VIEW settlements" in q for q in executed)

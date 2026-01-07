@@ -7,12 +7,23 @@ Uses mocking ONLY at HTTP boundaries.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any, cast
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import requests
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric import rsa
+from websockets.exceptions import ConnectionClosed
+from websockets.frames import Close
 
-from kalshi_research.clients import Environment, KalshiBaseClient, KalshiHttpClient
+from kalshi_research.clients import (
+    Environment,
+    KalshiBaseClient,
+    KalshiHttpClient,
+    KalshiWebSocketClient,
+)
 
 
 def generate_test_key() -> rsa.RSAPrivateKey:
@@ -253,6 +264,30 @@ class TestKalshiBaseClient:
 
         base64.b64decode(signature)  # Should not raise
 
+    def test_sign_pss_text_handles_invalid_signature(self) -> None:
+        key = generate_test_key()
+        client = KalshiBaseClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        client.private_key = MagicMock()
+        client.private_key.sign.side_effect = InvalidSignature()
+
+        with pytest.raises(ValueError, match="RSA sign PSS failed"):
+            client.sign_pss_text("test message")
+
+    def test_invalid_environment_raises(self) -> None:
+        """Invalid environment raises ValueError."""
+        key = generate_test_key()
+        with pytest.raises(ValueError, match="Invalid environment"):
+            KalshiBaseClient(
+                key_id="test-key",
+                private_key=key,
+                environment=cast("Environment", "nope"),
+            )
+
 
 class TestKalshiHttpClient:
     """Test KalshiHttpClient initialization."""
@@ -294,3 +329,292 @@ class TestKalshiHttpClient:
         )
 
         assert client.host == client.HTTP_BASE_URL
+
+    def test_rate_limit_sleeps_when_called_too_fast(self) -> None:
+        key = generate_test_key()
+        client = KalshiHttpClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+        client.last_api_call = datetime.now()
+
+        with patch("kalshi_research.clients.time.sleep") as mock_sleep:
+            client.rate_limit()
+
+        mock_sleep.assert_called_once()
+
+    def test_rate_limit_does_not_sleep_when_called_late(self) -> None:
+        key = generate_test_key()
+        client = KalshiHttpClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+        client.last_api_call = datetime.now() - timedelta(seconds=1)
+
+        with patch("kalshi_research.clients.time.sleep") as mock_sleep:
+            client.rate_limit()
+
+        mock_sleep.assert_not_called()
+
+    def test_raise_if_bad_response_raises_http_error(self) -> None:
+        key = generate_test_key()
+        client = KalshiHttpClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        response = MagicMock(spec=requests.Response)
+        response.status_code = 400
+        response.raise_for_status.side_effect = requests.HTTPError("bad")
+
+        with pytest.raises(requests.HTTPError):
+            client.raise_if_bad_response(response)
+
+    def test_raise_if_bad_response_noop_on_success(self) -> None:
+        key = generate_test_key()
+        client = KalshiHttpClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        response = MagicMock(spec=requests.Response)
+        response.status_code = 200
+        client.raise_if_bad_response(response)
+
+        response.raise_for_status.assert_not_called()
+
+    def test_http_methods_call_requests_and_return_json(self) -> None:
+        key = generate_test_key()
+        client = KalshiHttpClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        response = MagicMock(spec=requests.Response)
+        response.status_code = 200
+        response.json.return_value = {"ok": True}
+
+        with (
+            patch.object(client, "rate_limit"),
+            patch.object(client, "request_headers", return_value={"X": "Y"}),
+            patch.object(client, "raise_if_bad_response"),
+            patch("kalshi_research.clients.requests.post", return_value=response) as mock_post,
+            patch("kalshi_research.clients.requests.get", return_value=response) as mock_get,
+            patch("kalshi_research.clients.requests.delete", return_value=response) as mock_delete,
+        ):
+            assert client.post("/path", {"a": 1}) == {"ok": True}
+            assert client.get("/path", params={"q": "1"}) == {"ok": True}
+            assert client.delete("/path") == {"ok": True}
+
+        mock_post.assert_called_once()
+        mock_get.assert_called_once()
+        mock_delete.assert_called_once()
+
+    def test_get_trades_filters_none_params(self) -> None:
+        key = generate_test_key()
+        client = KalshiHttpClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        with patch.object(client, "get", return_value={"trades": []}) as mock_get:
+            client.get_trades(ticker="TICK", limit=10, cursor=None, max_ts=None, min_ts=None)
+
+        mock_get.assert_called_once()
+        (path,) = mock_get.call_args.args
+        params = mock_get.call_args.kwargs["params"]
+        assert path.endswith("/trades")
+        assert params == {"ticker": "TICK", "limit": 10}
+
+    def test_balance_and_exchange_status_call_get(self) -> None:
+        key = generate_test_key()
+        client = KalshiHttpClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        with patch.object(client, "get", return_value={"ok": True}) as mock_get:
+            assert client.get_balance() == {"ok": True}
+            assert client.get_exchange_status() == {"ok": True}
+
+        assert mock_get.call_count == 2
+
+
+class _AsyncCM:
+    def __init__(self, value: object) -> None:
+        self._value = value
+
+    async def __aenter__(self) -> object:
+        return self._value
+
+    async def __aexit__(self, exc_type: object, exc: object, tb: object) -> bool:
+        return False
+
+
+class _FakeWS:
+    def __init__(self, messages: list[str] | None = None, exc: Exception | None = None) -> None:
+        self._messages = list(messages or [])
+        self._exc = exc
+        self.send = AsyncMock()
+
+    def __aiter__(self) -> _FakeWS:
+        return self
+
+    async def __anext__(self) -> str:
+        if self._exc is not None:
+            raise self._exc
+        if not self._messages:
+            raise StopAsyncIteration
+        return self._messages.pop(0)
+
+
+class TestKalshiWebSocketClient:
+    @pytest.mark.asyncio
+    async def test_subscribe_sends_and_increments_message_id(self) -> None:
+        key = generate_test_key()
+        client = KalshiWebSocketClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+        ws = _FakeWS()
+        client.ws = ws
+
+        assert client.message_id == 1
+        await client.subscribe_to_tickers()
+        assert client.message_id == 2
+        ws.send.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_subscribe_without_ws_only_increments_message_id(self) -> None:
+        key = generate_test_key()
+        client = KalshiWebSocketClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        assert client.ws is None
+        assert client.message_id == 1
+        await client.subscribe_to_tickers()
+        assert client.message_id == 2
+
+    @pytest.mark.asyncio
+    async def test_handler_no_ws_noops(self) -> None:
+        key = generate_test_key()
+        client = KalshiWebSocketClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+        client.ws = None
+        await client.handler()
+
+    @pytest.mark.asyncio
+    async def test_handler_calls_on_message(self) -> None:
+        key = generate_test_key()
+        client = KalshiWebSocketClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+        ws = _FakeWS(messages=["m1", "m2"])
+        client.ws = ws
+
+        client.on_message = AsyncMock()
+        await client.handler()
+
+        assert client.on_message.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_handler_calls_on_close_on_connection_closed(self) -> None:
+        key = generate_test_key()
+        client = KalshiWebSocketClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        exc = ConnectionClosed(Close(1000, "bye"), Close(1000, "bye"), rcvd_then_sent=True)
+        client.ws = _FakeWS(exc=exc)
+
+        client.on_close = AsyncMock()
+        await client.handler()
+        client.on_close.assert_awaited_once_with(1000, "bye")
+
+    @pytest.mark.asyncio
+    async def test_handler_calls_on_error_on_unexpected_exception(self) -> None:
+        key = generate_test_key()
+        client = KalshiWebSocketClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        client.ws = _FakeWS(exc=RuntimeError("boom"))
+        client.on_error = AsyncMock()
+        await client.handler()
+
+        client.on_error.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_on_open_calls_subscribe(self) -> None:
+        key = generate_test_key()
+        client = KalshiWebSocketClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        client.subscribe_to_tickers = AsyncMock()
+        with patch("builtins.print"):
+            await client.on_open()
+
+        client.subscribe_to_tickers.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_on_message_and_error_and_close_print(self) -> None:
+        key = generate_test_key()
+        client = KalshiWebSocketClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        with patch("builtins.print") as mock_print:
+            await client.on_message("hello")
+            await client.on_error(RuntimeError("boom"))
+            await client.on_close(1000, "bye")
+
+        assert mock_print.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_connect_calls_websockets_connect(self) -> None:
+        key = generate_test_key()
+        client = KalshiWebSocketClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        ws = _FakeWS()
+        client.on_open = AsyncMock()
+        client.handler = AsyncMock()
+
+        with patch(
+            "kalshi_research.clients.websockets.connect",
+            return_value=_AsyncCM(ws),
+        ) as mock_connect:
+            await client.connect()
+
+        mock_connect.assert_called_once()
+        assert client.ws is ws
+        client.on_open.assert_awaited_once()
+        client.handler.assert_awaited_once()

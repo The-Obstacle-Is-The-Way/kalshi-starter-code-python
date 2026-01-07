@@ -3,7 +3,7 @@
 **Priority:** P4 (Trivial/Polish)
 **Status:** ✅ Fixed
 **Found:** 2026-01-07
-**Fixed:** 2026-01-06
+**Fixed:** 2026-01-07
 **Spec:** SPEC-011-manual-trading-support.md
 
 ---
@@ -60,16 +60,16 @@ kalshi research thesis show THESIS_ID --with-positions
 
 ## Database Schema
 
-The `Position` model already has a `thesis_id` foreign key:
+The `Position` model includes an optional `thesis_id` field used to link to a thesis ID stored in `data/theses.json` (UUID string).
 
 ```python
 # src/kalshi_research/portfolio/models.py
 class Position(Base):
     ...
-    thesis_id: Mapped[int | None] = mapped_column(ForeignKey("theses.id"))
+    thesis_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 ```
 
-The infrastructure exists, just needs CLI exposure.
+Note: Theses are currently persisted as JSON (not a DB table), so `thesis_id` is a string reference (no DB FK constraint).
 
 ---
 

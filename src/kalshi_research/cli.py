@@ -133,14 +133,17 @@ def data_snapshot(
     from kalshi_research.data import DatabaseManager, DataFetcher
 
     async def _snapshot() -> None:
-        async with DatabaseManager(db_path) as db, DataFetcher(db) as fetcher:
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-            ) as progress:
-                progress.add_task("Taking snapshot...", total=None)
-                count = await fetcher.take_snapshot(status=status)
+        async with DatabaseManager(db_path) as db:
+            await db.create_tables()
+
+            async with DataFetcher(db) as fetcher:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console,
+                ) as progress:
+                    progress.add_task("Taking snapshot...", total=None)
+                    count = await fetcher.take_snapshot(status=status)
 
         console.print(f"[green]✓[/green] Took {count} price snapshots")
 
@@ -157,6 +160,10 @@ def data_collect(
         int,
         typer.Option("--interval", "-i", help="Interval in minutes between snapshots."),
     ] = 15,
+    once: Annotated[
+        bool,
+        typer.Option("--once", help="Run a single full sync and exit."),
+    ] = False,
 ) -> None:
     """Run continuous data collection."""
     from kalshi_research.data import DatabaseManager, DataFetcher, DataScheduler
@@ -166,6 +173,15 @@ def data_collect(
             await db.create_tables()
 
             async with DataFetcher(db) as fetcher:
+                if once:
+                    counts = await fetcher.full_sync()
+                    console.print(
+                        "[green]✓[/green] Full sync complete: "
+                        f"{counts['events']} events, {counts['markets']} markets, "
+                        f"{counts['snapshots']} snapshots"
+                    )
+                    return
+
                 scheduler = DataScheduler()
 
                 async def sync_task() -> None:
@@ -682,6 +698,11 @@ def scan_movers(  # noqa: PLR0915
 
         from kalshi_research.data.repositories import PriceRepository
 
+        def _as_utc(dt: datetime) -> datetime:
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=UTC)
+            return dt.astimezone(UTC)
+
         # Get current markets
         async with KalshiPublicClient() as client:
             with Progress(
@@ -716,7 +737,7 @@ def scan_movers(  # noqa: PLR0915
                         continue
 
                     # Filter to time range
-                    recent_snaps = [s for s in snapshots if s.snapshot_time >= cutoff_time]
+                    recent_snaps = [s for s in snapshots if _as_utc(s.snapshot_time) >= cutoff_time]
                     if len(recent_snaps) < 2:
                         continue
 
@@ -908,6 +929,10 @@ def alerts_monitor(
     daemon: Annotated[
         bool, typer.Option("--daemon", help="Run in background (not implemented)")
     ] = False,
+    once: Annotated[
+        bool,
+        typer.Option("--once", help="Run a single check cycle and exit."),
+    ] = False,
 ) -> None:
     """Start monitoring alerts (runs in foreground)."""
     from kalshi_research.alerts import AlertMonitor
@@ -968,6 +993,9 @@ def alerts_monitor(
                             f"{datetime.now()}"
                         )
 
+                    if once:
+                        return
+
                     # Wait for next check
                     await asyncio.sleep(interval)
             except KeyboardInterrupt:
@@ -1000,13 +1028,42 @@ def analysis_calibration(
         raise typer.Exit(1)
 
     async def _analyze() -> None:
+        from datetime import UTC, timedelta
+
         from kalshi_research.data.repositories import PriceRepository
 
-        result = None
         async with DatabaseManager(db_path) as db, db.session_factory() as session:
             price_repo = PriceRepository(session)
-            analyzer = CalibrationAnalyzer(price_repo)  # type: ignore[arg-type]
-            result = await analyzer.analyze(days_back=days)  # type: ignore[attr-defined]
+            from kalshi_research.data.repositories import SettlementRepository
+
+            settlement_repo = SettlementRepository(session)
+            cutoff = datetime.now(UTC) - timedelta(days=days)
+            settlements = await settlement_repo.get_settled_after(cutoff)
+
+            forecasts: list[float] = []
+            outcomes: list[int] = []
+            for settlement in settlements:
+                if settlement.result not in {"yes", "no"}:
+                    continue
+
+                snaps = await price_repo.get_for_market(
+                    settlement.ticker,
+                    end_time=settlement.settled_at,
+                    limit=1,
+                )
+                if not snaps:
+                    continue
+
+                snapshot = snaps[0]
+                forecasts.append(snapshot.midpoint / 100.0)
+                outcomes.append(1 if settlement.result == "yes" else 0)
+
+        if not forecasts:
+            console.print("[yellow]No settled markets with price history found[/yellow]")
+            return
+
+        analyzer = CalibrationAnalyzer()
+        result = analyzer.compute_calibration(forecasts, outcomes)
 
         # Display results
         table = Table(title="Calibration Analysis")
@@ -1014,7 +1071,8 @@ def analysis_calibration(
         table.add_column("Value", style="green")
 
         table.add_row("Brier Score", f"{result.brier_score:.4f}")
-        table.add_row("Predictions", str(result.n_predictions))
+        table.add_row("Samples", str(result.n_samples))
+        table.add_row("Skill Score", f"{result.brier_skill_score:.4f}")
         table.add_row("Resolution", f"{result.resolution:.4f}")
         table.add_row("Reliability", f"{result.reliability:.4f}")
         table.add_row("Uncertainty", f"{result.uncertainty:.4f}")
@@ -1025,11 +1083,15 @@ def analysis_calibration(
         if output:
             output_data = {
                 "brier_score": result.brier_score,
-                "n_predictions": result.n_predictions,
+                "brier_skill_score": result.brier_skill_score,
+                "n_samples": result.n_samples,
                 "resolution": result.resolution,
                 "reliability": result.reliability,
                 "uncertainty": result.uncertainty,
-                "bins": result.bins,
+                "bins": result.bins.tolist(),
+                "predicted_probs": result.predicted_probs.tolist(),
+                "actual_freqs": result.actual_freqs.tolist(),
+                "bin_counts": result.bin_counts.tolist(),
             }
             with output.open("w") as f:
                 json.dump(output_data, f, indent=2)
@@ -1347,10 +1409,7 @@ def research_thesis_show(  # noqa: PLR0915
             db = DatabaseManager(db_path)
             try:
                 async with db.session_factory() as session:
-                    # Extract numeric ID from thesis_id
-                    numeric_id = int(thesis["id"].replace("thesis-", ""))
-
-                    query = select(Position).where(Position.thesis_id == numeric_id)
+                    query = select(Position).where(Position.thesis_id == thesis["id"])
                     result = await session.execute(query)
                     positions = result.scalars().all()
 
@@ -1722,7 +1781,7 @@ def portfolio_link(
                     return
 
                 # Update thesis_id
-                position.thesis_id = int(thesis.replace("thesis-", ""))
+                position.thesis_id = thesis
                 await session.commit()
 
                 console.print(f"[green]✓[/green] Position {ticker} linked to thesis {thesis}")

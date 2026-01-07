@@ -1,6 +1,6 @@
 # SPEC-002: Kalshi API Client Enhancement
 
-**Status:** Draft
+**Status:** ✅ Implemented (core endpoints)
 **Priority:** P0 (Required for any data fetching)
 **Estimated Complexity:** High
 **Dependencies:** SPEC-001 (Modern Python Foundation)
@@ -11,9 +11,35 @@
 
 Extend the existing bare-bones Kalshi client to cover ALL public and authenticated API endpoints with proper error handling, retry logic, pagination support, and rate limiting.
 
+## 1.0 Implementation (Current SSOT)
+
+**Primary implementation:**
+- `src/kalshi_research/api/client.py`
+- `src/kalshi_research/api/models/`
+- `src/kalshi_research/api/auth.py`
+- `src/kalshi_research/api/exceptions.py`
+
+**Implemented endpoints (public):**
+- `/exchange/status`
+- `/events`, `/events/{event_ticker}` (cursor pagination, max `limit=200`)
+- `/markets`, `/markets/{ticker}`, `/markets/{ticker}/orderbook` (cursor pagination, max `limit=1000`)
+- `/markets/trades`
+- `/markets/candlesticks`
+- `/series/{series_ticker}/markets/{ticker}/candlesticks`
+
+**Implemented endpoints (authenticated):**
+- `/portfolio/balance`
+- `/portfolio/positions`
+- `/portfolio/orders`
+
+**Deferred (not yet implemented in this repo):**
+- `/series/{series_ticker}` (series info)
+- `/portfolio/fills`, `/portfolio/settlements`
+- Order placement/cancel endpoints
+
 ### 1.1 Goals
 
-- Implement ALL Kalshi API v2 endpoints
+- Implement core Kalshi API v2 endpoints used by the platform (public research + basic portfolio reads)
 - Add unauthenticated client for public market data (no keys needed)
 - Proper async support with httpx
 - Robust error handling with custom exceptions
@@ -109,6 +135,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class MarketStatus(str, Enum):
     """Market status as returned in API responses."""
 
+    INITIALIZED = "initialized"
     ACTIVE = "active"
     CLOSED = "closed"
     DETERMINED = "determined"

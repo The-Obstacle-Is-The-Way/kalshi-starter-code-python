@@ -67,10 +67,10 @@ events = await self._client.get_events(limit=200)
 
 ## Acceptance Criteria
 
-- [ ] `kalshi data sync-markets` completes successfully
-- [ ] Events are fetched with proper pagination (limit=200)
-- [ ] Markets are fetched (can use limit=1000)
-- [ ] All data persists to database
+- [x] `kalshi data sync-markets` completes successfully
+- [x] Events are fetched with proper pagination (limit capped to 200 per page)
+- [x] Markets are fetched (limit up to 1000)
+- [x] All data persists to database
 
 ---
 
@@ -88,3 +88,10 @@ events = await self._client.get_events(limit=200)
 
 - [Kalshi API Events Endpoint](https://docs.kalshi.com/api-reference/events/get-events)
 - [Kalshi API Rate Limits](https://docs.kalshi.com/getting_started/rate_limits)
+
+---
+
+## Regression Tests Added
+
+- `tests/unit/api/test_client.py` (caps `limit` to 200 when calling `/events`)
+- `tests/integration/api/test_public_api_live.py` (live API verification; skipped unless `KALSHI_RUN_LIVE_API=1`)

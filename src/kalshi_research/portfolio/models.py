@@ -30,7 +30,7 @@ class Position(Base):
     realized_pnl_cents: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Link to thesis (optional)
-    thesis_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    thesis_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     # Timestamps
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

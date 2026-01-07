@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+import kalshi_research.portfolio.models  # noqa: F401
 from kalshi_research.data.models import Base
 
 if TYPE_CHECKING:
@@ -93,6 +95,9 @@ class DatabaseManager:
         """Close the database connection."""
         if self._engine is not None:
             await self._engine.dispose()
+            # Give aiosqlite's worker thread a chance to flush callbacks before the
+            # event loop closes (important when used under `asyncio.run()`).
+            await asyncio.sleep(0)
             self._engine = None
             self._session_factory = None
 

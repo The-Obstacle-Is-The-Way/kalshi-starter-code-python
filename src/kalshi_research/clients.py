@@ -226,7 +226,11 @@ class KalshiWebSocketClient(KalshiBaseClient):
                 async for message in self.ws:
                     await self.on_message(message)
         except websockets.ConnectionClosed as e:
-            await self.on_close(e.code, e.reason)
+            close = e.rcvd or e.sent
+            await self.on_close(
+                close.code if close is not None else None,
+                close.reason if close is not None else None,
+            )
         except Exception as e:
             await self.on_error(e)
 

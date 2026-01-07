@@ -1,9 +1,16 @@
 # SPEC-007: Probability Tracking & Visualization
 
-**Status:** Draft
+**Status:** ✅ Implemented
 **Priority:** P2 (Explicitly requested: "Probability Tracker - Track how market probabilities change over time")
 **Estimated Complexity:** Medium
 **Dependencies:** SPEC-002 (API Client), SPEC-003 (Data Layer), SPEC-004 (Analysis)
+
+---
+
+## Implementation References
+
+- `src/kalshi_research/analysis/metrics.py`
+- `src/kalshi_research/analysis/visualization.py`
 
 ---
 

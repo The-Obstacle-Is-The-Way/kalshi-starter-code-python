@@ -8,7 +8,6 @@ import pytest
 from kalshi_research.api.client import KalshiPublicClient
 from kalshi_research.api.models.market import MarketFilterStatus
 
-
 pytestmark = [pytest.mark.integration]
 
 
@@ -122,4 +121,3 @@ async def test_orderbook_trades_candlesticks_live() -> None:
     assert all(t.ticker == market.ticker for t in trades)
     assert len(candles) == 1
     assert candles[0].market_ticker == market.ticker
-

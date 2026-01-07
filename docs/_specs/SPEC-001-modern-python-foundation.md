@@ -1,6 +1,6 @@
 # SPEC-001: Modern Python Project Foundation
 
-**Status:** Draft
+**Status:** ✅ Implemented
 **Priority:** P0 (Blocker for all other specs)
 **Estimated Complexity:** Medium
 **Dependencies:** None
@@ -22,6 +22,14 @@ Transform the bare-bones Kalshi starter code into a modern, production-quality P
 - Changing any existing functionality in `clients.py`
 - Adding new Kalshi API endpoints (that's SPEC-002)
 - Setting up deployment infrastructure
+
+---
+
+## Implementation References
+
+- `pyproject.toml` (ruff/mypy/pytest config, markers, coverage)
+- `uv.lock` (dependency lockfile)
+- `tests/` (unit/integration/e2e suites)
 
 ---
 
