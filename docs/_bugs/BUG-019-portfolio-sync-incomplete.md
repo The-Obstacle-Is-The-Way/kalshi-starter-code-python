@@ -1,19 +1,44 @@
-# BUG-019: Portfolio Sync Implementation Incomplete
+# BUG-019: Portfolio Sync Implementation Incomplete (P3)
 
-## Priority
-P3 (Medium) - Feature Missing
+**Priority:** P3 (Medium - Feature gap)
+**Status:** ✅ Fixed
+**Found:** 2026-01-07
+**Fixed:** 2026-01-07
+**Spec:** SPEC-013-portfolio-sync-implementation.md
 
-## Description
-The `PortfolioSyncer` class contains `TODO` comments and commented-out code for its core functionality: syncing positions and trades. The methods `sync_positions` and `sync_trades` currently return hardcoded `0` values.
+---
 
-## Location
-- `src/kalshi_research/portfolio/syncer.py`: Lines 39-41, 54-56.
+## Summary
 
-## Impact
-- **Functionality:** Users cannot track their portfolio, P&L, or trade history.
-- **Misleading UI:** The CLI might report "Success" for sync operations that actually did nothing.
+Portfolio sync existed only as placeholders, preventing users from syncing positions/fills and making portfolio commands misleading.
 
-## Proposed Fix
-1. Implement the `get_positions` and `get_fills` methods in `KalshiClient`.
-2. Uncomment and finalize the logic in `PortfolioSyncer`.
-3. Add integration tests to verify data is correctly saved to the `positions` and `trades` tables.
+---
+
+## Root Cause
+
+- Authenticated API endpoints existed but portfolio sync was not wired end-to-end (API client + syncer + CLI).
+- Tests assumed `PortfolioSyncer` was a stub and did not exercise real sync paths.
+
+---
+
+## Fix Applied
+
+- Implemented authenticated portfolio endpoints:
+  - `KalshiClient.get_positions()` and `KalshiClient.get_fills()` in `src/kalshi_research/api/client.py`
+- Implemented real DB persistence + idempotency in `src/kalshi_research/portfolio/syncer.py`
+- Wired the CLI commands so users can actually run the feature:
+  - `kalshi portfolio sync` and `kalshi portfolio balance` in `src/kalshi_research/cli.py`
+- Added support for loading private keys from env base64 (`KALSHI_PRIVATE_KEY_B64`) in `src/kalshi_research/api/auth.py`
+
+---
+
+## Regression Tests Added
+
+- `tests/unit/portfolio/test_syncer.py`
+- `tests/integration/cli/test_cli_commands.py`
+
+---
+
+## Follow-Ups
+
+- `PortfolioSyncer` currently does not compute `avg_price_cents`, `current_price_cents`, or `unrealized_pnl_cents` (tracked in BUG-025).

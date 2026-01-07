@@ -16,10 +16,11 @@ async def test_sync_positions_with_no_api_positions_returns_zero() -> None:
     client = AsyncMock()
     client.get_positions.return_value = []
 
-    session = AsyncMock()
     empty_result = MagicMock()
     empty_result.scalars.return_value.all.return_value = []
-    session.execute.return_value = empty_result
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=empty_result)
+    session.commit = AsyncMock()
 
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session
@@ -54,10 +55,11 @@ async def test_sync_positions_updates_existing_and_creates_new_positions() -> No
         last_synced=now,
     )
 
-    session = AsyncMock()
     result = MagicMock()
     result.scalars.return_value.all.return_value = [existing]
-    session.execute.return_value = result
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result)
+    session.commit = AsyncMock()
 
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session
@@ -93,10 +95,11 @@ async def test_sync_positions_marks_missing_positions_closed() -> None:
         last_synced=now,
     )
 
-    session = AsyncMock()
     result = MagicMock()
     result.scalars.return_value.all.return_value = [existing]
-    session.execute.return_value = result
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result)
+    session.commit = AsyncMock()
 
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session
@@ -118,10 +121,11 @@ async def test_sync_trades_with_no_api_fills_returns_zero() -> None:
     client = AsyncMock()
     client.get_fills.return_value = {"fills": []}
 
-    session = AsyncMock()
     empty_result = MagicMock()
     empty_result.scalars.return_value.all.return_value = []
-    session.execute.return_value = empty_result
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=empty_result)
+    session.commit = AsyncMock()
 
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session
@@ -166,10 +170,11 @@ async def test_sync_trades_paginates_and_skips_existing_trade_ids() -> None:
         },
     ]
 
-    session = AsyncMock()
     existing_ids_result = MagicMock()
     existing_ids_result.scalars.return_value.all.return_value = ["t1"]
-    session.execute.return_value = existing_ids_result
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=existing_ids_result)
+    session.commit = AsyncMock()
 
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session

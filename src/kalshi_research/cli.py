@@ -1519,10 +1519,62 @@ def research_backtest(
 
 
 @portfolio_app.command("sync")
-def portfolio_sync() -> None:
+def portfolio_sync(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+    environment: Annotated[
+        str | None,
+        typer.Option(
+            "--env", help="Kalshi environment (demo or prod). Defaults to KALSHI_ENVIRONMENT."
+        ),
+    ] = None,
+) -> None:
     """Sync positions and trades from Kalshi API."""
-    console.print("[yellow]⚠[/yellow] Portfolio sync requires authentication (not yet implemented)")
-    console.print("[dim]Set KALSHI_API_KEY and KALSHI_PRIVATE_KEY_PATH to enable sync[/dim]")
+    import os
+
+    from kalshi_research.api import KalshiClient
+    from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.portfolio.syncer import PortfolioSyncer
+
+    key_id = os.getenv("KALSHI_KEY_ID")
+    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
+    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
+    env = environment or os.getenv("KALSHI_ENVIRONMENT") or "demo"
+
+    if not key_id or (not private_key_path and not private_key_b64):
+        console.print("[red]Error:[/red] Portfolio sync requires authentication.")
+        console.print(
+            "[dim]Set KALSHI_KEY_ID and KALSHI_PRIVATE_KEY_PATH "
+            "(or KALSHI_PRIVATE_KEY_B64) to enable portfolio sync[/dim]"
+        )
+        raise typer.Exit(1)
+
+    async def _sync() -> None:
+        db = DatabaseManager(db_path)
+        try:
+            await db.create_tables()
+            async with KalshiClient(
+                key_id=key_id,
+                private_key_path=private_key_path,
+                private_key_b64=private_key_b64,
+                environment=env,
+            ) as client:
+                syncer = PortfolioSyncer(client=client, db=db)
+                result = await syncer.full_sync()
+                console.print(
+                    f"[green]✓[/green] Synced {result.positions_synced} positions, "
+                    f"{result.trades_synced} trades"
+                )
+        except KalshiAPIError as e:
+            console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+            raise typer.Exit(1) from None
+        finally:
+            await db.close()
+
+    asyncio.run(_sync())
 
 
 @portfolio_app.command("positions")
@@ -1681,14 +1733,58 @@ def portfolio_pnl(  # noqa: PLR0915
 
 
 @portfolio_app.command("balance")
-def portfolio_balance() -> None:
+def portfolio_balance(
+    environment: Annotated[
+        str | None,
+        typer.Option(
+            "--env", help="Kalshi environment (demo or prod). Defaults to KALSHI_ENVIRONMENT."
+        ),
+    ] = None,
+) -> None:
     """View account balance."""
-    console.print(
-        "[yellow]⚠[/yellow] Account balance requires authentication (not yet implemented)"
-    )
-    console.print(
-        "[dim]Set KALSHI_API_KEY and KALSHI_PRIVATE_KEY_PATH to enable balance check[/dim]"
-    )
+    import os
+
+    from kalshi_research.api import KalshiClient
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    key_id = os.getenv("KALSHI_KEY_ID")
+    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
+    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
+    env = environment or os.getenv("KALSHI_ENVIRONMENT") or "demo"
+
+    if not key_id or (not private_key_path and not private_key_b64):
+        console.print("[red]Error:[/red] Balance requires authentication.")
+        console.print(
+            "[dim]Set KALSHI_KEY_ID and KALSHI_PRIVATE_KEY_PATH "
+            "(or KALSHI_PRIVATE_KEY_B64) to enable balance checks[/dim]"
+        )
+        raise typer.Exit(1)
+
+    async def _balance() -> None:
+        async with KalshiClient(
+            key_id=key_id,
+            private_key_path=private_key_path,
+            private_key_b64=private_key_b64,
+            environment=env,
+        ) as client:
+            try:
+                balance = await client.get_balance()
+            except KalshiAPIError as e:
+                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+                raise typer.Exit(1) from None
+
+        if not balance:
+            console.print("[yellow]No balance data returned[/yellow]")
+            return
+
+        table = Table(title="Account Balance")
+        table.add_column("Field", style="cyan")
+        table.add_column("Value", style="green")
+        for k, v in sorted(balance.items()):
+            table.add_row(str(k), str(v))
+        console.print(table)
+
+    asyncio.run(_balance())
 
 
 @portfolio_app.command("history")

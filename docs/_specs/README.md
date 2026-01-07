@@ -10,4 +10,4 @@
 - [x] SPEC-010: CLI Completeness
 - [x] SPEC-011: Manual Trading Support
 - [x] SPEC-012: Developer Experience
-- [ ] SPEC-013: Portfolio Sync Implementation (Planned)
+- [x] SPEC-013: Portfolio Sync Implementation

@@ -1,16 +1,33 @@
-# BUG-020: Visualization Type Ignores
+# BUG-020: Visualization Strict Typing Friction (P4)
 
-## Priority
-P5 (Won't Fix) - Tooling Limitation
+**Priority:** P4 (Low - Tooling / Developer Experience)
+**Status:** ✅ Fixed
+**Found:** 2026-01-07
+**Fixed:** 2026-01-07
+**Spec:** SPEC-007-probability-tracking-visualization.md
 
-## Description
-The `visualization.py` module contains `# type: ignore` comments due to incomplete type stubs in `matplotlib` and `pandas`.
+---
 
-## Location
-- `src/kalshi_research/analysis/visualization.py`
+## Summary
 
-## Impact
-- Minimal. This is a known limitation of the scientific python ecosystem.
+Strict mypy + incomplete third-party stubs caused typing failures in visualization utilities.
 
-## Proposed Fix
-- None required currently. Wait for better library support.
+---
+
+## Root Cause
+
+`matplotlib` typing stubs are incomplete in places (notably around datetime inputs and formatter/locator constructors), which triggered `mypy --strict` failures.
+
+---
+
+## Fix Applied
+
+- Removed the need for `# type: ignore` in `src/kalshi_research/analysis/visualization.py` by:
+  - Using `Any`-typed adapters only at the library boundary
+  - Keeping business logic strictly typed
+
+---
+
+## Regression Tests
+
+- `uv run mypy src/` is green in CI-like gates.

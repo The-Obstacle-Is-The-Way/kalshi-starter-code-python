@@ -1,7 +1,7 @@
 # Kalshi Research Platform - Bug Tracker
 
 **Audit Date:** 2026-01-07
-**Auditor:** Gemini CLI (Final Cleanup)
+**Auditor:** Codex CLI (GPT-5.2)
 
 ---
 
@@ -12,10 +12,10 @@
 | `uv run ruff check .` | ✅ PASS |
 | `uv run ruff format --check .` | ✅ PASS |
 | `uv run mypy src/` | ✅ PASS |
-| `uv run pytest` | ✅ PASS |
-| Coverage | ⏳ Measured in `AUDIT_REPORT.md` |
+| `uv run pytest --cov=src` | ✅ PASS |
+| Coverage | ✅ 90% |
 
-**Note:** Live Kalshi API tests are skipped unless `KALSHI_RUN_LIVE_API=1`.
+**Test Results:** `401 passed, 6 skipped` (live API tests are skipped unless `KALSHI_RUN_LIVE_API=1`).
 
 ---
 
@@ -39,18 +39,20 @@
 | BUG-014 | P1 | ✅ Fixed | `kalshi analysis calibration` crash |
 | BUG-015 | P1 | ✅ Fixed | `kalshi scan movers` timezone crash |
 | BUG-016 | P1 | ✅ Fixed | `kalshi data snapshot` missing init |
-| BUG-017 | P1 | 🗑️ Invalid | Event model mismatch (Verified: handled in fetcher) |
 | BUG-018 | P4 | ✅ Fixed | API Client internal typing (Tech Debt) |
-| BUG-019 | P3 | ✅ Fixed | Portfolio sync implementation complete |
-| BUG-020 | P5 | ✅ Fixed | Visualization type ignores removed |
-| BUG-021 | P2 | 🗑️ Invalid | Broad exception handling (Verified: harmless) |
-| BUG-022 | P3 | 🗑️ Invalid | N+1 queries (Verified: speculative) |
+| BUG-019 | P3 | ✅ Fixed | Portfolio sync + CLI wiring |
+| BUG-020 | P4 | ✅ Fixed | Visualization strict typing friction |
+| BUG-021 | P3 | ✅ Fixed | Notebook utils limit + exception handling |
+| BUG-022 | P2 | ✅ Fixed | API client 0-valued params + fills limit cap |
+| BUG-023 | P2 | ✅ Fixed | `query_parquet()` path validation |
+| BUG-024 | P2 | ✅ Fixed | Legacy `requests` client timeouts |
+| BUG-025 | P2 | 🟡 Open | Positions missing cost basis + mark price |
 
 ---
 
 ## Open Bugs
 
-None. The system is clean.
+- BUG-025: Portfolio positions missing cost basis + mark price
 
 ---
 

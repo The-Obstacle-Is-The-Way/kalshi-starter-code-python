@@ -356,7 +356,8 @@ class KalshiClient(KalshiPublicClient):
     def __init__(
         self,
         key_id: str,
-        private_key_path: str,
+        private_key_path: str | None = None,
+        private_key_b64: str | None = None,
         environment: str = "prod",
         timeout: float = 30.0,
         max_retries: int = 5,
@@ -364,7 +365,9 @@ class KalshiClient(KalshiPublicClient):
         # Don't call super().__init__() - we create client with environment-specific URL
         base_host = self.DEMO_BASE if environment == "demo" else self.PROD_BASE
         self._base_url = base_host + self.API_PATH
-        self._auth = KalshiAuth(key_id, private_key_path)
+        self._auth = KalshiAuth(
+            key_id, private_key_path=private_key_path, private_key_b64=private_key_b64
+        )
         self._max_retries = max_retries
 
         self._client = httpx.AsyncClient(
