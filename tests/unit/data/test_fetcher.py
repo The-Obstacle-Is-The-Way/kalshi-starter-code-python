@@ -110,7 +110,7 @@ async def test_take_snapshot(data_fetcher, mock_client, mock_db):
     mock_market.open_interest = 500
     mock_market.liquidity = 10000
 
-    async def market_gen(status=None):
+    async def market_gen(status=None, max_pages: int | None = None):
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
@@ -119,10 +119,11 @@ async def test_take_snapshot(data_fetcher, mock_client, mock_db):
         repo = AsyncMock()
         MockPriceRepo.return_value = repo
 
-        count = await data_fetcher.take_snapshot()
+        count = await data_fetcher.take_snapshot(max_pages=5)
 
         assert count == 1
         repo.add.assert_called_once()
+        mock_client.get_all_markets.assert_called_once_with(status="open", max_pages=5)
         # The fetcher calls session.commit(), not repo.commit()
         mock_db.session_factory.return_value.commit.assert_called()
 
