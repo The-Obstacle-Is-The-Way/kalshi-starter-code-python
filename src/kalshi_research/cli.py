@@ -132,6 +132,13 @@ def data_snapshot(
         str | None,
         typer.Option("--status", "-s", help="Filter by status (default: open)."),
     ] = "open",
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit. None = iterate until exhausted.",
+        ),
+    ] = None,
 ) -> None:
     """Take a price snapshot of all markets."""
     from kalshi_research.data import DatabaseManager, DataFetcher
@@ -147,7 +154,7 @@ def data_snapshot(
                     console=console,
                 ) as progress:
                     progress.add_task("Taking snapshot...", total=None)
-                    count = await fetcher.take_snapshot(status=status)
+                    count = await fetcher.take_snapshot(status=status, max_pages=max_pages)
 
         console.print(f"[green]✓[/green] Took {count} price snapshots")
 
@@ -168,6 +175,13 @@ def data_collect(
         bool,
         typer.Option("--once", help="Run a single full sync and exit."),
     ] = False,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit. None = iterate until exhausted.",
+        ),
+    ] = None,
 ) -> None:
     """Run continuous data collection."""
     from kalshi_research.data import DatabaseManager, DataFetcher, DataScheduler
@@ -178,7 +192,7 @@ def data_collect(
 
             async with DataFetcher(db) as fetcher:
                 if once:
-                    counts = await fetcher.full_sync()
+                    counts = await fetcher.full_sync(max_pages=max_pages)
                     console.print(
                         "[green]✓[/green] Full sync complete: "
                         f"{counts['events']} events, {counts['markets']} markets, "
@@ -189,10 +203,10 @@ def data_collect(
                 scheduler = DataScheduler()
 
                 async def sync_task() -> None:
-                    await fetcher.sync_markets(status="open")
+                    await fetcher.sync_markets(status="open", max_pages=max_pages)
 
                 async def snapshot_task() -> None:
-                    count = await fetcher.take_snapshot(status="open")
+                    count = await fetcher.take_snapshot(status="open", max_pages=max_pages)
                     console.print(f"[dim]Took {count} snapshots[/dim]")
 
                 # Schedule tasks
@@ -214,7 +228,7 @@ def data_collect(
 
                 async with scheduler:
                     # Initial sync
-                    await fetcher.full_sync()
+                    await fetcher.full_sync(max_pages=max_pages)
 
                     # Run forever until interrupted
                     try:
@@ -496,6 +510,13 @@ def scan_opportunities(
             help="Maximum bid-ask spread in cents (close-race filter only).",
         ),
     ] = 100,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit for live market fetch. None = iterate until exhausted.",
+        ),
+    ] = None,
 ) -> None:
     """Scan markets for opportunities."""
     from kalshi_research.analysis.scanner import MarketScanner
@@ -510,7 +531,7 @@ def scan_opportunities(
             ) as progress:
                 progress.add_task("Fetching markets...", total=None)
                 # Fetch all open markets for scanning
-                markets = [m async for m in client.get_all_markets(status="open")]
+                markets = [m async for m in client.get_all_markets(status="open", max_pages=max_pages)]
 
         scanner = MarketScanner()
 
@@ -588,6 +609,13 @@ def scan_arbitrage(
             help="Limit historical correlation analysis to N tickers (0 = analyze all tickers).",
         ),
     ] = 50,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit for live market fetch. None = iterate until exhausted.",
+        ),
+    ] = None,
 ) -> None:
     """Find arbitrage opportunities from correlated markets."""
     from kalshi_research.analysis.correlation import CorrelationAnalyzer
@@ -645,7 +673,7 @@ def scan_arbitrage(
                 console=console,
             ) as progress:
                 progress.add_task("Fetching markets...", total=None)
-                markets = [m async for m in client.get_all_markets(status="open")]
+                markets = [m async for m in client.get_all_markets(status="open", max_pages=max_pages)]
 
         if not markets:
             console.print("[yellow]No open markets found[/yellow]")
@@ -722,6 +750,13 @@ def scan_movers(  # noqa: PLR0915
     ] = Path("data/kalshi.db"),
     period: Annotated[str, typer.Option("--period", "-p", help="Time period: 1h, 6h, 24h")] = "24h",
     top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit for live market fetch. None = iterate until exhausted.",
+        ),
+    ] = None,
 ) -> None:
     """Show biggest price movers over a time period."""
     from datetime import timedelta
@@ -760,7 +795,7 @@ def scan_movers(  # noqa: PLR0915
                 console=console,
             ) as progress:
                 progress.add_task("Fetching current markets...", total=None)
-                markets = [m async for m in client.get_all_markets(status="open")]
+                markets = [m async for m in client.get_all_markets(status="open", max_pages=max_pages)]
 
         market_lookup = {m.ticker: m for m in markets}
 
@@ -984,6 +1019,13 @@ def alerts_monitor(
         bool,
         typer.Option("--once", help="Run a single check cycle and exit."),
     ] = False,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit for live market fetch. None = iterate until exhausted.",
+        ),
+    ] = None,
 ) -> None:
     """Start monitoring alerts (runs in foreground)."""
     from kalshi_research.alerts import AlertMonitor
@@ -1039,7 +1081,9 @@ def alerts_monitor(
                 while True:
                     # Fetch all open markets (with progress for long-running fetch)
                     console.print("[dim]Fetching markets...[/dim]", end="")
-                    markets = [m async for m in client.get_all_markets(status="open")]
+                    markets = [
+                        m async for m in client.get_all_markets(status="open", max_pages=max_pages)
+                    ]
                     console.print(f"[dim] ({len(markets)} markets)[/dim]")
 
                     # Check conditions

@@ -187,7 +187,7 @@ class DataFetcher:
         logger.info("Synced %d total markets", count)
         return count
 
-    async def take_snapshot(self, status: str | None = "open") -> int:
+    async def take_snapshot(self, status: str | None = "open", *, max_pages: int | None = None) -> int:
         """
         Take a price snapshot of all markets.
 
@@ -197,6 +197,7 @@ class DataFetcher:
 
         Args:
             status: Optional filter for market status (default: open)
+            max_pages: Optional pagination safety limit. None = iterate until exhausted.
 
         Returns:
             Number of snapshots taken
@@ -210,7 +211,7 @@ class DataFetcher:
             market_repo = MarketRepository(session)
             event_repo = EventRepository(session)
 
-            async for api_market in self.client.get_all_markets(status=status):
+            async for api_market in self.client.get_all_markets(status=status, max_pages=max_pages):
                 # Ensure market row exists (FK constraint robustness)
                 existing_market = await market_repo.get(api_market.ticker)
                 if existing_market is None:
@@ -241,18 +242,21 @@ class DataFetcher:
         logger.info("Took %d price snapshots", count)
         return count
 
-    async def full_sync(self) -> dict[str, int]:
+    async def full_sync(self, *, max_pages: int | None = None) -> dict[str, int]:
         """
         Perform a full sync: events, markets, and snapshot.
+
+        Args:
+            max_pages: Optional pagination safety limit. None = iterate until exhausted.
 
         Returns:
             Dictionary with counts for each sync type
         """
         logger.info("Starting full sync")
 
-        events = await self.sync_events()
-        markets = await self.sync_markets()
-        snapshots = await self.take_snapshot()
+        events = await self.sync_events(max_pages=max_pages)
+        markets = await self.sync_markets(max_pages=max_pages)
+        snapshots = await self.take_snapshot(max_pages=max_pages)
 
         return {
             "events": events,
