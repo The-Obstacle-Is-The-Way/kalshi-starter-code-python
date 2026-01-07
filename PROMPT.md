@@ -23,10 +23,46 @@ cat docs/_bugs/README.md
 1. Find the **FIRST** unchecked item in `PROGRESS.md`
 2. Complete that ONE item fully (tests pass, quality checks pass)
 3. Check off the item in `PROGRESS.md`
-4. Commit your changes
+4. **ATOMIC COMMIT** (MANDATORY - see below)
 5. Exit
 
 **DO NOT** attempt multiple tasks. One task per iteration. Exit when done.
+
+## Atomic Commits (MANDATORY)
+
+After completing EACH task, you MUST commit before exiting:
+
+```bash
+# Stage all changes
+git add -A
+
+# Commit with descriptive message
+git commit -m "$(cat <<'EOF'
+[TASK-ID] Brief description
+
+- What was implemented/fixed
+- Tests added/updated
+- Quality gates passed
+EOF
+)"
+```
+
+**Commit message format:**
+- `[BUG-XXX] Fix: description` for bug fixes
+- `[SPEC-XXX] Implement: description` for new features
+- `[QUALITY-XXX] Fix: description` for quality fixes
+- `[FINAL-XXX] Verify: description` for final checks
+
+**Example:**
+```bash
+git add -A && git commit -m "[BUG-007] Fix: CI/CD test failures
+
+- Removed Python 3.14 from CI matrix (alpha/beta)
+- Added continue-on-error for experimental versions
+- All tests pass on 3.11, 3.12, 3.13"
+```
+
+**NEVER exit without committing.** Each iteration = one atomic commit.
 
 ## TDD Workflow (MANDATORY)
 
