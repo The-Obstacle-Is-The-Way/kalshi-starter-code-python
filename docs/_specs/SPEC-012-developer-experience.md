@@ -1,6 +1,6 @@
 # SPEC-012: Developer Experience (DevX)
 
-**Status:** Draft
+**Status:** ✅ Complete
 **Priority:** P3
 **Depends On:** All previous specs complete
 
@@ -417,15 +417,15 @@ kalshi portfolio history      # Trade history
 
 ## Acceptance Criteria
 
-- [ ] `Makefile` exists with all standard targets
-- [ ] `make help` shows all available commands
-- [ ] `make dev` sets up complete dev environment
-- [ ] `make check` runs lint + format + typecheck
-- [ ] `make ci` runs full CI pipeline locally
-- [ ] `make test-cov` generates coverage report
-- [ ] All make targets work on macOS and Linux
-- [ ] VS Code tasks.json configured (optional)
-- [ ] CLI quick reference documented
+- [x] `Makefile` exists with all standard targets
+- [x] `make help` shows all available commands
+- [x] `make dev` sets up complete dev environment
+- [x] `make check` runs lint + format + typecheck
+- [x] `make ci` runs full CI pipeline locally
+- [x] `make test-cov` generates coverage report
+- [x] All make targets work on macOS and Linux
+- [x] VS Code tasks.json configured (optional - skipped)
+- [x] CLI quick reference documented
 
 ---
 

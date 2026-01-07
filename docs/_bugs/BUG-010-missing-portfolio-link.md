@@ -1,8 +1,9 @@
 # BUG-010: Missing Portfolio-Thesis Link Commands (SPEC-011)
 
 **Priority:** P4 (Trivial/Polish)
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-07
+**Fixed:** 2026-01-06
 **Spec:** SPEC-011-manual-trading-support.md
 
 ---
@@ -23,7 +24,7 @@ SPEC-011 specified commands to link positions to theses, allowing users to track
 kalshi portfolio link TICKER --thesis THESIS_ID
 ```
 
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ IMPLEMENTED
 
 **Impact:** Users cannot connect their research theses to actual positions.
 
@@ -37,7 +38,7 @@ kalshi portfolio link TICKER --thesis THESIS_ID
 kalshi portfolio suggest-links
 ```
 
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ IMPLEMENTED
 
 **Impact:** No automatic discovery of thesis-position relationships.
 
@@ -51,7 +52,7 @@ kalshi portfolio suggest-links
 kalshi research thesis show THESIS_ID --with-positions
 ```
 
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ IMPLEMENTED
 
 **Impact:** Cannot see positions alongside thesis details.
 
@@ -74,10 +75,10 @@ The infrastructure exists, just needs CLI exposure.
 
 ## Acceptance Criteria
 
-- [ ] `kalshi portfolio link TICKER --thesis ID` updates Position.thesis_id
-- [ ] `kalshi portfolio suggest-links` analyzes tickers and suggests matches
-- [ ] `kalshi research thesis show ID --with-positions` displays linked positions
-- [ ] Linking persists in database
+- [x] `kalshi portfolio link TICKER --thesis ID` updates Position.thesis_id
+- [x] `kalshi portfolio suggest-links` analyzes tickers and suggests matches
+- [x] `kalshi research thesis show ID --with-positions` displays linked positions
+- [x] Linking persists in database
 
 ---
 

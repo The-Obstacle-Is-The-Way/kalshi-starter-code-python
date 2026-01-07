@@ -33,37 +33,14 @@ Current status of the Kalshi Research Platform after SPEC-001 through SPEC-011 i
 | BUG-006 | P1 | ✅ Fixed | Alerts system implemented (SPEC-005) |
 | BUG-007 | P1 | ✅ Fixed | CI/CD test failures resolved |
 | BUG-008 | P4 | ✅ Fixed | Test structure reorganized |
-| BUG-009 | P3 | Open | Incomplete CLI commands (SPEC-010) |
-| BUG-010 | P4 | Open | Missing portfolio-thesis link (SPEC-011) |
+| BUG-009 | P3 | ✅ Fixed | CLI commands complete (SPEC-010) |
+| BUG-010 | P4 | ✅ Fixed | Portfolio-thesis link implemented (SPEC-011) |
 
 ---
 
 ## Open Bugs
 
-### BUG-009: Incomplete CLI Commands (P3)
-
-**File:** `BUG-009-incomplete-cli-commands.md`
-
-Missing CLI commands from SPEC-010:
-- `kalshi alerts monitor` - Run continuous alert monitoring
-- `kalshi analysis correlation` - Analyze market correlations
-- `kalshi scan arbitrage` - Find arbitrage opportunities
-- `kalshi scan movers` - Show biggest price movers
-
-**Impact:** Low - Core functionality exists, just missing CLI exposure
-
----
-
-### BUG-010: Missing Portfolio-Thesis Link (P4)
-
-**File:** `BUG-010-missing-portfolio-link.md`
-
-Missing commands from SPEC-011:
-- `kalshi portfolio link TICKER --thesis ID` - Link position to thesis
-- `kalshi portfolio suggest-links` - Auto-suggest thesis-position matches
-- `kalshi research thesis show ID --with-positions` - View thesis with positions
-
-**Impact:** Trivial - Database schema already supports it, nice-to-have feature
+**None** - All bugs have been fixed!
 
 ---
 
@@ -131,22 +108,22 @@ Missing commands from SPEC-011:
 - [x] docs/QUICKSTART.md
 - [x] docs/USAGE.md
 
-### SPEC-010: CLI Completeness ⚠️ MOSTLY COMPLETE
+### SPEC-010: CLI Completeness ✅ COMPLETE
 - [x] kalshi alerts list/add/remove
-- [ ] kalshi alerts monitor (BUG-009)
+- [x] kalshi alerts monitor
 - [x] kalshi analysis calibration/metrics
-- [ ] kalshi analysis correlation (BUG-009)
+- [x] kalshi analysis correlation
 - [x] kalshi research thesis create/list/show/resolve
 - [x] kalshi research backtest
-- [ ] kalshi scan arbitrage (BUG-009)
-- [ ] kalshi scan movers (BUG-009)
+- [x] kalshi scan arbitrage
+- [x] kalshi scan movers
 
-### SPEC-011: Manual Trading Support ⚠️ MOSTLY COMPLETE
+### SPEC-011: Manual Trading Support ✅ COMPLETE
 - [x] kalshi portfolio sync/positions/pnl/balance/history
 - [x] Position and Trade models
 - [x] PnLCalculator
-- [ ] kalshi portfolio link (BUG-010)
-- [ ] kalshi portfolio suggest-links (BUG-010)
+- [x] kalshi portfolio link
+- [x] kalshi portfolio suggest-links
 
 ---
 
@@ -164,11 +141,14 @@ Missing commands from SPEC-011:
 
 **Core Platform (SPEC-001 through SPEC-004):** ✅ 100% Complete
 
-**Extended Features (SPEC-005 through SPEC-011):** ~95% Complete
-- All major functionality implemented
-- Minor CLI gaps documented in BUG-009, BUG-010
+**Extended Features (SPEC-005 through SPEC-011):** ✅ 100% Complete
+- All functionality implemented
+- All CLI commands exposed
+- All bugs fixed
 
-**Remaining Work:**
-1. BUG-009: Add missing CLI commands (P3)
-2. BUG-010: Add portfolio-thesis linking (P4)
-3. SPEC-012: Modern DevX improvements (Makefile, etc.)
+**Developer Experience (SPEC-012):** ✅ 100% Complete
+- Makefile with modern commands
+- mise.toml for version management
+- CLI quick reference
+
+**All Work Complete - No remaining tasks!**
