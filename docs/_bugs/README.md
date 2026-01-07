@@ -47,12 +47,22 @@
 | BUG-023 | P2 | ✅ Fixed | `query_parquet()` path validation |
 | BUG-024 | P2 | ✅ Fixed | Legacy `requests` client timeouts |
 | BUG-025 | P2 | 🟡 Open | Positions missing cost basis + mark price |
+| BUG-026 | P0 | 🟡 Open | `kalshi data snapshot` FOREIGN KEY constraint failure |
+| BUG-027 | P1 | 🟡 Open | Pagination cap silently truncates markets/events |
+| BUG-028 | P2 | 🟡 Open | `kalshi alerts monitor --once` does not exit |
+| BUG-029 | P2 | 🟡 Open | Close-race scanner returns illiquid/unpriced markets |
+| BUG-030 | P3 | 🟡 Open | Arbitrage scan false positives from 0/0 markets |
 
 ---
 
 ## Open Bugs
 
 - BUG-025: Portfolio positions missing cost basis + mark price
+- BUG-026: `kalshi data snapshot` FOREIGN KEY constraint failure
+- BUG-027: Pagination cap silently truncates markets/events
+- BUG-028: `kalshi alerts monitor --once` does not exit
+- BUG-029: Close-race scanner returns illiquid/unpriced markets
+- BUG-030: Arbitrage scan false positives from 0/0 markets
 
 ---
 
