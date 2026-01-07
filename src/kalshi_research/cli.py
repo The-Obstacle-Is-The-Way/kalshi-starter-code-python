@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 import typer
 from rich.console import Console
@@ -438,6 +441,13 @@ def scan_opportunities(
     from kalshi_research.api import KalshiPublicClient
 
     async def _scan() -> None:
+        from typing import TYPE_CHECKING
+
+        if TYPE_CHECKING:
+            from kalshi_research.api.models import Market
+
+        from kalshi_research.analysis.scanner import ScanResult
+
         async with KalshiPublicClient() as client:
             with Progress(
                 SpinnerColumn(),
@@ -446,15 +456,12 @@ def scan_opportunities(
             ) as progress:
                 progress.add_task("Fetching markets...", total=None)
                 # Fetch all open markets for scanning
-                markets = [
-                    m
-                    async for m in client.get_all_markets(status="open")
-                ]
+                markets = [m async for m in client.get_all_markets(status="open")]
 
         scanner = MarketScanner()
 
         if filter_type:
-            filter_map = {
+            filter_map: dict[str, Callable[[list[Market], int], list[ScanResult]]] = {
                 "close-race": scanner.scan_close_races,
                 "high-volume": scanner.scan_high_volume,
                 "wide-spread": scanner.scan_wide_spread,
@@ -463,7 +470,7 @@ def scan_opportunities(
             if filter_type not in filter_map:
                 console.print(f"[red]Error:[/red] Unknown filter: {filter_type}")
                 raise typer.Exit(1)
-            
+
             results = filter_map[filter_type](markets, top_n)
             title = f"Scan Results ({filter_type})"
         else:
@@ -479,7 +486,7 @@ def scan_opportunities(
         table = Table(title=title)
         table.add_column("Ticker", style="cyan", no_wrap=True)
         table.add_column("Title", style="white")
-        table.add_column("Yes Bid", style="green")
+        table.add_column("Probability", style="green")
         table.add_column("Spread", style="yellow")
         table.add_column("Volume", style="magenta")
 
@@ -487,8 +494,8 @@ def scan_opportunities(
             table.add_row(
                 m.ticker,
                 m.title[:50],
-                f"{m.yes_bid}¢",
-                f"{m.yes_ask - m.yes_bid}¢",
+                f"{m.market_prob:.1%}",
+                f"{m.spread}¢",
                 f"{m.volume_24h:,}",
             )
 

@@ -17,7 +17,7 @@ These must be fixed before claiming "complete":
 
 Fix any remaining code quality issues:
 
-- [ ] **QUALITY-001**: Fix mypy error in `src/kalshi_research/cli.py:467`
+- [x] **QUALITY-001**: Fix mypy error in `src/kalshi_research/cli.py:467`
 - [ ] **QUALITY-002**: Fix ruff import sorting in `alembic/env.py`
 - [ ] **QUALITY-003**: Ensure all quality gates pass: `ruff check`, `ruff format --check`, `mypy src/`, `pytest`
 
