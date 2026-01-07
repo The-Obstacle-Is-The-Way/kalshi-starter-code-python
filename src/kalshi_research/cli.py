@@ -521,6 +521,258 @@ def scan_opportunities(
     asyncio.run(_scan())
 
 
+@scan_app.command("arbitrage")
+def scan_arbitrage(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+    divergence_threshold: Annotated[
+        float, typer.Option("--threshold", help="Min divergence to flag (0-1)")
+    ] = 0.10,
+    top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
+) -> None:
+    """Find arbitrage opportunities from correlated markets."""
+    from kalshi_research.analysis.correlation import CorrelationAnalyzer
+    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.data import DatabaseManager
+
+    if not db_path.exists():
+        console.print(
+            "[yellow]Warning:[/yellow] Database not found, analyzing current markets only"
+        )
+
+    async def _scan() -> None:
+        from kalshi_research.data.repositories import PriceRepository
+
+        # Fetch current markets
+        async with KalshiPublicClient() as client:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                progress.add_task("Fetching markets...", total=None)
+                markets = [m async for m in client.get_all_markets(status="open")]
+
+        if not markets:
+            console.print("[yellow]No open markets found[/yellow]")
+            return
+
+        # Find correlated pairs from historical data (if DB exists)
+        correlated_pairs = []
+        if db_path.exists():
+            async with DatabaseManager(db_path) as db, db.session_factory() as session:
+                price_repo = PriceRepository(session)
+
+                # Get tickers from current markets
+                tickers = [m.ticker for m in markets[:50]]  # Limit to avoid too much processing
+
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console,
+                ) as progress:
+                    progress.add_task("Analyzing correlations...", total=None)
+
+                    # Fetch snapshots
+                    snapshots = {}
+                    for ticker in tickers:
+                        snaps = await price_repo.get_for_market(ticker, limit=100)
+                        if snaps and len(snaps) > 30:
+                            snapshots[ticker] = list(snaps)
+
+                    if len(snapshots) >= 2:
+                        analyzer = CorrelationAnalyzer(min_correlation=0.5)
+                        correlated_pairs = await analyzer.find_correlated_markets(
+                            snapshots, top_n=50
+                        )
+
+        # Find inverse markets (should sum to 100%)
+        analyzer = CorrelationAnalyzer()
+        inverse_pairs = analyzer.find_inverse_markets(markets, tolerance=divergence_threshold)
+
+        # Find arbitrage opportunities
+        opportunities = analyzer.find_arbitrage_opportunities(
+            markets, correlated_pairs, divergence_threshold=divergence_threshold
+        )
+
+        # Combine with inverse pairs
+        for m1, m2, deviation in inverse_pairs:
+            from kalshi_research.analysis.correlation import ArbitrageOpportunity
+
+            opportunities.append(
+                ArbitrageOpportunity(
+                    tickers=[m1.ticker, m2.ticker],
+                    opportunity_type="inverse_sum",
+                    expected_relationship="Sum to ~100%",
+                    actual_values={
+                        m1.ticker: (m1.yes_bid + m1.yes_ask) / 2.0 / 100.0,
+                        m2.ticker: (m2.yes_bid + m2.yes_ask) / 2.0 / 100.0,
+                        "sum": (m1.yes_bid + m1.yes_ask) / 2.0 / 100.0
+                        + (m2.yes_bid + m2.yes_ask) / 2.0 / 100.0,
+                    },
+                    divergence=abs(deviation),
+                    confidence=0.95,
+                )
+            )
+
+        if not opportunities:
+            console.print("[yellow]No arbitrage opportunities found[/yellow]")
+            return
+
+        # Sort by divergence
+        opportunities.sort(key=lambda o: o.divergence, reverse=True)
+        opportunities = opportunities[:top_n]
+
+        # Display results
+        table = Table(title="Arbitrage Opportunities")
+        table.add_column("Tickers", style="cyan")
+        table.add_column("Type", style="yellow")
+        table.add_column("Expected", style="dim")
+        table.add_column("Divergence", style="red")
+        table.add_column("Confidence", style="green")
+
+        for opp in opportunities:
+            tickers_str = ", ".join(opp.tickers[:2])
+            table.add_row(
+                tickers_str[:30],
+                opp.opportunity_type,
+                opp.expected_relationship[:40],
+                f"{opp.divergence:.2%}",
+                f"{opp.confidence:.2f}",
+            )
+
+        console.print(table)
+        console.print(f"\n[dim]Found {len(opportunities)} opportunities[/dim]")
+
+    asyncio.run(_scan())
+
+
+@scan_app.command("movers")
+def scan_movers(  # noqa: PLR0915
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+    period: Annotated[str, typer.Option("--period", "-p", help="Time period: 1h, 6h, 24h")] = "24h",
+    top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
+) -> None:
+    """Show biggest price movers over a time period."""
+    from datetime import timedelta
+
+    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.data import DatabaseManager
+
+    if not db_path.exists():
+        console.print(f"[red]Error:[/red] Database not found at {db_path}")
+        console.print("[dim]Price history data is required. Run 'kalshi data collect' first.[/dim]")
+        raise typer.Exit(1)
+
+    # Parse period
+    period_map = {"1h": 1, "6h": 6, "24h": 24, "7d": 168}
+    if period not in period_map:
+        console.print(f"[red]Error:[/red] Invalid period: {period}. Use 1h, 6h, 24h, or 7d")
+        raise typer.Exit(1)
+
+    hours_back = period_map[period]
+
+    async def _scan() -> None:
+        from datetime import UTC
+
+        from kalshi_research.data.repositories import PriceRepository
+
+        # Get current markets
+        async with KalshiPublicClient() as client:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                progress.add_task("Fetching current markets...", total=None)
+                markets = [m async for m in client.get_all_markets(status="open")]
+
+        market_lookup = {m.ticker: m for m in markets}
+
+        # Get historical prices
+        movers: list[dict[str, Any]] = []
+        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+            price_repo = PriceRepository(session)
+
+            cutoff_time = datetime.now(UTC) - timedelta(hours=hours_back)
+
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                progress.add_task(f"Analyzing price movements ({period})...", total=None)
+
+                for ticker, market in market_lookup.items():
+                    # Get snapshots from the period
+                    snapshots = await price_repo.get_for_market(ticker, limit=1000)
+
+                    if not snapshots:
+                        continue
+
+                    # Filter to time range
+                    recent_snaps = [s for s in snapshots if s.snapshot_time >= cutoff_time]
+                    if len(recent_snaps) < 2:
+                        continue
+
+                    # Calculate price change
+                    oldest = recent_snaps[-1]  # Oldest in range
+                    newest = recent_snaps[0]  # Most recent
+
+                    price_change = newest.midpoint - oldest.midpoint
+
+                    if abs(price_change) > 0.01:  # At least 1% move
+                        movers.append(
+                            {
+                                "ticker": ticker,
+                                "title": market.title,
+                                "price_change": price_change,
+                                "old_price": oldest.midpoint,
+                                "new_price": newest.midpoint,
+                                "volume": market.volume,
+                            }
+                        )
+
+        if not movers:
+            console.print(f"[yellow]No significant price movements in the last {period}[/yellow]")
+            return
+
+        # Sort by absolute change
+        movers.sort(key=lambda m: abs(m["price_change"]), reverse=True)
+        movers = movers[:top_n]
+
+        # Display results
+        table = Table(title=f"Biggest Movers ({period})")
+        table.add_column("Ticker", style="cyan", no_wrap=True)
+        table.add_column("Title", style="white")
+        table.add_column("Change", style="yellow")
+        table.add_column("Old → New", style="dim")
+        table.add_column("Volume", style="magenta")
+
+        for m in movers:
+            change_pct = m["price_change"]
+            color = "green" if change_pct > 0 else "red"
+            arrow = "↑" if change_pct > 0 else "↓"
+
+            table.add_row(
+                m["ticker"],
+                m["title"][:40],
+                f"[{color}]{arrow} {abs(change_pct):.1%}[/{color}]",
+                f"{m['old_price']:.1%} → {m['new_price']:.1%}",
+                f"{m['volume']:,}",
+            )
+
+        console.print(table)
+        console.print(f"\n[dim]Showing top {len(movers)} movers[/dim]")
+
+    asyncio.run(_scan())
+
+
 # ==================== Alerts Commands ====================
 
 
@@ -648,6 +900,82 @@ def alerts_remove(
     console.print(f"[yellow]Alert not found: {alert_id}[/yellow]")
 
 
+@alerts_app.command("monitor")
+def alerts_monitor(
+    interval: Annotated[
+        int, typer.Option("--interval", "-i", help="Check interval in seconds")
+    ] = 60,
+    daemon: Annotated[
+        bool, typer.Option("--daemon", help="Run in background (not implemented)")
+    ] = False,
+) -> None:
+    """Start monitoring alerts (runs in foreground)."""
+    from kalshi_research.alerts import AlertMonitor
+    from kalshi_research.alerts.conditions import AlertCondition, ConditionType
+    from kalshi_research.alerts.notifiers import ConsoleNotifier
+    from kalshi_research.api import KalshiPublicClient
+
+    if daemon:
+        console.print(
+            "[yellow]Warning:[/yellow] Daemon mode not yet implemented, running in foreground"
+        )
+
+    # Load alert conditions from storage
+    data = _load_alerts()
+    conditions_data = data.get("conditions", [])
+
+    if not conditions_data:
+        console.print(
+            "[yellow]No alerts configured. Use 'kalshi alerts add' to create some.[/yellow]"
+        )
+        return
+
+    # Create monitor and add notifier
+    monitor = AlertMonitor()
+    monitor.add_notifier(ConsoleNotifier())
+
+    # Reconstruct AlertCondition objects from stored data
+    for cond_data in conditions_data:
+        condition = AlertCondition(
+            id=cond_data["id"],
+            condition_type=ConditionType(cond_data["condition_type"]),
+            ticker=cond_data["ticker"],
+            threshold=cond_data["threshold"],
+            label=cond_data.get("label", ""),
+        )
+        monitor.add_condition(condition)
+
+    console.print(
+        f"[green]✓[/green] Monitoring {len(conditions_data)} alerts (checking every {interval}s)"
+    )
+    console.print("[dim]Press Ctrl+C to stop[/dim]\n")
+
+    async def _monitor_loop() -> None:
+        """Main monitoring loop."""
+
+        async with KalshiPublicClient() as client:
+            try:
+                while True:
+                    # Fetch all open markets
+                    markets = [m async for m in client.get_all_markets(status="open")]
+
+                    # Check conditions
+                    alerts = await monitor.check_conditions(markets)
+
+                    if alerts:
+                        console.print(
+                            f"\n[green]✓[/green] {len(alerts)} alert(s) triggered at "
+                            f"{datetime.now()}"
+                        )
+
+                    # Wait for next check
+                    await asyncio.sleep(interval)
+            except KeyboardInterrupt:
+                console.print("\n[yellow]Monitoring stopped[/yellow]")
+
+    asyncio.run(_monitor_loop())
+
+
 # ==================== Analysis Commands ====================
 
 
@@ -753,6 +1081,111 @@ def analysis_metrics(
         console.print(table)
 
     asyncio.run(_metrics())
+
+
+@analysis_app.command("correlation")
+def analysis_correlation(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+    event: Annotated[
+        str | None,
+        typer.Option("--event", "-e", help="Filter by event ticker"),
+    ] = None,
+    tickers: Annotated[
+        str | None,
+        typer.Option("--tickers", "-t", help="Comma-separated list of tickers to analyze"),
+    ] = None,
+    min_correlation: Annotated[
+        float, typer.Option("--min", help="Minimum correlation threshold")
+    ] = 0.5,
+    top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
+) -> None:
+    """Analyze correlations between markets."""
+    from kalshi_research.analysis.correlation import CorrelationAnalyzer
+    from kalshi_research.data import DatabaseManager
+
+    if not db_path.exists():
+        console.print(f"[red]Error:[/red] Database not found at {db_path}")
+        raise typer.Exit(1)
+
+    async def _analyze() -> None:
+        from kalshi_research.data.repositories import PriceRepository
+
+        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+            price_repo = PriceRepository(session)
+
+            # Fetch price snapshots
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                progress.add_task("Fetching price snapshots...", total=None)
+
+                # Get tickers to analyze
+                if tickers:
+                    ticker_list = [t.strip() for t in tickers.split(",")]
+                elif event:
+                    # Get all markets for this event
+                    from kalshi_research.data.repositories import MarketRepository
+
+                    market_repo = MarketRepository(session)
+                    event_markets = await market_repo.get_by_event(event)
+                    ticker_list = [m.ticker for m in event_markets]
+                else:
+                    console.print("[yellow]Error:[/yellow] Must specify --event or --tickers")
+                    raise typer.Exit(1)
+
+                if len(ticker_list) < 2:
+                    console.print(
+                        "[yellow]Need at least 2 tickers to analyze correlations[/yellow]"
+                    )
+                    return
+
+                # Fetch snapshots for each ticker
+                snapshots = {}
+                for ticker in ticker_list:
+                    snaps = await price_repo.get_for_market(ticker, limit=1000)
+                    if snaps:
+                        snapshots[ticker] = list(snaps)
+
+            if len(snapshots) < 2:
+                console.print("[yellow]Not enough data to analyze correlations[/yellow]")
+                return
+
+            # Analyze correlations
+            analyzer = CorrelationAnalyzer(min_correlation=min_correlation)
+            results = await analyzer.find_correlated_markets(snapshots, top_n=top_n)
+
+            if not results:
+                console.print("[yellow]No significant correlations found[/yellow]")
+                return
+
+            # Display results
+            table = Table(title="Market Correlations")
+            table.add_column("Ticker A", style="cyan")
+            table.add_column("Ticker B", style="cyan")
+            table.add_column("Correlation", style="green")
+            table.add_column("Type", style="yellow")
+            table.add_column("Strength", style="magenta")
+            table.add_column("Samples", style="dim")
+
+            for result in results:
+                table.add_row(
+                    result.ticker_a,
+                    result.ticker_b,
+                    f"{result.pearson:.3f}",
+                    result.correlation_type.value,
+                    result.strength,
+                    str(result.n_samples),
+                )
+
+            console.print(table)
+            console.print(f"\n[dim]Found {len(results)} correlated pairs[/dim]")
+
+    asyncio.run(_analyze())
 
 
 # ==================== Research Commands ====================

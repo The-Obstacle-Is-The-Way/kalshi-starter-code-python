@@ -87,7 +87,7 @@ These specs complete the full vision from the original requirements:
 
 Minor gaps and developer experience improvements:
 
-- [ ] **BUG-009**: Complete missing CLI commands → See `docs/_bugs/BUG-009-incomplete-cli-commands.md`
+- [x] **BUG-009**: Complete missing CLI commands → See `docs/_bugs/BUG-009-incomplete-cli-commands.md`
   - Add `kalshi alerts monitor` (AlertMonitor CLI exposure)
   - Add `kalshi analysis correlation` (CorrelationAnalyzer CLI)
   - Add `kalshi scan arbitrage` (ArbitrageDetector CLI)
