@@ -67,7 +67,7 @@ Non-blocking cleanup tasks:
 
 These specs complete the full vision from the original requirements:
 
-- [ ] **SPEC-009**: Legacy Cleanup & Documentation → See `docs/_specs/SPEC-009-cleanup-documentation.md`
+- [x] **SPEC-009**: Legacy Cleanup & Documentation → See `docs/_specs/SPEC-009-cleanup-documentation.md`
   - Remove `clients.py`, `main.py`, `requirements.txt` from root
   - Rewrite README.md for new platform
   - Create QUICKSTART.md and USAGE.md

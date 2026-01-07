@@ -1,10 +1,73 @@
-# kalshi-starter-code-python
-Example python code for accessing api-authenticated endpoints on [Kalshi](https://kalshi.com). This is not an SDK. 
+# Kalshi Research Platform
 
-## Installation 
-Install requirements.txt in a virtual environment of your choice and execute main.py from within the repo.
+Research tools for Kalshi prediction market analysis.
 
+## Features
+
+- **Market Scanner** - Find close races, high volume, wide spreads
+- **Calibration Analysis** - Brier scores, historical accuracy
+- **Edge Detection** - Flag mispriced markets vs your thesis
+- **Event Correlation** - Analyze related market movements
+- **Alerts** - Get notified when conditions are met
+- **Backtesting** - Test trading strategies on historical data
+- **Notebooks** - Jupyter templates for exploration
+
+## Installation
+
+```bash
+# Clone the repo
+git clone https://github.com/your-username/kalshi-research.git
+cd kalshi-research
+
+# Install with uv (recommended)
+uv sync
+
+# Or with pip
+pip install -e ".[dev,research]"
 ```
-pip install -r requirements.txt
-python main.py
+
+## Quick Start
+
+```bash
+# Initialize database
+kalshi data init
+
+# Sync markets from Kalshi
+kalshi data sync-markets
+
+# Scan for opportunities
+kalshi scan opportunities --filter close-race
+
+# Get market details
+kalshi market get TICKER-NAME
+
+# Start continuous data collection
+kalshi data collect --interval 15
 ```
+
+## CLI Reference
+
+See `kalshi --help` for all commands.
+
+## Documentation
+
+- [QUICKSTART.md](docs/QUICKSTART.md) - Get started in 5 minutes
+- [USAGE.md](docs/USAGE.md) - Detailed usage guide
+- [docs/_specs/](docs/_specs/) - Technical specifications
+
+## Development
+
+```bash
+# Run tests
+uv run pytest
+
+# Run linting
+uv run ruff check .
+
+# Run type checking
+uv run mypy src/
+```
+
+## License
+
+MIT

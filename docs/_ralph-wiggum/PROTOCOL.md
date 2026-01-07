@@ -1,6 +1,7 @@
 # Ralph Wiggum Loop Protocol
 
 **Created:** 2026-01-06
+**Updated:** 2026-01-07
 **Author:** Ray + Claude
 **Status:** Tested & Working
 
@@ -8,21 +9,17 @@
 
 ## What is the Ralph Wiggum Technique?
 
-The Ralph Wiggum technique (pioneered by Geoffrey Huntley) is an iterative AI development methodology where the **same prompt is fed to Claude repeatedly** in a bash loop. Each iteration:
+The Ralph Wiggum technique (popularized by Geoffrey Huntley) is an iterative AI development methodology where the **same prompt is run repeatedly** until objective completion criteria are met. The "self-referential" part is that each iteration sees its **previous work in files and git history**, not that model output is fed back as input.
 
-1. Spawns a **fresh Claude instance** with clean context
-2. Claude reads state files to understand what's done
-3. Completes **ONE task**
-4. Commits changes
-5. Exits
-6. Loop restarts → repeat
+There are two common implementations:
 
-The "self-referential" aspect comes from Claude seeing its **previous work in files and git history**, not from feeding output back as input.
+1. **External process loop (fresh context)**: a bash `while` loop runs a new `claude -p` process each iteration. Each run starts with empty conversational context and relies on state files + the repo.
+2. **In-session stop-hook loop (persistent context)**: Claude Code’s official `ralph-loop` plugin uses a Stop hook to block exits and re-feed the same prompt inside a single session.
 
 ### Why It Works
 
-- **Fresh context each iteration** = No accumulated confusion
-- **State tracked in files** = Persistent progress across iterations
+- **Same prompt, repeated** = Iteration beats one-shot perfection
+- **State tracked in files** = Progress persists across iterations
 - **Atomic commits** = Easy to audit, revert, or cherry-pick
 - **Sandboxed branch** = Safe experimentation
 
@@ -43,6 +40,10 @@ npm install -g @anthropic-ai/claude-code
 # tmux (for persistent sessions)
 brew install tmux  # macOS
 apt install tmux   # Linux
+
+# jq (required by Claude Code ralph-loop stop hook)
+brew install jq    # macOS
+apt install jq     # Linux
 
 # uv (Python package manager) - if doing Python work
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -68,23 +69,25 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 git checkout main
 git pull origin main
 
-# Create dev branch (integration branch)
-git checkout -b dev
+# Optional: create dev branch (integration branch)
+git checkout -b dev  # optional
 
 # Create Ralph branch (all autonomous work happens here)
-git checkout -b ralph-wiggum-loop
+git checkout -b ralph-wiggum-loop  # if you skipped dev, create this off main
 
 # Push branches to remote for backup
-git push -u origin dev
+git push -u origin dev  # optional
 git push -u origin ralph-wiggum-loop
 ```
 
-**Branch hierarchy:**
+**Branch hierarchy (recommended):**
 ```
 main (protected, production)
   └── dev (integration, manual merges)
         └── ralph-wiggum-loop (autonomous work)
 ```
+
+If you don’t use a `dev` branch, use `ralph-wiggum-loop` directly off `main` and merge via PR.
 
 ### Step 2: Create State File (PROGRESS.md)
 
@@ -126,7 +129,7 @@ When ALL boxes are checked:
 
 ### Step 3: Create Prompt File (PROMPT.md)
 
-This is fed to Claude each iteration. Key elements:
+This is fed to Claude each iteration (external loop), or used as the input prompt for `/ralph-loop` (plugin loop). Key elements:
 
 ```markdown
 # Project - Ralph Wiggum Loop Prompt
@@ -134,7 +137,10 @@ This is fed to Claude each iteration. Key elements:
 You are completing [PROJECT]. This prompt runs headless via:
 
 \`\`\`bash
-while true; do claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"; sleep 2; done
+while true; do
+  cat PROMPT.md | claude -p --allowedTools "Read Write Edit Glob Grep Bash(git* uv* python* pytest* ruff* mypy* rg* cat* ls*)"
+  sleep 2
+done
 \`\`\`
 
 ## First Action: Read State
@@ -228,7 +234,37 @@ tmux attach -t ralph
 
 ### Step 6: Run the Loop
 
-Inside tmux:
+Inside tmux, choose ONE of these approaches:
+
+#### Option A (Recommended): Claude Code `ralph-loop` plugin (Stop hook, in-session)
+
+This avoids external bash loops and provides built-in iteration limits.
+
+1. Start Claude Code normally:
+   ```bash
+   cd /path/to/project
+   git checkout ralph-wiggum-loop
+   claude
+   ```
+
+2. Install the plugin (once per environment):
+   ```
+   /plugin install ralph-loop@claude-plugin-directory
+   ```
+
+3. Start the loop in your session:
+   ```
+   /ralph-loop "See PROMPT.md. Follow it exactly." --max-iterations 20 --completion-promise "PROJECT COMPLETE"
+   ```
+
+To cancel:
+```
+/cancel-ralph
+```
+
+#### Option B: External bash loop (fresh `claude -p` process each iteration)
+
+This matches the “run Claude headlessly in a loop” style used in many writeups.
 
 ```bash
 # Navigate to project
@@ -237,16 +273,33 @@ cd /path/to/project
 # Ensure on ralph branch
 git checkout ralph-wiggum-loop
 
-# THE MAGIC COMMAND
-while true; do
-  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"
+# Recommended: add a hard safety limit
+MAX_ITERS=50
+PROMISE="PROJECT COMPLETE"
+
+mkdir -p .claude
+for i in $(seq 1 "$MAX_ITERS"); do
+  echo "=== Ralph iteration $i/$MAX_ITERS ===" | tee -a .claude/ralph.log
+  cat PROMPT.md | claude -p \
+    --output-format text \
+    --allowedTools "Read Write Edit Glob Grep Bash(git* uv* python* pytest* ruff* mypy* rg* cat* ls*)" \
+    | tee -a .claude/ralph.log
+
+  if grep -Fq "<promise>${PROMISE}</promise>" .claude/ralph.log; then
+    echo "✅ Detected completion promise: <promise>${PROMISE}</promise>" | tee -a .claude/ralph.log
+    break
+  fi
+
   sleep 2
 done
 ```
 
-**Flags explained:**
-- `--dangerously-skip-permissions` - No interactive prompts (fully autonomous)
-- `-p "$(cat PROMPT.md)"` - Run in headless mode with prompt from file
+**Claude Code CLI flags (verified via `claude --help`, Claude Code v0.2.115):**
+- `-p, --print` prints the response and exits (required for headless loops).
+- `--output-format text|json|stream-json` works only with `--print` and enables machine parsing.
+- `--allowedTools` / `--disallowedTools` are the intended non-interactive tool allow/deny lists (supports `Bash(git*)`-style patterns).
+- `--system-prompt` can harden guardrails (only works with `--print`).
+- `--dangerously-skip-permissions` exists, but the CLI currently states it “Only works in Docker containers with no internet access.” Treat it as non-portable.
 
 ---
 
