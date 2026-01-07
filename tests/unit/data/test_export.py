@@ -93,6 +93,11 @@ def test_export_to_parquet_rejects_invalid_sqlite_path(tmp_path):
         export_to_parquet(db_path, tmp_path / "out")
 
 
+def test_query_parquet_rejects_invalid_path():
+    with pytest.raises(ValueError, match="Invalid characters"):
+        query_parquet("bad;path", "SELECT 1")
+
+
 @patch("duckdb.connect")
 def test_query_parquet_creates_views_for_existing_exports(mock_connect, tmp_path):
     mock_conn = MagicMock()

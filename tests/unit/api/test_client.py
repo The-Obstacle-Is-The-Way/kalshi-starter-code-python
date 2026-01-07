@@ -198,6 +198,22 @@ class TestKalshiPublicClient:
 
     @pytest.mark.asyncio
     @respx.mock
+    async def test_get_trades_includes_zero_timestamps(self) -> None:
+        """0-valued timestamps should be sent (avoid truthiness traps)."""
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/markets/trades").mock(
+            return_value=Response(200, json={"trades": []})
+        )
+
+        async with KalshiPublicClient() as client:
+            await client.get_trades(ticker="TEST-MKT", limit=1, min_ts=0, max_ts=0)
+
+        assert route.called
+        params = dict(route.calls[0].request.url.params)
+        assert params["min_ts"] == "0"
+        assert params["max_ts"] == "0"
+
+    @pytest.mark.asyncio
+    @respx.mock
     async def test_get_candlesticks_batch(self) -> None:
         """Test batch candlesticks endpoint."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/markets/candlesticks").mock(

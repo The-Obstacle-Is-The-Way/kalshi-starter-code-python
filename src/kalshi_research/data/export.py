@@ -164,6 +164,9 @@ def query_parquet(
 
     parquet_dir = Path(parquet_dir).resolve()
 
+    if any(c in str(parquet_dir) for c in ["'", '"', ";", "--"]):
+        raise ValueError(f"Invalid characters in path: {parquet_dir}")
+
     conn = duckdb.connect()
     try:
         # Create views for each exported table

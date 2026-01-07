@@ -156,6 +156,47 @@ class TestLoadMarkets:
         assert len(df) == 5
 
     @pytest.mark.asyncio
+    async def test_load_markets_limit_zero_returns_empty_dataframe(self) -> None:
+        """A limit of 0 should return an empty DataFrame (not all markets)."""
+        mock_market = Market(
+            ticker="TEST-TICKER",
+            title="Test Market",
+            subtitle="",
+            event_ticker="TEST-EVENT",
+            series_ticker="TEST-SERIES",
+            status="active",
+            yes_bid=48,
+            yes_ask=52,
+            yes_price=50,
+            no_bid=48,
+            no_ask=52,
+            volume=1000,
+            volume_24h=800,
+            open_interest=500,
+            liquidity=100,
+            close_time=datetime(2025, 12, 31, tzinfo=UTC),
+            open_time=datetime(2025, 1, 1, tzinfo=UTC),
+            expiration_time=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+
+        async def mock_get_all_markets(status: str) -> list[Market]:
+            for m in [mock_market]:
+                yield m
+
+        with patch(
+            "kalshi_research.research.notebook_utils.KalshiPublicClient"
+        ) as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get_all_markets = mock_get_all_markets
+            mock_client_class.return_value = mock_client
+
+            df = await load_markets(limit=0)
+
+        assert df.empty
+
+    @pytest.mark.asyncio
     async def test_load_markets_calculates_spread(self) -> None:
         """Test that load_markets calculates spread correctly."""
         mock_market = Market(
@@ -231,6 +272,34 @@ class TestLoadEvents:
         assert "event_ticker" in df.columns
         assert "title" in df.columns
         assert df.iloc[0]["event_ticker"] == "TEST-EVENT"
+
+    @pytest.mark.asyncio
+    async def test_load_events_limit_zero_returns_empty_dataframe(self) -> None:
+        """A limit of 0 should return an empty DataFrame (not all events)."""
+        mock_event = Event(
+            event_ticker="TEST-EVENT",
+            series_ticker="TEST-SERIES",
+            title="Test Event",
+            category="test",
+            mutually_exclusive=True,
+        )
+
+        async def mock_get_all_events() -> list[Event]:
+            for e in [mock_event]:
+                yield e
+
+        with patch(
+            "kalshi_research.research.notebook_utils.KalshiPublicClient"
+        ) as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get_all_events = mock_get_all_events
+            mock_client_class.return_value = mock_client
+
+            df = await load_events(limit=0)
+
+        assert df.empty
 
 
 class TestDisplayMarket:

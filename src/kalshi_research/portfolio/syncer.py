@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 
 from kalshi_research.portfolio.models import Position, Trade
 
@@ -56,15 +56,8 @@ class PortfolioSyncer:
             seen_tickers = set()
 
             for pos_data in api_positions:
-                # API returns list of market positions
-                # Structure: {
-                #   "ticker": "KXBTC-24DEC31-100000",
-                #   "position": 10,
-                #   "market_exposure": 450,
-                #   "realized_pnl": 120,
-                #   "fees_paid": 5,
-                #   ...
-                # }
+                # API returns position dictionaries with keys like:
+                # ticker, position, market_exposure, realized_pnl, fees_paid.
                 ticker = pos_data["ticker"]
                 quantity = abs(int(pos_data["position"]))
                 side = "yes" if pos_data["position"] > 0 else "no"
@@ -120,17 +113,17 @@ class PortfolioSyncer:
         """
         logger.info("Syncing trades...")
         min_ts = int(since.timestamp()) if since else None
-        
+
         # Paginate through fills
         fills: list[dict[str, Any]] = []
         cursor = None
-        
+
         while True:
             response = await self.client.get_fills(min_ts=min_ts, limit=100, cursor=cursor)
             page_fills = response.get("fills", [])
             if not page_fills:
                 break
-            
+
             fills.extend(page_fills)
             cursor = response.get("cursor")
             if not cursor:
@@ -146,15 +139,8 @@ class PortfolioSyncer:
             existing_ids = set(existing_ids_result.scalars().all())
 
             for fill in fills:
-                # Structure: {
-                #   "trade_id": "834468f7-...",
-                #   "ticker": "KXBTC-...",
-                #   "yes_price": 45,
-                #   "count": 10,
-                #   "action": "buy",
-                #   "side": "yes",
-                #   "created_time": "2023-10-25T..."
-                # }
+                # Fill dictionaries contain keys like:
+                # trade_id, ticker, yes_price, count, action, side, created_time.
                 trade_id = fill["trade_id"]
                 if trade_id in existing_ids:
                     continue
@@ -162,7 +148,7 @@ class PortfolioSyncer:
                 executed_at = datetime.fromisoformat(fill["created_time"].replace("Z", "+00:00"))
                 price = int(fill["yes_price"])
                 quantity = int(fill["count"])
-                
+
                 trade = Trade(
                     kalshi_trade_id=trade_id,
                     ticker=fill["ticker"],
@@ -177,7 +163,7 @@ class PortfolioSyncer:
                 )
                 session.add(trade)
                 synced_count += 1
-                
+
                 # Check 1000 item flush
                 if synced_count % 1000 == 0:
                     await session.commit()

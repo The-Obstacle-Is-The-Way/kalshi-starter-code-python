@@ -196,9 +196,9 @@ class KalshiPublicClient:
         params: dict[str, Any] = {"limit": min(limit, 1000)}
         if ticker:
             params["ticker"] = ticker
-        if min_ts:
+        if min_ts is not None:
             params["min_ts"] = min_ts
-        if max_ts:
+        if max_ts is not None:
             params["max_ts"] = max_ts
 
         data = await self._get("/markets/trades", params)
@@ -255,9 +255,9 @@ class KalshiPublicClient:
             period_interval: Candle period in minutes (1, 60, or 1440)
         """
         params: dict[str, Any] = {"period_interval": period_interval}
-        if start_ts:
+        if start_ts is not None:
             params["start_ts"] = start_ts
-        if end_ts:
+        if end_ts is not None:
             params["end_ts"] = end_ts
 
         data = await self._get(f"/series/{series_ticker}/markets/{ticker}/candlesticks", params)
@@ -462,12 +462,12 @@ class KalshiClient(KalshiPublicClient):
             limit: Number of results per page (max 200)
             cursor: Pagination cursor
         """
-        params: dict[str, Any] = {"limit": limit}
+        params: dict[str, Any] = {"limit": min(limit, 200)}
         if ticker:
             params["ticker"] = ticker
-        if min_ts:
+        if min_ts is not None:
             params["min_ts"] = min_ts
-        if max_ts:
+        if max_ts is not None:
             params["max_ts"] = max_ts
         if cursor:
             params["cursor"] = cursor
