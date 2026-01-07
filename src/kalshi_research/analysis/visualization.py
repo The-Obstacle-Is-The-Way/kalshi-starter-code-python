@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -65,7 +65,7 @@ def plot_calibration_curve(
         prop="sizes",
         num=4,
         alpha=0.6,
-        func=lambda s: (s / 5.0) ** 2,  # type: ignore[operator] # Reverse the sqrt scaling
+        func=lambda s: (s / 5.0) ** 2,
     )
     ax.legend(handles, labels, title="Samples", loc="upper left")
 
@@ -106,12 +106,12 @@ def plot_probability_timeline(
 
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    ax.plot(timestamps, prices, "b-", linewidth=1.5)  # type: ignore[arg-type]
-    ax.fill_between(timestamps, prices, alpha=0.2)  # type: ignore[arg-type]
+    ax.plot(timestamps, prices, "b-", linewidth=1.5)
+    ax.fill_between(timestamps, cast(list[float], prices), alpha=0.2)
 
     # Format x-axis
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))  # type: ignore[no-untyped-call]
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())  # type: ignore[no-untyped-call]
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
 
     ax.set_xlabel("Date")
     ax.set_ylabel("Probability")
@@ -162,7 +162,7 @@ def plot_edge_histogram(
     _n, bins_out, patches = ax.hist(edge_sizes, bins=bins.tolist(), edgecolor="black", alpha=0.7)
 
     # Color positive/negative differently
-    for i, patch in enumerate(patches):  # type: ignore[arg-type]
+    for i, patch in enumerate(cast(list[Any], patches)):
         if bins_out[i] >= 0:
             patch.set_facecolor("green")
         else:
@@ -209,11 +209,11 @@ def plot_spread_timeline(
 
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    ax.plot(timestamps, spreads, "purple", linewidth=1)  # type: ignore[arg-type]
-    ax.fill_between(timestamps, spreads, alpha=0.2, color="purple")  # type: ignore[arg-type]
+    ax.plot(timestamps, spreads, "purple", linewidth=1)
+    ax.fill_between(timestamps, cast(list[float], spreads), alpha=0.2, color="purple")
 
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))  # type: ignore[no-untyped-call]
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())  # type: ignore[no-untyped-call]
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
 
     ax.set_xlabel("Date")
     ax.set_ylabel("Spread (cents)")

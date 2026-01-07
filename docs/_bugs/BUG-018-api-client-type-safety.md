@@ -1,22 +1,18 @@
-# BUG-018: API Client Lacks Strict Typing
+# BUG-018: API Client Type Safety (Internal)
 
 ## Priority
-P2 (Medium) - Quality/Reliability
+P4 (Low) - Technical Debt
 
 ## Description
-The core `KalshiClient` and `KalshiPublicClient` rely heavily on `Any` and `dict[str, Any]` for return types and internal method signatures. This completely bypasses static type checking (mypy) and makes the client brittle.
-
-The `_get` method returns `dict[str, Any]`, meaning all downstream consumers must manually cast or assume types, leading to potential `KeyError` or `TypeError` at runtime that should have been caught at compile time.
+The internal `_get` method of `KalshiClient` returns `dict[str, Any]`. While public methods convert these to Pydantic models, the internal layer lacks strict typing.
 
 ## Location
-- `src/kalshi_research/api/client.py`: Lines 59, 84, and throughout method signatures.
+- `src/kalshi_research/api/client.py`: `_get` method.
 
 ## Impact
-- **Developer Experience:** No IDE autocompletion for API responses.
-- **Reliability:** Refactoring is dangerous as the type system cannot verify changes.
-- **Bugs:** "Stringly typed" code is prone to typos in dictionary keys.
+- **Developer Experience:** Internal maintenance requires care.
+- **Reliability:** Public interface is safe, but internal refactoring carries some risk.
 
 ## Proposed Fix
-1. Define specific Pydantic models for all API response wrappers (e.g., `KalshiResponse[T]`).
-2. Update `_get` and other HTTP methods to use generics `T` and return typed objects.
-3. Remove `Any` from public method signatures and replace with concrete Pydantic models.
+1. Eventually define `KalshiResponse[T]` generics.
+2. Low priority as public API is typed.

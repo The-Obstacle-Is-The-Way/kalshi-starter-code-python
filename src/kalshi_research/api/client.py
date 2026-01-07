@@ -57,7 +57,12 @@ class KalshiPublicClient:
         await self._client.aclose()
 
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Make rate-limited GET request with retry."""
+        """
+        Make rate-limited GET request with retry.
+
+        Returns:
+            JSON response as dictionary.
+        """
         async for attempt in AsyncRetrying(
             retry=retry_if_exception_type(
                 (
@@ -438,3 +443,33 @@ class KalshiClient(KalshiPublicClient):
         data = await self._auth_get("/portfolio/orders", params or None)
         orders: list[dict[str, Any]] = data.get("orders", [])
         return orders
+
+    async def get_fills(
+        self,
+        ticker: str | None = None,
+        min_ts: int | None = None,
+        max_ts: int | None = None,
+        limit: int = 100,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Fetch matched trades (fills) from the portfolio.
+
+        Args:
+            ticker: Filter by market ticker
+            min_ts: Filter trades after this timestamp (Unix seconds)
+            max_ts: Filter trades before this timestamp
+            limit: Number of results per page (max 200)
+            cursor: Pagination cursor
+        """
+        params: dict[str, Any] = {"limit": limit}
+        if ticker:
+            params["ticker"] = ticker
+        if min_ts:
+            params["min_ts"] = min_ts
+        if max_ts:
+            params["max_ts"] = max_ts
+        if cursor:
+            params["cursor"] = cursor
+
+        return await self._auth_get("/portfolio/fills", params)
