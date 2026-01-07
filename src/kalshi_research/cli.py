@@ -514,7 +514,7 @@ def scan_opportunities(
         int | None,
         typer.Option(
             "--max-pages",
-            help="Optional pagination safety limit for live market fetch. None = iterate until exhausted.",
+            help="Optional pagination safety limit for market fetch (None = full).",
         ),
     ] = None,
 ) -> None:
@@ -615,7 +615,7 @@ def scan_arbitrage(
         int | None,
         typer.Option(
             "--max-pages",
-            help="Optional pagination safety limit for live market fetch. None = iterate until exhausted.",
+            help="Optional pagination safety limit for market fetch (None = full).",
         ),
     ] = None,
 ) -> None:
@@ -758,7 +758,7 @@ def scan_movers(  # noqa: PLR0915
         int | None,
         typer.Option(
             "--max-pages",
-            help="Optional pagination safety limit for live market fetch. None = iterate until exhausted.",
+            help="Optional pagination safety limit for market fetch (None = full).",
         ),
     ] = None,
 ) -> None:
@@ -1029,7 +1029,7 @@ def alerts_monitor(
         int | None,
         typer.Option(
             "--max-pages",
-            help="Optional pagination safety limit for live market fetch. None = iterate until exhausted.",
+            help="Optional pagination safety limit for market fetch (None = full).",
         ),
     ] = None,
 ) -> None:
