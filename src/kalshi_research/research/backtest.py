@@ -191,9 +191,7 @@ class ThesisBacktester:
         if not snapshots:
             return 0.5  # Default to 50%
 
-        closest = min(
-            snapshots, key=lambda s: abs((s.snapshot_time - target_time).total_seconds())
-        )
+        closest = min(snapshots, key=lambda s: abs((s.snapshot_time - target_time).total_seconds()))
         # Use midpoint of bid/ask as price
         return closest.midpoint / 100.0
 

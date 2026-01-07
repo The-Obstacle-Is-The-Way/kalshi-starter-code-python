@@ -61,9 +61,7 @@ def setup_notebook(
             ipython = get_ipython()
             if ipython:
                 ipython.run_line_magic("matplotlib", "inline")
-                ipython.run_line_magic(
-                    "config", f"InlineBackend.figure_format = '{figure_format}'"
-                )
+                ipython.run_line_magic("config", f"InlineBackend.figure_format = '{figure_format}'")
 
             plt.style.use("seaborn-v0_8-whitegrid")
             plt.rcParams["figure.figsize"] = (12, 6)
@@ -162,7 +160,7 @@ def display_market(market: Market) -> None:
         <table style="width: 100%;">
             <tr>
                 <td><strong>YES Price:</strong></td>
-                <td>{midpoint:.1f}c ({midpoint/100:.0%})</td>
+                <td>{midpoint:.1f}c ({midpoint / 100:.0%})</td>
                 <td><strong>Volume:</strong></td>
                 <td>{market.volume:,}</td>
             </tr>
@@ -176,7 +174,7 @@ def display_market(market: Market) -> None:
                 <td><strong>Status:</strong></td>
                 <td>{market.status}</td>
                 <td><strong>Closes:</strong></td>
-                <td>{market.close_time.strftime('%Y-%m-%d %H:%M UTC') if market.close_time else 'N/A'}</td>
+                <td>{market.close_time.strftime("%Y-%m-%d %H:%M UTC") if market.close_time else "N/A"}</td>
             </tr>
         </table>
     </div>
