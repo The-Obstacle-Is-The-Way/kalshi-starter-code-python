@@ -11,3 +11,6 @@
 - [x] SPEC-011: Manual Trading Support
 - [x] SPEC-012: Developer Experience
 - [x] SPEC-013: Portfolio Sync Implementation
+- [ ] SPEC-014: WebSocket Real-Time Data (P0 - Critical Performance)
+- [ ] SPEC-015: Rate Limit Tier Management (P1 - Reliability)
+- [ ] SPEC-016: Demo Environment Testing (P2 - Developer Experience)
