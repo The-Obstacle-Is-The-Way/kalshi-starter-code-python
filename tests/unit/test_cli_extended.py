@@ -206,7 +206,7 @@ def test_research_thesis_list_with_theses() -> None:
     }
     mock_file = mock_open(read_data=json.dumps(thesis_data))
 
-    with patch("pathlib.Path.exists", return_value=True), patch("builtins.open", mock_file):
+    with patch("pathlib.Path.exists", return_value=True), patch("pathlib.Path.open", mock_file):
         result = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result.exit_code == 0

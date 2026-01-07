@@ -1,6 +1,6 @@
 # Kalshi Research Platform - Progress Tracker
 
-**Last Updated:** 2026-01-06
+**Last Updated:** 2026-01-07
 **Purpose:** State file for Ralph Wiggum loop - each iteration reads this to find next task
 
 ---
@@ -95,15 +95,12 @@ These specs complete the full vision from the original requirements:
 4. Commit your changes
 5. Exit
 
-**Example:**
+**Example loop command:**
 ```bash
-# Read current state
-cat PROGRESS.md
-
-# Find: [ ] **BUG-002**: Set up Alembic migrations
-# Complete that task
-# Update this file: [x] **BUG-002**: Set up Alembic migrations
-# Commit and exit
+MAX=50; for i in $(seq 1 $MAX); do
+  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"
+  sleep 2
+done
 ```
 
 ---
