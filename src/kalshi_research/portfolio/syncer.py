@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from typing import TYPE_CHECKING
 
-from kalshi_research.api.client import KalshiClient
-from kalshi_research.data.database import DatabaseManager
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    from kalshi_research.api.client import KalshiClient
+    from kalshi_research.data.database import DatabaseManager
 
 
 @dataclass

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from kalshi_research.portfolio.models import Position, Trade
+if TYPE_CHECKING:
+    from kalshi_research.portfolio.models import Position, Trade
 
 
 @dataclass
