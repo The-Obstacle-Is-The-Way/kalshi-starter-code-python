@@ -10,8 +10,14 @@ from __future__ import annotations
 from typing import Any, cast
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
 
-from kalshi_research.clients import Environment
+from kalshi_research.clients import Environment, KalshiBaseClient, KalshiHttpClient
+
+
+def generate_test_key() -> rsa.RSAPrivateKey:
+    """Generate a test RSA key for testing."""
+    return rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
 class TestEnvironment:
@@ -167,3 +173,124 @@ class TestPriceConversions:
         """Test all valid prices convert to probabilities in (0, 1)."""
         probability = price / 100
         assert 0 < probability < 1
+
+
+class TestKalshiBaseClient:
+    """Test KalshiBaseClient initialization and headers."""
+
+    def test_demo_urls(self) -> None:
+        """Demo environment uses correct URLs."""
+        key = generate_test_key()
+        client = KalshiBaseClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        assert "demo-api.kalshi.co" in client.HTTP_BASE_URL
+        assert "demo-api.kalshi.co" in client.WS_BASE_URL
+
+    def test_prod_urls(self) -> None:
+        """Prod environment uses correct URLs."""
+        key = generate_test_key()
+        client = KalshiBaseClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.PROD,
+        )
+
+        assert "api.elections.kalshi.com" in client.HTTP_BASE_URL
+        assert "api.elections.kalshi.com" in client.WS_BASE_URL
+
+    def test_request_headers_structure(self) -> None:
+        """Request headers have correct structure."""
+        key = generate_test_key()
+        client = KalshiBaseClient(
+            key_id="test-key-123",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        headers = client.request_headers("GET", "/trade-api/v2/markets")
+
+        assert "KALSHI-ACCESS-KEY" in headers
+        assert headers["KALSHI-ACCESS-KEY"] == "test-key-123"
+        assert "KALSHI-ACCESS-SIGNATURE" in headers
+        assert "KALSHI-ACCESS-TIMESTAMP" in headers
+        assert headers["Content-Type"] == "application/json"
+
+    def test_request_headers_strips_query_params(self) -> None:
+        """Request headers path strips query params for signing."""
+        key = generate_test_key()
+        client = KalshiBaseClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        # Should not raise - query params are stripped for signing
+        headers1 = client.request_headers("GET", "/api/markets")
+        headers2 = client.request_headers("GET", "/api/markets?limit=10")
+
+        assert headers1["KALSHI-ACCESS-KEY"] == headers2["KALSHI-ACCESS-KEY"]
+
+    def test_sign_pss_text(self) -> None:
+        """Can sign text with PSS."""
+        key = generate_test_key()
+        client = KalshiBaseClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        signature = client.sign_pss_text("test message")
+
+        # Signature should be base64 encoded
+        assert isinstance(signature, str)
+        assert len(signature) > 0
+        # Should be valid base64
+        import base64
+
+        base64.b64decode(signature)  # Should not raise
+
+
+class TestKalshiHttpClient:
+    """Test KalshiHttpClient initialization."""
+
+    def test_inherits_base_client(self) -> None:
+        """HttpClient inherits from BaseClient."""
+        key = generate_test_key()
+        client = KalshiHttpClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        assert isinstance(client, KalshiBaseClient)
+
+    def test_has_endpoint_urls(self) -> None:
+        """HttpClient has endpoint URL paths."""
+        key = generate_test_key()
+        client = KalshiHttpClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        assert client.exchange_url is not None
+        assert client.markets_url is not None
+        assert client.portfolio_url is not None
+        assert "exchange" in client.exchange_url
+        assert "markets" in client.markets_url
+        assert "portfolio" in client.portfolio_url
+
+    def test_host_matches_base_url(self) -> None:
+        """Host attribute matches HTTP_BASE_URL."""
+        key = generate_test_key()
+        client = KalshiHttpClient(
+            key_id="test-key",
+            private_key=key,
+            environment=Environment.DEMO,
+        )
+
+        assert client.host == client.HTTP_BASE_URL
