@@ -35,7 +35,7 @@ These implement the user's original requirements beyond core platform:
   - Implements CorrelationAnalyzer, ArbitrageDetector
   - Satisfies BUG-004 (correlation.py)
 
-- [ ] **SPEC-007**: Probability Tracking & Visualization → See `docs/_specs/SPEC-007-probability-tracking-visualization.md`
+- [x] **SPEC-007**: Probability Tracking & Visualization → See `docs/_specs/SPEC-007-probability-tracking-visualization.md`
   - Creates `src/kalshi_research/analysis/metrics.py`
   - Creates `src/kalshi_research/analysis/visualization.py`
   - Satisfies BUG-004 (metrics.py, visualization.py)
