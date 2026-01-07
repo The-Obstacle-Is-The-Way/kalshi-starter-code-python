@@ -321,3 +321,217 @@ def test_research_backtest(mock_db_cls: MagicMock) -> None:
     assert result.exit_code == 0
     # Should show some backtest output (even if placeholder)
     assert "Backtest" in result.stdout or "trades" in result.stdout.lower()
+
+
+# ==================== Portfolio-Thesis Link Tests (BUG-010) ====================
+
+
+@patch("kalshi_research.data.DatabaseManager")
+def test_portfolio_link_success(mock_db_cls: MagicMock) -> None:
+    """Test linking a position to a thesis."""
+    # Mock position
+    mock_position = MagicMock()
+    mock_position.ticker = "TEST-TICKER"
+    mock_position.thesis_id = None
+
+    # Mock async session and query execution
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_position
+
+    mock_session = AsyncMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_session.commit = AsyncMock()
+
+    # Mock session factory
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value = mock_session
+
+    # Mock db
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = AsyncMock()
+    mock_db.session_factory = mock_session_factory
+    mock_db_cls.return_value = mock_db
+
+    with patch("pathlib.Path.exists", return_value=True):
+        result = runner.invoke(app, ["portfolio", "link", "TEST-TICKER", "--thesis", "thesis-123"])
+
+    assert result.exit_code == 0
+    assert "linked" in result.stdout.lower()
+
+
+@patch("kalshi_research.data.DatabaseManager")
+def test_portfolio_link_position_not_found(mock_db_cls: MagicMock) -> None:
+    """Test linking when position doesn't exist."""
+    # Mock async session and query execution returning None
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+
+    mock_session = AsyncMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    # Mock session factory
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value = mock_session
+
+    # Mock db
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = AsyncMock()
+    mock_db.session_factory = mock_session_factory
+    mock_db_cls.return_value = mock_db
+
+    with patch("pathlib.Path.exists", return_value=True):
+        result = runner.invoke(app, ["portfolio", "link", "NONEXISTENT", "--thesis", "thesis-123"])
+
+    assert result.exit_code == 0
+    assert "not found" in result.stdout.lower() or "no open position" in result.stdout.lower()
+
+
+@patch("kalshi_research.data.DatabaseManager")
+def test_portfolio_suggest_links_with_matches(mock_db_cls: MagicMock) -> None:
+    """Test suggesting links when there are matching tickers."""
+    # Mock position without thesis
+    mock_position = MagicMock()
+    mock_position.ticker = "SENATE-2024"
+    mock_position.thesis_id = None
+
+    # Mock async session and query execution
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = [mock_position]
+
+    mock_session = AsyncMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    # Mock session factory
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value = mock_session
+
+    # Mock db
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = AsyncMock()
+    mock_db.session_factory = mock_session_factory
+    mock_db_cls.return_value = mock_db
+
+    # Mock theses data
+    thesis_data = {
+        "theses": [
+            {
+                "id": "thesis-12345678",
+                "title": "Senate Control",
+                "market_tickers": ["SENATE-2024"],
+                "status": "active",
+            }
+        ]
+    }
+    mock_file = mock_open(read_data=json.dumps(thesis_data))
+
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.open", mock_file),
+    ):
+        result = runner.invoke(app, ["portfolio", "suggest-links"])
+
+    assert result.exit_code == 0
+    assert "suggest" in result.stdout.lower() or "SENATE-2024" in result.stdout
+
+
+@patch("kalshi_research.data.DatabaseManager")
+def test_portfolio_suggest_links_no_matches(mock_db_cls: MagicMock) -> None:
+    """Test suggesting links when there are no matches."""
+    # Mock async session and query execution returning empty list
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+
+    mock_session = AsyncMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    # Mock session factory
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value = mock_session
+
+    # Mock db
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = AsyncMock()
+    mock_db.session_factory = mock_session_factory
+    mock_db_cls.return_value = mock_db
+
+    with patch("pathlib.Path.exists", return_value=False):
+        result = runner.invoke(app, ["portfolio", "suggest-links"])
+
+    assert result.exit_code == 0
+    assert "no" in result.stdout.lower() or "not found" in result.stdout.lower()
+
+
+@patch("kalshi_research.data.DatabaseManager")
+def test_research_thesis_show_with_positions(mock_db_cls: MagicMock) -> None:
+    """Test showing a thesis with linked positions."""
+    # Mock position linked to thesis
+    mock_position = MagicMock()
+    mock_position.ticker = "TEST-TICKER"
+    mock_position.side = "yes"
+    mock_position.quantity = 100
+    mock_position.avg_price_cents = 55
+    mock_position.unrealized_pnl_cents = 500
+
+    # Mock async session and query execution
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = [mock_position]
+
+    mock_session = AsyncMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    # Mock session factory
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value = mock_session
+
+    # Mock db
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = AsyncMock()
+    mock_db.session_factory = mock_session_factory
+    mock_db_cls.return_value = mock_db
+
+    # Mock thesis data
+    thesis_data = {
+        "theses": [
+            {
+                "id": "thesis-12345678",
+                "title": "Test Thesis",
+                "status": "active",
+                "your_probability": 0.7,
+                "market_probability": 0.5,
+                "confidence": 0.8,
+                "bull_case": "Bull case",
+                "bear_case": "Bear case",
+                "key_assumptions": ["Assumption 1"],
+                "invalidation_criteria": ["Criterion 1"],
+                "market_tickers": ["TEST-TICKER"],
+                "updates": [],
+            }
+        ]
+    }
+    mock_file = mock_open(read_data=json.dumps(thesis_data))
+
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.open", mock_file),
+    ):
+        result = runner.invoke(app, ["research", "thesis", "show", "thesis-1", "--with-positions"])
+
+    assert result.exit_code == 0
+    assert "Test Thesis" in result.stdout
+    # Should show position info when --with-positions is used
+    assert "position" in result.stdout.lower() or "TEST-TICKER" in result.stdout

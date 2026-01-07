@@ -93,7 +93,7 @@ Minor gaps and developer experience improvements:
   - Add `kalshi scan arbitrage` (ArbitrageDetector CLI)
   - Add `kalshi scan movers` (Price movers scanner)
 
-- [ ] **BUG-010**: Portfolio-thesis linking → See `docs/_bugs/BUG-010-missing-portfolio-link.md`
+- [x] **BUG-010**: Portfolio-thesis linking → See `docs/_bugs/BUG-010-missing-portfolio-link.md`
   - Add `kalshi portfolio link TICKER --thesis ID`
   - Add `kalshi portfolio suggest-links`
   - Add `--with-positions` flag to thesis show

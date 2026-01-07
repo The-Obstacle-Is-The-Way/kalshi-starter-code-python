@@ -1285,8 +1285,15 @@ def research_thesis_list() -> None:
 
 
 @research_thesis_app.command("show")
-def research_thesis_show(
+def research_thesis_show(  # noqa: PLR0915
     thesis_id: Annotated[str, typer.Argument(help="Thesis ID to show")],
+    with_positions: Annotated[
+        bool, typer.Option("--with-positions", help="Show linked positions")
+    ] = False,
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
 ) -> None:
     """Show details of a thesis."""
     data = _load_theses()
@@ -1328,6 +1335,59 @@ def research_thesis_show(
         console.print("\n[cyan]Updates:[/cyan]")
         for update in thesis["updates"]:
             console.print(f"  {update['timestamp']}: {update['note']}")
+
+    # Show linked positions if requested
+    if with_positions:
+        from sqlalchemy import select
+
+        from kalshi_research.data import DatabaseManager
+        from kalshi_research.portfolio import Position
+
+        async def _show_positions() -> None:
+            db = DatabaseManager(db_path)
+            try:
+                async with db.session_factory() as session:
+                    # Extract numeric ID from thesis_id
+                    numeric_id = int(thesis["id"].replace("thesis-", ""))
+
+                    query = select(Position).where(Position.thesis_id == numeric_id)
+                    result = await session.execute(query)
+                    positions = result.scalars().all()
+
+                    if not positions:
+                        console.print("\n[dim]No positions linked to this thesis.[/dim]")
+                        return
+
+                    # Display positions
+                    console.print("\n[cyan]Linked Positions:[/cyan]")
+                    pos_table = Table()
+                    pos_table.add_column("Ticker", style="cyan")
+                    pos_table.add_column("Side", style="magenta")
+                    pos_table.add_column("Qty", justify="right")
+                    pos_table.add_column("Avg Price", justify="right")
+                    pos_table.add_column("P&L", justify="right")
+
+                    for pos in positions:
+                        pnl = pos.unrealized_pnl_cents or 0
+                        pnl_str = f"${pnl / 100:.2f}"
+                        if pnl > 0:
+                            pnl_str = f"[green]+{pnl_str}[/green]"
+                        elif pnl < 0:
+                            pnl_str = f"[red]{pnl_str}[/red]"
+
+                        pos_table.add_row(
+                            pos.ticker,
+                            pos.side.upper(),
+                            str(pos.quantity),
+                            f"{pos.avg_price_cents}¢",
+                            pnl_str,
+                        )
+
+                    console.print(pos_table)
+            finally:
+                await db.close()
+
+        asyncio.run(_show_positions())
 
 
 @research_thesis_app.command("resolve")
@@ -1629,6 +1689,123 @@ def portfolio_history(
             await db.close()
 
     asyncio.run(_history())
+
+
+@portfolio_app.command("link")
+def portfolio_link(
+    ticker: Annotated[str, typer.Argument(help="Market ticker to link")],
+    thesis: Annotated[str, typer.Option("--thesis", help="Thesis ID to link to")],
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+) -> None:
+    """Link a position to a thesis."""
+    from sqlalchemy import select
+
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.portfolio import Position
+
+    async def _link() -> None:
+        db = DatabaseManager(db_path)
+        try:
+            async with db.session_factory() as session:
+                # Find open position
+                query = select(Position).where(
+                    Position.ticker == ticker, Position.closed_at.is_(None)
+                )
+                result = await session.execute(query)
+                position = result.scalar_one_or_none()
+
+                if not position:
+                    console.print(f"[yellow]No open position found for {ticker}[/yellow]")
+                    return
+
+                # Update thesis_id
+                position.thesis_id = int(thesis.replace("thesis-", ""))
+                await session.commit()
+
+                console.print(f"[green]✓[/green] Position {ticker} linked to thesis {thesis}")
+        finally:
+            await db.close()
+
+    asyncio.run(_link())
+
+
+@portfolio_app.command("suggest-links")
+def portfolio_suggest_links(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+) -> None:
+    """Suggest thesis-position links based on matching tickers."""
+    from sqlalchemy import select
+
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.portfolio import Position
+
+    async def _suggest() -> None:
+        # Load theses
+        data = _load_theses()
+        theses = data.get("theses", [])
+
+        if not theses:
+            console.print("[yellow]No theses found.[/yellow]")
+            return
+
+        # Get unlinked positions
+        db = DatabaseManager(db_path)
+        try:
+            async with db.session_factory() as session:
+                query = select(Position).where(
+                    Position.thesis_id.is_(None), Position.closed_at.is_(None)
+                )
+                result = await session.execute(query)
+                positions = result.scalars().all()
+
+                if not positions:
+                    console.print("[yellow]No unlinked positions found.[/yellow]")
+                    return
+
+                # Find matches
+                matches = []
+                for pos in positions:
+                    for thesis in theses:
+                        if pos.ticker in thesis.get("market_tickers", []):
+                            matches.append(
+                                {
+                                    "ticker": pos.ticker,
+                                    "thesis_id": thesis["id"],
+                                    "thesis_title": thesis["title"],
+                                }
+                            )
+
+                if not matches:
+                    console.print("[yellow]No matching thesis-position pairs found.[/yellow]")
+                    return
+
+                # Display suggestions
+                table = Table(title="Suggested Thesis-Position Links")
+                table.add_column("Ticker", style="cyan")
+                table.add_column("Thesis ID", style="magenta")
+                table.add_column("Thesis Title", style="white")
+
+                for match in matches:
+                    table.add_row(
+                        match["ticker"],
+                        match["thesis_id"][:8],
+                        match["thesis_title"],
+                    )
+
+                console.print(table)
+                console.print(
+                    "\n[dim]To link: kalshi portfolio link TICKER --thesis THESIS_ID[/dim]"
+                )
+        finally:
+            await db.close()
+
+    asyncio.run(_suggest())
 
 
 if __name__ == "__main__":
