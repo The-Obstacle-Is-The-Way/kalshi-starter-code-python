@@ -119,7 +119,7 @@ def test_alerts_monitor_once_exits(
     mock_market.yes_ask = 52
     mock_market.volume = 1000
 
-    async def market_gen(status=None):
+    async def market_gen(status=None, max_pages: int | None = None):
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
@@ -164,7 +164,7 @@ def test_alerts_monitor_continuous_shows_ctrl_c(
     mock_market.yes_ask = 52
     mock_market.volume = 1000
 
-    async def market_gen(status=None):
+    async def market_gen(status=None, max_pages: int | None = None):
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
@@ -205,7 +205,7 @@ def test_scan_movers_uses_probability_units(
     mock_market.title = "Test Market"
     mock_market.volume = 1000
 
-    async def market_gen(status=None):
+    async def market_gen(status=None, max_pages: int | None = None):
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
@@ -288,7 +288,7 @@ def test_scan_arbitrage_warns_when_tickers_truncated(
     m2.yes_bid = 48
     m2.yes_ask = 50
 
-    async def market_gen(status=None):
+    async def market_gen(status=None, max_pages: int | None = None):
         yield m1
         yield m2
 
