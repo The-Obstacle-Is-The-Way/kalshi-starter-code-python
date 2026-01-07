@@ -158,7 +158,7 @@ Remaining work tracked in `PROGRESS.md`.
 When ALL items in `PROGRESS.md` are checked AND all quality gates pass:
 
 ```
-<promise>KALSHI RESEARCH PLATFORM COMPLETE</promise>
+KALSHI RESEARCH PLATFORM COMPLETE
 ```
 
-**CRITICAL:** Only output this promise when it is TRUE. Do not lie to exit the loop.
+**CRITICAL:** Only output this when it is TRUE. Do not lie to exit the loop.

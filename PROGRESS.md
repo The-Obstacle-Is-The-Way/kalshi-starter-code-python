@@ -144,5 +144,5 @@ The platform is fully complete with all optional polish.
 When ALL boxes are checked AND all quality gates pass, the loop can output:
 
 ```
-<promise>KALSHI RESEARCH PLATFORM COMPLETE</promise>
+KALSHI RESEARCH PLATFORM COMPLETE
 ```

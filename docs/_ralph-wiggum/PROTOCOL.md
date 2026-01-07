@@ -124,7 +124,7 @@ This is the **brain** of the loop. Each iteration reads this to find the next ta
 When ALL boxes are checked:
 
 \`\`\`
-<promise>PROJECT COMPLETE</promise>
+PROJECT COMPLETE
 \`\`\`
 ```
 
@@ -196,7 +196,7 @@ uv run pytest tests/ -v       # Tests
 When ALL items checked AND quality gates pass:
 
 \`\`\`
-<promise>PROJECT COMPLETE</promise>
+PROJECT COMPLETE
 \`\`\`
 
 **CRITICAL:** Only output this when TRUE. Do not lie to exit.
@@ -339,6 +339,29 @@ Your loop should stop when:
 3. **Manual intervention** - Ctrl+C when you're satisfied
 
 **The completion phrase is a convenience, not a guarantee.** Tests/linters are your real verification.
+
+**IMPORTANT: Plain text vs XML tags for completion phrases:**
+
+The Claude Code plugin (`/ralph-loop`) uses `<promise>` XML tags because its stop hook parses for that specific format. However, for external bash loops, **use plain text completion phrases**:
+
+- **External loop**: `grep -q "PROJECT COMPLETE"` in your bash script
+- **Plugin**: The plugin internally looks for `<promise>PROJECT COMPLETE</promise>`
+
+**Why avoid XML tags in external loops:**
+1. **LLM bias** - XML-like tags can trigger unintended model behavior
+2. **Reward hacking** - The model may output tags prematurely to "satisfy" the loop
+3. **Simplicity** - Plain text is cleaner and grep-friendly
+4. **No parser needed** - External loops use simple grep, not XML parsing
+
+If you're using an external bash loop (Option A or B above), your prompt should specify:
+```
+When complete, output: PROJECT COMPLETE
+```
+
+NOT:
+```
+When complete, output: <promise>PROJECT COMPLETE</promise>
+```
 
 ### Safety Philosophy
 
