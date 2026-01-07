@@ -35,6 +35,7 @@ class TestMarketModel:
     def test_market_status_enum_parsing(self) -> None:
         """Status string correctly maps to enum."""
         for status_str, expected_enum in [
+            ("initialized", MarketStatus.INITIALIZED),
             ("active", MarketStatus.ACTIVE),
             ("closed", MarketStatus.CLOSED),
             ("determined", MarketStatus.DETERMINED),

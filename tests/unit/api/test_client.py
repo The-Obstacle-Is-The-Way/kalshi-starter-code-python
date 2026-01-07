@@ -276,6 +276,20 @@ class TestKalshiPublicClient:
         assert len(events) == 1
         assert events[0].event_ticker == "KXBTC-25JAN"
 
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_events_caps_limit_to_200(self) -> None:
+        """Regression for BUG-011: /events rejects limit > 200."""
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/events").mock(
+            return_value=Response(200, json={"events": []})
+        )
+
+        async with KalshiPublicClient() as client:
+            await client.get_events(limit=1000)
+
+        assert route.called
+        assert route.calls[0].request.url.params.get("limit") == "200"
+
 
 class TestMarketModelValidation:
     """Test Market model validation with real API-like data."""

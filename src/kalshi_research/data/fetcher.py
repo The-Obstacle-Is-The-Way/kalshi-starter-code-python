@@ -125,20 +125,20 @@ class DataFetcher:
             Number of events synced
         """
         logger.info("Starting event sync")
-        # Events API max limit is 200 (will be capped in client)
-        events = await self.client.get_events(limit=200)
+        count = 0
 
         async with self._db.session_factory() as session:
             repo = EventRepository(session)
 
-            for api_event in events:
+            async for api_event in self.client.get_all_events(limit=200):
                 db_event = self._api_event_to_db(api_event)
                 await repo.upsert(db_event)
+                count += 1
 
             await repo.commit()
 
-        logger.info("Synced %d events", len(events))
-        return len(events)
+        logger.info("Synced %d events", count)
+        return count
 
     async def sync_markets(self, status: str | None = None) -> int:
         """

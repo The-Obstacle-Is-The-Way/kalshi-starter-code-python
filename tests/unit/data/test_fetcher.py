@@ -39,7 +39,10 @@ async def test_sync_events(data_fetcher, mock_client, mock_db):
     mock_event.title = "Test Event"
     mock_event.category = "Test"
 
-    mock_client.get_events.return_value = [mock_event]
+    async def event_gen(limit: int = 200):
+        yield mock_event
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
 
     # Mock repository
     with patch("kalshi_research.data.fetcher.EventRepository") as MockRepo:
