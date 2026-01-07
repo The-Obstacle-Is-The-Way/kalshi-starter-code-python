@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -231,7 +232,7 @@ class TestTradeModel:
 
         # Should fail on duplicate kalshi_trade_id
         db_session.add(trade2)
-        with pytest.raises(Exception):  # IntegrityError
+        with pytest.raises(IntegrityError):
             await db_session.commit()
 
     async def test_query_trades_by_ticker(self, db_session: AsyncSession):

@@ -37,11 +37,11 @@ class PortfolioSyncer:
             Number of positions synced
         """
         # TODO: Implement when Kalshi API positions endpoint is available
-        # positions = await self.client.get_positions()
+        # positions = await self.client.get_positions()  # noqa: ERA001
         # Update local database with positions
         return 0
 
-    async def sync_trades(self, since: datetime | None = None) -> int:
+    async def sync_trades(self, since: datetime | None = None) -> int:  # noqa: ARG002
         """
         Fetch trade history from Kalshi API and update database.
 
@@ -52,7 +52,7 @@ class PortfolioSyncer:
             Number of trades synced
         """
         # TODO: Implement when Kalshi API fills endpoint is available
-        # trades = await self.client.get_fills(min_ts=since)
+        # trades = await self.client.get_fills(min_ts=since)  # noqa: ERA001
         # Insert new trades into database
         return 0
 

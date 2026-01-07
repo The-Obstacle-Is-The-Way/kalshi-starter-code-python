@@ -78,7 +78,7 @@ These specs complete the full vision from the original requirements:
   - Add `kalshi research` CLI commands (thesis, backtest)
   - Expose all existing modules through CLI
 
-- [ ] **SPEC-011**: Manual Trading Support → See `docs/_specs/SPEC-011-manual-trading-support.md`
+- [x] **SPEC-011**: Manual Trading Support → See `docs/_specs/SPEC-011-manual-trading-support.md`
   - Add `kalshi portfolio` CLI commands (sync, positions, pnl, balance, history)
   - Track positions and P&L from actual trades (read-only, no automation)
   - Link theses to positions ("Did my research play out?")

@@ -1,9 +1,12 @@
 # Kalshi Research Platform - Ralph Wiggum Loop Prompt
 
-You are completing a Kalshi prediction market research platform. This prompt is designed for headless execution via:
+You are completing a Kalshi prediction market research platform. This prompt runs headless via:
 
 ```bash
-while true; do claude -p "$(cat PROMPT.md)" --allowedTools "Bash,Read,Write,Edit,Glob,Grep"; done
+while true; do
+  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"
+  sleep 2
+done
 ```
 
 ## First Action: Read State

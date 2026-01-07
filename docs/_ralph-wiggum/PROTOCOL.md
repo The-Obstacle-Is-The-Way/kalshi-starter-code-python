@@ -130,7 +130,7 @@ When ALL boxes are checked:
 
 ### Step 3: Create Prompt File (PROMPT.md)
 
-This is fed to Claude each iteration (external loop), or used as the input prompt for `/ralph-loop` (plugin loop). Key elements:
+This is fed to Claude each iteration. Key elements:
 
 ```markdown
 # Project - Ralph Wiggum Loop Prompt
@@ -139,7 +139,7 @@ You are completing [PROJECT]. This prompt runs headless via:
 
 \`\`\`bash
 while true; do
-  cat PROMPT.md | claude -p --allowedTools "Read Write Edit Glob Grep Bash(git* uv* rg* cat* ls* mkdir*)"
+  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"
   sleep 2
 done
 \`\`\`
@@ -237,90 +237,132 @@ tmux attach -t ralph
 
 Inside tmux, choose ONE of these approaches:
 
-#### Option A (Recommended): Claude Code `ralph-loop` plugin (Stop hook, in-session)
+#### Option A (Recommended): Simple YOLO Loop
 
-This avoids external bash loops and provides built-in iteration limits.
-
-1. Start Claude Code normally:
-   ```bash
-   cd /path/to/project
-   git checkout ralph-wiggum-loop
-   claude
-   ```
-
-2. Install the plugin (once per environment):
-   ```
-   /plugin install ralph-loop@claude-plugin-directory
-   ```
-
-3. Start the loop in your session:
-   ```
-   /ralph-loop "See PROMPT.md. Follow it exactly." --max-iterations 20 --completion-promise "PROJECT COMPLETE"
-   ```
-
-The loop advances when Claude tries to exit: the Stop hook blocks the exit and re-feeds the same prompt for the next iteration. Plugin state lives in `.claude/ralph-loop.local.md` (removed by `/cancel-ralph`).
-
-To cancel:
-```
-/cancel-ralph
-```
-
-#### Option B: External bash loop (fresh `claude -p` process each iteration)
-
-This matches the “run Claude headlessly in a loop” style used in many writeups.
+The original Huntley approach - simple, effective, works anywhere:
 
 ```bash
 # Navigate to project
 cd /path/to/project
-
-# Ensure on ralph branch
 git checkout ralph-wiggum-loop
 
-# Recommended: add a hard safety limit
-MAX_ITERS=50
-PROMISE="PROJECT COMPLETE"
-
-mkdir -p .claude
-for i in $(seq 1 "$MAX_ITERS"); do
-  echo "=== Ralph iteration $i/$MAX_ITERS ===" | tee -a .claude/ralph.log
-  cat PROMPT.md | claude -p \
-    --output-format text \
-    --allowedTools "Read Write Edit Glob Grep Bash(git* uv* rg* cat* ls* mkdir*)" \
-    --disallowedTools "Bash(rm* sudo* pkill* kill* shutdown* reboot* dd* mkfs*)" \
-    | tee -a .claude/ralph.log
-
-  if grep -Fq "<promise>${PROMISE}</promise>" .claude/ralph.log; then
-    echo "✅ Detected completion promise: <promise>${PROMISE}</promise>" | tee -a .claude/ralph.log
-    break
-  fi
-
+# THE CLASSIC RALPH LOOP
+while true; do
+  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"
   sleep 2
 done
 ```
 
-**Claude Code CLI flags (verified via `claude --help`, Claude Code v0.2.115):**
-- `-p, --print` prints the response and exits (required for headless loops).
-- `--output-format text|json|stream-json` works only with `--print` and enables machine parsing.
-- `--allowedTools` / `--disallowedTools` are the intended non-interactive tool allow/deny lists (supports `Bash(git*)`-style patterns).
-- `--system-prompt` can harden guardrails (only works with `--print`).
-- `--dangerously-skip-permissions` exists, but the CLI currently states it “Only works in Docker containers with no internet access.” Treat it as non-portable.
+**With iteration limit (recommended):**
 
-### Stop Conditions (Don’t run forever)
+```bash
+MAX=50
+for i in $(seq 1 $MAX); do
+  echo "=== Iteration $i/$MAX ==="
+  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)" | tee -a .claude/ralph.log
+  grep -q "PROJECT COMPLETE" .claude/ralph.log && { echo "✅ Done!"; break; }
+  sleep 2
+done
+```
 
-- Always set an iteration cap: `--max-iterations` (plugin) or `MAX_ITERS` (bash loop).
-- Treat `<promise>...</promise>` as a mechanical stop signal, not proof of correctness; require tests/linters/type checks to pass before allowing the promise.
-- Keep the promise text short, unique, and used only in the final “Completion” section to avoid accidental matches.
+#### Option B: Granular Permissions (More Conservative)
 
-### Tool Permission Hardening
+If you want finer control over what Claude can do:
 
-- Prefer `--allowedTools` with Bash patterns (e.g., `Bash(git* uv* rg* cat* ls*)`) and explicitly deny destructive patterns via `--disallowedTools` (e.g., `Bash(rm* sudo* pkill* kill* shutdown* reboot* dd* mkfs*)`).
-- Avoid giving broad execution primitives (`python`, `node`) unless you need them; prefer project runners like `uv run ...`.
-- Real-world gotcha: autonomous loops have been observed to self-terminate via `pkill` when “stuck” — disallow process-kill tools unless you truly want that behavior.
+```bash
+MAX=50
+for i in $(seq 1 $MAX); do
+  echo "=== Iteration $i/$MAX ==="
+  claude -p "$(cat PROMPT.md)" \
+    --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
+    | tee -a .claude/ralph.log
+  grep -q "PROJECT COMPLETE" .claude/ralph.log && break
+  sleep 2
+done
+```
 
-### Rate Limits & Recovery
+**Even more restrictive (specific bash commands only):**
 
-- Add `sleep` and consider exponential backoff when you see rate-limit errors.
-- If you see the same failing output repeat N iterations, stop the loop and revise the prompt/spec instead of burning more iterations.
+```bash
+claude -p "$(cat PROMPT.md)" \
+  --allowedTools "Read,Write,Edit,Glob,Grep,Bash(git:*),Bash(uv:*),Bash(rg:*)"
+```
+
+#### Option C: Claude Code Plugin (In-Session)
+
+If you prefer the official plugin approach:
+
+```bash
+cd /path/to/project
+git checkout ralph-wiggum-loop
+claude  # Start interactive session
+```
+
+Then inside Claude Code:
+```
+/ralph-loop "See PROMPT.md. Follow it exactly." --max-iterations 20 --completion-promise "PROJECT COMPLETE"
+```
+
+To cancel: `/cancel-ralph`
+
+**Note:** Plugin state lives in `.claude/ralph-loop.local.md`.
+
+---
+
+### Claude Code CLI Reference
+
+**Verified from [official docs](https://code.claude.com/docs/en/headless):**
+
+| Flag | Description |
+|------|-------------|
+| `-p, --print` | Run non-interactively (headless mode) |
+| `--dangerously-skip-permissions` | Skip ALL permission prompts (YOLO mode) |
+| `--allowedTools "Read,Edit,Bash"` | Auto-approve specific tools |
+| `--allowedTools "Bash(git:*)"` | Pattern match specific commands |
+| `--disallowedTools "Bash(rm:*)"` | Block specific tools/commands |
+| `--output-format text\|json\|stream-json` | Control output format |
+| `--continue` | Continue most recent conversation |
+| `--resume <session_id>` | Resume specific session |
+| `--append-system-prompt "..."` | Add to system prompt |
+
+**About `--dangerously-skip-permissions`:**
+- Works ANYWHERE (not just Docker) - the Docker recommendation is for **safety**, not functionality
+- Anthropic recommends Docker isolation to prevent data loss/exfiltration
+- For Ralph loops in a **sandboxed git branch**, this is acceptable risk
+- Your safety net is `git reset --hard` or deleting the branch
+
+### Stop Conditions
+
+Your loop should stop when:
+1. **Iteration limit reached** - Always set `MAX` in your loop
+2. **Completion detected** - `grep` for your completion phrase in the log
+3. **Manual intervention** - Ctrl+C when you're satisfied
+
+**The completion phrase is a convenience, not a guarantee.** Tests/linters are your real verification.
+
+### Safety Philosophy
+
+**Your real safety net is the sandboxed branch:**
+- All work happens on `ralph-wiggum-loop` (or similar)
+- Main branch is untouched
+- You can always `git checkout main && git branch -D ralph-wiggum-loop`
+- Audit commits before merging
+
+**Tool restrictions are optional paranoia.** If you're in a sandboxed branch:
+- `--dangerously-skip-permissions` is fine
+- Blocking `rm` would break legitimate cleanup operations
+- The worst case is you delete the branch and start over
+
+**When to use granular permissions:**
+- Running on production systems (don't do Ralph on prod)
+- Shared environments where mistakes affect others
+- When you don't trust your prompt/specs
+
+### Rate Limits
+
+- The `sleep 2` between iterations helps avoid rate limits
+- If you hit limits, increase sleep or add exponential backoff
+- If the same failure repeats 3+ times, stop and fix the prompt
 
 ---
 
@@ -407,25 +449,23 @@ git revert <bad-commit-hash>
 
 ### DO
 
-- ✅ Always sandbox in dedicated branch
+- ✅ Always sandbox in dedicated branch (this is your real safety)
 - ✅ Use detailed specs for each task
 - ✅ Require atomic commits
 - ✅ Set clear completion criteria
-- ✅ Prefer iteration limits (`--max-iterations` / `MAX_ITERS`)
-- ✅ Keep the prompt short and stable
-- ✅ Restrict tool permissions (especially `Bash(...)`)
+- ✅ Set iteration limits (`MAX=50` or similar)
+- ✅ Keep the prompt focused and stable
 - ✅ Monitor periodically
 - ✅ Audit before merging
 
 ### DON'T
 
-- ❌ Run on main branch
-- ❌ Skip the state file
-- ❌ Allow multi-task iterations
-- ❌ Commit broken code repeatedly (future iterations compound failures)
-- ❌ Give unrestricted Bash (agents will eventually do something unsafe)
+- ❌ Run on main branch (use a sandbox branch!)
+- ❌ Skip the state file (PROGRESS.md is the brain)
+- ❌ Allow multi-task iterations (one task = one iteration)
 - ❌ Trust without auditing
 - ❌ Use vague task descriptions
+- ❌ Run without iteration limits (infinite loops burn money)
 
 ### Prompt Tuning Tips
 
@@ -505,9 +545,15 @@ tmux attach -t ralph
 
 ### Permission Prompts Block Autonomy
 
-1. Prefer `/ralph-loop` (plugin loop) or use `--allowedTools` / `--disallowedTools`.
-2. Accept Claude Code trust prompts interactively once if required (then re-run headless).
-3. Do not rely on `--dangerously-skip-permissions` unless you’re in an environment where it’s documented to work.
+Use `--dangerously-skip-permissions` to bypass all prompts:
+```bash
+claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"
+```
+
+Or use `--allowedTools` for granular control:
+```bash
+claude -p "$(cat PROMPT.md)" --allowedTools "Read,Write,Edit,Bash"
+```
 
 ### Quality Gates Failing
 
@@ -543,42 +589,47 @@ git rebase --continue
 ## Quick Start Checklist
 
 ```bash
-# 1. Branch (recommended: work in a sandbox branch)
-git checkout -b ralph-wiggum-loop  # or: git checkout -b dev && git checkout -b ralph-wiggum-loop
+# 1. Create sandbox branch
+git checkout main && git pull
+git checkout -b ralph-wiggum-loop
 
 # 2. Create PROGRESS.md with [ ] tasks
 
 # 3. Create PROMPT.md with instructions
 
-# 4. Create spec docs for each task
+# 4. Create spec docs for each task (docs/_specs/, docs/_bugs/)
 
 # 5. Start tmux
 tmux new -s ralph
 
-# 6a. Recommended: use Claude Code plugin (run `claude`, then inside it:)
-# /plugin install ralph-loop@claude-plugin-directory
-# /ralph-loop "See PROMPT.md. Follow it exactly." --max-iterations 20 --completion-promise "PROJECT COMPLETE"
+# 6. Run the loop (pick one):
 
-# 6b. Or run an external loop (fresh process each iteration, with a limit)
-MAX_ITERS=50 PROMISE="PROJECT COMPLETE" bash -lc '
-  mkdir -p .claude
-  for i in $(seq 1 "$MAX_ITERS"); do
-    cat PROMPT.md | claude -p --allowedTools "Read Write Edit Glob Grep Bash(git* uv* rg* cat* ls* mkdir*)" --disallowedTools "Bash(rm* sudo* pkill* kill* shutdown* reboot* dd* mkfs*)" | tee -a .claude/ralph.log
-    grep -Fq "<promise>${PROMISE}</promise>" .claude/ralph.log && break
-    sleep 2
-  done
-'
+# Option A: Simple YOLO (recommended)
+MAX=50; for i in $(seq 1 $MAX); do
+  echo "=== Iteration $i/$MAX ==="
+  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)" | tee -a .claude/ralph.log
+  grep -q "PROJECT COMPLETE" .claude/ralph.log && break
+  sleep 2
+done
+
+# Option B: Granular permissions
+MAX=50; for i in $(seq 1 $MAX); do
+  claude -p "$(cat PROMPT.md)" --allowedTools "Read,Write,Edit,Bash" | tee -a .claude/ralph.log
+  grep -q "PROJECT COMPLETE" .claude/ralph.log && break
+  sleep 2
+done
+
+# Option C: Plugin (inside claude interactive session)
+# /ralph-loop "See PROMPT.md" --max-iterations 20 --completion-promise "PROJECT COMPLETE"
 
 # 7. Monitor in another pane
 watch -n 5 'git log --oneline -10'
 
 # 8. Audit when done
-git log main..ralph-wiggum-loop
+git log main..ralph-wiggum-loop --oneline
+git diff main..ralph-wiggum-loop --stat
 
-# 9. Merge if good (prefer PR review)
-# If using dev:
-#   git checkout dev && git merge ralph-wiggum-loop
-#   git checkout main && git merge dev
-# Otherwise:
-#   PR: ralph-wiggum-loop -> main
+# 9. Merge if good
+git checkout main && git merge ralph-wiggum-loop
+# Or open PR for review
 ```

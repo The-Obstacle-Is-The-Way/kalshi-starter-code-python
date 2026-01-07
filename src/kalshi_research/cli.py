@@ -981,7 +981,7 @@ def portfolio_positions(
     async def _positions() -> None:
         db = DatabaseManager(db_path)
         try:
-            async with db.session() as session:
+            async with db.session_factory() as session:
                 # Build query
                 query = select(Position).where(Position.closed_at.is_(None))
                 if ticker:
@@ -1035,7 +1035,7 @@ def portfolio_positions(
 
 
 @portfolio_app.command("pnl")
-def portfolio_pnl(
+def portfolio_pnl(  # noqa: PLR0915
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
@@ -1054,7 +1054,7 @@ def portfolio_pnl(
     async def _pnl() -> None:
         db = DatabaseManager(db_path)
         try:
-            async with db.session() as session:
+            async with db.session_factory() as session:
                 # Get positions
                 pos_query = select(Position)
                 if ticker:
@@ -1151,7 +1151,7 @@ def portfolio_history(
     async def _history() -> None:
         db = DatabaseManager(db_path)
         try:
-            async with db.session() as session:
+            async with db.session_factory() as session:
                 # Build query
                 query = select(Trade).order_by(Trade.executed_at.desc()).limit(limit)
                 if ticker:

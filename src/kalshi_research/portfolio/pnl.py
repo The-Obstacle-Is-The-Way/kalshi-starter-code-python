@@ -80,7 +80,7 @@ class PnLCalculator:
 
                         # Update position
                         position_qty -= trade.quantity
-                        position_cost -= avg_cost * trade.quantity
+                        position_cost -= int(avg_cost * trade.quantity)
 
         return total_realized
 
@@ -124,9 +124,7 @@ class PnLCalculator:
         win_rate = winning_trades / total_trades if total_trades > 0 else 0.0
         avg_win = sum(winning) // len(winning) if winning else 0
         avg_loss = abs(sum(losing) // len(losing)) if losing else 0
-        profit_factor = (
-            abs(sum(winning) / sum(losing)) if losing and sum(losing) != 0 else 0.0
-        )
+        profit_factor = abs(sum(winning) / sum(losing)) if losing and sum(losing) != 0 else 0.0
 
         return PnLSummary(
             unrealized_pnl_cents=unrealized,
@@ -172,6 +170,6 @@ class PnLCalculator:
                         closed_pnl.append(pnl)
 
                         position_qty -= trade.quantity
-                        position_cost -= avg_cost * trade.quantity
+                        position_cost -= int(avg_cost * trade.quantity)
 
         return closed_pnl
