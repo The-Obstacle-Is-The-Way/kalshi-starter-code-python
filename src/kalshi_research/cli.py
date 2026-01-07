@@ -1119,8 +1119,12 @@ def portfolio_pnl(
 @portfolio_app.command("balance")
 def portfolio_balance() -> None:
     """View account balance."""
-    console.print("[yellow]⚠[/yellow] Account balance requires authentication (not yet implemented)")
-    console.print("[dim]Set KALSHI_API_KEY and KALSHI_PRIVATE_KEY_PATH to enable balance check[/dim]")
+    console.print(
+        "[yellow]⚠[/yellow] Account balance requires authentication (not yet implemented)"
+    )
+    console.print(
+        "[dim]Set KALSHI_API_KEY and KALSHI_PRIVATE_KEY_PATH to enable balance check[/dim]"
+    )
 
 
 @portfolio_app.command("history")
