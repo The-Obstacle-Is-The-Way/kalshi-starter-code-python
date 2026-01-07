@@ -2,8 +2,6 @@
 
 from datetime import UTC, datetime
 
-import pytest
-
 from kalshi_research.portfolio.models import Position, Trade
 from kalshi_research.portfolio.pnl import PnLCalculator, PnLSummary
 

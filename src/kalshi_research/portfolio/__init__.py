@@ -5,10 +5,10 @@ from kalshi_research.portfolio.pnl import PnLCalculator, PnLSummary
 from kalshi_research.portfolio.syncer import PortfolioSyncer, SyncResult
 
 __all__ = [
-    "Position",
-    "Trade",
     "PnLCalculator",
     "PnLSummary",
     "PortfolioSyncer",
+    "Position",
     "SyncResult",
+    "Trade",
 ]

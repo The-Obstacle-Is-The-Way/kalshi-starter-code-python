@@ -7,7 +7,6 @@ from datetime import datetime
 
 from kalshi_research.api.client import KalshiClient
 from kalshi_research.data.database import DatabaseManager
-from kalshi_research.portfolio.models import Position, Trade
 
 
 @dataclass

@@ -11,7 +11,7 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -39,6 +39,9 @@ research_app = typer.Typer(help="Research and thesis tracking commands.")
 research_thesis_app = typer.Typer(help="Thesis management commands.")
 research_app.add_typer(research_thesis_app, name="thesis")
 app.add_typer(research_app, name="research")
+
+portfolio_app = typer.Typer(help="Portfolio tracking and P&L commands.")
+app.add_typer(portfolio_app, name="portfolio")
 
 console = Console()
 
@@ -946,6 +949,247 @@ def research_backtest(
     table.add_row("Sharpe Ratio", "1.5")
 
     console.print(table)
+
+
+# ==================== Portfolio Commands ====================
+
+
+@portfolio_app.command("sync")
+def portfolio_sync() -> None:
+    """Sync positions and trades from Kalshi API."""
+    console.print("[yellow]⚠[/yellow] Portfolio sync requires authentication (not yet implemented)")
+    console.print("[dim]Set KALSHI_API_KEY and KALSHI_PRIVATE_KEY_PATH to enable sync[/dim]")
+
+
+@portfolio_app.command("positions")
+def portfolio_positions(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+    ticker: Annotated[
+        str | None,
+        typer.Option("--ticker", "-t", help="Filter by specific ticker."),
+    ] = None,
+) -> None:
+    """View current positions."""
+    from sqlalchemy import select
+
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.portfolio import Position
+
+    async def _positions() -> None:
+        db = DatabaseManager(db_path)
+        try:
+            async with db.session() as session:
+                # Build query
+                query = select(Position).where(Position.closed_at.is_(None))
+                if ticker:
+                    query = query.where(Position.ticker == ticker)
+
+                result = await session.execute(query)
+                positions = result.scalars().all()
+
+                if not positions:
+                    console.print("[yellow]No open positions found[/yellow]")
+                    return
+
+                # Display positions table
+                table = Table(title="Current Positions", show_header=True)
+                table.add_column("Ticker", style="cyan")
+                table.add_column("Side", style="magenta")
+                table.add_column("Qty", justify="right")
+                table.add_column("Avg Price", justify="right")
+                table.add_column("Current", justify="right")
+                table.add_column("Unrealized P&L", justify="right")
+
+                total_unrealized = 0
+                for pos in positions:
+                    avg_price = f"{pos.avg_price_cents}¢"
+                    current = f"{pos.current_price_cents}¢" if pos.current_price_cents else "-"
+
+                    unrealized = pos.unrealized_pnl_cents or 0
+                    total_unrealized += unrealized
+
+                    pnl_str = f"${unrealized / 100:.2f}"
+                    if unrealized > 0:
+                        pnl_str = f"[green]+{pnl_str}[/green]"
+                    elif unrealized < 0:
+                        pnl_str = f"[red]{pnl_str}[/red]"
+
+                    table.add_row(
+                        pos.ticker,
+                        pos.side.upper(),
+                        str(pos.quantity),
+                        avg_price,
+                        current,
+                        pnl_str,
+                    )
+
+                console.print(table)
+                console.print(f"\nTotal Unrealized P&L: ${total_unrealized / 100:.2f}")
+        finally:
+            await db.close()
+
+    asyncio.run(_positions())
+
+
+@portfolio_app.command("pnl")
+def portfolio_pnl(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+    ticker: Annotated[
+        str | None,
+        typer.Option("--ticker", "-t", help="Filter by specific ticker."),
+    ] = None,
+) -> None:
+    """View profit & loss summary."""
+    from sqlalchemy import select
+
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.portfolio import PnLCalculator, Position, Trade
+
+    async def _pnl() -> None:
+        db = DatabaseManager(db_path)
+        try:
+            async with db.session() as session:
+                # Get positions
+                pos_query = select(Position)
+                if ticker:
+                    pos_query = pos_query.where(Position.ticker == ticker)
+
+                pos_result = await session.execute(pos_query)
+                positions = list(pos_result.scalars().all())
+
+                # Get trades
+                trade_query = select(Trade)
+                if ticker:
+                    trade_query = trade_query.where(Trade.ticker == ticker)
+
+                trade_result = await session.execute(trade_query)
+                trades = list(trade_result.scalars().all())
+
+                # Calculate P&L
+                calculator = PnLCalculator()
+                summary = calculator.calculate_summary_with_trades(positions, trades)
+
+                # Display summary
+                table = Table(title="P&L Summary (All Time)", show_header=False)
+                table.add_column("Metric", style="cyan")
+                table.add_column("Value", justify="right")
+
+                unrealized_str = f"${summary.unrealized_pnl_cents / 100:.2f}"
+                realized_str = f"${summary.realized_pnl_cents / 100:.2f}"
+                total_str = f"${summary.total_pnl_cents / 100:.2f}"
+
+                if summary.unrealized_pnl_cents > 0:
+                    unrealized_str = f"[green]+{unrealized_str}[/green]"
+                elif summary.unrealized_pnl_cents < 0:
+                    unrealized_str = f"[red]{unrealized_str}[/red]"
+
+                if summary.realized_pnl_cents > 0:
+                    realized_str = f"[green]+{realized_str}[/green]"
+                elif summary.realized_pnl_cents < 0:
+                    realized_str = f"[red]{realized_str}[/red]"
+
+                if summary.total_pnl_cents > 0:
+                    total_str = f"[green]+{total_str}[/green]"
+                elif summary.total_pnl_cents < 0:
+                    total_str = f"[red]{total_str}[/red]"
+
+                table.add_row("Realized P&L:", realized_str)
+                table.add_row("Unrealized P&L:", unrealized_str)
+                table.add_row("Total P&L:", total_str)
+                table.add_row("", "")
+                table.add_row("Total Trades:", str(summary.total_trades))
+                table.add_row("Win Rate:", f"{summary.win_rate * 100:.1f}%")
+                table.add_row("Avg Win:", f"${summary.avg_win_cents / 100:.2f}")
+                table.add_row("Avg Loss:", f"${summary.avg_loss_cents / 100:.2f}")
+                table.add_row("Profit Factor:", f"{summary.profit_factor:.2f}")
+
+                console.print(table)
+        finally:
+            await db.close()
+
+    asyncio.run(_pnl())
+
+
+@portfolio_app.command("balance")
+def portfolio_balance() -> None:
+    """View account balance."""
+    console.print("[yellow]⚠[/yellow] Account balance requires authentication (not yet implemented)")
+    console.print("[dim]Set KALSHI_API_KEY and KALSHI_PRIVATE_KEY_PATH to enable balance check[/dim]")
+
+
+@portfolio_app.command("history")
+def portfolio_history(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+    limit: Annotated[
+        int,
+        typer.Option("--limit", "-n", help="Number of trades to show."),
+    ] = 20,
+    ticker: Annotated[
+        str | None,
+        typer.Option("--ticker", "-t", help="Filter by specific ticker."),
+    ] = None,
+) -> None:
+    """View trade history."""
+    from sqlalchemy import select
+
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.portfolio import Trade
+
+    async def _history() -> None:
+        db = DatabaseManager(db_path)
+        try:
+            async with db.session() as session:
+                # Build query
+                query = select(Trade).order_by(Trade.executed_at.desc()).limit(limit)
+                if ticker:
+                    query = query.where(Trade.ticker == ticker)
+
+                result = await session.execute(query)
+                trades = result.scalars().all()
+
+                if not trades:
+                    console.print("[yellow]No trades found[/yellow]")
+                    return
+
+                # Display trades table
+                table = Table(title=f"Trade History (Last {limit})", show_header=True)
+                table.add_column("Date", style="dim")
+                table.add_column("Ticker", style="cyan")
+                table.add_column("Side", style="magenta")
+                table.add_column("Action", style="yellow")
+                table.add_column("Qty", justify="right")
+                table.add_column("Price", justify="right")
+                table.add_column("Total", justify="right")
+
+                for trade in trades:
+                    date_str = trade.executed_at.strftime("%Y-%m-%d %H:%M")
+                    price_str = f"{trade.price_cents}¢"
+                    total_str = f"${trade.total_cost_cents / 100:.2f}"
+
+                    table.add_row(
+                        date_str,
+                        trade.ticker,
+                        trade.side.upper(),
+                        trade.action.upper(),
+                        str(trade.quantity),
+                        price_str,
+                        total_str,
+                    )
+
+                console.print(table)
+        finally:
+            await db.close()
+
+    asyncio.run(_history())
 
 
 if __name__ == "__main__":
