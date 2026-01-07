@@ -1,0 +1,9 @@
+# mise.toml - Version Management
+# Install mise: https://mise.jdx.dev/getting-started.html
+
+[tools]
+python = "3.12"
+
+[env]
+PYTHONDONTWRITEBYTECODE = "1"
+PYTHONUNBUFFERED = "1"

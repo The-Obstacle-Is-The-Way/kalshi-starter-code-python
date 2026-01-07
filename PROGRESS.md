@@ -98,7 +98,7 @@ Minor gaps and developer experience improvements:
   - Add `kalshi portfolio suggest-links`
   - Add `--with-positions` flag to thesis show
 
-- [ ] **SPEC-012**: Developer Experience → See `docs/_specs/SPEC-012-developer-experience.md`
+- [x] **SPEC-012**: Developer Experience → See `docs/_specs/SPEC-012-developer-experience.md`
   - Create Makefile with modern 2026 commands
   - Add VS Code tasks.json (optional)
   - Add CLI quick reference card
