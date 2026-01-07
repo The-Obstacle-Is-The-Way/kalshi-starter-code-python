@@ -30,7 +30,7 @@ These implement the user's original requirements beyond core platform:
   - Implements AlertCondition, AlertMonitor, Notifiers
   - Satisfies BUG-006 ("notify me when conditions met")
 
-- [ ] **SPEC-006**: Event Correlation Analysis → See `docs/_specs/SPEC-006-event-correlation-analysis.md`
+- [x] **SPEC-006**: Event Correlation Analysis → See `docs/_specs/SPEC-006-event-correlation-analysis.md`
   - Creates `src/kalshi_research/analysis/correlation.py`
   - Implements CorrelationAnalyzer, ArbitrageDetector
   - Satisfies BUG-004 (correlation.py)
