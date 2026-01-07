@@ -2,21 +2,21 @@
 
 **Date:** 2026-01-07
 **Auditor:** Codex CLI (GPT-5.2)
-**Verdict:** **PASS (CI-LIKE GATES GREEN) — 1 follow-up bug open (P2)**
+**Verdict:** **PASS (CI-LIKE GATES GREEN) — no follow-up bugs open**
 
 ---
 
 ## Executive Summary
 
-The platform is stable and test-gated. Linting, formatting, strict mypy, and the full test suite pass with ≥90% line coverage.
+The platform is stable and test-gated. Linting, formatting, strict mypy, and the fast local test suite are green.
 
 **Quality Gates (run):**
 - `uv run ruff check .` ✅
 - `uv run ruff format --check .` ✅
-- `uv run mypy src/` ✅
-- `uv run pytest --cov=src` ✅ → `401 passed, 6 skipped`, **Coverage: 90%**
+- `uv run mypy src/ --strict` ✅
+- `uv run pytest -m "not integration and not slow"` ✅ → `398 passed, 34 deselected`
 
-**Note:** Live Kalshi API tests are skipped unless `KALSHI_RUN_LIVE_API=1`.
+**Note:** Integration tests are excluded from the fast local suite.
 
 ---
 
@@ -32,7 +32,6 @@ The platform is stable and test-gated. Linting, formatting, strict mypy, and the
 
 ## Remaining Risks / Follow-Ups
 
-- **BUG-025 (P2, Open):** Portfolio positions do not compute cost basis (`avg_price_cents`) or mark price (`current_price_cents`), so unrealized P&L remains incomplete.
 - **Live API drift:** Even with strong unit/integration coverage, real API responses can change; keep `tests/integration/api/test_public_api_live.py` runnable in a credentials-enabled environment.
 
 ---

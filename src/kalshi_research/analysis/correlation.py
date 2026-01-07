@@ -20,6 +20,27 @@ from kalshi_research.api.models import Market  # noqa: TC001
 from kalshi_research.data.models import PriceSnapshot  # noqa: TC001
 
 
+def _is_priced(market: Market) -> bool:
+    """
+    Check if a market has meaningful price discovery.
+
+    A market is considered "priced" if it has real quotes (not placeholder).
+
+    Args:
+        market: Market to check
+
+    Returns:
+        True if market has meaningful quotes
+    """
+    # Completely unpriced (no quotes at all)
+    if market.yes_bid == 0 and market.yes_ask == 0:
+        return False
+
+    # Placeholder quotes (0/100 = no real price discovery)
+    # Has at least some price discovery otherwise
+    return not (market.yes_bid == 0 and market.yes_ask == 100)
+
+
 class CorrelationType(str, Enum):
     """Types of correlation relationships."""
 
@@ -249,9 +270,13 @@ class CorrelationAnalyzer:
         """
         results: list[tuple[Market, Market, float]] = []
 
-        # Group by event
+        # Group by event, filtering out unpriced markets
         by_event: dict[str, list[Market]] = {}
         for m in markets:
+            # SKIP: Unpriced markets (0/0, 0/100 placeholder quotes)
+            if not _is_priced(m):
+                continue
+
             event_ticker = m.event_ticker
             if event_ticker not in by_event:
                 by_event[event_ticker] = []

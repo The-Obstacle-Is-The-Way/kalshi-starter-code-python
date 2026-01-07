@@ -39,7 +39,7 @@ async def test_sync_events(data_fetcher, mock_client, mock_db):
     mock_event.title = "Test Event"
     mock_event.category = "Test"
 
-    async def event_gen(limit: int = 200):
+    async def event_gen(limit: int = 200, max_pages: int | None = None):
         yield mock_event
 
     mock_client.get_all_events = MagicMock(side_effect=event_gen)
@@ -72,7 +72,7 @@ async def test_sync_markets(data_fetcher, mock_client, mock_db):
     mock_market.expiration_time = "2025-01-01T00:00:00Z"
 
     # Correctly mock async generator
-    async def market_gen(status=None):
+    async def market_gen(status=None, max_pages: int | None = None):
         yield mock_market
 
     # REPLACE the AsyncMock method with a MagicMock that returns the generator
@@ -138,3 +138,56 @@ async def test_full_sync(data_fetcher):
     assert result["events"] == 5
     assert result["markets"] == 10
     assert result["snapshots"] == 100
+
+
+@pytest.mark.asyncio
+async def test_take_snapshot_creates_missing_market_and_event(tmp_path) -> None:
+    """Snapshot should auto-create missing market/event rows (FK robustness)."""
+    from datetime import UTC, datetime, timedelta
+
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.data.repositories import EventRepository, MarketRepository, PriceRepository
+
+    db_path = tmp_path / "kalshi_fetcher_fk.db"
+
+    api_market = Market(
+        ticker="TEST-MARKET",
+        event_ticker="TEST-EVENT",
+        series_ticker=None,
+        title="Test Market",
+        subtitle="",
+        status=MarketStatus.ACTIVE,
+        result="",
+        yes_bid=50,
+        yes_ask=52,
+        no_bid=48,
+        no_ask=50,
+        last_price=51,
+        volume=100,
+        volume_24h=10,
+        open_interest=20,
+        open_time=datetime.now(UTC) - timedelta(days=1),
+        close_time=datetime.now(UTC) + timedelta(days=1),
+        expiration_time=datetime.now(UTC) + timedelta(days=2),
+        liquidity=1000,
+    )
+
+    class StubClient:
+        async def get_all_markets(self, *args, **kwargs):
+            yield api_market
+
+    async with DatabaseManager(db_path) as db:
+        await db.create_tables()
+        async with DataFetcher(db, client=StubClient()) as fetcher:
+            count = await fetcher.take_snapshot(status="open")
+
+        assert count == 1
+
+        async with db.session_factory() as session:
+            event_repo = EventRepository(session)
+            market_repo = MarketRepository(session)
+            price_repo = PriceRepository(session)
+
+            assert await event_repo.get("TEST-EVENT") is not None
+            assert await market_repo.get("TEST-MARKET") is not None
+            assert await price_repo.get_latest("TEST-MARKET") is not None

@@ -11,11 +11,10 @@
 |-------|--------|
 | `uv run ruff check .` | ✅ PASS |
 | `uv run ruff format --check .` | ✅ PASS |
-| `uv run mypy src/` | ✅ PASS |
-| `uv run pytest --cov=src` | ✅ PASS |
-| Coverage | ✅ 90% |
+| `uv run mypy src/ --strict` | ✅ PASS |
+| `uv run pytest -m "not integration and not slow"` | ✅ PASS |
 
-**Test Results:** `401 passed, 6 skipped` (live API tests are skipped unless `KALSHI_RUN_LIVE_API=1`).
+**Test Results:** `398 passed, 34 deselected` (integration + slow excluded).
 
 ---
 
@@ -46,23 +45,35 @@
 | BUG-022 | P2 | ✅ Fixed | API client 0-valued params + fills limit cap |
 | BUG-023 | P2 | ✅ Fixed | `query_parquet()` path validation |
 | BUG-024 | P2 | ✅ Fixed | Legacy `requests` client timeouts |
-| BUG-025 | P2 | 🟡 Open | Positions missing cost basis + mark price |
-| BUG-026 | P0 | 🟡 Open | `kalshi data snapshot` FOREIGN KEY constraint failure |
-| BUG-027 | P1 | 🟡 Open | Pagination cap silently truncates markets/events |
-| BUG-028 | P2 | 🟡 Open | `kalshi alerts monitor --once` does not exit |
-| BUG-029 | P2 | 🟡 Open | Close-race scanner returns illiquid/unpriced markets |
-| BUG-030 | P3 | 🟡 Open | Arbitrage scan false positives from 0/0 markets |
+| BUG-025 | P2 | ✅ Fixed | Positions missing cost basis + mark price |
+| BUG-026 | P0 | ✅ Fixed | `kalshi data snapshot` FOREIGN KEY constraint failure |
+| BUG-027 | P1 | ✅ Fixed | Pagination cap silently truncates markets/events |
+| BUG-028 | P2 | ✅ Fixed | `kalshi alerts monitor --once` UX + progress |
+| BUG-029 | P2 | ✅ Fixed | Close-race scanner returns illiquid/unpriced markets |
+| BUG-030 | P3 | ✅ Fixed | Arbitrage scan false positives from 0/0 markets |
+| BUG-031 | P2 | ✅ Fixed | `kalshi scan movers` percent units wrong |
+| BUG-032 | P3 | ✅ Fixed | `kalshi scan arbitrage` silently truncates tickers |
+| BUG-033 | P0 | 🟡 Open | Market model API schema mismatch (negative liquidity, missing status) |
 
 ---
 
 ## Open Bugs
 
-- BUG-025: Portfolio positions missing cost basis + mark price
-- BUG-026: `kalshi data snapshot` FOREIGN KEY constraint failure
-- BUG-027: Pagination cap silently truncates markets/events
-- BUG-028: `kalshi alerts monitor --once` does not exit
-- BUG-029: Close-race scanner returns illiquid/unpriced markets
-- BUG-030: Arbitrage scan false positives from 0/0 markets
+### BUG-033: Market Model API Schema Mismatch
+**Priority:** P0 - CRITICAL (Blocks all live API operations)
+
+The `Market` Pydantic model has two validation constraints that don't match actual Kalshi API responses:
+
+1. **`liquidity: ge=0`** - API returns negative values like `-170750`
+2. **`MarketStatus` enum** - Missing `"inactive"` status value
+
+**Impact:** ALL scanner and data collection commands fail against live API:
+- `kalshi scan opportunities` - BROKEN
+- `kalshi scan arbitrage` - BROKEN
+- `kalshi scan movers` - BROKEN
+- `kalshi data collect` - BROKEN
+
+See `BUG-033-market-model-api-schema-mismatch.md` for fix details.
 
 ---
 

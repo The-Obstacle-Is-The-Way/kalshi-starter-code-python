@@ -78,6 +78,8 @@ class MarketScanner:
         self,
         markets: list[Market],
         top_n: int = 10,
+        min_volume_24h: int = 0,
+        max_spread: int = 100,
     ) -> list[ScanResult]:
         """
         Find markets near 50% probability.
@@ -88,6 +90,8 @@ class MarketScanner:
         Args:
             markets: List of markets to scan
             top_n: Number of results to return
+            min_volume_24h: Minimum 24h volume (default: 0)
+            max_spread: Maximum bid-ask spread in cents (default: 100)
 
         Returns:
             List of ScanResults sorted by closeness to 50%
@@ -95,9 +99,22 @@ class MarketScanner:
         results: list[ScanResult] = []
 
         for m in markets:
+            # SKIP: Unpriced markets (0/0 or 0/100 placeholder quotes)
+            if m.yes_bid == 0 and m.yes_ask == 0:
+                continue  # No quotes at all
+            if m.yes_bid == 0 and m.yes_ask == 100:
+                continue  # Placeholder: no real price discovery
+
+            spread = m.yes_ask - m.yes_bid
+
+            # SKIP: Illiquid markets
+            if spread > max_spread:
+                continue
+            if m.volume_24h < min_volume_24h:
+                continue
+
             # Calculate probability from midpoint
             prob = (m.yes_bid + m.yes_ask) / 200.0
-            spread = m.yes_ask - m.yes_bid
 
             # Check if in close race range
             if self.close_race_range[0] <= prob <= self.close_race_range[1]:

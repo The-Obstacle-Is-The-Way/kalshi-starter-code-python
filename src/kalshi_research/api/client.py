@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -148,15 +149,26 @@ class KalshiPublicClient:
         self,
         status: MarketFilterStatus | str | None = None,
         limit: int = 1000,
-        max_pages: int = 100,
+        max_pages: int | None = None,
     ) -> AsyncIterator[Market]:
         """
         Iterate through ALL markets with automatic pagination.
-        Includes a safety limit to prevent infinite loops.
+
+        Args:
+            status: Filter by market status (open, closed, settled)
+            limit: Page size (max 1000)
+            max_pages: Optional safety limit. None = iterate until exhausted.
+
+        Yields:
+            Market objects
+
+        Warns:
+            If max_pages reached but cursor still present (data truncated)
         """
+        logger = logging.getLogger(__name__)
         cursor: str | None = None
         pages = 0
-        while pages < max_pages:
+        while True:
             markets, cursor = await self.get_markets_page(
                 status=status,
                 limit=limit,
@@ -168,7 +180,17 @@ class KalshiPublicClient:
 
             if not cursor or not markets:
                 break
+
             pages += 1
+
+            # Safety limit check with warning
+            if max_pages is not None and pages >= max_pages:
+                logger.warning(
+                    "Pagination truncated: reached max_pages=%d but cursor still present. "
+                    "Data may be incomplete. Set max_pages=None for full iteration.",
+                    max_pages,
+                )
+                break
 
     async def get_market(self, ticker: str) -> Market:
         """Fetch single market by ticker."""
@@ -305,16 +327,27 @@ class KalshiPublicClient:
         status: MarketFilterStatus | str | None = None,
         series_ticker: str | None = None,
         limit: int = 200,
-        max_pages: int = 100,
+        max_pages: int | None = None,
     ) -> AsyncIterator[Event]:
         """
         Iterate through ALL events with automatic pagination.
 
-        Events pagination exists but the endpoint enforces a max limit of 200.
+        Args:
+            status: Filter by event status
+            series_ticker: Filter by series
+            limit: Page size (max 200 for events endpoint)
+            max_pages: Optional safety limit. None = iterate until exhausted.
+
+        Yields:
+            Event objects
+
+        Warns:
+            If max_pages reached but cursor still present (data truncated)
         """
+        logger = logging.getLogger(__name__)
         cursor: str | None = None
         pages = 0
-        while pages < max_pages:
+        while True:
             events, cursor = await self.get_events_page(
                 status=status,
                 series_ticker=series_ticker,
@@ -327,7 +360,17 @@ class KalshiPublicClient:
 
             if not cursor or not events:
                 break
+
             pages += 1
+
+            # Safety limit check with warning
+            if max_pages is not None and pages >= max_pages:
+                logger.warning(
+                    "Pagination truncated: reached max_pages=%d but cursor still present. "
+                    "Data may be incomplete. Set max_pages=None for full iteration.",
+                    max_pages,
+                )
+                break
 
     async def get_event(self, event_ticker: str) -> Event:
         """Fetch single event by ticker."""

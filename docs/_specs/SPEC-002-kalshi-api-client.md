@@ -31,10 +31,11 @@ Extend the existing bare-bones Kalshi client to cover ALL public and authenticat
 - `/portfolio/balance`
 - `/portfolio/positions`
 - `/portfolio/orders`
+- `/portfolio/fills`
 
 **Deferred (not yet implemented in this repo):**
 - `/series/{series_ticker}` (series info)
-- `/portfolio/fills`, `/portfolio/settlements`
+- `/portfolio/settlements`
 - Order placement/cancel endpoints
 
 ### 1.1 Goals

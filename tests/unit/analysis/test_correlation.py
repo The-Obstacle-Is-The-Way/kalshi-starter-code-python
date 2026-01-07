@@ -398,6 +398,81 @@ class TestFindInverseMarkets:
         assert m1.event_ticker == "E1"
         assert m2.event_ticker == "E1"
 
+    def test_excludes_unpriced_and_placeholder_markets(self) -> None:
+        """Unpriced markets (0/0, 0/100) should not create inverse pairs."""
+        analyzer = CorrelationAnalyzer()
+
+        markets = [
+            # Event A: both priced -> should be considered
+            make_market("A-YES", "A", 65),
+            make_market("A-NO", "A", 50),
+            # Event B: one unpriced (0/0) -> excluded
+            make_market("B-YES", "B", 55),
+            make_market(
+                "B-NO",
+                "B",
+                50,
+                yes_bid=0,
+                yes_ask=0,
+                no_bid=0,
+                no_ask=0,
+                last_price=None,
+            ),
+            # Event C: one placeholder (0/100) -> excluded
+            make_market("C-YES", "C", 55),
+            make_market(
+                "C-NO",
+                "C",
+                50,
+                yes_bid=0,
+                yes_ask=100,
+                no_bid=0,
+                no_ask=100,
+                last_price=None,
+            ),
+        ]
+
+        results = analyzer.find_inverse_markets(markets, tolerance=0.10)
+
+        event_tickers = {m1.event_ticker for m1, _m2, _dev in results}
+        assert "A" in event_tickers
+        assert "B" not in event_tickers
+        assert "C" not in event_tickers
+
+
+class TestIsPriced:
+    """Test _is_priced helper."""
+
+    def test_is_priced_helper(self) -> None:
+        """Detect unpriced and placeholder markets."""
+        from kalshi_research.analysis.correlation import _is_priced
+
+        assert not _is_priced(
+            make_market(
+                "UNPRICED_00",
+                "E",
+                50,
+                yes_bid=0,
+                yes_ask=0,
+                no_bid=0,
+                no_ask=0,
+                last_price=None,
+            )
+        )
+        assert not _is_priced(
+            make_market(
+                "PLACEHOLDER_0_100",
+                "E",
+                50,
+                yes_bid=0,
+                yes_ask=100,
+                no_bid=0,
+                no_ask=100,
+                last_price=None,
+            )
+        )
+        assert _is_priced(make_market("PRICED", "E", 50))
+
 
 class TestFindArbitrageOpportunities:
     """Test arbitrage detection."""

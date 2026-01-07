@@ -41,4 +41,4 @@ Portfolio sync existed only as placeholders, preventing users from syncing posit
 
 ## Follow-Ups
 
-- `PortfolioSyncer` currently does not compute `avg_price_cents`, `current_price_cents`, or `unrealized_pnl_cents` (tracked in BUG-025).
+None. Cost basis + mark pricing follow-up was addressed in BUG-025.
