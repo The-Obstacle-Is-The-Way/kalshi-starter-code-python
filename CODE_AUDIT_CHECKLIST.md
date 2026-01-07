@@ -683,8 +683,456 @@ echo -e "\n=== Audit Complete ==="
 
 ---
 
+## 14. Python Truthiness Traps
+
+**Why it matters:** Conflating `None`, `0`, `""`, `[]`, `{}`, `False` causes subtle bugs.
+
+### Checklist
+
+- [ ] **`if value:` when checking for None** — `0` and `""` are falsy but valid
+- [ ] **`if not value:` instead of `if value is None:`** — Empty collections treated as None
+- [ ] **CLI argument handling** — `--limit 0` treated as "not set"
+- [ ] **Optional return values** — Valid falsy returns missed
+- [ ] **XML/HTML element checks** — Empty elements are falsy but exist
+
+### Detection Pattern
+
+```bash
+# Find potential truthiness bugs
+grep -rn "if limit:" --include="*.py" .
+grep -rn "if not.*:" --include="*.py" . | grep -v "is not None"
+grep -rn "or None" --include="*.py" .  # Suspicious fallback
+```
+
+### Correct Pattern
+
+```python
+# BAD: Truthiness trap
+if limit:  # 0 is treated as "not set"!
+    results = results[:limit]
+
+# GOOD: Explicit None check
+if limit is not None:
+    results = results[:limit]
+
+# BAD: Empty collection vs None
+if not items:  # Could be [] (valid empty) or None (error)
+    return default
+
+# GOOD: Distinguish empty from missing
+if items is None:
+    raise ValueError("items required")
+if not items:
+    logger.warning("Empty items list")
+```
+
+**Sources:**
+- [Truthy and Falsy Gotchas - Inspired Python](https://www.inspiredpython.com/article/truthy-and-falsy-gotchas)
+- [Common Gotchas — Hitchhiker's Guide](https://docs.python-guide.org/writing/gotchas/)
+
+---
+
+## 15. Silent Fallbacks Masking Failures
+
+**Why it matters:** "Successful" pipelines that silently corrupt data.
+
+### Checklist
+
+- [ ] **Default values hiding failures** — `result = api_call() or default_value`
+- [ ] **`dict.get(key, default)`** where default masks missing required data
+- [ ] **`getattr(obj, 'field', None)`** without checking if None is valid
+- [ ] **Retry loops that give up silently** — Max retries → empty result
+- [ ] **Fallback empty collections** — `return []` when API fails
+- [ ] **Optional parameters with dangerous defaults** — `timeout=None` = infinite
+
+### Detection Pattern
+
+```bash
+# Find fallback patterns
+grep -rn "or \[\]" --include="*.py" .
+grep -rn "or {}" --include="*.py" .
+grep -rn "\.get(.*,.*)" --include="*.py" .
+grep -rn "getattr.*None" --include="*.py" .
+```
+
+### Correct Pattern
+
+```python
+# BAD: Silent fallback masks failure
+def get_scores():
+    try:
+        return fetch_from_api()
+    except Exception:
+        return []  # Looks like success with no data!
+
+# GOOD: Explicit failure
+def get_scores() -> list[Score]:
+    try:
+        return fetch_from_api()
+    except ApiError as e:
+        logger.error(f"API failed: {e}")
+        raise  # Let caller decide
+```
+
+**Sources:**
+- [When Successful Pipelines Quietly Corrupt Data](https://medium.com/towards-data-engineering/when-successful-pipelines-quietly-corrupt-your-data-4a134544bb73)
+
+---
+
+## 16. Silent Type Coercion & Data Loss
+
+**Why it matters:** Pydantic/Python silently truncates data.
+
+### Checklist
+
+- [ ] **`int` fields receiving floats** — `10.9` → `10` (silent truncation)
+- [ ] **Missing `StrictInt`, `StrictFloat`, `StrictStr`** — Pydantic coerces by default
+- [ ] **String to number coercion** — `"123abc"` behavior varies
+- [ ] **Datetime string parsing** — Silent UTC assumption
+- [ ] **Decimal precision loss** — Float intermediates corrupt calculations
+
+### Detection Pattern
+
+```bash
+# Find non-strict Pydantic fields
+grep -rn ": int" --include="*.py" src/ | grep -v "StrictInt"
+grep -rn ": float" --include="*.py" src/ | grep -v "StrictFloat"
+```
+
+### Correct Pattern
+
+```python
+# BAD: Silent data loss
+class Config(BaseModel):
+    threshold: int  # 10.9 becomes 10 silently!
+
+# GOOD: Strict typing prevents coercion
+from pydantic import StrictInt, StrictFloat
+
+class Config(BaseModel):
+    threshold: StrictInt  # 10.9 raises ValidationError
+    ratio: StrictFloat
+```
+
+**Sources:**
+- [Pydantic Strict Mode](https://docs.pydantic.dev/latest/concepts/strict_mode/)
+- [Pydantic Drawbacks - Hrekov](https://hrekov.com/blog/pydantic-drawbacks)
+
+---
+
+## 17. Floating Point & Numerical Bugs
+
+**Why it matters:** `0.1 + 0.2 != 0.3` — IEEE 754 representation limits.
+
+### Checklist
+
+- [ ] **Direct `==` comparison of floats** — Almost always wrong
+- [ ] **Fixed epsilon that doesn't scale** — May be huge or tiny relative to values
+- [ ] **NaN comparisons** — `NaN != NaN` by definition
+- [ ] **Division by near-zero** — Produces infinity
+- [ ] **Accumulating rounding errors** — Summing many floats
+- [ ] **Financial calculations with float** — Use `Decimal` instead
+
+### Detection Pattern
+
+```bash
+# Find direct float comparisons
+grep -rn "== 0\.\|!= 0\." --include="*.py" .
+grep -rn "== 1\.\|!= 1\." --include="*.py" .
+```
+
+### Correct Pattern
+
+```python
+import math
+
+# BAD: Direct comparison
+if result == 0.3:  # May never be true!
+    process()
+
+# GOOD: Use math.isclose() or numpy.isclose()
+if math.isclose(result, 0.3, rel_tol=1e-9):
+    process()
+
+# BAD: NaN comparison
+if value > threshold:  # NaN comparisons are always False
+    process()
+
+# GOOD: Check for NaN first
+if not math.isnan(value) and value > threshold:
+    process()
+```
+
+**Sources:**
+- [Floating-Point Comparison Guide](https://floating-point-gui.de/errors/comparison/)
+
+---
+
+## 18. NumPy/Pandas Silent Failures
+
+**Why it matters:** Broadcasting silently produces wrong results.
+
+### Checklist
+
+- [ ] **Shape mismatch silently broadcast** — Operations on incompatible shapes
+- [ ] **Chained indexing assignment** — `df[col][row] = val` may not work
+- [ ] **Object dtype masking types** — String columns as object
+- [ ] **Integer overflow** — NumPy wraps around silently
+- [ ] **In-place mutations** — `df.drop(inplace=True)` side effects
+
+### Detection Pattern
+
+```bash
+# Find chained indexing
+grep -rn "\]\[" --include="*.py" . | grep -v "def\|#"
+
+# Find potential in-place operations
+grep -rn "inplace=True" --include="*.py" .
+```
+
+### Correct Pattern
+
+```python
+import numpy as np
+import pandas as pd
+
+# BAD: Silent broadcasting may produce unexpected shapes
+result = array_a * array_b  # Are shapes compatible?
+
+# GOOD: Explicit shape assertions
+assert array_a.shape == array_b.shape, f"Shape mismatch"
+result = array_a * array_b
+
+# BAD: Chained indexing
+df["col"]["row"] = value  # May be a copy!
+
+# GOOD: Use .loc or .iloc
+df.loc["row", "col"] = value
+```
+
+**Sources:**
+- [NumPy Broadcasting](https://numpy.org/doc/stable/user/basics.broadcasting.html)
+- [Pandas Indexing and Selecting](https://pandas.pydata.org/docs/user_guide/indexing.html)
+
+---
+
+## 19. Off-by-One & Fencepost Errors
+
+**Why it matters:** Classic programming bug — appears in ranges, indices, boundaries.
+
+### Checklist
+
+- [ ] **`range(n)` confusion** — 0 to n-1, not 0 to n
+- [ ] **Loop boundary** — `<= n` vs `< n`
+- [ ] **User-facing 1-based vs internal 0-based** — Conversion errors
+- [ ] **Slice endpoints** — `items[start:end]` excludes `end`
+- [ ] **Length vs index** — n elements = indices 0 to n-1
+
+### Correct Pattern
+
+```python
+# BAD: Off-by-one in user input handling
+choice = int(input("Enter choice (1-3): "))
+items[choice]  # Should be items[choice - 1]!
+
+# GOOD: Convert 1-based to 0-based
+items[choice - 1]
+
+# BAD: Fencepost in loop
+for i in range(len(items) + 1):  # One too many!
+    process(items[i])  # IndexError on last
+
+# GOOD: Correct range
+for i in range(len(items)):
+    process(items[i])
+```
+
+---
+
+## 20. JSON Serialization Edge Cases
+
+**Why it matters:** Crashes in production on edge case data.
+
+### Checklist
+
+- [ ] **`datetime` objects not serializable** — Works until one record has datetime
+- [ ] **`Decimal` precision loss via float** — Financial calculations corrupted
+- [ ] **`Enum` members not serializable**
+- [ ] **`UUID` objects not serializable**
+- [ ] **Circular references** — Infinite loops
+- [ ] **`None` vs `"null"` string confusion**
+
+### Correct Pattern
+
+```python
+import json
+from datetime import datetime
+
+# BAD: Crashes on datetime
+data = {"created_at": datetime.now()}
+json.dumps(data)  # TypeError!
+
+# GOOD: Custom encoder
+def json_serializer(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if isinstance(obj, Decimal):
+        return str(obj)
+    raise TypeError(f"Not serializable: {type(obj)}")
+
+json.dumps(data, default=json_serializer)
+
+# BETTER: Use orjson (handles datetime/enum natively)
+import orjson
+orjson.dumps(data)
+```
+
+---
+
+## 21. Mock Overuse & Test False Positives
+
+**Why it matters:** Tests pass but production fails — mocks accept wrong signatures.
+
+### Checklist
+
+- [ ] **Missing `autospec=True`** — Mocks accept any signature
+- [ ] **Mocking internal logic** — Should mock external dependencies only
+- [ ] **Tests verify mock called, not behavior**
+- [ ] **Mocked return values don't match real API**
+- [ ] **Global module patches** — `@patch('requests.post')` too broad
+
+### Detection Pattern
+
+```bash
+# Check for mock without autospec
+grep -rn "@patch\|@mock" tests/ | grep -v "autospec"
+
+# Check mock density (too many = weak tests)
+grep -rn "Mock()\|MagicMock" tests/ | wc -l
+```
+
+### Correct Pattern
+
+```python
+# BAD: Mock accepts wrong signature
+@patch('module.api_call')
+def test_function(mock_call):
+    mock_call.return_value = {"data": []}
+    result = func("arg1", "EXTRA_ARG")  # No error!
+
+# GOOD: autospec enforces real signature
+@patch('module.api_call', autospec=True)
+def test_function(mock_call):
+    mock_call.return_value = {"data": []}
+    result = func("arg1", "EXTRA_ARG")  # TypeError!
+```
+
+**Sources:**
+- [Pytest Common Mocking Problems](https://pytest-with-eric.com/mocking/pytest-common-mocking-problems/)
+
+---
+
+## 22. ML Reproducibility Bugs
+
+**Why it matters:** Random seed choice causes 44-45% accuracy variation.
+
+### Checklist
+
+- [ ] **Random seed not set** — Results vary between runs
+- [ ] **Multiple RNG sources not seeded** — Python, NumPy, PyTorch, CUDA
+- [ ] **GPU non-determinism** — cuDNN benchmarking
+- [ ] **Parallel execution variance** — Threading introduces randomness
+- [ ] **Library versions not pinned**
+
+### Correct Pattern
+
+```python
+import random
+import numpy as np
+
+def set_seed(seed: int) -> None:
+    """Set all random seeds for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    # If using PyTorch:
+    # torch.manual_seed(seed)
+    # torch.cuda.manual_seed_all(seed)
+    # torch.backends.cudnn.deterministic = True
+```
+
+---
+
+## 23. Data Leakage & Train-Test Contamination
+
+**Why it matters:** 648 papers affected by data leakage (Princeton research).
+
+### Checklist
+
+- [ ] **Preprocessing before split** — Scaling fit on full dataset
+- [ ] **Feature engineering uses test data** — Statistics across all data
+- [ ] **Time series future leakage** — Using future to predict past
+- [ ] **Duplicate samples across splits**
+- [ ] **Target leakage** — Features that encode target
+
+### Correct Pattern
+
+```python
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# BAD: Preprocessing before split
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)  # Uses ALL data!
+X_train, X_test = train_test_split(X_scaled)
+
+# GOOD: Split first, fit only on train
+X_train, X_test = train_test_split(X)
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)  # Fit on train only
+X_test = scaler.transform(X_test)  # Transform test
+```
+
+**Sources:**
+- [Princeton Reproducibility Study](https://reproducible.cs.princeton.edu/)
+
+---
+
+## Audit Statistics (2025-2026 Research)
+
+| Metric | Value | Source |
+|--------|-------|--------|
+| AI code logic errors vs human | 1.75x more | CodeRabbit 2025 |
+| AI code security issues vs human | 1.57x more | CodeRabbit 2025 |
+| AI code XSS vulnerabilities | 2.74x more | CodeRabbit 2025 |
+| Silent failures causing bugs | 40% of investigations | PSF Survey 2025 |
+| Data engineers fixing pipelines | 44% of time | Gartner 2025 |
+| AI-generated code with vulns | 30-50% | IEEE/Academic 2025 |
+| Papers with data leakage | 648 across 30 fields | Princeton 2025 |
+
+---
+
+## Weekly Quick Audit (15 min)
+
+1. `grep -r "except:" src/` — Bare excepts
+2. `grep -r "except Exception:" src/` — Check for `pass` after
+3. `grep -r "api_key\|secret\|password" src/` — Hardcoded secrets
+4. `grep -r "if limit:" src/` — Truthiness traps
+5. Review recent PRs for silent fallbacks
+
+## Monthly Deep Audit (2 hours)
+
+1. Run through full checklist
+2. Check test coverage for edge cases
+3. Audit Pydantic models for Strict types
+4. Review async code for race conditions
+5. Verify random seeds are set for ML code
+6. Document findings in `docs/_bugs/`
+
+---
+
 ## Changelog
 
-| Date | Change |
-|------|--------|
-| 2026-01-07 | Initial creation from web research |
+| Date       | Change                                           |
+|------------|--------------------------------------------------|
+| 2026-01-07 | Added ML/research categories (14-23)             |
+| 2026-01-07 | Initial creation from web research               |
