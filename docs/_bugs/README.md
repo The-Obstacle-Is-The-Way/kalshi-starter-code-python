@@ -29,7 +29,7 @@ Adversarial audit of the "KALSHI RESEARCH PLATFORM COMPLETE" claim against:
 
 | ID | Priority | Status | Summary |
 |----|----------|--------|---------|
-| BUG-001 | **P1** | Open | Missing `scan` CLI command (PROMPT.md Phase 4) |
+| BUG-001 | **P1** | ✓ Fixed | `scan` CLI command implemented |
 | BUG-002 | **P2** | Open | Missing Alembic migrations (PROMPT.md Phase 3) |
 | BUG-006 | **P1** | Open | Missing alerts system (original context: "notify me when conditions met") |
 | BUG-007 | **P1** | Open | CI/CD test failures on all Python versions (tests pass locally) |
@@ -71,12 +71,12 @@ Adversarial audit of the "KALSHI RESEARCH PLATFORM COMPLETE" claim against:
 - [x] DuckDB/Parquet export
 - [ ] **BUG-002**: Alembic migrations not configured
 
-### SPEC-004: Research & Analysis ⚠️ PARTIAL
+### SPEC-004: Research & Analysis ✓ COMPLETE
 - [x] CalibrationAnalyzer (Brier score, decomposition)
 - [x] EdgeDetector (thesis, spread, volume)
 - [x] MarketScanner (all filters)
 - [x] Thesis & ThesisTracker
-- [ ] **BUG-001**: scan CLI command missing
+- [x] **BUG-001**: scan CLI command ✓ Fixed
 
 ### SPEC-005: Alerts & Notifications ❌ NOT STARTED
 - [ ] **BUG-006**: Entire module missing
@@ -109,7 +109,7 @@ Adversarial audit of the "KALSHI RESEARCH PLATFORM COMPLETE" claim against:
 
 To legitimately claim "KALSHI RESEARCH PLATFORM COMPLETE" for SPEC-001 through SPEC-004:
 
-1. **BUG-001**: Add `scan` CLI command (easy - scanner exists)
+1. ~~**BUG-001**: Add `scan` CLI command~~ ✓ FIXED
 2. **BUG-002**: Set up Alembic migrations (medium)
 3. **BUG-007**: Fix CI/CD test failures (investigation needed)
 
@@ -117,7 +117,7 @@ To satisfy original user context ("CONTEXT FOR CLAUDE"):
 
 4. **BUG-006**: Implement alerts system ("notify me when conditions met")
 
-After fixing BUG-001, BUG-002, BUG-006, and BUG-007, the platform meets:
+After fixing BUG-002, BUG-006, and BUG-007, the platform meets:
 - All PROMPT.md success criteria
 - All original user requirements
 - CI/CD green across all supported Python versions
