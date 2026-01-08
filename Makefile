@@ -153,9 +153,10 @@ clean-all: clean
 docs:
 	@echo "Documentation available:"
 	@echo "  README.md          - Project overview"
-	@echo "  docs/QUICKSTART.md - Quick start guide"
-	@echo "  docs/USAGE.md      - Usage examples"
-	@echo "  docs/CLI_REFERENCE.md - CLI command reference"
+	@echo "  docs/index.md                - Docs index"
+	@echo "  docs/tutorials/quickstart.md - Quick start guide"
+	@echo "  docs/how-to/usage.md         - Usage examples"
+	@echo "  docs/reference/cli-reference.md - CLI command reference"
 
 # =============================================================================
 # Release
