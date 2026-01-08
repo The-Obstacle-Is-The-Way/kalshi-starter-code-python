@@ -212,7 +212,7 @@ def test_alerts_list_invalid_json_exits_with_error(tmp_path) -> None:
     alerts_file = tmp_path / "alerts.json"
     alerts_file.write_text("{not json", encoding="utf-8")
 
-    with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+    with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
         result = runner.invoke(app, ["alerts", "list"])
 
     assert result.exit_code == 1
@@ -223,7 +223,7 @@ def test_thesis_list_invalid_json_exits_with_error(tmp_path) -> None:
     thesis_file = tmp_path / "theses.json"
     thesis_file.write_text("{not json", encoding="utf-8")
 
-    with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+    with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
         result = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result.exit_code == 1

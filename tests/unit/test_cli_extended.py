@@ -19,7 +19,7 @@ def test_alerts_list_empty() -> None:
     """Test listing alerts when none exist."""
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "list"])
 
     assert result.exit_code == 0
@@ -30,7 +30,7 @@ def test_alerts_add_price() -> None:
     """Test adding a price alert."""
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "add", "price", "TEST-TICKER", "--above", "60"])
 
         assert result.exit_code == 0
@@ -43,7 +43,7 @@ def test_alerts_add_volume() -> None:
     """Test adding a volume alert."""
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
             result = runner.invoke(
                 app, ["alerts", "add", "volume", "TEST-TICKER", "--above", "10000"]
             )
@@ -58,7 +58,7 @@ def test_alerts_add_spread() -> None:
     """Test adding a spread alert."""
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "add", "spread", "TEST-TICKER", "--above", "5"])
 
         assert result.exit_code == 0
@@ -75,7 +75,7 @@ def test_alerts_remove() -> None:
             json.dumps({"conditions": [{"id": "alert-12345678", "label": "test alert"}]}),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "remove", "alert-123"])
 
         assert result.exit_code == 0
@@ -88,14 +88,14 @@ def test_alerts_remove_not_found() -> None:
     """Test removing a non-existent alert."""
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "remove", "nonexistent"])
 
     assert result.exit_code == 0
     assert "not found" in result.stdout.lower()
 
 
-@patch("kalshi_research.cli._load_alerts")
+@patch("kalshi_research.cli.alerts._load_alerts")
 @patch("kalshi_research.api.KalshiPublicClient")
 def test_alerts_monitor_once_exits(
     mock_client_cls: MagicMock,
@@ -140,7 +140,7 @@ def test_alerts_monitor_once_exits(
     assert "Single check complete" in result.stdout
 
 
-@patch("kalshi_research.cli._load_alerts")
+@patch("kalshi_research.cli.alerts._load_alerts")
 @patch("kalshi_research.api.KalshiPublicClient")
 def test_alerts_monitor_continuous_shows_ctrl_c(
     mock_client_cls: MagicMock,
@@ -176,15 +176,17 @@ def test_alerts_monitor_continuous_shows_ctrl_c(
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
 
-    with patch("kalshi_research.cli.asyncio.sleep", new=AsyncMock(side_effect=KeyboardInterrupt)):
+    with patch(
+        "kalshi_research.cli.alerts.asyncio.sleep", new=AsyncMock(side_effect=KeyboardInterrupt)
+    ):
         result = runner.invoke(app, ["alerts", "monitor", "--interval", "1"])
 
     assert result.exit_code == 0
     assert "Press Ctrl+C" in result.stdout
 
 
-@patch("kalshi_research.cli._load_alerts")
-@patch("kalshi_research.cli.subprocess.Popen")
+@patch("kalshi_research.cli.alerts._load_alerts")
+@patch("kalshi_research.cli.alerts.subprocess.Popen")
 def test_alerts_monitor_daemon_spawns_background_process(
     mock_popen: MagicMock,
     mock_load_alerts: MagicMock,
@@ -208,7 +210,7 @@ def test_alerts_monitor_daemon_spawns_background_process(
 
     with (
         runner.isolated_filesystem(),
-        patch("kalshi_research.cli.sys.executable", "/usr/bin/python"),
+        patch("kalshi_research.cli.alerts.sys.executable", "/usr/bin/python"),
     ):
         result = runner.invoke(
             app,
@@ -240,8 +242,8 @@ def test_alerts_monitor_daemon_spawns_background_process(
     assert kwargs.get("start_new_session") is True or kwargs.get("creationflags", 0) != 0
 
 
-@patch("kalshi_research.cli._load_alerts")
-@patch("kalshi_research.cli.subprocess.Popen")
+@patch("kalshi_research.cli.alerts._load_alerts")
+@patch("kalshi_research.cli.alerts.subprocess.Popen")
 def test_alerts_monitor_daemon_does_not_spawn_without_alerts(
     mock_popen: MagicMock,
     mock_load_alerts: MagicMock,
@@ -514,7 +516,7 @@ def test_research_thesis_create() -> None:
     """Test creating a thesis."""
     with runner.isolated_filesystem():
         thesis_file = Path("theses.json")
-        with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
             result = runner.invoke(
                 app,
                 [
@@ -543,7 +545,7 @@ def test_research_thesis_list_empty() -> None:
     """Test listing theses when none exist."""
     with runner.isolated_filesystem():
         thesis_file = Path("theses.json")
-        with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
             result = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result.exit_code == 0
@@ -570,7 +572,7 @@ def test_research_thesis_list_with_theses() -> None:
             ),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
             result = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result.exit_code == 0
@@ -605,7 +607,7 @@ def test_research_thesis_show() -> None:
             ),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
             result = runner.invoke(app, ["research", "thesis", "show", "thesis-1"])
 
     assert result.exit_code == 0
@@ -630,7 +632,7 @@ def test_research_thesis_resolve() -> None:
             ),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
             result = runner.invoke(
                 app, ["research", "thesis", "resolve", "thesis-1", "--outcome", "yes"]
             )
