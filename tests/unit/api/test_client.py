@@ -239,7 +239,7 @@ class TestKalshiPublicClient:
             return_value=Response(200, json=page1)
         )
 
-        with caplog.at_level(logging.WARNING, logger="kalshi_research.api.client"):
+        with caplog.at_level(logging.WARNING):
             async with KalshiPublicClient() as client:
                 markets = [m async for m in client.get_all_markets(max_pages=1)]
 
@@ -275,7 +275,7 @@ class TestKalshiPublicClient:
             return_value=Response(200, json=page1)
         )
 
-        with caplog.at_level(logging.WARNING, logger="kalshi_research.api.client"):
+        with caplog.at_level(logging.WARNING):
             async with KalshiPublicClient() as client:
                 events = [e async for e in client.get_all_events(max_pages=1)]
 

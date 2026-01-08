@@ -19,8 +19,8 @@
 
 ### Official Demo Environment
 Kalshi provides a **demo/sandbox environment** for testing:
-- Base URL: `https://demo-api.kalshi.co`
-- WebSocket: `wss://demo-api.kalshi.co/trade-api/ws/v2`
+- REST Base URL: `https://demo-api.kalshi.co/trade-api/v2`
+- WebSocket URL: `wss://demo-api.kalshi.co/trade-api/ws/v2`
 - Separate credentials from production
 - Safe for testing order execution
 
