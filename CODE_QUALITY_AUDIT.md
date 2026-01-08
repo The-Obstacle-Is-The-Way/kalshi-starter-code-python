@@ -107,10 +107,10 @@ DEFAULT_EXPORTS_DIR = DEFAULT_DATA_DIR / "exports"
 
 | System | Files Using |
 |--------|-------------|
-| `logging.getLogger(__name__)` | `client.py`, `fetcher.py`, `scheduler.py`, `export.py` |
-| `structlog.get_logger()` | `rate_limiter.py`, `websocket/client.py`, `notifiers.py`, `syncer.py`, `thesis.py` |
+| `logging.getLogger(__name__)` | `client.py`, `fetcher.py`, `scheduler.py`, `export.py`, `syncer.py`, `notifiers.py`, `thesis.py`, `notebook_utils.py` (8 files) |
+| `structlog.get_logger()` | `rate_limiter.py`, `websocket/client.py` (2 files) |
 
-**Recommendation:** Standardize on `structlog` - it's already a dependency and provides better async support.
+**Recommendation:** Standardize on `structlog` - it's already a dependency and provides better structured logging for async code.
 
 ---
 
