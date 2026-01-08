@@ -13,6 +13,8 @@ from typing import Any
 
 import structlog
 
+from kalshi_research.paths import DEFAULT_THESES_PATH
+
 logger = structlog.get_logger()
 
 
@@ -172,7 +174,7 @@ class ThesisTracker:
     - Analyzing thesis performance
     """
 
-    def __init__(self, storage_path: str | Path = "data/theses.json") -> None:
+    def __init__(self, storage_path: str | Path = DEFAULT_THESES_PATH) -> None:
         """
         Initialize the tracker.
 
