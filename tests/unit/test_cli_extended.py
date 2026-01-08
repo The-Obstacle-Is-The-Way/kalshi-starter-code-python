@@ -647,7 +647,14 @@ def test_research_backtest(mock_db_cls: MagicMock) -> None:
     mock_db.__aexit__.return_value = AsyncMock()
     mock_db_cls.return_value = mock_db
 
-    with patch("pathlib.Path.exists", return_value=True):
+    # No resolved theses - should print "No resolved theses to backtest"
+    thesis_data = {"theses": []}
+    mock_file = mock_open(read_data=json.dumps(thesis_data))
+
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.open", mock_file),
+    ):
         result = runner.invoke(
             app,
             [
@@ -661,8 +668,8 @@ def test_research_backtest(mock_db_cls: MagicMock) -> None:
         )
 
     assert result.exit_code == 0
-    # Should show some backtest output (even if placeholder)
-    assert "Backtest" in result.stdout or "trades" in result.stdout.lower()
+    # With no resolved theses, should show appropriate message
+    assert "No resolved theses" in result.stdout or "backtest" in result.stdout.lower()
 
 
 # ==================== Portfolio CLI Tests ====================

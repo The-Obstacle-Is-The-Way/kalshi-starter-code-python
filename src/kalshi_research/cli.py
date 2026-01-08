@@ -1051,7 +1051,7 @@ def _load_json_storage_file(*, path: Path, kind: str, required_list_key: str) ->
         )
         raise typer.Exit(1) from None
 
-    return cast(dict[str, Any], raw)
+    return cast("dict[str, Any]", raw)
 
 
 def _load_alerts() -> dict[str, Any]:

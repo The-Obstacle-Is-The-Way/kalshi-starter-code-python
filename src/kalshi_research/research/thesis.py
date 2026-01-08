@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -247,8 +248,6 @@ class ThesisTracker:
 
     def _save(self) -> None:
         """Save theses to storage."""
-        import os
-
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         # Save in CLI-compatible format
         data = {"theses": [t.to_dict() for t in self.theses.values()]}
