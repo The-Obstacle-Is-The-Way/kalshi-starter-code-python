@@ -4,7 +4,8 @@
 **Priority:** P0 (Critical Performance Optimization)
 **Estimated Complexity:** High
 **Dependencies:** SPEC-002 (API Client)
-**Official Docs:** [docs.kalshi.com](https://docs.kalshi.com/docs/websocket-overview)
+**Official Docs:** [WebSocket Connection](https://docs.kalshi.com/websockets/websocket-connection)
+**Local SSOT:** [OFFICIAL-API-REFERENCE.md](../kalshi/OFFICIAL-API-REFERENCE.md)
 
 ---
 
@@ -35,14 +36,19 @@ This was a mistake. The **official Kalshi documentation** recommends WebSocket f
 
 ### 2.1 Available Channels (Official API)
 
-| Channel | Auth Required | Use Case |
-|---------|---------------|----------|
-| `orderbook_delta` | No | Real-time orderbook changes |
-| `ticker` | No | Price, volume, open interest updates |
-| `trade` | No | Public trade notifications |
-| `fill` | Yes | Your order fills |
-| `market_positions` | Yes | Portfolio position updates |
-| `market_lifecycle_v2` | No | Market state changes |
+> **IMPORTANT:** ALL WebSocket connections require authentication via headers, even for public data channels.
+> See [OFFICIAL-API-REFERENCE.md](../kalshi/OFFICIAL-API-REFERENCE.md) for auth details.
+
+| Channel | Data Scope | Use Case |
+|---------|------------|----------|
+| `orderbook_delta` | Public | Real-time orderbook changes (requires market filter) |
+| `ticker` | Public | Price, volume, open interest updates |
+| `trade` | Public | Public trade notifications |
+| `market_lifecycle_v2` | Public | Market state changes, event creation |
+| `multivariate` | Public | Multivariate collection notifications |
+| `fill` | Private | Your order fills (market filter ignored) |
+| `market_positions` | Private | Portfolio position updates |
+| `communications` | Private | RFQ and quote notifications |
 
 ### 2.2 Key Benefits
 
@@ -259,36 +265,62 @@ class KalshiWebSocket:
         pass
 ```
 
-### 3.3 Centi-Cents Conversion
+### 3.3 Price Unit Conversion
 
-**IMPORTANT:** WebSocket monetary values are in **centi-cents** (1/10,000th of a dollar).
+**CRITICAL:** WebSocket price units vary by channel!
+
+| Channel/Field | Unit | Example | To Dollars |
+|---------------|------|---------|------------|
+| `ticker.price`, `ticker.yes_bid` | **Cents** | `48` | ÷ 100 = $0.48 |
+| `ticker.price_dollars` | **Dollars (string)** | `"0.480"` | Direct use |
+| `orderbook_delta.price` | **Cents** | `96` | ÷ 100 = $0.96 |
+| `market_positions.position_cost` | **Centi-cents** | `500000` | ÷ 10,000 = $50.00 |
+| `market_positions.realized_pnl` | **Centi-cents** | `100000` | ÷ 10,000 = $10.00 |
+| `market_positions.fees_paid` | **Centi-cents** | `10000` | ÷ 10,000 = $1.00 |
 
 ```python
 # src/kalshi_research/api/websocket/messages.py
 from decimal import Decimal
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 
 
 class TickerUpdate(BaseModel):
-    """Ticker channel update message."""
+    """Ticker channel update message. Prices in CENTS (0-100)."""
 
     market_ticker: str
-    yes_bid: int  # centi-cents
-    yes_ask: int  # centi-cents
-    no_bid: int  # centi-cents
-    no_ask: int  # centi-cents
+    price: int  # cents (0-100)
+    yes_bid: int  # cents
+    yes_ask: int  # cents
+    price_dollars: str  # dollar string "0.480"
+    yes_bid_dollars: str
+    no_bid_dollars: str
     volume: int
     open_interest: int
 
     @property
-    def yes_bid_cents(self) -> int:
-        """Convert centi-cents to cents."""
-        return self.yes_bid // 100
+    def price_as_dollars(self) -> Decimal:
+        """Convert cents to dollars."""
+        return Decimal(self.price) / Decimal(100)
+
+
+class MarketPositionUpdate(BaseModel):
+    """Market positions channel update. Monetary values in CENTI-CENTS."""
+
+    market_ticker: str
+    position: int  # contract count
+    position_cost: int  # centi-cents
+    realized_pnl: int  # centi-cents
+    fees_paid: int  # centi-cents
 
     @property
-    def yes_bid_dollars(self) -> Decimal:
-        """Convert centi-cents to dollars."""
-        return Decimal(self.yes_bid) / Decimal(10000)
+    def position_cost_dollars(self) -> Decimal:
+        """Convert centi-cents to dollars (÷10,000)."""
+        return Decimal(self.position_cost) / Decimal(10000)
+
+    @property
+    def realized_pnl_dollars(self) -> Decimal:
+        """Convert centi-cents to dollars (÷10,000)."""
+        return Decimal(self.realized_pnl) / Decimal(10000)
 ```
 
 ---
@@ -402,6 +434,17 @@ async def run_scanner() -> None:
 
 ## 8. References
 
-- Official WebSocket docs: https://docs.kalshi.com/docs/websocket-overview
-- Channels: `orderbook_delta`, `ticker`, `trade`, `fill`, `market_positions`, `market_lifecycle_v2`
-- Keep-alive: Ping every 10 seconds, body = "heartbeat"
+- **Official WebSocket docs:** https://docs.kalshi.com/websockets/websocket-connection
+- **Quick Start:** https://docs.kalshi.com/getting_started/quick_start_websockets
+- **Ticker channel:** https://docs.kalshi.com/websockets/market-ticker
+- **Orderbook updates:** https://docs.kalshi.com/websockets/orderbook-updates
+- **Market positions:** https://docs.kalshi.com/websockets/market-positions
+- **Production URL:** `wss://api.elections.kalshi.com/trade-api/ws/v2`
+- **Demo URL:** `wss://demo-api.kalshi.co/trade-api/ws/v2`
+- **Local SSOT:** [OFFICIAL-API-REFERENCE.md](../kalshi/OFFICIAL-API-REFERENCE.md)
+
+### Channels
+`orderbook_delta`, `ticker`, `trade`, `fill`, `market_positions`, `market_lifecycle_v2`, `multivariate`, `communications`
+
+### Keep-Alive
+Kalshi sends Ping frames (0x9) every ~10 seconds with body `heartbeat`. Respond with Pong frames (0xA).

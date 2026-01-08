@@ -4,7 +4,8 @@
 **Priority:** P2 (Developer Experience)
 **Estimated Complexity:** Low
 **Dependencies:** SPEC-002 (API Client)
-**Official Docs:** [docs.kalshi.com](https://docs.kalshi.com/welcome)
+**Official Docs:** [Demo Environment](https://docs.kalshi.com/getting_started/demo_env)
+**Local SSOT:** [OFFICIAL-API-REFERENCE.md](../kalshi/OFFICIAL-API-REFERENCE.md)
 
 ---
 
@@ -208,7 +209,7 @@ async def demo_client(demo_environment):
 ## 6. Demo Account Setup
 
 ### 6.1 Create Demo Account
-1. Visit https://demo.kalshi.com
+1. Visit https://demo.kalshi.co
 2. Create account with test credentials
 3. Generate API keys in demo portal
 
@@ -256,5 +257,6 @@ jobs:
 
 ## 8. References
 
-- Demo environment docs: https://docs.kalshi.com/welcome
-- Demo portal: https://demo.kalshi.com
+- **Demo environment docs:** https://docs.kalshi.com/getting_started/demo_env
+- **Demo portal:** https://demo.kalshi.co
+- **Local SSOT:** [OFFICIAL-API-REFERENCE.md](../kalshi/OFFICIAL-API-REFERENCE.md)
