@@ -1,6 +1,6 @@
 # SPEC-015: Rate Limit Tier Management
 
-**Status:** Proposed
+**Status:** ✅ Implemented
 **Priority:** P1 (Important for Reliability)
 **Estimated Complexity:** Medium
 **Dependencies:** SPEC-002 (API Client)

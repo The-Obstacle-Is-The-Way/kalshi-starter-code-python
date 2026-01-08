@@ -2,25 +2,29 @@
 
 This directory contains **active** design specifications for pending features.
 
-## 🚧 Active Specifications (In Progress)
-These features are currently being implemented or are next in the queue.
+## Current Status
 
-| ID | Title | Priority | Status |
-|---|---|---|---|
-| [**SPEC-011**](SPEC-011-manual-trading-support.md) | Manual Trading Support | 🟡 P1 | ✅ Implemented |
-| [**SPEC-014**](SPEC-014-websocket-real-time-data.md) | WebSocket Real-Time Data | 🔴 P0 | ✅ Implemented |
-| [**SPEC-015**](SPEC-015-rate-limit-tier-management.md) | Rate Limit Tier Management | 🟡 P1 | ✅ Implemented |
-| [**SPEC-016**](SPEC-016-demo-environment-testing.md) | Demo Environment Testing | 🟢 P2 | ✅ Implemented |
+**No active specifications.** All 16 specs have been implemented.
+
+## Next ID Tracker
+
+Use this ID for the next specification you create:
+**SPEC-017**
 
 ---
 
-## 🗄️ Archive (Implemented)
+## Archive (Implemented)
+
 Completed specifications are stored in [`../_archive/specs/`](../_archive/specs/).
 
 | ID | Title | Status |
 |---|---|---|
+| **SPEC-016** | Demo Environment Testing | ✅ Implemented |
+| **SPEC-015** | Rate Limit Tier Management | ✅ Implemented |
+| **SPEC-014** | WebSocket Real-Time Data | ✅ Implemented |
 | **SPEC-013** | Portfolio Sync Implementation | ✅ Implemented |
 | **SPEC-012** | Developer Experience | ✅ Implemented |
+| **SPEC-011** | Manual Trading Support | ✅ Implemented |
 | **SPEC-010** | CLI Completeness | ✅ Implemented |
 | **SPEC-009** | Cleanup Documentation | ✅ Implemented |
 | **SPEC-008** | Research Notebooks Backtesting | ✅ Implemented |

@@ -16,6 +16,7 @@ All resolved bug reports are stored in [`../_archive/bugs/`](../_archive/bugs/).
 
 | ID | Title | Status |
 |---|---|---|
+| **INCIDENT-001** | Chinese Character Syntax Corruption | ✅ Resolved |
 | **BUG-040** | Alembic FileConfig Disables Existing Loggers | ✅ Fixed |
 | **BUG-039** | CLI Dotenv Not Loaded for Auth | ✅ Fixed |
 | **BUG-038** | Scan Arbitrage Inverse One-Sided Quotes | ✅ Fixed |
