@@ -178,6 +178,76 @@ def test_alerts_monitor_continuous_shows_ctrl_c(
     assert "Press Ctrl+C" in result.stdout
 
 
+@patch("kalshi_research.cli._load_alerts")
+@patch("kalshi_research.cli.subprocess.Popen")
+def test_alerts_monitor_daemon_spawns_background_process(
+    mock_popen: MagicMock,
+    mock_load_alerts: MagicMock,
+) -> None:
+    """--daemon should spawn a detached process and exit immediately."""
+    mock_load_alerts.return_value = {
+        "conditions": [
+            {
+                "id": "alert-123",
+                "condition_type": "price_above",
+                "ticker": "TEST-TICKER",
+                "threshold": 0.9,
+                "label": "price_above TEST-TICKER > 0.9",
+            }
+        ]
+    }
+
+    mock_proc = MagicMock()
+    mock_proc.pid = 4242
+    mock_popen.return_value = mock_proc
+
+    with (
+        runner.isolated_filesystem(),
+        patch("kalshi_research.cli.sys.executable", "/usr/bin/python"),
+    ):
+        result = runner.invoke(
+            app,
+            [
+                "alerts",
+                "monitor",
+                "--daemon",
+                "--interval",
+                "5",
+                "--max-pages",
+                "2",
+                "--once",
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert "PID" in result.stdout
+    assert "alert_monitor.log" in result.stdout
+
+    mock_popen.assert_called_once()
+    args, kwargs = mock_popen.call_args
+    assert args[0][:4] == ["/usr/bin/python", "-m", "kalshi_research.cli", "alerts"]
+    assert args[0][4:6] == ["monitor", "--interval"]
+    assert "--daemon" not in args[0]
+    assert kwargs["stdin"] is not None
+    assert kwargs["stdout"] is kwargs["stderr"]
+
+
+@patch("kalshi_research.cli._load_alerts")
+@patch("kalshi_research.cli.subprocess.Popen")
+def test_alerts_monitor_daemon_does_not_spawn_without_alerts(
+    mock_popen: MagicMock,
+    mock_load_alerts: MagicMock,
+) -> None:
+    """--daemon should not spawn when there are no configured alerts."""
+    mock_load_alerts.return_value = {"conditions": []}
+
+    result = runner.invoke(app, ["alerts", "monitor", "--daemon", "--interval", "5"])
+
+    assert result.exit_code == 0
+    assert "No alerts configured" in result.stdout
+    mock_popen.assert_not_called()
+
+
 # ==================== Analysis CLI Tests ====================
 
 

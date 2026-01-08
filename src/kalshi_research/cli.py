@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import subprocess
+import sys
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -42,6 +44,37 @@ portfolio_app = typer.Typer(help="Portfolio tracking and P&L commands.")
 app.add_typer(portfolio_app, name="portfolio")
 
 console = Console()
+
+_ALERT_MONITOR_LOG_PATH = Path("data/alert_monitor.log")
+
+
+def _spawn_alert_monitor_daemon(
+    *, interval: int, once: bool, max_pages: int | None
+) -> tuple[int, Path]:
+    args = [
+        sys.executable,
+        "-m",
+        "kalshi_research.cli",
+        "alerts",
+        "monitor",
+        "--interval",
+        str(interval),
+    ]
+    if max_pages is not None:
+        args.extend(["--max-pages", str(max_pages)])
+    if once:
+        args.append("--once")
+
+    _ALERT_MONITOR_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with _ALERT_MONITOR_LOG_PATH.open("a") as log_file:
+        proc = subprocess.Popen(
+            args,
+            stdin=subprocess.DEVNULL,
+            stdout=log_file,
+            stderr=log_file,
+            start_new_session=True,
+        )
+    return proc.pid, _ALERT_MONITOR_LOG_PATH
 
 
 @app.callback()
@@ -1049,9 +1082,7 @@ def alerts_monitor(
     interval: Annotated[
         int, typer.Option("--interval", "-i", help="Check interval in seconds")
     ] = 60,
-    daemon: Annotated[
-        bool, typer.Option("--daemon", help="Run in background (not implemented)")
-    ] = False,
+    daemon: Annotated[bool, typer.Option("--daemon", help="Run in background")] = False,
     once: Annotated[
         bool,
         typer.Option("--once", help="Run a single check cycle and exit."),
@@ -1070,11 +1101,6 @@ def alerts_monitor(
     from kalshi_research.alerts.notifiers import ConsoleNotifier
     from kalshi_research.api import KalshiPublicClient
 
-    if daemon:
-        console.print(
-            "[yellow]Warning:[/yellow] Daemon mode not yet implemented, running in foreground"
-        )
-
     # Load alert conditions from storage
     data = _load_alerts()
     conditions_data = data.get("conditions", [])
@@ -1083,6 +1109,16 @@ def alerts_monitor(
         console.print(
             "[yellow]No alerts configured. Use 'kalshi alerts add' to create some.[/yellow]"
         )
+        return
+
+    if daemon:
+        pid, log_path = _spawn_alert_monitor_daemon(
+            interval=interval,
+            once=once,
+            max_pages=max_pages,
+        )
+        console.print(f"[green]✓[/green] Alert monitor started in background (PID: {pid})")
+        console.print(f"[dim]Logs: {log_path}[/dim]")
         return
 
     # Create monitor and add notifier

@@ -54,8 +54,8 @@ If you haven’t installed the `kalshi` entrypoint globally, use `uv run kalshi 
 - `kalshi alerts add <price|volume|spread> <TICKER> --above FLOAT`
   - price-only: `--below FLOAT` is supported
 - `kalshi alerts remove <ALERT_ID_PREFIX>`
-- `kalshi alerts monitor [--once] [--interval SEC] [--max-pages N]`
-  - `--daemon` exists but is not implemented (runs in foreground with a warning).
+- `kalshi alerts monitor [--once] [--interval SEC] [--max-pages N] [--daemon]`
+  - `--daemon` starts a detached background process and writes logs to `data/alert_monitor.log`.
 
 Alerts are stored locally at `data/alerts.json`.
 

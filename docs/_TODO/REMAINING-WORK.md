@@ -402,54 +402,17 @@ class TestMockDataDetection:
 
 ---
 
-## Issue #2: Alerts Daemon Mode Not Implemented (🟡 MEDIUM) - ⚠️ DEFERRED (P3)
+## Issue #2: Alerts Daemon Mode (🟢 LOW) - ✅ FIXED
 
-### The Problem
+### Resolution
+
+`kalshi alerts monitor --daemon` now starts a detached background process and exits immediately.
+
+- Writes daemon output to `data/alert_monitor.log`
+- Prints the daemon PID to the console
+- Does not rely on `os.fork()` (spawns a subprocess instead)
 
 **File:** `src/kalshi_research/cli.py`
-**Line:** 1053
-
-The `--daemon` flag is accepted but explicitly marked as not implemented:
-
-```python
-daemon: Annotated[
-    bool, typer.Option("--daemon", help="Run in background (not implemented)")
-] = False,
-```
-
-When used:
-```python
-if daemon:
-    console.print(
-        "[yellow]Warning:[/yellow] Daemon mode not yet implemented, running in foreground"
-    )
-```
-
-### The Fix (Low Priority)
-
-Option A: Remove the flag entirely until implemented
-Option B: Implement using process backgrounding
-
-```python
-# Option A: Remove the flag
-# Just delete the daemon parameter and the if block
-
-# Option B: Implement basic daemon mode
-if daemon:
-    import os
-    import sys
-
-    # Fork to background
-    pid = os.fork()
-    if pid > 0:
-        console.print(f"[green]Alert monitor started in background (PID: {pid})[/green]")
-        sys.exit(0)
-
-    # Redirect stdout/stderr to log file
-    log_file = Path("data/alert_monitor.log")
-    sys.stdout = log_file.open("a")
-    sys.stderr = sys.stdout
-```
 
 ---
 
@@ -546,7 +509,7 @@ async def amend_order(
 **Status:** ✅ IMPLEMENTED in `src/kalshi_research/api/websocket/`
 **Priority:** P0 for performance, but not mock data (honestly documented as "Proposed")
 
-See `docs/_specs/SPEC-014-websocket-real-time-data.md` for full specification.
+See `docs/_archive/specs/SPEC-014-websocket-real-time-data.md` for full specification.
 
 ---
 
@@ -555,7 +518,7 @@ See `docs/_specs/SPEC-014-websocket-real-time-data.md` for full specification.
 **Status:** ✅ IMPLEMENTED in `src/kalshi_research/api/rate_limiter.py`
 **Priority:** P1, but not mock data (honestly documented as "Proposed")
 
-See `docs/_specs/SPEC-015-rate-limit-tier-management.md` for full specification.
+See `docs/_archive/specs/SPEC-015-rate-limit-tier-management.md` for full specification.
 
 ---
 
@@ -566,7 +529,7 @@ These features are **genuinely implemented**, not mock:
 1. ✅ **Portfolio Sync** - Real API calls, real FIFO cost basis, real mark prices
 2. ✅ **Demo Environment** - Real URL switching via config
 3. ✅ **Market Scanner** - Real data analysis
-4. ✅ **Alert Monitor** - Real condition checking (just no daemon mode)
+4. ✅ **Alert Monitor** - Real condition checking (including daemon mode)
 5. ✅ **Thesis Tracking** - Real JSON persistence
 6. ✅ **Data Collection** - Real API pagination, real DB writes
 7. ✅ **Calibration Analysis** - Real Brier score calculations
@@ -580,7 +543,7 @@ These features are **genuinely implemented**, not mock:
 2. **🟡 P1: Add Order Placement** - ✅ DONE
 3. **🟡 P1: Rate Limit Tiers** - ✅ DONE
 4. **🟢 P2: WebSocket** - ✅ DONE
-5. **🟢 P3: Daemon Mode** - ⚠️ DEFERRED (low priority, works in foreground)
+5. **🟢 P3: Daemon Mode** - ✅ DONE
 
 ---
 
