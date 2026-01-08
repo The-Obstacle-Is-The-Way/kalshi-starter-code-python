@@ -4,13 +4,16 @@ Research tools for Kalshi prediction market analysis.
 
 ## Features
 
-- **Market Scanner** - Find close races, high volume, wide spreads
-- **Calibration Analysis** - Brier scores, historical accuracy
-- **Edge Detection** - Flag mispriced markets vs your thesis
-- **Event Correlation** - Analyze related market movements
-- **Alerts** - Get notified when conditions are met
-- **Backtesting** - Test trading strategies on historical data
+- **Data pipeline** - Sync markets/events, take price snapshots, export to Parquet/CSV
+- **Scanning** - Opportunities, movers, and basic arbitrage signals
+- **Analysis** - Metrics, calibration (Brier score), and correlation (DB-backed)
+- **Alerts** - Local alert conditions + monitoring loop
+- **Portfolio (authenticated)** - Sync trades/positions and compute FIFO cost basis + P&L
+- **Thesis tracking** - Create/list/show/resolve theses (local JSON)
 - **Notebooks** - Jupyter templates for exploration
+
+Notes:
+- `kalshi research backtest` exists but is currently a placeholder.
 
 ## Installation
 
@@ -20,7 +23,7 @@ git clone https://github.com/your-username/kalshi-research.git
 cd kalshi-research
 
 # Install with uv (recommended)
-uv sync
+uv sync --all-extras
 
 # Or with pip
 pip install -e ".[dev,research]"
@@ -30,19 +33,19 @@ pip install -e ".[dev,research]"
 
 ```bash
 # Initialize database
-kalshi data init
+uv run kalshi data init
 
-# Sync markets from Kalshi
-kalshi data sync-markets
+# Sync markets from Kalshi (start small)
+uv run kalshi data sync-markets --max-pages 1
 
 # Scan for opportunities
-kalshi scan opportunities --filter close-race
+uv run kalshi scan opportunities --filter close-race --max-pages 1
 
 # Get market details
-kalshi market get TICKER-NAME
+uv run kalshi market get TICKER-NAME
 
 # Start continuous data collection
-kalshi data collect --interval 15
+uv run kalshi data collect --interval 15
 ```
 
 ## CLI Reference
@@ -51,9 +54,11 @@ See `kalshi --help` for all commands.
 
 ## Documentation
 
-- [QUICKSTART.md](docs/QUICKSTART.md) - Get started in 5 minutes
-- [USAGE.md](docs/USAGE.md) - Detailed usage guide
-- [docs/_specs/](docs/_specs/) - Technical specifications
+- [docs/README.md](docs/README.md) - Diataxis docs index
+- [docs/QUICKSTART.md](docs/QUICKSTART.md) - Tutorial quickstart
+- [docs/USAGE.md](docs/USAGE.md) - How-to workflows
+- [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) - CLI index
+- [docs/_specs/](docs/_specs/) - Internal technical specs
 
 ## Development
 
