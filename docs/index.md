@@ -27,7 +27,7 @@ This repo follows a Diataxis-style layout:
 - `docs/reference/cli-reference.md`
 - `docs/reference/configuration.md`
 - `docs/reference/python-api.md`
-- `docs/kalshi-docs/OFFICIAL-API-REFERENCE.md` — upstream Kalshi API reference (vendor docs).
+- `docs/kalshi-docs/official-api-reference.md` — upstream Kalshi API reference (vendor docs).
 
 ## Explanation
 

@@ -5,7 +5,7 @@
 **Estimated Complexity:** High
 **Dependencies:** SPEC-002 (API Client)
 **Official Docs:** [WebSocket Connection](https://docs.kalshi.com/websockets/websocket-connection)
-**Local SSOT:** [OFFICIAL-API-REFERENCE.md](../kalshi/OFFICIAL-API-REFERENCE.md)
+**Local SSOT:** [official-api-reference.md](../../kalshi-docs/official-api-reference.md)
 
 ---
 
@@ -37,7 +37,7 @@ This was a mistake. The **official Kalshi documentation** recommends WebSocket f
 ### 2.1 Available Channels (Official API)
 
 > **IMPORTANT:** ALL WebSocket connections require authentication via headers, even for public data channels.
-> See [OFFICIAL-API-REFERENCE.md](../kalshi/OFFICIAL-API-REFERENCE.md) for auth details.
+> See [official-api-reference.md](../../kalshi-docs/official-api-reference.md) for auth details.
 
 | Channel | Data Scope | Use Case |
 |---------|------------|----------|
@@ -441,7 +441,7 @@ async def run_scanner() -> None:
 - **Market positions:** https://docs.kalshi.com/websockets/market-positions
 - **Production URL:** `wss://api.elections.kalshi.com/trade-api/ws/v2`
 - **Demo URL:** `wss://demo-api.kalshi.co/trade-api/ws/v2`
-- **Local SSOT:** [OFFICIAL-API-REFERENCE.md](../kalshi/OFFICIAL-API-REFERENCE.md)
+- **Local SSOT:** [official-api-reference.md](../../kalshi-docs/official-api-reference.md)
 
 ### Channels
 `orderbook_delta`, `ticker`, `trade`, `fill`, `market_positions`, `market_lifecycle_v2`, `multivariate`, `communications`

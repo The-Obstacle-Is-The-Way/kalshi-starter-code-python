@@ -97,22 +97,22 @@ If you don't use a `dev` branch, use `ralph-wiggum-loop` directly off `main` and
 To keep your project root clean, store Ralph files in a subdirectory:
 ```
 docs/ralph-wiggum/
-├── PROTOCOL.md   # This file (reference, stays here)
-├── PROMPT.md     # Template (move to root when running)
-└── PROGRESS.md   # State file (move to root when running)
+├── protocol.md   # This file (reference, stays here)
+├── prompt.md     # Template (move to root when running)
+└── progress.md   # State file (move to root when running)
 ```
 
 **Before running the loop**, move the active files to root:
 ```bash
 git checkout ralph-wiggum-loop
-cp docs/ralph-wiggum/PROMPT.md ./PROMPT.md
-cp docs/ralph-wiggum/PROGRESS.md ./PROGRESS.md
+cp docs/ralph-wiggum/prompt.md ./PROMPT.md
+cp docs/ralph-wiggum/progress.md ./PROGRESS.md
 ```
 
 **After the loop completes**, move them back:
 ```bash
-mv PROMPT.md docs/ralph-wiggum/PROMPT.md
-mv PROGRESS.md docs/ralph-wiggum/PROGRESS.md
+mv PROMPT.md docs/ralph-wiggum/prompt.md
+mv PROGRESS.md docs/ralph-wiggum/progress.md
 git add -A && git commit -m "chore: Archive ralph-wiggum state files"
 ```
 
@@ -644,8 +644,8 @@ git checkout main && git pull
 git checkout -b ralph-wiggum-loop
 
 # 2. Move state files to root (if stored in docs/ralph-wiggum/)
-cp docs/ralph-wiggum/PROMPT.md ./PROMPT.md
-cp docs/ralph-wiggum/PROGRESS.md ./PROGRESS.md
+cp docs/ralph-wiggum/prompt.md ./PROMPT.md
+cp docs/ralph-wiggum/progress.md ./PROGRESS.md
 
 # 3. Create spec docs for each task (docs/_specs/, docs/_bugs/)
 
@@ -672,8 +672,8 @@ git log main..ralph-wiggum-loop --oneline
 git diff main..ralph-wiggum-loop --stat
 
 # 8. Archive state files back
-mv PROMPT.md docs/ralph-wiggum/PROMPT.md
-mv PROGRESS.md docs/ralph-wiggum/PROGRESS.md
+mv PROMPT.md docs/ralph-wiggum/prompt.md
+mv PROGRESS.md docs/ralph-wiggum/progress.md
 git add -A && git commit -m "chore: Archive ralph-wiggum state"
 
 # 9. Merge if good
