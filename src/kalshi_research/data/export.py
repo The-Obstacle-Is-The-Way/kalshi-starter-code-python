@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+import structlog
+
+logger = structlog.get_logger()
 
 # Allowed tables for export (prevents SQL injection via table names)
 ALLOWED_TABLES = frozenset({"price_snapshots", "markets", "events", "settlements"})

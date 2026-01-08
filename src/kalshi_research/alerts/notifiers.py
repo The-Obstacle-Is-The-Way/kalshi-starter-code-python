@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import httpx
+import structlog
 from rich.console import Console
 from rich.panel import Panel
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 if TYPE_CHECKING:
     from kalshi_research.alerts.conditions import Alert

@@ -7,12 +7,12 @@ These tests use respx to mock HTTP requests. Everything else
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import pytest
 import respx
 from httpx import Response
+from structlog.testing import capture_logs
 
 from kalshi_research.api.client import KalshiPublicClient
 from kalshi_research.api.exceptions import KalshiAPIError
@@ -208,7 +208,6 @@ class TestKalshiPublicClient:
     @respx.mock
     async def test_get_all_markets_warns_when_truncated(
         self,
-        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Emit warning when max_pages reached but cursor still present."""
         base_market = {
@@ -239,18 +238,17 @@ class TestKalshiPublicClient:
             return_value=Response(200, json=page1)
         )
 
-        with caplog.at_level(logging.WARNING):
+        with capture_logs() as cap_logs:
             async with KalshiPublicClient() as client:
                 markets = [m async for m in client.get_all_markets(max_pages=1)]
 
         assert len(markets) == 1
-        assert "Pagination truncated" in caplog.text
+        assert any("Pagination truncated" in log["event"] for log in cap_logs)
 
     @pytest.mark.asyncio
     @respx.mock
     async def test_get_all_events_warns_when_truncated(
         self,
-        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Emit warning when max_pages reached but cursor still present."""
         page1 = {
@@ -275,12 +273,12 @@ class TestKalshiPublicClient:
             return_value=Response(200, json=page1)
         )
 
-        with caplog.at_level(logging.WARNING):
+        with capture_logs() as cap_logs:
             async with KalshiPublicClient() as client:
                 events = [e async for e in client.get_all_events(max_pages=1)]
 
         assert len(events) == 1
-        assert "Pagination truncated" in caplog.text
+        assert any("Pagination truncated" in log["event"] for log in cap_logs)
 
     @pytest.mark.asyncio
     @respx.mock

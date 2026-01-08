@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 import uuid
 from typing import TYPE_CHECKING, Any, Literal
 
 import httpx
+import structlog
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
@@ -179,7 +179,7 @@ class KalshiPublicClient:
         Warns:
             If max_pages reached but cursor still present (data truncated)
         """
-        logger = logging.getLogger(__name__)
+        logger = structlog.get_logger()
         cursor: str | None = None
         pages = 0
         while True:
@@ -359,7 +359,7 @@ class KalshiPublicClient:
         Warns:
             If max_pages reached but cursor still present (data truncated)
         """
-        logger = logging.getLogger(__name__)
+        logger = structlog.get_logger()
         cursor: str | None = None
         pages = 0
         while True:

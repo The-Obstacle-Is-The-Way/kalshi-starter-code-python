@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
+
+import structlog
 
 from kalshi_research.api import KalshiPublicClient
 from kalshi_research.api.models.market import MarketFilterStatus
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
     from kalshi_research.api.models.market import Market as APIMarket
     from kalshi_research.data.database import DatabaseManager
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class DataFetcher:

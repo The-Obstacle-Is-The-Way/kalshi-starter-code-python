@@ -11,10 +11,10 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import Any
 
 import pandas as pd
+import structlog
 
 from kalshi_research.analysis.edge import Edge
 from kalshi_research.api import KalshiPublicClient
@@ -29,7 +29,7 @@ try:
 except ImportError:
     IPYTHON_AVAILABLE = False
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 try:
     plt: Any | None

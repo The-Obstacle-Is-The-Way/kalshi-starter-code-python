@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+import structlog
 from sqlalchemy import select
 
 from kalshi_research.portfolio.models import Position, Trade
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from kalshi_research.api.client import KalshiClient, KalshiPublicClient
     from kalshi_research.data.database import DatabaseManager
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 def compute_fifo_cost_basis(trades: list[Trade], side: str) -> int:

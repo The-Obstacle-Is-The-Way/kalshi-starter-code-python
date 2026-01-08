@@ -12,7 +12,7 @@ import subprocess
 import sys
 import uuid
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, Any, cast
 
 import typer
@@ -20,6 +20,14 @@ from dotenv import find_dotenv, load_dotenv
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
+
+from kalshi_research.paths import (
+    DEFAULT_ALERT_LOG,
+    DEFAULT_ALERTS_PATH,
+    DEFAULT_DB_PATH,
+    DEFAULT_EXPORTS_DIR,
+    DEFAULT_THESES_PATH,
+)
 
 app = typer.Typer(
     name="kalshi",
@@ -45,7 +53,7 @@ app.add_typer(portfolio_app, name="portfolio")
 
 console = Console()
 
-_ALERT_MONITOR_LOG_PATH = Path("data/alert_monitor.log")
+_ALERT_MONITOR_LOG_PATH = DEFAULT_ALERT_LOG
 
 if TYPE_CHECKING:
     from kalshi_research.analysis.correlation import CorrelationResult
@@ -145,7 +153,7 @@ def data_init(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
 ) -> None:
     """Initialize the database with required tables."""
     from kalshi_research.data import DatabaseManager
@@ -166,7 +174,7 @@ def data_sync_markets(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     status: Annotated[
         str | None,
         typer.Option("--status", "-s", help="Filter by status (open, closed, etc)."),
@@ -208,7 +216,7 @@ def data_sync_settlements(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     max_pages: Annotated[
         int | None,
         typer.Option(
@@ -248,7 +256,7 @@ def data_snapshot(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     status: Annotated[
         str | None,
         typer.Option("--status", "-s", help="Filter by status (default: open)."),
@@ -287,7 +295,7 @@ def data_collect(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     interval: Annotated[
         int,
         typer.Option("--interval", "-i", help="Interval in minutes between snapshots."),
@@ -369,11 +377,11 @@ def data_export(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     output: Annotated[
         Path,
         typer.Option("--output", "-o", help="Output directory for exports."),
-    ] = Path("data/exports"),
+    ] = DEFAULT_EXPORTS_DIR,
     format_type: Annotated[
         str,
         typer.Option("--format", "-f", help="Export format (parquet, csv)."),
@@ -409,7 +417,7 @@ def data_stats(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
 ) -> None:
     """Show database statistics."""
     from kalshi_research.data import DatabaseManager
@@ -720,7 +728,7 @@ def scan_arbitrage(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     divergence_threshold: Annotated[
         float, typer.Option("--threshold", help="Min divergence to flag (0-1)")
     ] = 0.10,
@@ -872,7 +880,7 @@ def scan_movers(  # noqa: PLR0915
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     period: Annotated[str, typer.Option("--period", "-p", help="Time period: 1h, 6h, 24h")] = "24h",
     top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
     max_pages: Annotated[
@@ -1012,7 +1020,7 @@ def scan_movers(  # noqa: PLR0915
 
 def _get_alerts_file() -> Path:
     """Get path to alerts storage file."""
-    return Path("data/alerts.json")
+    return DEFAULT_ALERTS_PATH
 
 
 def _atomic_write_json(path: Path, data: dict[str, Any]) -> None:
@@ -1288,7 +1296,7 @@ def analysis_calibration(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     days: Annotated[int, typer.Option("--days", help="Number of days to analyze")] = 30,
     output: Annotated[
         Path | None,
@@ -1382,7 +1390,7 @@ def analysis_metrics(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
 ) -> None:
     """Calculate market metrics for a ticker."""
     from kalshi_research.data import DatabaseManager
@@ -1426,7 +1434,7 @@ def analysis_correlation(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     event: Annotated[
         str | None,
         typer.Option("--event", "-e", help="Filter by event ticker"),
@@ -1531,7 +1539,7 @@ def analysis_correlation(
 
 def _get_thesis_file() -> Path:
     """Get path to thesis storage file."""
-    return Path("data/theses.json")
+    return DEFAULT_THESES_PATH
 
 
 def _load_theses() -> dict[str, Any]:
@@ -1626,7 +1634,7 @@ def research_thesis_show(  # noqa: PLR0915
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
 ) -> None:
     """Show details of a thesis."""
     data = _load_theses()
@@ -1826,7 +1834,7 @@ def research_backtest(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
 ) -> None:
     """
     Run backtests on resolved theses using historical settlements.
@@ -1935,7 +1943,7 @@ def portfolio_sync(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     environment: Annotated[
         str | None,
         typer.Option("--env", help="Override global environment (demo or prod)."),
@@ -2022,7 +2030,7 @@ def portfolio_positions(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     ticker: Annotated[
         str | None,
         typer.Option("--ticker", "-t", help="Filter by specific ticker."),
@@ -2099,7 +2107,7 @@ def portfolio_pnl(  # noqa: PLR0915
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     ticker: Annotated[
         str | None,
         typer.Option("--ticker", "-t", help="Filter by specific ticker."),
@@ -2233,7 +2241,7 @@ def portfolio_history(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
     limit: Annotated[
         int,
         typer.Option("--limit", "-n", help="Number of trades to show."),
@@ -2304,7 +2312,7 @@ def portfolio_link(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
 ) -> None:
     """Link a position to a thesis."""
     from sqlalchemy import select
@@ -2343,7 +2351,7 @@ def portfolio_suggest_links(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
-    ] = Path("data/kalshi.db"),
+    ] = DEFAULT_DB_PATH,
 ) -> None:
     """Suggest thesis-position links based on matching tickers."""
     from sqlalchemy import select
