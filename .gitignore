@@ -64,7 +64,6 @@ data/*.db-shm
 data/*.db-wal
 data/*.json
 data/exports/
-!data/.gitkeep
 
 # OS
 .DS_Store
