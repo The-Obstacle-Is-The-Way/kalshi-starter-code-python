@@ -647,7 +647,15 @@ def test_research_backtest(mock_db_cls: MagicMock) -> None:
     mock_db.__aexit__.return_value = AsyncMock()
     mock_db_cls.return_value = mock_db
 
-    with patch("pathlib.Path.exists", return_value=True):
+    with runner.isolated_filesystem():
+        db_path = Path("data/kalshi.db")
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        db_path.touch()
+
+        thesis_file = Path("data/theses.json")
+        thesis_file.parent.mkdir(parents=True, exist_ok=True)
+        thesis_file.write_text(json.dumps({"theses": []}), encoding="utf-8")
+
         result = runner.invoke(
             app,
             [
@@ -661,8 +669,7 @@ def test_research_backtest(mock_db_cls: MagicMock) -> None:
         )
 
     assert result.exit_code == 0
-    # Should show some backtest output (even if placeholder)
-    assert "Backtest" in result.stdout or "trades" in result.stdout.lower()
+    assert "No resolved theses to backtest" in result.stdout
 
 
 # ==================== Portfolio CLI Tests ====================

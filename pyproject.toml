@@ -15,7 +15,6 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "requests>=2.32.0",
     "cryptography>=46.0.0",
     "websockets>=15.0.0",
     "python-dotenv>=1.0.0",
@@ -46,7 +45,6 @@ dev = [
     "respx>=0.22.0",
     "polyfactory>=3.0.0",
     "hypothesis>=6.122.0",
-    "types-requests>=2.32.0",
 ]
 research = [
     "pandas>=2.2.0",

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+import structlog
+
+logger = structlog.get_logger()
 
 # Allowed tables for export (prevents SQL injection via table names)
 ALLOWED_TABLES = frozenset({"price_snapshots", "markets", "events", "settlements"})
@@ -82,7 +83,10 @@ def export_to_parquet(
                     (FORMAT PARQUET);
                 """)
 
-            logger.info("Exported %s to Parquet: %s", table, table_dir)
+            output_path = (
+                table_dir if table == "price_snapshots" else table_dir.with_suffix(".parquet")
+            )
+            logger.info("Exported table to Parquet", table=table, path=str(output_path))
 
     finally:
         conn.close()
@@ -140,7 +144,7 @@ def export_to_csv(
                 COPY kalshi.{table} TO '{output_file}'
                 (FORMAT CSV, HEADER true);
             """)
-            logger.info("Exported %s to CSV: %s", table, output_file)
+            logger.info("Exported table to CSV", table=table, path=str(output_file))
 
     finally:
         conn.close()

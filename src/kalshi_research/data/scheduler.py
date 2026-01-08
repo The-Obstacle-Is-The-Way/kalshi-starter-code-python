@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from typing import TYPE_CHECKING
+
+import structlog
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class DataScheduler:
@@ -56,11 +57,11 @@ class DataScheduler:
                 now = time.monotonic()
                 if now >= next_run:
                     try:
-                        logger.info("Running scheduled task: %s", name)
+                        logger.info("Running scheduled task", task_name=name)
                         await func()
-                        logger.info("Scheduled task completed: %s", name)
+                        logger.info("Scheduled task completed", task_name=name)
                     except Exception:
-                        logger.exception("Scheduled task failed: %s", name)
+                        logger.exception("Scheduled task failed", task_name=name)
 
                     # Calculate next run time
                     next_run += interval_seconds
@@ -94,11 +95,11 @@ class DataScheduler:
             await asyncio.sleep(delay_seconds)
             if self.running:
                 try:
-                    logger.info("Running one-time task: %s", name)
+                    logger.info("Running one-time task", task_name=name)
                     await func()
-                    logger.info("One-time task completed: %s", name)
+                    logger.info("One-time task completed", task_name=name)
                 except Exception:
-                    logger.exception("One-time task failed: %s", name)
+                    logger.exception("One-time task failed", task_name=name)
 
         task = asyncio.create_task(runner())
         self.tasks.append(task)

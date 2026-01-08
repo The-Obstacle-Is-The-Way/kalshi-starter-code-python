@@ -2,12 +2,15 @@
 
 This directory is the staging area for **active** bug reports. Once resolved, bugs are moved to the archive.
 
-## 🟢 Current Status
-**No active bugs.** All known issues have been resolved.
+## Active Bugs
 
-## 📋 Next ID Tracker
+| ID | Title | Priority | Status |
+|---|---|---|---|
+| *(none)* | All bugs resolved! | - | - |
+
+## Next ID Tracker
 Use this ID for the next bug report you create:
-# **BUG-045**
+# **BUG-046**
 
 ---
 
@@ -16,6 +19,7 @@ All resolved bug reports are stored in [`../_archive/bugs/`](../_archive/bugs/).
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-045** | Legacy Starter Code Compatibility Layer | ✅ Removed |
 | **INCIDENT-001** | Chinese Character Syntax Corruption | ✅ Resolved |
 | **BUG-044** | WebSocket client silent JSON errors | ✅ Fixed |
 | **BUG-040** | Alembic FileConfig Disables Existing Loggers | ✅ Fixed |

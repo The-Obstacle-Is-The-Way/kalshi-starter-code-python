@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 import kalshi_research.portfolio.models  # noqa: F401
 from kalshi_research.data.models import Base
+from kalshi_research.paths import DEFAULT_DB_PATH
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine
@@ -25,7 +26,7 @@ class DatabaseManager:
 
     def __init__(
         self,
-        db_path: str | Path = "data/kalshi.db",
+        db_path: str | Path = DEFAULT_DB_PATH,
         echo: bool = False,
     ) -> None:
         """

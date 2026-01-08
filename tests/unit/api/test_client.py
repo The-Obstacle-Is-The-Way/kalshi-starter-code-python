@@ -7,12 +7,13 @@ These tests use respx to mock HTTP requests. Everything else
 
 from __future__ import annotations
 
-import logging
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import respx
 from httpx import Response
+from structlog.testing import capture_logs
 
 from kalshi_research.api.client import KalshiPublicClient
 from kalshi_research.api.exceptions import KalshiAPIError
@@ -98,6 +99,28 @@ class TestKalshiPublicClient:
 
         assert market.ticker == ticker
         assert route.call_count == 2  # Verify retry happened
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_rate_limit_retry_after_header_controls_backoff(
+        self, mock_market_response: dict[str, Any]
+    ) -> None:
+        """Retry-After header should control 429 backoff when present."""
+        ticker = "KXBTC-25JAN-T100000"
+        route = respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}")
+
+        route.side_effect = [
+            Response(429, headers={"Retry-After": "7"}, json={"error": "Rate limited"}),
+            Response(200, json=mock_market_response),
+        ]
+
+        with patch("asyncio.sleep", new=AsyncMock()) as mock_sleep:
+            async with KalshiPublicClient() as client:
+                market = await client.get_market(ticker)
+
+        assert market.ticker == ticker
+        assert route.call_count == 2
+        assert any(call.args and call.args[0] == 7 for call in mock_sleep.await_args_list)
 
     @pytest.mark.asyncio
     @respx.mock
@@ -208,7 +231,6 @@ class TestKalshiPublicClient:
     @respx.mock
     async def test_get_all_markets_warns_when_truncated(
         self,
-        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Emit warning when max_pages reached but cursor still present."""
         base_market = {
@@ -239,18 +261,17 @@ class TestKalshiPublicClient:
             return_value=Response(200, json=page1)
         )
 
-        with caplog.at_level(logging.WARNING):
+        with capture_logs() as cap_logs:
             async with KalshiPublicClient() as client:
                 markets = [m async for m in client.get_all_markets(max_pages=1)]
 
         assert len(markets) == 1
-        assert "Pagination truncated" in caplog.text
+        assert any("Pagination truncated" in log["event"] for log in cap_logs)
 
     @pytest.mark.asyncio
     @respx.mock
     async def test_get_all_events_warns_when_truncated(
         self,
-        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Emit warning when max_pages reached but cursor still present."""
         page1 = {
@@ -275,12 +296,12 @@ class TestKalshiPublicClient:
             return_value=Response(200, json=page1)
         )
 
-        with caplog.at_level(logging.WARNING):
+        with capture_logs() as cap_logs:
             async with KalshiPublicClient() as client:
                 events = [e async for e in client.get_all_events(max_pages=1)]
 
         assert len(events) == 1
-        assert "Pagination truncated" in caplog.text
+        assert any("Pagination truncated" in log["event"] for log in cap_logs)
 
     @pytest.mark.asyncio
     @respx.mock

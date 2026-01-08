@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 import uuid
 from typing import TYPE_CHECKING, Any, Literal
 
 import httpx
+import structlog
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
@@ -27,6 +27,22 @@ from kalshi_research.api.rate_limiter import RateLimiter, RateTier
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+
+    from tenacity import RetryCallState
+
+
+logger = structlog.get_logger()
+
+_RETRY_WAIT = wait_exponential(multiplier=1, min=1, max=60)
+
+
+def _wait_with_retry_after(retry_state: RetryCallState) -> float:
+    outcome = retry_state.outcome
+    if outcome is not None:
+        exc = outcome.exception()
+        if isinstance(exc, RateLimitError) and exc.retry_after is not None:
+            return float(exc.retry_after)
+    return float(_RETRY_WAIT(retry_state))
 
 
 class KalshiPublicClient:
@@ -80,14 +96,24 @@ class KalshiPublicClient:
                 )
             ),
             stop=stop_after_attempt(self._max_retries),
-            wait=wait_exponential(multiplier=1, min=1, max=60),
+            wait=_wait_with_retry_after,
             reraise=True,
         ):
             with attempt:
                 response = await self._client.get(path, params=params)
 
                 if response.status_code == 429:
-                    raise RateLimitError("Rate limit exceeded")
+                    retry_after: int | None = None
+                    retry_after_header = response.headers.get("Retry-After")
+                    if retry_after_header is not None:
+                        try:
+                            retry_after = int(retry_after_header)
+                        except ValueError:
+                            retry_after = None
+                    raise RateLimitError(
+                        message=response.text or "Rate limit exceeded",
+                        retry_after=retry_after,
+                    )
 
                 if response.status_code >= 400:
                     raise KalshiAPIError(
@@ -179,7 +205,6 @@ class KalshiPublicClient:
         Warns:
             If max_pages reached but cursor still present (data truncated)
         """
-        logger = logging.getLogger(__name__)
         cursor: str | None = None
         pages = 0
         while True:
@@ -201,9 +226,9 @@ class KalshiPublicClient:
             # Safety limit check with warning
             if max_pages is not None and pages >= max_pages:
                 logger.warning(
-                    "Pagination truncated: reached max_pages=%d but cursor still present. "
+                    "Pagination truncated: reached max_pages but cursor still present. "
                     "Data may be incomplete. Set max_pages=None for full iteration.",
-                    max_pages,
+                    max_pages=max_pages,
                 )
                 break
 
@@ -359,7 +384,6 @@ class KalshiPublicClient:
         Warns:
             If max_pages reached but cursor still present (data truncated)
         """
-        logger = logging.getLogger(__name__)
         cursor: str | None = None
         pages = 0
         while True:
@@ -381,9 +405,9 @@ class KalshiPublicClient:
             # Safety limit check with warning
             if max_pages is not None and pages >= max_pages:
                 logger.warning(
-                    "Pagination truncated: reached max_pages=%d but cursor still present. "
+                    "Pagination truncated: reached max_pages but cursor still present. "
                     "Data may be incomplete. Set max_pages=None for full iteration.",
-                    max_pages,
+                    max_pages=max_pages,
                 )
                 break
 
@@ -470,14 +494,24 @@ class KalshiClient(KalshiPublicClient):
                 )
             ),
             stop=stop_after_attempt(self._max_retries),
-            wait=wait_exponential(multiplier=1, min=1, max=60),
+            wait=_wait_with_retry_after,
             reraise=True,
         ):
             with attempt:
                 response = await self._client.get(path, params=params, headers=headers)
 
                 if response.status_code == 429:
-                    raise RateLimitError("Rate limit exceeded")
+                    retry_after: int | None = None
+                    retry_after_header = response.headers.get("Retry-After")
+                    if retry_after_header is not None:
+                        try:
+                            retry_after = int(retry_after_header)
+                        except ValueError:
+                            retry_after = None
+                    raise RateLimitError(
+                        message=response.text or "Rate limit exceeded",
+                        retry_after=retry_after,
+                    )
 
                 if response.status_code >= 400:
                     raise KalshiAPIError(response.status_code, response.text)

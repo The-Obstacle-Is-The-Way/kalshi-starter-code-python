@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import logging
+import os
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -11,7 +11,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+import structlog
+
+from kalshi_research.paths import DEFAULT_THESES_PATH
+
+logger = structlog.get_logger()
 
 
 class ThesisStatus(str, Enum):
@@ -170,7 +174,7 @@ class ThesisTracker:
     - Analyzing thesis performance
     """
 
-    def __init__(self, storage_path: str | Path = "data/theses.json") -> None:
+    def __init__(self, storage_path: str | Path = DEFAULT_THESES_PATH) -> None:
         """
         Initialize the tracker.
 
@@ -185,7 +189,7 @@ class ThesisTracker:
         """Load theses from storage."""
         if self.storage_path.exists():
             try:
-                with self.storage_path.open() as f:
+                with self.storage_path.open(encoding="utf-8") as f:
                     raw = json.load(f)
             except json.JSONDecodeError as e:
                 raise ValueError(
@@ -242,20 +246,18 @@ class ThesisTracker:
                 self.theses = loaded_from_mapping
                 return
 
-            logger.warning("Theses file has no loadable theses: %s", self.storage_path)
+            logger.warning("Theses file has no loadable theses", path=str(self.storage_path))
             raise ValueError(f"Theses file has an unexpected schema: {self.storage_path}")
 
     def _save(self) -> None:
         """Save theses to storage."""
-        import os
-
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         # Save in CLI-compatible format
         data = {"theses": [t.to_dict() for t in self.theses.values()]}
         tmp_path = self.storage_path.with_suffix(
             f"{self.storage_path.suffix}.tmp.{uuid.uuid4().hex}"
         )
-        with tmp_path.open("w") as f:
+        with tmp_path.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
             f.flush()
             os.fsync(f.fileno())
