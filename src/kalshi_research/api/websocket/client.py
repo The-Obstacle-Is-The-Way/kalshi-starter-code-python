@@ -59,6 +59,7 @@ class KalshiWebSocket:
         self._ws: ClientConnection | None = None
         self._running = False
         self._lock = asyncio.Lock()
+        self._msg_id = 0  # Auto-incrementing message ID for commands
 
         # Handlers: channel -> callback
         self._handlers: dict[str, list[Callable[[Any], Coroutine[Any, Any, None]]]] = {}
@@ -116,7 +117,10 @@ class KalshiWebSocket:
         params: dict[str, Any] = {"channels": channels}
         if market_tickers:
             params["market_tickers"] = market_tickers
-        msg: dict[str, Any] = {"cmd": "subscribe", "params": params}
+
+        # Include required "id" field per Kalshi WebSocket API spec
+        self._msg_id += 1
+        msg: dict[str, Any] = {"id": self._msg_id, "cmd": "subscribe", "params": params}
 
         await self._send(msg)
 
