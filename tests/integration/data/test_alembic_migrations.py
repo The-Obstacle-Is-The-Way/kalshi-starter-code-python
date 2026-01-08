@@ -9,6 +9,19 @@ from alembic.config import Config
 pytestmark = [pytest.mark.integration]
 
 
+@pytest.fixture(autouse=True)
+def prevent_alembic_logging_pollution(monkeypatch):
+    """Prevent alembic from calling fileConfig() which pollutes logging state.
+
+    Alembic's env.py calls fileConfig() which globally reconfigures Python's
+    logging system, replacing any handlers (including pytest's caplog handler).
+    This fixture patches fileConfig to be a no-op during tests.
+    """
+    import logging.config
+
+    monkeypatch.setattr(logging.config, "fileConfig", lambda *args, **kwargs: None)
+
+
 def _tables(db_path) -> set[str]:
     with sqlite3.connect(db_path) as conn:
         rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
