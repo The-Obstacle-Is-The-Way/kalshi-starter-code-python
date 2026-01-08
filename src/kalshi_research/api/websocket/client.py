@@ -189,13 +189,8 @@ class KalshiWebSocket:
                 async for message in self._ws:
                     await self._handle_message(message)
 
-                if self._running and self._ws and self._ws.state is not State.CLOSED:
-                    logger.warning("WebSocket iterator exhausted but socket not closed")
-                    await asyncio.sleep(0.1)
-                    continue
-
-                # Iterator exhausted (clean close) - reconnect if enabled
-                logger.warning("WebSocket iterator exhausted (clean close)")
+                # Iterator exhausted - reconnect if enabled.
+                logger.warning("WebSocket iterator exhausted")
                 if self._running and self._auto_reconnect:
                     await self._reconnect()
                 else:

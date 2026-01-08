@@ -163,7 +163,7 @@ uv run kalshi research thesis show <THESIS_ID_PREFIX>
 uv run kalshi research thesis resolve <THESIS_ID_PREFIX> --outcome yes
 ```
 
-Backtesting exists as a CLI placeholder:
+Backtesting runs on resolved theses using settlement data in the database:
 
 ```bash
 uv run kalshi research backtest --start 2024-01-01 --end 2024-12-31 --db data/kalshi.db

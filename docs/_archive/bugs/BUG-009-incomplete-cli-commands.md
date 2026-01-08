@@ -29,7 +29,9 @@ kalshi alerts monitor --daemon
 
 **Status:** ✅ IMPLEMENTED
 
-**Impact:** Users cannot run continuous alert monitoring from CLI. The `AlertMonitor` class exists but has no CLI exposure.
+**Impact (before fix):** Users could not run continuous alert monitoring from CLI.
+
+**Resolution:** `kalshi alerts monitor` runs in the foreground; `--once` exits after a single cycle; `--daemon` starts a detached background process and writes logs to `data/alert_monitor.log`.
 
 ---
 
@@ -104,7 +106,7 @@ kalshi
 ## Acceptance Criteria
 
 - [x] `kalshi alerts monitor` starts AlertMonitor in foreground
-- [x] `kalshi alerts monitor --daemon` runs in background (flag exists, daemon mode documented as not implemented)
+- [x] `kalshi alerts monitor --daemon` runs in background and logs to `data/alert_monitor.log`
 - [x] `kalshi analysis correlation --event X` shows correlated markets
 - [x] `kalshi scan arbitrage` finds mispriced related markets
 - [x] `kalshi scan movers --period 1h` shows biggest price moves

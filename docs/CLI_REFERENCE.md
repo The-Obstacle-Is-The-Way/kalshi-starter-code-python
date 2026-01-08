@@ -67,7 +67,7 @@ Alerts are stored locally at `data/alerts.json`.
 
 ## `kalshi research`
 
-- `kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH]` (placeholder)
+- `kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH] [--thesis THESIS_ID_PREFIX]`
 - `kalshi research thesis create <TITLE> --markets T1,T2 --your-prob P --market-prob P --confidence P [--bull TEXT] [--bear TEXT]`
 - `kalshi research thesis list`
 - `kalshi research thesis show <THESIS_ID_PREFIX>`

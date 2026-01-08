@@ -1,6 +1,6 @@
 # SPEC-011: Manual Trading Support
 
-**Status:** ✅ Implemented (local tracking + P&L; auth sync deferred)
+**Status:** ✅ Implemented (authenticated portfolio sync + P&L)
 **Priority:** P2
 **Depends On:** SPEC-002 (API Client with auth), SPEC-004 (Thesis tracking)
 
@@ -27,10 +27,10 @@ Currently, the user can:
 - ✅ View locally stored positions and trades (SQLite)
 - ✅ Compute P&L from stored positions/trades
 - ✅ Connect thesis → position via `Position.thesis_id` (string thesis ID)
-- ❌ Sync portfolio data from Kalshi (requires credentials; not implemented)
-- ❌ View live account balance/buying power (requires credentials; not implemented)
+- ✅ Sync portfolio data from Kalshi (requires credentials)
+- ✅ View live account balance/buying power (requires credentials)
 
-The gap: Research tools exist, but no connection to actual trading activity.
+The gap is addressed: the platform supports authenticated portfolio sync while keeping automated trading out of scope.
 
 ---
 

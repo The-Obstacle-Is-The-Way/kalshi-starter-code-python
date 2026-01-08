@@ -49,8 +49,10 @@ _ALERT_MONITOR_LOG_PATH = Path("data/alert_monitor.log")
 
 
 def _spawn_alert_monitor_daemon(
-    *, interval: int, once: bool, max_pages: int | None
+    *, interval: int, once: bool, max_pages: int | None, environment: str
 ) -> tuple[int, Path]:
+    import os
+
     args = [
         sys.executable,
         "-m",
@@ -65,15 +67,25 @@ def _spawn_alert_monitor_daemon(
     if once:
         args.append("--once")
 
+    daemon_env = dict(os.environ)
+    daemon_env["KALSHI_ENVIRONMENT"] = environment
+
     _ALERT_MONITOR_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _ALERT_MONITOR_LOG_PATH.open("a") as log_file:
-        proc = subprocess.Popen(
-            args,
-            stdin=subprocess.DEVNULL,
-            stdout=log_file,
-            stderr=log_file,
-            start_new_session=True,
-        )
+        popen_kwargs: dict[str, Any] = {
+            "stdin": subprocess.DEVNULL,
+            "stdout": log_file,
+            "stderr": log_file,
+            "env": daemon_env,
+        }
+        if sys.platform == "win32":
+            popen_kwargs["creationflags"] = int(getattr(subprocess, "DETACHED_PROCESS", 0)) | int(
+                getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            )
+        else:
+            popen_kwargs["start_new_session"] = True
+
+        proc = subprocess.Popen(args, **popen_kwargs)
     return proc.pid, _ALERT_MONITOR_LOG_PATH
 
 
@@ -1112,11 +1124,20 @@ def alerts_monitor(
         return
 
     if daemon:
-        pid, log_path = _spawn_alert_monitor_daemon(
-            interval=interval,
-            once=once,
-            max_pages=max_pages,
-        )
+        from kalshi_research.api.config import get_config
+
+        environment_value = get_config().environment.value
+        try:
+            pid, log_path = _spawn_alert_monitor_daemon(
+                interval=interval,
+                once=once,
+                max_pages=max_pages,
+                environment=environment_value,
+            )
+        except OSError as exc:
+            console.print(f"[red]Error:[/red] Failed to start daemon: {exc}")
+            raise typer.Exit(1) from None
+
         console.print(f"[green]✓[/green] Alert monitor started in background (PID: {pid})")
         console.print(f"[dim]Logs: {log_path}[/dim]")
         return

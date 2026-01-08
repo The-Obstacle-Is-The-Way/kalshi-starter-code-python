@@ -17,7 +17,9 @@
 
 ## 1. Overview
 
-`kalshi alerts monitor` currently supports foreground monitoring only. The CLI accepts `--daemon` but prints a warning and runs in the foreground.
+`kalshi alerts monitor` supports both foreground monitoring and daemon mode.
+
+`--daemon` starts a detached background process that runs the same monitor loop and writes logs to `data/alert_monitor.log`.
 
 This spec defines an **OS-friendly, testable daemon mode** that runs the monitor loop in the background and immediately returns control to the user.
 
@@ -81,6 +83,8 @@ Rationale:
   - `sys.executable -m kalshi_research.cli alerts monitor ...`
   - Pass through `--interval`, `--max-pages`, and `--once`.
   - Omit `--daemon` to prevent recursion.
+- Environment:
+  - Ensure `KALSHI_ENVIRONMENT` is set in the daemon process to match the parent CLI environment.
 - Detach:
   - POSIX: `start_new_session=True`
   - Windows: `creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP`

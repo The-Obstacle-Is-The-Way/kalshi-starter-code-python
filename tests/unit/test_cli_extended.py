@@ -230,6 +230,9 @@ def test_alerts_monitor_daemon_spawns_background_process(
     assert "--daemon" not in args[0]
     assert kwargs["stdin"] is not None
     assert kwargs["stdout"] is kwargs["stderr"]
+    assert "env" in kwargs
+    assert kwargs["env"]["KALSHI_ENVIRONMENT"] in {"demo", "prod"}
+    assert kwargs.get("start_new_session") is True or kwargs.get("creationflags", 0) != 0
 
 
 @patch("kalshi_research.cli._load_alerts")

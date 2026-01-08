@@ -17,7 +17,7 @@ Expose platform functionality through a Typer CLI (`kalshi`) with Rich output.
 | `analysis/correlation.py` | `kalshi analysis correlation` | ✅ Implemented |
 | `analysis/metrics.py` | `kalshi analysis metrics` | ✅ Implemented |
 | `research/thesis.py` | `kalshi research thesis ...` | ✅ Implemented |
-| `research/backtest.py` | `kalshi research backtest` | ✅ Implemented (stub output) |
+| `research/backtest.py` | `kalshi research backtest` | ✅ Implemented |
 
 ---
 
@@ -46,7 +46,7 @@ kalshi alerts remove <alert-id>
 kalshi alerts monitor
 
 # Start monitoring daemon (background)
-# Note: `--daemon` is currently a stub that warns and runs in the foreground.
+# `--daemon` starts a detached background process and logs to `data/alert_monitor.log`.
 kalshi alerts monitor --daemon
 
 # Run a single check and exit (testable / cron-friendly)
@@ -159,10 +159,10 @@ kalshi
 
 ## Acceptance Criteria
 
-- [x] `kalshi alerts list/add/remove/monitor` works (`--once` supported for testability)
+- [x] `kalshi alerts list/add/remove/monitor` works (`--once` and `--daemon` supported for testability/ops)
 - [x] `kalshi analysis calibration/correlation/metrics` works (graceful empty-data handling)
 - [x] `kalshi research thesis create/list/show/resolve` works
-- [x] `kalshi research backtest` runs (stub output documented)
+- [x] `kalshi research backtest` runs (real DB-backed output)
 - [x] `kalshi scan arbitrage` works
 - [x] `kalshi scan movers` works
 - [x] All commands have `--help` documentation
