@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
+import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class ThesisStatus(str, Enum):
@@ -180,30 +184,82 @@ class ThesisTracker:
     def _load(self) -> None:
         """Load theses from storage."""
         if self.storage_path.exists():
-            with self.storage_path.open() as f:
-                data = json.load(f)
+            try:
+                with self.storage_path.open() as f:
+                    raw = json.load(f)
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"Theses file is not valid JSON: {self.storage_path}. "
+                    "Fix the file or restore from backup."
+                ) from e
+
+            if not isinstance(raw, dict):
+                raise ValueError(f"Theses file must contain a JSON object: {self.storage_path}")
 
             # Handle CLI format {"theses": [...]}
-            if "theses" in data and isinstance(data["theses"], list):
-                self.theses = {t["id"]: Thesis.from_dict(t) for t in data["theses"]}
-            else:
-                # Fallback to direct dict format (if any exist or for backward compat)
-                # Note: This branch might fail if data contains other keys like 'conditions'
-                # so we should be careful. But for now, assuming if not "theses", it's legacy dict.
+            if "theses" in raw:
+                theses_raw = raw["theses"]
+                if not isinstance(theses_raw, list):
+                    raise ValueError(
+                        f"Theses file has an unexpected schema: {self.storage_path} "
+                        "(expected key 'theses: [...]')"
+                    )
+
+                loaded_from_list: dict[str, Thesis] = {}
+                for i, item in enumerate(theses_raw):
+                    if not isinstance(item, dict):
+                        raise ValueError(
+                            f"Theses file has an invalid entry at index {i}: {self.storage_path}"
+                        )
+                    try:
+                        thesis = Thesis.from_dict(item)
+                    except (KeyError, TypeError, ValueError) as e:
+                        raise ValueError(
+                            f"Theses file contains an invalid thesis at index {i}: "
+                            f"{self.storage_path}"
+                        ) from e
+                    loaded_from_list[thesis.id] = thesis
+                self.theses = loaded_from_list
+                return
+
+            # Legacy dict format: {"<id>": {...}, ...}
+            loaded_from_mapping: dict[str, Thesis] = {}
+            for key, value in raw.items():
+                if not isinstance(value, dict):
+                    continue
+                thesis_dict = dict(value)
+                thesis_dict.setdefault("id", key)
                 try:
-                    self.theses = {
-                        k: Thesis.from_dict(v) for k, v in data.items() if isinstance(v, dict)
-                    }
-                except (AttributeError, KeyError):
-                    self.theses = {}
+                    thesis = Thesis.from_dict(thesis_dict)
+                except (KeyError, TypeError, ValueError) as e:
+                    raise ValueError(
+                        f"Theses file contains an invalid thesis under key '{key}': "
+                        f"{self.storage_path}"
+                    ) from e
+                loaded_from_mapping[thesis.id] = thesis
+
+            if loaded_from_mapping:
+                self.theses = loaded_from_mapping
+                return
+
+            logger.warning("Theses file has no loadable theses: %s", self.storage_path)
+            raise ValueError(f"Theses file has an unexpected schema: {self.storage_path}")
 
     def _save(self) -> None:
         """Save theses to storage."""
+        import os
+
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         # Save in CLI-compatible format
         data = {"theses": [t.to_dict() for t in self.theses.values()]}
-        with self.storage_path.open("w") as f:
+        tmp_path = self.storage_path.with_suffix(
+            f"{self.storage_path.suffix}.tmp.{uuid.uuid4().hex}"
+        )
+        with tmp_path.open("w") as f:
             json.dump(data, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        tmp_path.replace(self.storage_path)
 
     def add(self, thesis: Thesis) -> None:
         """Add a thesis."""

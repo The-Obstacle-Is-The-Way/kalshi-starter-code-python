@@ -206,3 +206,25 @@ def test_data_stats(
     assert result.exit_code == 0
     assert "Total Events" in result.stdout
     assert "3" in result.stdout
+
+
+def test_alerts_list_invalid_json_exits_with_error(tmp_path) -> None:
+    alerts_file = tmp_path / "alerts.json"
+    alerts_file.write_text("{not json", encoding="utf-8")
+
+    with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+        result = runner.invoke(app, ["alerts", "list"])
+
+    assert result.exit_code == 1
+    assert "Alerts file is not valid JSON" in result.stdout
+
+
+def test_thesis_list_invalid_json_exits_with_error(tmp_path) -> None:
+    thesis_file = tmp_path / "theses.json"
+    thesis_file.write_text("{not json", encoding="utf-8")
+
+    with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+        result = runner.invoke(app, ["research", "thesis", "list"])
+
+    assert result.exit_code == 1
+    assert "Theses file is not valid JSON" in result.stdout

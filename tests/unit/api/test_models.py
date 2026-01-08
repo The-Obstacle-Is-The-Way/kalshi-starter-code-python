@@ -80,7 +80,7 @@ class TestMarketModel:
         market = Market.model_validate(make_market())
 
         with pytest.raises(ValidationError):
-            market.ticker = "CHANGED"  # type: ignore[misc]
+            market.ticker = "CHANGED"
 
     def test_market_filter_status_values(self) -> None:
         """Verify MarketFilterStatus values match API SSOT."""

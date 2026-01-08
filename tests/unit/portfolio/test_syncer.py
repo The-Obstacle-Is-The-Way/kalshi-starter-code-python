@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -249,10 +249,11 @@ async def test_sync_trades_uses_no_price_for_no_side() -> None:
 @pytest.mark.asyncio
 async def test_portfolio_syncer_full_sync_returns_sync_result() -> None:
     syncer = PortfolioSyncer(client=MagicMock(), db=MagicMock())
-    syncer.sync_trades = AsyncMock(return_value=3)  # type: ignore[method-assign]
-    syncer.sync_positions = AsyncMock(return_value=2)  # type: ignore[method-assign]
-
-    result = await syncer.full_sync()
+    with (
+        patch.object(syncer, "sync_trades", new=AsyncMock(return_value=3)),
+        patch.object(syncer, "sync_positions", new=AsyncMock(return_value=2)),
+    ):
+        result = await syncer.full_sync()
 
     assert isinstance(result, SyncResult)
     assert result.positions_synced == 2

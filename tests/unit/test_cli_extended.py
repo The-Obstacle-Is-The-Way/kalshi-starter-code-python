@@ -17,8 +17,10 @@ runner = CliRunner()
 
 def test_alerts_list_empty() -> None:
     """Test listing alerts when none exist."""
-    with patch("pathlib.Path.exists", return_value=False):
-        result = runner.invoke(app, ["alerts", "list"])
+    with runner.isolated_filesystem():
+        alerts_file = Path("alerts.json")
+        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+            result = runner.invoke(app, ["alerts", "list"])
 
     assert result.exit_code == 0
     assert "No active alerts" in result.stdout
@@ -26,65 +28,68 @@ def test_alerts_list_empty() -> None:
 
 def test_alerts_add_price() -> None:
     """Test adding a price alert."""
-    mock_file = mock_open(read_data='{"conditions": []}')
+    with runner.isolated_filesystem():
+        alerts_file = Path("alerts.json")
+        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+            result = runner.invoke(app, ["alerts", "add", "price", "TEST-TICKER", "--above", "60"])
 
-    with (
-        patch("pathlib.Path.exists", return_value=False),
-        patch("builtins.open", mock_file),
-        patch("pathlib.Path.mkdir"),
-    ):
-        result = runner.invoke(app, ["alerts", "add", "price", "TEST-TICKER", "--above", "60"])
-
-    assert result.exit_code == 0
-    assert "Alert added" in result.stdout
+        assert result.exit_code == 0
+        assert "Alert added" in result.stdout
+        stored = json.loads(alerts_file.read_text(encoding="utf-8"))
+        assert len(stored["conditions"]) == 1
 
 
 def test_alerts_add_volume() -> None:
     """Test adding a volume alert."""
-    mock_file = mock_open(read_data='{"conditions": []}')
+    with runner.isolated_filesystem():
+        alerts_file = Path("alerts.json")
+        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+            result = runner.invoke(
+                app, ["alerts", "add", "volume", "TEST-TICKER", "--above", "10000"]
+            )
 
-    with (
-        patch("pathlib.Path.exists", return_value=False),
-        patch("builtins.open", mock_file),
-        patch("pathlib.Path.mkdir"),
-    ):
-        result = runner.invoke(app, ["alerts", "add", "volume", "TEST-TICKER", "--above", "10000"])
-
-    assert result.exit_code == 0
-    assert "Alert added" in result.stdout
+        assert result.exit_code == 0
+        assert "Alert added" in result.stdout
+        stored = json.loads(alerts_file.read_text(encoding="utf-8"))
+        assert len(stored["conditions"]) == 1
 
 
 def test_alerts_add_spread() -> None:
     """Test adding a spread alert."""
-    mock_file = mock_open(read_data='{"conditions": []}')
+    with runner.isolated_filesystem():
+        alerts_file = Path("alerts.json")
+        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+            result = runner.invoke(app, ["alerts", "add", "spread", "TEST-TICKER", "--above", "5"])
 
-    with (
-        patch("pathlib.Path.exists", return_value=False),
-        patch("builtins.open", mock_file),
-        patch("pathlib.Path.mkdir"),
-    ):
-        result = runner.invoke(app, ["alerts", "add", "spread", "TEST-TICKER", "--above", "5"])
-
-    assert result.exit_code == 0
-    assert "Alert added" in result.stdout
+        assert result.exit_code == 0
+        assert "Alert added" in result.stdout
+        stored = json.loads(alerts_file.read_text(encoding="utf-8"))
+        assert len(stored["conditions"]) == 1
 
 
 def test_alerts_remove() -> None:
     """Test removing an alert."""
-    alert_data = {"conditions": [{"id": "alert-12345678", "label": "test alert"}]}
-    mock_file = mock_open(read_data=json.dumps(alert_data))
+    with runner.isolated_filesystem():
+        alerts_file = Path("alerts.json")
+        alerts_file.write_text(
+            json.dumps({"conditions": [{"id": "alert-12345678", "label": "test alert"}]}),
+            encoding="utf-8",
+        )
+        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+            result = runner.invoke(app, ["alerts", "remove", "alert-123"])
 
-    with patch("pathlib.Path.exists", return_value=True), patch("pathlib.Path.open", mock_file):
-        result = runner.invoke(app, ["alerts", "remove", "alert-123"])
-
-    assert result.exit_code == 0
-    assert "removed" in result.stdout.lower()
+        assert result.exit_code == 0
+        assert "removed" in result.stdout.lower()
+        stored = json.loads(alerts_file.read_text(encoding="utf-8"))
+        assert stored["conditions"] == []
 
 
 def test_alerts_remove_not_found() -> None:
     """Test removing a non-existent alert."""
-    with patch("pathlib.Path.exists", return_value=False):
-        result = runner.invoke(app, ["alerts", "remove", "nonexistent"])
+    with runner.isolated_filesystem():
+        alerts_file = Path("alerts.json")
+        with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+            result = runner.invoke(app, ["alerts", "remove", "nonexistent"])
 
     assert result.exit_code == 0
     assert "not found" in result.stdout.lower()
@@ -507,35 +512,39 @@ def test_analysis_metrics(mock_db_cls: MagicMock) -> None:
 
 def test_research_thesis_create() -> None:
     """Test creating a thesis."""
-    mock_file = mock_open(read_data='{"theses": []}')
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(
+                app,
+                [
+                    "research",
+                    "thesis",
+                    "create",
+                    "Test thesis",
+                    "--markets",
+                    "TICK1,TICK2",
+                    "--your-prob",
+                    "0.7",
+                    "--market-prob",
+                    "0.5",
+                    "--confidence",
+                    "0.8",
+                ],
+            )
 
-    with patch("builtins.open", mock_file), patch("pathlib.Path.mkdir"):
-        result = runner.invoke(
-            app,
-            [
-                "research",
-                "thesis",
-                "create",
-                "Test thesis",
-                "--markets",
-                "TICK1,TICK2",
-                "--your-prob",
-                "0.7",
-                "--market-prob",
-                "0.5",
-                "--confidence",
-                "0.8",
-            ],
-        )
-
-    assert result.exit_code == 0
-    assert "Thesis created" in result.stdout
+        assert result.exit_code == 0
+        assert "Thesis created" in result.stdout
+        stored = json.loads(thesis_file.read_text(encoding="utf-8"))
+        assert len(stored["theses"]) == 1
 
 
 def test_research_thesis_list_empty() -> None:
     """Test listing theses when none exist."""
-    with patch("pathlib.Path.exists", return_value=False):
-        result = runner.invoke(app, ["research", "thesis", "list"])
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result.exit_code == 0
     assert "No theses" in result.stdout
@@ -543,21 +552,26 @@ def test_research_thesis_list_empty() -> None:
 
 def test_research_thesis_list_with_theses() -> None:
     """Test listing theses."""
-    thesis_data = {
-        "theses": [
-            {
-                "id": "thesis-12345678",
-                "title": "Test Thesis",
-                "status": "active",
-                "your_probability": 0.7,
-                "market_probability": 0.5,
-            }
-        ]
-    }
-    mock_file = mock_open(read_data=json.dumps(thesis_data))
-
-    with patch("pathlib.Path.exists", return_value=True), patch("pathlib.Path.open", mock_file):
-        result = runner.invoke(app, ["research", "thesis", "list"])
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        thesis_file.write_text(
+            json.dumps(
+                {
+                    "theses": [
+                        {
+                            "id": "thesis-12345678",
+                            "title": "Test Thesis",
+                            "status": "active",
+                            "your_probability": 0.7,
+                            "market_probability": 0.5,
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result.exit_code == 0
     # Check for either the full ID or the shortened version
@@ -566,28 +580,33 @@ def test_research_thesis_list_with_theses() -> None:
 
 def test_research_thesis_show() -> None:
     """Test showing a thesis."""
-    thesis_data = {
-        "theses": [
-            {
-                "id": "thesis-12345678",
-                "title": "Test Thesis",
-                "status": "active",
-                "your_probability": 0.7,
-                "market_probability": 0.5,
-                "confidence": 0.8,
-                "bull_case": "Bull case",
-                "bear_case": "Bear case",
-                "key_assumptions": ["Assumption 1"],
-                "invalidation_criteria": ["Criterion 1"],
-                "market_tickers": ["TICK1"],
-                "updates": [],
-            }
-        ]
-    }
-    mock_file = mock_open(read_data=json.dumps(thesis_data))
-
-    with patch("pathlib.Path.exists", return_value=True), patch("pathlib.Path.open", mock_file):
-        result = runner.invoke(app, ["research", "thesis", "show", "thesis-1"])
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        thesis_file.write_text(
+            json.dumps(
+                {
+                    "theses": [
+                        {
+                            "id": "thesis-12345678",
+                            "title": "Test Thesis",
+                            "status": "active",
+                            "your_probability": 0.7,
+                            "market_probability": 0.5,
+                            "confidence": 0.8,
+                            "bull_case": "Bull case",
+                            "bear_case": "Bear case",
+                            "key_assumptions": ["Assumption 1"],
+                            "invalidation_criteria": ["Criterion 1"],
+                            "market_tickers": ["TICK1"],
+                            "updates": [],
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(app, ["research", "thesis", "show", "thesis-1"])
 
     assert result.exit_code == 0
     assert "Test Thesis" in result.stdout
@@ -595,25 +614,26 @@ def test_research_thesis_show() -> None:
 
 def test_research_thesis_resolve() -> None:
     """Test resolving a thesis."""
-    thesis_data = {
-        "theses": [
-            {
-                "id": "thesis-12345678",
-                "title": "Test Thesis",
-                "status": "active",
-            }
-        ]
-    }
-    mock_file = mock_open(read_data=json.dumps(thesis_data))
-
-    with (
-        patch("pathlib.Path.exists", return_value=True),
-        patch("pathlib.Path.open", mock_file),
-        patch("pathlib.Path.mkdir"),
-    ):
-        result = runner.invoke(
-            app, ["research", "thesis", "resolve", "thesis-1", "--outcome", "yes"]
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        thesis_file.write_text(
+            json.dumps(
+                {
+                    "theses": [
+                        {
+                            "id": "thesis-12345678",
+                            "title": "Test Thesis",
+                            "status": "active",
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
         )
+        with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(
+                app, ["research", "thesis", "resolve", "thesis-1", "--outcome", "yes"]
+            )
 
     assert result.exit_code == 0
     assert "resolved" in result.stdout.lower()

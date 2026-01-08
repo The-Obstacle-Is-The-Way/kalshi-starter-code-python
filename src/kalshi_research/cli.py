@@ -13,7 +13,7 @@ import sys
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 import typer
 from dotenv import find_dotenv, load_dotenv
@@ -46,6 +46,11 @@ app.add_typer(portfolio_app, name="portfolio")
 console = Console()
 
 _ALERT_MONITOR_LOG_PATH = Path("data/alert_monitor.log")
+
+if TYPE_CHECKING:
+    from kalshi_research.analysis.correlation import CorrelationResult
+    from kalshi_research.api.models.market import Market
+    from kalshi_research.research.backtest import BacktestResult
 
 
 def _spawn_alert_monitor_daemon(
@@ -745,7 +750,7 @@ def scan_arbitrage(
             "[yellow]Warning:[/yellow] Database not found, analyzing current markets only"
         )
 
-    async def _load_correlated_pairs(markets: list[Any]) -> list[Any]:
+    async def _load_correlated_pairs(markets: list[Market]) -> list[CorrelationResult]:
         if not db_path.exists():
             return []
 
@@ -1010,21 +1015,55 @@ def _get_alerts_file() -> Path:
     return Path("data/alerts.json")
 
 
+def _atomic_write_json(path: Path, data: dict[str, Any]) -> None:
+    import os
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(f"{path.suffix}.tmp.{uuid.uuid4().hex}")
+    with tmp_path.open("w") as f:
+        json.dump(data, f, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    tmp_path.replace(path)
+
+
+def _load_json_storage_file(*, path: Path, kind: str, required_list_key: str) -> dict[str, Any]:
+    if not path.exists():
+        return {required_list_key: []}
+
+    try:
+        with path.open() as f:
+            raw = json.load(f)
+    except json.JSONDecodeError:
+        console.print(f"[red]Error:[/red] {kind} file is not valid JSON: {path}")
+        console.print("[dim]Fix the file or restore from backup.[/dim]")
+        console.print("[dim]This command will not modify it.[/dim]")
+        raise typer.Exit(1) from None
+
+    if not isinstance(raw, dict):
+        console.print(f"[red]Error:[/red] {kind} file must contain a JSON object: {path}")
+        raise typer.Exit(1) from None
+
+    if required_list_key not in raw or not isinstance(raw[required_list_key], list):
+        console.print(
+            f"[red]Error:[/red] {kind} file has an unexpected schema: {path} "
+            f"(expected key '{required_list_key}: [...]')"
+        )
+        raise typer.Exit(1) from None
+
+    return cast(dict[str, Any], raw)
+
+
 def _load_alerts() -> dict[str, Any]:
     """Load alerts from storage."""
     alerts_file = _get_alerts_file()
-    if not alerts_file.exists():
-        return {"conditions": []}
-    with alerts_file.open() as f:
-        return json.load(f)  # type: ignore[no-any-return]
+    return _load_json_storage_file(path=alerts_file, kind="Alerts", required_list_key="conditions")
 
 
 def _save_alerts(data: dict[str, Any]) -> None:
     """Save alerts to storage."""
     alerts_file = _get_alerts_file()
-    alerts_file.parent.mkdir(parents=True, exist_ok=True)
-    with alerts_file.open("w") as f:
-        json.dump(data, f, indent=2)
+    _atomic_write_json(alerts_file, data)
 
 
 @alerts_app.command("list")
@@ -1498,18 +1537,13 @@ def _get_thesis_file() -> Path:
 def _load_theses() -> dict[str, Any]:
     """Load theses from storage."""
     thesis_file = _get_thesis_file()
-    if not thesis_file.exists():
-        return {"theses": []}
-    with thesis_file.open() as f:
-        return json.load(f)  # type: ignore[no-any-return]
+    return _load_json_storage_file(path=thesis_file, kind="Theses", required_list_key="theses")
 
 
 def _save_theses(data: dict[str, Any]) -> None:
     """Save theses to storage."""
     thesis_file = _get_thesis_file()
-    thesis_file.parent.mkdir(parents=True, exist_ok=True)
-    with thesis_file.open("w") as f:
-        json.dump(data, f, indent=2)
+    _atomic_write_json(thesis_file, data)
 
 
 @research_thesis_app.command("create")
@@ -1726,7 +1760,7 @@ def _parse_backtest_dates(start: str, end: str) -> tuple[datetime, datetime]:
     return start_dt, end_dt
 
 
-def _display_backtest_results(results: list[Any], start: str, end: str) -> None:
+def _display_backtest_results(results: list[BacktestResult], start: str, end: str) -> None:
     """Helper to display backtest results."""
     # Calculate aggregate statistics
     total_trades = sum(r.total_trades for r in results)
@@ -1817,13 +1851,17 @@ def research_backtest(
         raise typer.Exit(1)
 
     async def _backtest() -> None:
-        db = DatabaseManager(db_path)
-        thesis_mgr = ThesisManager()
-        backtester = ThesisBacktester()
+        async with DatabaseManager(db_path) as db:
+            try:
+                thesis_mgr = ThesisManager()
+            except ValueError as e:
+                console.print(f"[red]Error:[/red] {e}")
+                raise typer.Exit(1) from None
 
-        console.print(f"[dim]Backtesting from {start} to {end}...[/dim]")
+            backtester = ThesisBacktester()
 
-        try:
+            console.print(f"[dim]Backtesting from {start} to {end}...[/dim]")
+
             start_dt, end_dt = _parse_backtest_dates(start, end)
 
             # Load theses
@@ -1885,9 +1923,6 @@ def research_backtest(
                 return
 
             _display_backtest_results(results, start, end)
-
-        finally:
-            await db.close()
 
     asyncio.run(_backtest())
 

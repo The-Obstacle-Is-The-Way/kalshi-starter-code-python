@@ -264,6 +264,20 @@ class TestThesisTracker:
         assert retrieved is not None
         assert retrieved.title == "Test"
 
+    def test_load_invalid_json_raises(self, temp_path: Path) -> None:
+        """Invalid JSON should fail loudly (no silent empty fallback)."""
+        temp_path.write_text("{not json", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="not valid JSON"):
+            ThesisTracker(temp_path)
+
+    def test_load_unexpected_schema_raises(self, temp_path: Path) -> None:
+        """Unexpected schema should fail loudly to avoid data loss on next save."""
+        temp_path.write_text('{"conditions": []}', encoding="utf-8")
+
+        with pytest.raises(ValueError, match="unexpected schema"):
+            ThesisTracker(temp_path)
+
     def test_persistence(self, temp_path: Path) -> None:
         """Theses persist to disk."""
         # Create and save

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import select
+from sqlalchemy.engine import CursorResult
 
 from kalshi_research.data.models import PriceSnapshot
 from kalshi_research.data.repositories.base import BaseRepository
@@ -94,6 +95,5 @@ class PriceRepository(BaseRepository[PriceSnapshot]):
         stmt = delete(PriceSnapshot).where(PriceSnapshot.snapshot_time < before)
         result = await self._session.execute(stmt)
         await self._session.flush()
-        # CursorResult has rowcount attribute
-        rowcount: int = result.rowcount  # type: ignore[attr-defined]
-        return rowcount
+        cursor_result = cast(CursorResult[object], result)
+        return int(cursor_result.rowcount)
