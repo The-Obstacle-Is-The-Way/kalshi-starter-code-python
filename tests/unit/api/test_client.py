@@ -145,6 +145,22 @@ class TestKalshiPublicClient:
 
     @pytest.mark.asyncio
     @respx.mock
+    async def test_get_markets_with_mve_filter(self) -> None:
+        """Test mve_filter is passed correctly."""
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/markets").mock(
+            return_value=Response(200, json={"markets": [], "cursor": None})
+        )
+
+        async with KalshiPublicClient() as client:
+            await client.get_markets(mve_filter="only")
+            await client.get_markets(mve_filter="exclude")
+
+        assert route.call_count == 2
+        assert route.calls[0].request.url.params["mve_filter"] == "only"
+        assert route.calls[1].request.url.params["mve_filter"] == "exclude"
+
+    @pytest.mark.asyncio
+    @respx.mock
     async def test_get_all_markets_has_no_default_page_cap(self) -> None:
         """Default max_pages=None should not stop at 100 pages."""
         base_market = {

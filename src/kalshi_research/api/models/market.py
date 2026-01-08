@@ -25,6 +25,7 @@ class MarketFilterStatus(str, Enum):
 
     UNOPENED = "unopened"
     OPEN = "open"
+    PAUSED = "paused"
     CLOSED = "closed"
     SETTLED = "settled"
 

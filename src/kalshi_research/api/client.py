@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import httpx
 from tenacity import (
@@ -14,6 +14,7 @@ from tenacity import (
 )
 
 from kalshi_research.api.auth import KalshiAuth
+from kalshi_research.api.config import APIConfig, Environment, get_config
 from kalshi_research.api.exceptions import KalshiAPIError, RateLimitError
 from kalshi_research.api.models.candlestick import Candlestick, CandlestickResponse
 from kalshi_research.api.models.event import Event
@@ -32,15 +33,18 @@ class KalshiPublicClient:
     Use this for market research - no API keys required.
     """
 
-    BASE_URL = "https://api.elections.kalshi.com/trade-api/v2"
-
     def __init__(
         self,
+        environment: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 5,
     ) -> None:
+        config = get_config()
+        if environment:
+            config = APIConfig(environment=Environment(environment))
+
         self._client = httpx.AsyncClient(
-            base_url=self.BASE_URL,
+            base_url=config.base_url,
             timeout=timeout,
             headers={"Accept": "application/json"},
         )
@@ -101,6 +105,7 @@ class KalshiPublicClient:
         series_ticker: str | None = None,
         limit: int = 100,
         cursor: str | None = None,
+        mve_filter: Literal["only", "exclude"] | None = None,
     ) -> tuple[list[Market], str | None]:
         """
         Fetch a single page of markets and return the next cursor (if any).
@@ -118,6 +123,8 @@ class KalshiPublicClient:
             params["series_ticker"] = series_ticker
         if cursor:
             params["cursor"] = cursor
+        if mve_filter:
+            params["mve_filter"] = mve_filter
 
         data = await self._get("/markets", params)
         markets = [Market.model_validate(m) for m in data.get("markets", [])]
@@ -129,6 +136,7 @@ class KalshiPublicClient:
         event_ticker: str | None = None,
         series_ticker: str | None = None,
         limit: int = 100,
+        mve_filter: Literal["only", "exclude"] | None = None,
     ) -> list[Market]:
         """
         Fetch markets with optional filters.
@@ -142,6 +150,7 @@ class KalshiPublicClient:
             event_ticker=event_ticker,
             series_ticker=series_ticker,
             limit=limit,
+            mve_filter=mve_filter,
         )
         return markets
 
@@ -150,6 +159,7 @@ class KalshiPublicClient:
         status: MarketFilterStatus | str | None = None,
         limit: int = 1000,
         max_pages: int | None = None,
+        mve_filter: Literal["only", "exclude"] | None = None,
     ) -> AsyncIterator[Market]:
         """
         Iterate through ALL markets with automatic pagination.
@@ -158,6 +168,7 @@ class KalshiPublicClient:
             status: Filter by market status (open, closed, settled)
             limit: Page size (max 1000)
             max_pages: Optional safety limit. None = iterate until exhausted.
+            mve_filter: Filter for multivariate events ("only" or "exclude")
 
         Yields:
             Market objects
@@ -173,6 +184,7 @@ class KalshiPublicClient:
                 status=status,
                 limit=limit,
                 cursor=cursor,
+                mve_filter=mve_filter,
             )
 
             for market in markets:
@@ -392,8 +404,6 @@ class KalshiClient(KalshiPublicClient):
     The signature is computed over: timestamp + method + full_path (without query params).
     """
 
-    DEMO_BASE = "https://demo-api.kalshi.co"
-    PROD_BASE = "https://api.elections.kalshi.com"
     API_PATH = "/trade-api/v2"
 
     def __init__(
@@ -401,13 +411,16 @@ class KalshiClient(KalshiPublicClient):
         key_id: str,
         private_key_path: str | None = None,
         private_key_b64: str | None = None,
-        environment: str = "prod",
+        environment: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 5,
     ) -> None:
-        # Don't call super().__init__() - we create client with environment-specific URL
-        base_host = self.DEMO_BASE if environment == "demo" else self.PROD_BASE
-        self._base_url = base_host + self.API_PATH
+        # Resolve configuration
+        config = get_config()
+        if environment:
+            config = APIConfig(environment=Environment(environment))
+
+        self._base_url = config.base_url
         self._auth = KalshiAuth(
             key_id, private_key_path=private_key_path, private_key_b64=private_key_b64
         )

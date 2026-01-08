@@ -45,9 +45,38 @@ console = Console()
 
 
 @app.callback()
-def main() -> None:
+def main(
+    environment: Annotated[
+        str,
+        typer.Option(
+            "--env",
+            "-e",
+            help="API environment (prod/demo). Defaults to KALSHI_ENVIRONMENT or prod.",
+        ),
+    ] = "prod",
+) -> None:
     """Kalshi Research Platform CLI."""
+    import os
+
+    from kalshi_research.api.config import Environment, set_environment
+
     load_dotenv(find_dotenv(usecwd=True))
+
+    # Priority: CLI flag > KALSHI_ENVIRONMENT env var > default "prod"
+    env_var = os.getenv("KALSHI_ENVIRONMENT")
+
+    # If user didn't override --env (still "prod") and env var is set, use env var
+    final_env = environment
+    if environment == "prod" and env_var:
+        final_env = env_var
+
+    try:
+        set_environment(Environment(final_env))
+    except ValueError:
+        console.print(
+            f"[yellow]Warning:[/yellow] Invalid environment '{final_env}', defaulting to prod"
+        )
+        set_environment(Environment.PRODUCTION)
 
 
 @app.command()
@@ -1627,9 +1656,7 @@ def portfolio_sync(
     ] = Path("data/kalshi.db"),
     environment: Annotated[
         str | None,
-        typer.Option(
-            "--env", help="Kalshi environment (demo or prod). Defaults to KALSHI_ENVIRONMENT."
-        ),
+        typer.Option("--env", help="Override global environment (demo or prod)."),
     ] = None,
     skip_mark_prices: Annotated[
         bool,
@@ -1653,7 +1680,6 @@ def portfolio_sync(
     key_id = os.getenv("KALSHI_KEY_ID")
     private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
     private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
-    env = environment or os.getenv("KALSHI_ENVIRONMENT") or "demo"
 
     if not key_id or (not private_key_path and not private_key_b64):
         console.print("[red]Error:[/red] Portfolio sync requires authentication.")
@@ -1671,7 +1697,7 @@ def portfolio_sync(
                 key_id=key_id,
                 private_key_path=private_key_path,
                 private_key_b64=private_key_b64,
-                environment=env,
+                environment=environment,
             ) as client:
                 syncer = PortfolioSyncer(client=client, db=db)
 
@@ -1688,7 +1714,8 @@ def portfolio_sync(
                 # Update mark prices + unrealized P&L (requires public API)
                 if not skip_mark_prices and positions_count > 0:
                     console.print("[dim]Fetching mark prices...[/dim]")
-                    async with KalshiPublicClient() as public_client:
+                    # Use same environment for public client
+                    async with KalshiPublicClient(environment=environment) as public_client:
                         updated = await syncer.update_mark_prices(public_client)
                         console.print(
                             f"[green]✓[/green] Updated mark prices for {updated} positions"
@@ -1871,9 +1898,7 @@ def portfolio_pnl(  # noqa: PLR0915
 def portfolio_balance(
     environment: Annotated[
         str | None,
-        typer.Option(
-            "--env", help="Kalshi environment (demo or prod). Defaults to KALSHI_ENVIRONMENT."
-        ),
+        typer.Option("--env", help="Override global environment (demo or prod)."),
     ] = None,
 ) -> None:
     """View account balance."""
@@ -1885,7 +1910,6 @@ def portfolio_balance(
     key_id = os.getenv("KALSHI_KEY_ID")
     private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
     private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
-    env = environment or os.getenv("KALSHI_ENVIRONMENT") or "demo"
 
     if not key_id or (not private_key_path and not private_key_b64):
         console.print("[red]Error:[/red] Balance requires authentication.")
@@ -1900,7 +1924,7 @@ def portfolio_balance(
             key_id=key_id,
             private_key_path=private_key_path,
             private_key_b64=private_key_b64,
-            environment=env,
+            environment=environment,
         ) as client:
             try:
                 balance = await client.get_balance()

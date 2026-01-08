@@ -13,7 +13,7 @@ from typing import Any
 
 import pytest
 
-from kalshi_research.api.models.market import Market, MarketStatus
+from kalshi_research.api.models.market import Market, MarketFilterStatus, MarketStatus
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.trade import Trade
 
@@ -79,6 +79,14 @@ class TestMarketModel:
 
         with pytest.raises(ValidationError):
             market.ticker = "CHANGED"  # type: ignore[misc]
+
+    def test_market_filter_status_values(self) -> None:
+        """Verify MarketFilterStatus values match API SSOT."""
+        assert MarketFilterStatus.UNOPENED == "unopened"
+        assert MarketFilterStatus.OPEN == "open"
+        assert MarketFilterStatus.PAUSED == "paused"
+        assert MarketFilterStatus.CLOSED == "closed"
+        assert MarketFilterStatus.SETTLED == "settled"
 
 
 class TestOrderbookModel:
