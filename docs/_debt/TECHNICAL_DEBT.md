@@ -6,41 +6,13 @@
 
 ## Outstanding Debt
 
-### 1. `cli.py` is 2,426 lines — needs splitting
-
-**Priority:** High
-**Effort:** 2-4 hours
-**Risk:** Low (pure refactor, no behavior change)
-
-The official [Typer documentation](https://typer.tiangolo.com/tutorial/one-file-per-command/) recommends one file per command group. A 2,426-line file violates the Single Responsibility Principle.
-
-**Current:**
-
-```text
-src/kalshi_research/
-└── cli.py  # 2,426 lines
-```
-
-**Target:**
-
-```text
-src/kalshi_research/
-├── cli/
-│   ├── __init__.py      # Main app, adds sub-apps
-│   ├── data.py          # kalshi data {init, sync-markets, collect, export, stats}
-│   ├── market.py        # kalshi market {get, list, orderbook}
-│   ├── scan.py          # kalshi scan {opportunities, arbitrage, movers}
-│   ├── alerts.py        # kalshi alerts {list, add, remove, monitor}
-│   ├── analysis.py      # kalshi analysis {calibration, correlation, metrics}
-│   ├── research.py      # kalshi research {thesis, backtest}
-│   └── portfolio.py     # kalshi portfolio {sync, positions, pnl, balance, history}
-```
+*No critical technical debt items currently tracked.*
 
 ---
 
 ## Deferred (Low Priority)
 
-### 2. No `interfaces/` or `ports/` package
+### 1. No `interfaces/` or `ports/` package
 
 **Priority:** Low
 **Status:** Acceptable for research platform
@@ -67,6 +39,7 @@ src/kalshi_research/
 | Path constants scattered across CLI | Centralized in `paths.py` |
 | Mixed logging (stdlib vs structlog) | Standardized on structlog |
 | Legacy sync client in codebase | Removed (BUG-045) |
+| `cli.py` is 2,426 lines — needs splitting | Refactored into `cli/` module (SPEC-018) |
 
 ---
 
@@ -88,7 +61,6 @@ src/kalshi_research/
 
 | File | Lines | Status |
 |------|-------|--------|
-| `cli.py` | 2,426 | Needs splitting |
 | `api/client.py` | 711 | Acceptable |
 | `analysis/correlation.py` | 394 | Acceptable |
 | `portfolio/syncer.py` | 355 | Acceptable |
