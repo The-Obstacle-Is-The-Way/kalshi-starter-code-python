@@ -6,7 +6,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-| **BUG-045** | [Legacy WebSocket Client Uses print()](BUG-045-legacy-websocket-client-uses-print.md) | P3 | Open |
+| **BUG-045** | [Legacy Starter Code Compatibility Layer Issues](BUG-045-legacy-websocket-client-uses-print.md) | P3 | Open |
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
