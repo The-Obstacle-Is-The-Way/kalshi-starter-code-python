@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 class TickerUpdate(BaseModel):
     """
     Ticker channel update message.
-    
+
     CRITICAL: Integer prices are in CENTS (0-100).
     """
 
@@ -34,6 +34,7 @@ class TickerUpdate(BaseModel):
 
 class OrderbookDelta(BaseModel):
     """Orderbook delta update."""
+
     market_ticker: str
     yes: list[list[int]]  # [[price_cents, count], ...]
     no: list[list[int]]
@@ -41,6 +42,7 @@ class OrderbookDelta(BaseModel):
 
 class TradeUpdate(BaseModel):
     """Public trade update."""
+
     market_ticker: str
     price: int  # cents
     count: int
@@ -51,7 +53,7 @@ class TradeUpdate(BaseModel):
 class MarketPositionUpdate(BaseModel):
     """
     Market positions channel update.
-    
+
     CRITICAL: Monetary values are in CENTI-CENTS (1/10000 dollar).
     """
 

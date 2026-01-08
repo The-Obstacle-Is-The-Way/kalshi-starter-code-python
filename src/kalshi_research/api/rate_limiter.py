@@ -128,8 +128,7 @@ class RateLimiter:
         # All DELETEs are writes
         # POSTs to order endpoints are writes
         is_write = method == "DELETE" or (
-            method == "POST"
-            and any(path.startswith(ep) for ep in self.WRITE_ENDPOINTS_PREFIX)
+            method == "POST" and any(path.startswith(ep) for ep in self.WRITE_ENDPOINTS_PREFIX)
         )
 
         if is_write:

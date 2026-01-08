@@ -97,15 +97,12 @@ class KalshiWebSocket:
     ) -> None:
         """
         Subscribe to channels.
-        
+
         Args:
             channels: List of channel names (ticker, orderbook_delta, etc)
             market_tickers: Optional list of market tickers
         """
-        msg = {
-            "cmd": "subscribe",
-            "params": {"channels": channels}
-        }
+        msg = {"cmd": "subscribe", "params": {"channels": channels}}
         if market_tickers:
             msg["params"]["market_tickers"] = market_tickers
 
@@ -164,10 +161,10 @@ class KalshiWebSocket:
         while self._running:
             try:
                 if not self._ws or self._ws.closed:
-                     if self._auto_reconnect:
-                         await self._reconnect()
-                     else:
-                         break
+                    if self._auto_reconnect:
+                        await self._reconnect()
+                    else:
+                        break
 
                 async for message in self._ws:
                     await self._handle_message(message)
@@ -197,7 +194,7 @@ class KalshiWebSocket:
                 return
 
             msg_obj: Any = None
-            msg_data = data.get("msg") or data # Sometimes msg is nested, sometimes flat?
+            msg_data = data.get("msg") or data  # Sometimes msg is nested, sometimes flat?
             # Check official docs example:
             # { "type": "ticker", "channel": "ticker", "sid": 1, "msg": { ... } }
             # So the data is in "msg" field.
@@ -233,13 +230,13 @@ class KalshiWebSocket:
         logger.info("Attempting to reconnect...")
         for attempt in range(self._max_reconnect):
             try:
-                wait_time = min(2 ** attempt, 60)
+                wait_time = min(2**attempt, 60)
                 await asyncio.sleep(wait_time)
                 await self.connect()
                 await self._resubscribe()
                 return
             except Exception as e:
-                logger.error(f"Reconnect attempt {attempt+1} failed: {e}")
+                logger.error(f"Reconnect attempt {attempt + 1} failed: {e}")
 
         self._running = False
         raise ConnectionError("Max reconnect attempts exceeded")

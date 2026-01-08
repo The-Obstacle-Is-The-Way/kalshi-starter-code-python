@@ -38,12 +38,14 @@ def mock_ws_connect():
         mock_connect.return_value = mock_ws
         yield mock_connect, mock_ws
 
+
 @pytest.fixture
 def mock_auth():
     with patch("kalshi_research.api.websocket.client.KalshiAuth") as MockAuth:
         instance = MockAuth.return_value
         instance.get_headers.return_value = {"Auth": "Token"}
         yield instance
+
 
 @pytest.mark.asyncio
 async def test_connect_headers(mock_ws_connect, mock_auth):
@@ -56,6 +58,7 @@ async def test_connect_headers(mock_ws_connect, mock_auth):
     mock_connect.assert_called_once()
     args, kwargs = mock_connect.call_args
     assert kwargs["extra_headers"] == {"Auth": "Token"}
+
 
 @pytest.mark.asyncio
 async def test_subscribe_ticker(mock_ws_connect, mock_auth):
@@ -74,6 +77,7 @@ async def test_subscribe_ticker(mock_ws_connect, mock_auth):
     assert sent_msg["params"]["channels"] == ["ticker"]
     assert sent_msg["params"]["market_tickers"] == ["KXTEST"]
 
+
 @pytest.mark.asyncio
 async def test_message_routing(mock_ws_connect, mock_auth):
     """Test message routing to callbacks."""
@@ -88,8 +92,8 @@ async def test_message_routing(mock_ws_connect, mock_auth):
             "yes_bid": 49,
             "yes_ask": 51,
             "volume": 100,
-            "open_interest": 1000
-        }
+            "open_interest": 1000,
+        },
     }
     mock_ws.add_message(ticker_msg)
 

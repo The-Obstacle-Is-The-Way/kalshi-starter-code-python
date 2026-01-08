@@ -3,7 +3,6 @@ Integration tests for Trading API flow using respx.
 Verifies the full stack from Client -> Auth -> Network (mocked).
 """
 
-
 import httpx
 import pytest
 import respx
@@ -48,23 +47,13 @@ async def test_create_order_flow(authenticated_client):
     async with respx.mock(base_url="https://demo-api.kalshi.co/trade-api/v2") as respx_mock:
         create_route = respx_mock.post("/portfolio/orders").mock(
             return_value=httpx.Response(
-                201,
-                json={
-                    "order": {
-                        "order_id": "8a7c8a8a-...",
-                        "order_status": "resting"
-                    }
-                }
+                201, json={"order": {"order_id": "8a7c8a8a-...", "order_status": "resting"}}
             )
         )
 
         # Execute
         response = await authenticated_client.create_order(
-            ticker="KXBTC-25JAN-50000",
-            side="yes",
-            action="buy",
-            count=10,
-            price=50
+            ticker="KXBTC-25JAN-50000", side="yes", action="buy", count=10, price=50
         )
 
         # Assertions
@@ -77,6 +66,7 @@ async def test_create_order_flow(authenticated_client):
 
         # 1. Check Body
         import json
+
         body = json.loads(request.content)
         assert body["ticker"] == "KXBTC-25JAN-50000"
         assert body["side"] == "yes"
@@ -122,8 +112,7 @@ async def test_amend_order_flow(authenticated_client):
     async with respx.mock(base_url="https://demo-api.kalshi.co/trade-api/v2") as respx_mock:
         amend_route = respx_mock.post("/portfolio/orders/oid-123/amend").mock(
             return_value=httpx.Response(
-                200,
-                json={"order": {"order_id": "oid-123", "order_status": "executed"}}
+                200, json={"order": {"order_id": "oid-123", "order_status": "executed"}}
             )
         )
 
@@ -134,6 +123,7 @@ async def test_amend_order_flow(authenticated_client):
         assert amend_route.called
         request = amend_route.calls.last.request
         import json
+
         body = json.loads(request.content)
         assert body["yes_price"] == 55
         assert "count" not in body

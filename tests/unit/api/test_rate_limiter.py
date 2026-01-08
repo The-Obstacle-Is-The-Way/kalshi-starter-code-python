@@ -83,7 +83,8 @@ class TestRateLimiter:
         """Read and write should have separate buckets."""
         limiter = RateLimiter(tier=RateTier.BASIC)
 
-        async def mock_acquire(*args, **kwargs): pass
+        async def mock_acquire(*args, **kwargs):
+            pass
 
         # Mock the buckets
         limiter._read_bucket = MagicMock(spec=TokenBucket)
@@ -110,7 +111,8 @@ class TestRateLimiter:
         """Batch writes should consume multiple tokens."""
         limiter = RateLimiter(tier=RateTier.BASIC)
 
-        async def mock_acquire(*args, **kwargs): pass
+        async def mock_acquire(*args, **kwargs):
+            pass
 
         limiter._write_bucket = MagicMock(spec=TokenBucket)
         limiter._write_bucket.acquire = MagicMock(side_effect=mock_acquire)
@@ -124,7 +126,8 @@ class TestRateLimiter:
         """POST to non-write endpoint should be read."""
         limiter = RateLimiter(tier=RateTier.BASIC)
 
-        async def mock_acquire(*args, **kwargs): pass
+        async def mock_acquire(*args, **kwargs):
+            pass
 
         limiter._read_bucket = MagicMock(spec=TokenBucket)
         limiter._read_bucket.acquire = MagicMock(side_effect=mock_acquire)

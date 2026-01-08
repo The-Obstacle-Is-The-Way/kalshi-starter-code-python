@@ -28,7 +28,7 @@ async def test_live_connection_and_balance():
     client = KalshiClient(
         key_id=os.getenv("KALSHI_API_KEY"),
         private_key_path=os.getenv("KALSHI_PRIVATE_KEY_PATH"),
-        environment="demo"
+        environment="demo",
     )
 
     async with client:

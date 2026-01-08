@@ -30,7 +30,7 @@ async def test_client_respects_retry_after(public_client):
         respx_mock.get("/markets").mock(
             side_effect=[
                 httpx.Response(429, headers={"Retry-After": "1"}, text="Rate limit exceeded"),
-                httpx.Response(200, json={"markets": []})
+                httpx.Response(200, json={"markets": []}),
             ]
         )
 

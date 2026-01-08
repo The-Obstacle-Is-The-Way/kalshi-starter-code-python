@@ -15,11 +15,7 @@ def mock_client():
         mock_auth_instance = MockAuth.return_value
         mock_auth_instance.get_headers.return_value = {"X-Signed": "true"}
 
-        client = KalshiClient(
-            key_id="test-key",
-            private_key_b64="fake",
-            environment="demo"
-        )
+        client = KalshiClient(key_id="test-key", private_key_b64="fake", environment="demo")
         # Mock internal http client
         client._client = AsyncMock(spec=httpx.AsyncClient)
         # Mock rate limiter
@@ -29,23 +25,18 @@ def mock_client():
         client._auth = mock_auth_instance
         return client
 
-class TestTrading:
 
+class TestTrading:
     @pytest.mark.asyncio
     async def test_create_order_payload(self, mock_client):
         """Verify create_order sends correct payload."""
         mock_client._client.post.return_value = MagicMock(
             status_code=201,
-            json=lambda: {"order": {"order_id": "oid-123", "order_status": "resting"}}
+            json=lambda: {"order": {"order_id": "oid-123", "order_status": "resting"}},
         )
 
         await mock_client.create_order(
-            ticker="KXTEST",
-            side="yes",
-            action="buy",
-            count=10,
-            price=50,
-            client_order_id="cid-1"
+            ticker="KXTEST", side="yes", action="buy", count=10, price=50, client_order_id="cid-1"
         )
 
         mock_client._client.post.assert_called_once()
@@ -73,8 +64,7 @@ class TestTrading:
     async def test_cancel_order_rate_limit(self, mock_client):
         """Verify cancel_order uses DELETE and rate limiter."""
         mock_client._client.delete.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"order": {"status": "canceled"}}
+            status_code=200, json=lambda: {"order": {"status": "canceled"}}
         )
 
         await mock_client.cancel_order("oid-123")
@@ -92,7 +82,7 @@ class TestTrading:
         """Verify amend_order payload."""
         mock_client._client.post.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"order": {"order_id": "oid-123", "order_status": "executed"}}
+            json=lambda: {"order": {"order_id": "oid-123", "order_status": "executed"}},
         )
 
         await mock_client.amend_order("oid-123", price=55)
