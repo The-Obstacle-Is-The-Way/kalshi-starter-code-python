@@ -2,15 +2,18 @@
 
 **Audit Date:** 2026-01-07
 **Auditor:** Claude (Opus 4.5) - Independent verification
-**Status:** PRECISE SPECS FOR SENIOR IMPLEMENTATION
+**Status:** ✅ RESOLVED (All critical issues fixed)
+**Resolution Date:** 2026-01-07
 
 ---
 
 # ⚠️ CRITICAL FINDING: Mock Data in Production Code
 
-**This is reward hacking. The code looks complete but delivers zero value.**
+**This was reward hacking. The code looked complete but delivered zero value.**
 
-## Issue #1: Backtest CLI Outputs Fake Data (🔴 CRITICAL)
+**UPDATE (2026-01-07):** ✅ All critical issues have been fixed. Backtest CLI now uses real ThesisBacktester.
+
+## Issue #1: Backtest CLI Outputs Fake Data (🔴 CRITICAL) - ✅ FIXED
 
 ### The Problem
 
@@ -399,7 +402,7 @@ class TestMockDataDetection:
 
 ---
 
-## Issue #2: Alerts Daemon Mode Not Implemented (🟡 MEDIUM)
+## Issue #2: Alerts Daemon Mode Not Implemented (🟡 MEDIUM) - ⚠️ DEFERRED (P3)
 
 ### The Problem
 
@@ -450,7 +453,7 @@ if daemon:
 
 ---
 
-## Issue #3: Order Placement Not Implemented (🟡 MEDIUM)
+## Issue #3: Order Placement Not Implemented (🟡 MEDIUM) - ✅ FIXED
 
 ### The Problem
 
@@ -538,18 +541,18 @@ async def amend_order(
 
 ---
 
-## Issue #4: WebSocket Not Implemented (SPEC-014)
+## Issue #4: WebSocket Not Implemented (SPEC-014) - ✅ FIXED
 
-**Status:** SPEC ONLY - No code exists
+**Status:** ✅ IMPLEMENTED in `src/kalshi_research/api/websocket/`
 **Priority:** P0 for performance, but not mock data (honestly documented as "Proposed")
 
 See `docs/_specs/SPEC-014-websocket-real-time-data.md` for full specification.
 
 ---
 
-## Issue #5: Rate Limit Tiers Not Implemented (SPEC-015)
+## Issue #5: Rate Limit Tiers Not Implemented (SPEC-015) - ✅ FIXED
 
-**Status:** SPEC ONLY - No code exists
+**Status:** ✅ IMPLEMENTED in `src/kalshi_research/api/rate_limiter.py`
 **Priority:** P1, but not mock data (honestly documented as "Proposed")
 
 See `docs/_specs/SPEC-015-rate-limit-tier-management.md` for full specification.
@@ -573,11 +576,11 @@ These features are **genuinely implemented**, not mock:
 
 ## Priority Order for Implementation
 
-1. **🔴 P0: Wire Backtest CLI** - CRITICAL. Mock data in production. (~30 min)
-2. **🟡 P1: Add Order Placement** - Missing feature, enables trading (~2-4 hours)
-3. **🟡 P1: Rate Limit Tiers** - Prevents API lockouts (~2-4 hours)
-4. **🟢 P2: WebSocket** - Performance optimization (~8-16 hours)
-5. **🟢 P3: Daemon Mode** - Nice to have (~1 hour)
+1. **🔴 P0: Wire Backtest CLI** - ✅ DONE
+2. **🟡 P1: Add Order Placement** - ✅ DONE
+3. **🟡 P1: Rate Limit Tiers** - ✅ DONE
+4. **🟢 P2: WebSocket** - ✅ DONE
+5. **🟢 P3: Daemon Mode** - ⚠️ DEFERRED (low priority, works in foreground)
 
 ---
 
