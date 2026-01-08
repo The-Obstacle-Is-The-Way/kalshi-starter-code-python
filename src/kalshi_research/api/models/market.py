@@ -65,4 +65,4 @@ class Market(BaseModel):
     expiration_time: datetime
 
     # Liquidity
-    liquidity: int = Field(..., description="Dollar liquidity (can be negative)")
+    liquidity: int = Field(..., ge=0, description="Dollar liquidity in cents")

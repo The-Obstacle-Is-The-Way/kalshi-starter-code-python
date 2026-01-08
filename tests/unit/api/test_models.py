@@ -65,11 +65,13 @@ class TestMarketModel:
             )
             assert market.status == expected_enum
 
-    def test_market_allows_negative_liquidity(self, make_market: Any) -> None:
-        """API may return negative liquidity; model should accept it."""
+    def test_market_rejects_negative_liquidity(self, make_market: Any) -> None:
+        """Liquidity must be non-negative per Kalshi API spec."""
+        from pydantic import ValidationError
+
         data = make_market(liquidity=-170750)
-        market = Market.model_validate(data)
-        assert market.liquidity == -170750
+        with pytest.raises(ValidationError, match="greater than or equal to 0"):
+            Market.model_validate(data)
 
     def test_market_immutability(self, make_market: Any) -> None:
         """Market model is frozen (immutable)."""

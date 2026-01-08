@@ -166,6 +166,15 @@ class KalshiWebSocket:
             self._handlers[channel] = []
         self._handlers[channel].append(callback)
 
+    async def _check_connection(self) -> bool:
+        """Check connection state and reconnect if needed. Returns True if connected."""
+        if not self._ws or self._ws.state.name == "CLOSED":
+            if self._auto_reconnect:
+                await self._reconnect()
+                return True
+            return False
+        return True
+
     async def run_forever(self) -> None:
         """Process incoming messages loop."""
         if not self._ws:
@@ -173,14 +182,18 @@ class KalshiWebSocket:
 
         while self._running:
             try:
-                if not self._ws or self._ws.state.name == "CLOSED":
-                    if self._auto_reconnect:
-                        await self._reconnect()
-                    else:
-                        break
+                if not await self._check_connection():
+                    break
 
                 async for message in self._ws:
                     await self._handle_message(message)
+
+                # Iterator exhausted (clean close) - reconnect if enabled
+                logger.warning("WebSocket iterator exhausted (clean close)")
+                if self._running and self._auto_reconnect:
+                    await self._reconnect()
+                else:
+                    break
 
             except websockets.ConnectionClosed:
                 logger.warning("WebSocket connection closed")

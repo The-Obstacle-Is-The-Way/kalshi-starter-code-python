@@ -46,6 +46,12 @@ def get_config() -> APIConfig:
 
 
 def set_environment(env: Environment) -> None:
-    """Set the global API environment."""
+    """
+    Set the global API environment.
+
+    Warning:
+        This function is NOT thread-safe. Call only during application
+        initialization, before any API clients are created.
+    """
     global _config  # noqa: PLW0603 - intentional singleton for CLI state
     _config = APIConfig(environment=env)

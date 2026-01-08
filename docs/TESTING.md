@@ -36,8 +36,12 @@ Tests authenticated endpoints (`/portfolio/balance`, `/portfolio/orders`).
 Set the following environment variables (or put them in `.env`):
 ```bash
 export KALSHI_KEY_ID="your-uuid-key-id"
-export KALSHI_PRIVATE_KEY_PATH="/path/to/your/private_key.pem"
 export KALSHI_ENVIRONMENT="demo"  # or "prod"
+
+# Private key: provide ONE of the following:
+export KALSHI_PRIVATE_KEY_PATH="/path/to/your/private_key.pem"
+# OR (for environments without filesystem access):
+export KALSHI_PRIVATE_KEY_B64="<base64-encoded-private-key>"
 ```
 
 **Run Command:**
