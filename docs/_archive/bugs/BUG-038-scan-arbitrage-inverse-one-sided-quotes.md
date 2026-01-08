@@ -5,7 +5,7 @@
 **Found:** 2026-01-07
 **Fixed:** 2026-01-07
 **Spec:** SPEC-006-event-correlation-analysis.md, SPEC-010-cli-completeness.md
-**Checklist Ref:** CODE_AUDIT_CHECKLIST.md Section 15 (Silent Fallbacks)
+**Checklist Ref:** code-audit-checklist.md Section 15 (Silent Fallbacks)
 
 ---
 

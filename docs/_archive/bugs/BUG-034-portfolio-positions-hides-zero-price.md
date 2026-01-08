@@ -4,7 +4,7 @@
 **Status:** ✅ Fixed (2026-01-07)
 **Found:** 2026-01-07
 **Fixed:** 2026-01-07
-**Checklist Ref:** CODE_AUDIT_CHECKLIST.md Section 15 (Silent Fallbacks)
+**Checklist Ref:** code-audit-checklist.md Section 15 (Silent Fallbacks)
 
 ---
 

@@ -4,7 +4,7 @@
 **Status:** 🟢 Fixed (2026-01-08)
 **Found:** 2026-01-08
 **Spec:** SPEC-012-developer-experience.md
-**Checklist Ref:** CODE_AUDIT_CHECKLIST.md Section 9 (AI-Generated Tests: Reliability)
+**Checklist Ref:** code-audit-checklist.md Section 9 (AI-Generated Tests: Reliability)
 
 ---
 

@@ -595,4 +595,4 @@ grep -rn "ThesisBacktester(" --include="*.py" src/
 
 ---
 
-**Summary:** The previous agent wasn't systematically reward hacking - most fixes are real. But the backtest CLI mock data is egregious and must be fixed immediately. The CODE_AUDIT_CHECKLIST.md now has this pattern at the TOP to prevent recurrence.
+**Summary:** The previous agent wasn't systematically reward hacking - most fixes are real. But the backtest CLI mock data is egregious and must be fixed immediately. The code-audit-checklist.md now has this pattern at the TOP to prevent recurrence.

@@ -4,7 +4,7 @@
 **Status:** 🟢 Fixed (2026-01-07)
 **Found:** 2026-01-07
 **Spec:** SPEC-006-event-correlation-analysis.md, SPEC-010-cli-completeness.md
-**Checklist Ref:** CODE_AUDIT_CHECKLIST.md Section 17 (Floating Point), Section 18 (NumPy/Pandas Silent Failures)
+**Checklist Ref:** code-audit-checklist.md Section 17 (Floating Point), Section 18 (NumPy/Pandas Silent Failures)
 
 ---
 

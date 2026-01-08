@@ -4,7 +4,7 @@
 **Status:** ✅ Fixed (Removed)
 **Found:** 2026-01-08
 **Fixed:** 2026-01-08
-**Checklist Ref:** `CODE_AUDIT_CHECKLIST.md` Section 1 (Logging anti-patterns, Dead code)
+**Checklist Ref:** `code-audit-checklist.md` Section 1 (Logging anti-patterns, Dead code)
 
 ---
 

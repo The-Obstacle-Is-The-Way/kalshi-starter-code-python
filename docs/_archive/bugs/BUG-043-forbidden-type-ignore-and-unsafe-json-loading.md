@@ -3,7 +3,7 @@
 **Priority:** P2 (Reliability + correctness; prevents silent data loss)
 **Status:** 🟢 Fixed (2026-01-08)
 **Found:** 2026-01-08
-**Checklist Ref:** `CODE_AUDIT_CHECKLIST.md` Sections 1 (Silent failures) + 2 (Type safety)
+**Checklist Ref:** `code-audit-checklist.md` Sections 1 (Silent failures) + 2 (Type safety)
 
 ---
 

@@ -4,7 +4,7 @@
 **Status:** 🟢 Fixed (2026-01-07)
 **Found:** 2026-01-07
 **Spec:** SPEC-002-kalshi-api-client.md, SPEC-003-data-layer-storage.md
-**Checklist Ref:** CODE_AUDIT_CHECKLIST.md Section 1 (Silent Failures), Section 15 (Silent Fallbacks)
+**Checklist Ref:** code-audit-checklist.md Section 1 (Silent Failures), Section 15 (Silent Fallbacks)
 
 ---
 
