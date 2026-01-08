@@ -651,7 +651,8 @@ class KalshiClient(KalshiPublicClient):
                 if response.status_code >= 400:
                     raise KalshiAPIError(response.status_code, response.text)
 
-                return response.json()
+                result: dict[str, Any] = response.json()
+                return result
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 

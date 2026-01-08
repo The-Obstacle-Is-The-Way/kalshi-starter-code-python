@@ -5,13 +5,17 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from collections.abc import Callable, Coroutine
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import websockets
-from websockets.client import WebSocketClientProtocol
 
 from kalshi_research.api.auth import KalshiAuth
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
+
+    from websockets.client import WebSocketClientProtocol
+
 from kalshi_research.api.config import APIConfig, Environment, get_config
 from kalshi_research.api.websocket.messages import (
     MarketPositionUpdate,
@@ -194,11 +198,7 @@ class KalshiWebSocket:
                 return
 
             msg_obj: Any = None
-            msg_data = data.get("msg") or data  # Sometimes msg is nested, sometimes flat?
-            # Check official docs example:
-            # { "type": "ticker", "channel": "ticker", "sid": 1, "msg": { ... } }
-            # So the data is in "msg" field.
-
+            # Message payload is in the "msg" field per Kalshi WebSocket API spec
             payload = data.get("msg")
             if not payload:
                 # Some system messages might differ

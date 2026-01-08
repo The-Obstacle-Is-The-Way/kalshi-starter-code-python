@@ -56,14 +56,14 @@ async def test_connect_headers(mock_ws_connect, mock_auth):
     await client.connect()
 
     mock_connect.assert_called_once()
-    args, kwargs = mock_connect.call_args
+    _args, kwargs = mock_connect.call_args
     assert kwargs["extra_headers"] == {"Auth": "Token"}
 
 
 @pytest.mark.asyncio
 async def test_subscribe_ticker(mock_ws_connect, mock_auth):
     """Test ticker subscription sends correct JSON."""
-    mock_connect, mock_ws = mock_ws_connect
+    _mock_connect, mock_ws = mock_ws_connect
 
     client = KalshiWebSocket(key_id="test", private_key_b64="fake", environment="demo")
     await client.connect()
@@ -81,7 +81,7 @@ async def test_subscribe_ticker(mock_ws_connect, mock_auth):
 @pytest.mark.asyncio
 async def test_message_routing(mock_ws_connect, mock_auth):
     """Test message routing to callbacks."""
-    mock_connect, mock_ws = mock_ws_connect
+    _mock_connect, mock_ws = mock_ws_connect
 
     # Prepare message
     ticker_msg = {
