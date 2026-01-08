@@ -7,7 +7,8 @@ import uuid
 from typing import TYPE_CHECKING, Any, Literal
 
 import httpx
-from tenacity时不时 (AsyncRetrying,
+from tenacity import (
+    AsyncRetrying,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
@@ -19,14 +20,7 @@ from kalshi_research.api.exceptions import KalshiAPIError, RateLimitError
 from kalshi_research.api.models.candlestick import Candlestick, CandlestickResponse
 from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market, MarketFilterStatus
-from kalshi_research.api.models.order import (
-    CreateOrderRequest,
-    Order,
-    OrderAction,
-    OrderResponse,
-    OrderSide,
-    OrderType,
-)
+from kalshi_research.api.models.order import OrderAction, OrderResponse, OrderSide
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.api.rate_limiter import RateLimiter, RateTier
@@ -39,13 +33,14 @@ class KalshiPublicClient:
     """
     Unauthenticated client for public Kalshi API endpoints.
 
+    Use this for market research - no API keys required.
+    """
 
     def __init__(
         self,
         environment: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 5,
-        rate_tier: str | RateTier = RateTier.BASIC,
     ) -> None:
         config = get_config()
         if environment:
@@ -57,10 +52,6 @@ class KalshiPublicClient:
             headers={"Accept": "application/json"},
         )
         self._max_retries = max_retries
-
-        if isinstance(rate_tier, str):
-            rate_tier = RateTier(rate_tier)
-        self._rate_limiter = RateLimiter(tier=rate_tier)
 
     async def __aenter__(self) -> KalshiPublicClient:
         return self
@@ -93,15 +84,10 @@ class KalshiPublicClient:
             reraise=True,
         ):
             with attempt:
-                # Proactive rate limiting
-                await self._rate_limiter.acquire("GET", path)
-
                 response = await self._client.get(path, params=params)
 
                 if response.status_code == 429:
-                    retry_after = response.headers.get("Retry-After")
-                    wait_seconds = int(retry_after) if retry_after else None
-                    raise RateLimitError("Rate limit exceeded", retry_after=wait_seconds)
+                    raise RateLimitError("Rate limit exceeded")
 
                 if response.status_code >= 400:
                     raise KalshiAPIError(
@@ -444,6 +430,7 @@ class KalshiClient(KalshiPublicClient):
         )
         self._max_retries = max_retries
 
+        # Initialize rate limiter
         if isinstance(rate_tier, str):
             rate_tier = RateTier(rate_tier)
         self._rate_limiter = RateLimiter(tier=rate_tier)
@@ -487,15 +474,10 @@ class KalshiClient(KalshiPublicClient):
             reraise=True,
         ):
             with attempt:
-                # Proactive rate limiting
-                await self._rate_limiter.acquire("GET", path)
-
                 response = await self._client.get(path, params=params, headers=headers)
 
                 if response.status_code == 429:
-                    retry_after = response.headers.get("Retry-After")
-                    wait_seconds = int(retry_after) if retry_after else None
-                    raise RateLimitError("Rate limit exceeded", retry_after=wait_seconds)
+                    raise RateLimitError("Rate limit exceeded")
 
                 if response.status_code >= 400:
                     raise KalshiAPIError(response.status_code, response.text)
@@ -560,6 +542,8 @@ class KalshiClient(KalshiPublicClient):
 
         return await self._auth_get("/portfolio/fills", params)
 
+    # ==================== Trading ====================
+
     async def create_order(
         self,
         ticker: str,
@@ -592,13 +576,12 @@ class KalshiClient(KalshiPublicClient):
             raise ValueError("Count must be positive")
 
         if not client_order_id:
-            import uuid
             client_order_id = str(uuid.uuid4())
 
         payload = {
             "ticker": ticker,
-            "action": action,
-            "side": side,
+            "action": action if isinstance(action, str) else action.value,
+            "side": side if isinstance(side, str) else side.value,
             "count": count,
             "type": "limit",
             "yes_price": price,
@@ -614,16 +597,16 @@ class KalshiClient(KalshiPublicClient):
         headers = self._auth.get_headers("POST", self.API_PATH + "/portfolio/orders")
 
         async for attempt in AsyncRetrying(
-            retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
             stop=stop_after_attempt(self._max_retries),
             wait=wait_exponential(multiplier=1, min=1, max=60),
             reraise=True,
         ):
             with attempt:
                 response = await self._client.post(
-                    "/portfolio/orders",
-                    json=payload,
-                    headers=headers
+                    "/portfolio/orders", json=payload, headers=headers
                 )
 
                 if response.status_code == 429:
@@ -637,6 +620,8 @@ class KalshiClient(KalshiPublicClient):
                 data = response.json()
                 return OrderResponse.model_validate(data["order"])
 
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
+
     async def cancel_order(self, order_id: str) -> dict[str, Any]:
         """Cancel an existing order."""
         path = f"/portfolio/orders/{order_id}"
@@ -646,7 +631,9 @@ class KalshiClient(KalshiPublicClient):
         headers = self._auth.get_headers("DELETE", full_path)
 
         async for attempt in AsyncRetrying(
-            retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
             stop=stop_after_attempt(self._max_retries),
             wait=wait_exponential(multiplier=1, min=1, max=60),
             reraise=True,
@@ -656,12 +643,17 @@ class KalshiClient(KalshiPublicClient):
 
                 if response.status_code == 429:
                     retry_after = response.headers.get("Retry-After")
-                    raise RateLimitError("Rate limit exceeded", retry_after=int(retry_after) if retry_after else None)
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                    )
 
                 if response.status_code >= 400:
                     raise KalshiAPIError(response.status_code, response.text)
 
                 return response.json()
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 
     async def amend_order(
         self,
@@ -669,9 +661,7 @@ class KalshiClient(KalshiPublicClient):
         price: int | None = None,
         count: int | None = None,
     ) -> OrderResponse:
-        """
-        Amend an existing order's price or quantity.
-        """
+        """Amend an existing order's price or quantity."""
         if price is None and count is None:
             raise ValueError("Must provide either price or count")
 
@@ -688,7 +678,9 @@ class KalshiClient(KalshiPublicClient):
         headers = self._auth.get_headers("POST", full_path)
 
         async for attempt in AsyncRetrying(
-            retry=retry_if_exception_type((RateLimitError, httpx.NetworkError, httpx.TimeoutException)),
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
             stop=stop_after_attempt(self._max_retries),
             wait=wait_exponential(multiplier=1, min=1, max=60),
             reraise=True,
@@ -698,7 +690,10 @@ class KalshiClient(KalshiPublicClient):
 
                 if response.status_code == 429:
                     retry_after = response.headers.get("Retry-After")
-                    raise RateLimitError("Rate limit exceeded", retry_after=int(retry_after) if retry_after else None)
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                    )
 
                 if response.status_code >= 400:
                     raise KalshiAPIError(response.status_code, response.text)
@@ -706,3 +701,4 @@ class KalshiClient(KalshiPublicClient):
                 data = response.json()
                 return OrderResponse.model_validate(data["order"])
 
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
