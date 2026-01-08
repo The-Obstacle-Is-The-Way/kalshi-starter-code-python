@@ -7,7 +7,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## 📋 Next ID Tracker
 Use this ID for the next bug report you create:
-# **BUG-044**
+# **BUG-045**
 
 ---
 
@@ -17,6 +17,7 @@ All resolved bug reports are stored in [`../_archive/bugs/`](../_archive/bugs/).
 | ID | Title | Status |
 |---|---|---|
 | **INCIDENT-001** | Chinese Character Syntax Corruption | ✅ Resolved |
+| **BUG-044** | WebSocket client silent JSON errors | ✅ Fixed |
 | **BUG-040** | Alembic FileConfig Disables Existing Loggers | ✅ Fixed |
 | **BUG-039** | CLI Dotenv Not Loaded for Auth | ✅ Fixed |
 | **BUG-038** | Scan Arbitrage Inverse One-Sided Quotes | ✅ Fixed |

@@ -202,8 +202,8 @@ class KalshiWebSocket:
                     await self._reconnect()
                 else:
                     break
-            except Exception as e:
-                logger.error(f"WebSocket error: {e}")
+            except Exception:
+                logger.exception("WebSocket error")
                 if not self._running:
                     break
                 await asyncio.sleep(1)
@@ -244,9 +244,15 @@ class KalshiWebSocket:
                         logger.exception(f"Handler error: {e}")
 
         except json.JSONDecodeError:
-            pass
-        except Exception as e:
-            logger.error(f"Message parsing error: {e}")
+            message_type = type(raw_message).__name__
+            message_len = len(raw_message)
+            logger.debug(
+                "Received non-JSON WebSocket message",
+                type=message_type,
+                length=message_len,
+            )
+        except Exception:
+            logger.exception("Message parsing error")
 
     async def _reconnect(self) -> None:
         """Attempt to reconnect."""

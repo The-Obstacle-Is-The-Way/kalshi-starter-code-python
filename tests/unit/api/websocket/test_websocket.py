@@ -4,6 +4,7 @@ import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from websockets.protocol import State
 
 from kalshi_research.api.websocket.client import KalshiWebSocket
 from kalshi_research.api.websocket.messages import TickerUpdate
@@ -14,6 +15,7 @@ class MockWebSocket:
         self.send = AsyncMock()
         self.close = AsyncMock()
         self.closed = False
+        self.state = State.OPEN
         self._messages = []
         self._iter_idx = 0
 
@@ -113,7 +115,7 @@ async def test_message_routing(mock_ws_connect, mock_auth):
     # Logic:
     # async for message in self._ws: ...
     # if loop ends (StopAsyncIteration), we go back to while self._running.
-    # We check if ws.closed. Our mock isn't closed.
+    # We check if ws.state is State.CLOSED. Our mock isn't closed.
     # So it will try to reconnect or loop.
 
     # Let's modify run_forever logic or test _handle_message directly.
@@ -126,3 +128,28 @@ async def test_message_routing(mock_ws_connect, mock_auth):
     assert isinstance(arg, TickerUpdate)
     assert arg.price == 50
     assert arg.market_ticker == "KXTEST"
+
+
+@pytest.mark.asyncio
+async def test_check_connection_returns_false_when_closed_and_no_reconnect(mock_auth):
+    client = KalshiWebSocket(
+        key_id="test",
+        private_key_b64="fake",
+        environment="demo",
+        auto_reconnect=False,
+    )
+    client._ws = MockWebSocket()
+    client._ws.state = State.CLOSED
+
+    assert await client._check_connection() is False
+
+
+@pytest.mark.asyncio
+async def test_handle_message_logs_debug_on_invalid_json(mock_ws_connect, mock_auth):
+    client = KalshiWebSocket(key_id="test", private_key_b64="fake", environment="demo")
+    await client.connect()
+
+    with patch("kalshi_research.api.websocket.client.logger") as mock_logger:
+        await client._handle_message("not-json")
+
+    mock_logger.debug.assert_called_once()
