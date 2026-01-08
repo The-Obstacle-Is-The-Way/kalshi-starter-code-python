@@ -1,8 +1,9 @@
 # SPEC-018: CLI Refactoring
 
 ## Status
-- **State**: Draft
+- **State**: Implemented
 - **Created**: 2026-01-08
+- **Completed**: 2026-01-08
 - **Target Version**: 0.2.0
 
 ## Context
@@ -159,18 +160,18 @@ The following internal functions must be relocated during refactoring:
 - **Daemon Spawning**: The `_spawn_alert_monitor_daemon()` function runs `python -m kalshi_research.cli`. This requires `cli/__main__.py` to exist. Without it, daemon spawning fails silently.
 
 ## Refactoring Steps Checklist
-- [ ] Create `cli/` directory.
-- [ ] Create `cli/__main__.py` (critical for daemon spawning).
-- [ ] Create `cli/utils.py` with `console` and shared JSON helpers.
-- [ ] Refactor `Data` commands → `cli/data.py`.
-- [ ] Refactor `Market` commands → `cli/market.py`.
-- [ ] Refactor `Scan` commands → `cli/scan.py`.
-- [ ] Refactor `Alerts` commands → `cli/alerts.py`.
-- [ ] Refactor `Analysis` commands → `cli/analysis.py`.
-- [ ] Refactor `Research` commands → `cli/research.py`.
-- [ ] Refactor `Portfolio` commands (all 7) → `cli/portfolio.py`.
-- [ ] Create `cli/__init__.py` and wire everything up.
-- [ ] Update `pyproject.toml` per-file-ignores: `cli.py` → `cli/*.py`.
-- [ ] Update `tests/unit/test_cli.py` patch targets.
-- [ ] Delete `cli.py`.
-- [ ] Run verification suite (`pre-commit`, `pytest`, manual smoke tests).
+- [x] Create `cli/` directory.
+- [x] Create `cli/__main__.py` (critical for daemon spawning).
+- [x] Create `cli/utils.py` with `console` and shared JSON helpers.
+- [x] Refactor `Data` commands → `cli/data.py`.
+- [x] Refactor `Market` commands → `cli/market.py`.
+- [x] Refactor `Scan` commands → `cli/scan.py`.
+- [x] Refactor `Alerts` commands → `cli/alerts.py`.
+- [x] Refactor `Analysis` commands → `cli/analysis.py`.
+- [x] Refactor `Research` commands → `cli/research.py`.
+- [x] Refactor `Portfolio` commands (all 7) → `cli/portfolio.py`.
+- [x] Create `cli/__init__.py` and wire everything up.
+- [x] Update `pyproject.toml` per-file-ignores: `cli.py` → `cli/*.py`.
+- [x] Update `tests/unit/test_cli.py` patch targets.
+- [x] Delete `cli.py`.
+- [x] Run verification suite (`pre-commit`, `pytest`, manual smoke tests).
