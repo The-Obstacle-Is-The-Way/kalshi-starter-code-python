@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 from typing import TYPE_CHECKING, Any
 
+import structlog
 import websockets
 
 from kalshi_research.api.auth import KalshiAuth
@@ -25,7 +25,7 @@ from kalshi_research.api.websocket.messages import (
     TradeUpdate,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class KalshiWebSocket:
@@ -82,7 +82,7 @@ class KalshiWebSocket:
         # Generate auth headers
         headers = self._auth.get_headers("GET", self.WS_PATH)
 
-        logger.info("Connecting to WebSocket: %s", self._url)
+        logger.info("Connecting to WebSocket", url=self._url)
         self._ws = await websockets.connect(self._url, extra_headers=headers)
         self._running = True
         logger.info("WebSocket connected")

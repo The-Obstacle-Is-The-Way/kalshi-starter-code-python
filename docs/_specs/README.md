@@ -7,10 +7,10 @@ These features are currently being implemented or are next in the queue.
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-| [**SPEC-011**](SPEC-011-manual-trading-support.md) | Manual Trading Support | 🟡 P1 | **Pending** (Missing Order Placement) |
-| [**SPEC-014**](SPEC-014-websocket-real-time-data.md) | WebSocket Real-Time Data | 🔴 P0 | **Pending** (Missing Implementation) |
-| [**SPEC-015**](SPEC-015-rate-limit-tier-management.md) | Rate Limit Tier Management | 🟡 P1 | **Pending** (Missing Rate Limiter) |
-| [**SPEC-016**](SPEC-016-demo-environment-testing.md) | Demo Environment Testing | 🟢 P2 | **Partial** (Config exists, needs verification) |
+| [**SPEC-011**](SPEC-011-manual-trading-support.md) | Manual Trading Support | 🟡 P1 | ✅ Implemented |
+| [**SPEC-014**](SPEC-014-websocket-real-time-data.md) | WebSocket Real-Time Data | 🔴 P0 | ✅ Implemented |
+| [**SPEC-015**](SPEC-015-rate-limit-tier-management.md) | Rate Limit Tier Management | 🟡 P1 | ✅ Implemented |
+| [**SPEC-016**](SPEC-016-demo-environment-testing.md) | Demo Environment Testing | 🟢 P2 | ✅ Implemented |
 
 ---
 

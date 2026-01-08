@@ -1,6 +1,6 @@
 """
 Live End-to-End tests against the Kalshi Demo API.
-Only runs if KALSHI_API_KEY is present and KALSHI_ENVIRONMENT=demo.
+Only runs if KALSHI_KEY_ID is present and KALSHI_ENVIRONMENT=demo.
 """
 
 import os
@@ -12,7 +12,7 @@ from kalshi_research.api.client import KalshiClient
 # Skip unless we have credentials and explicitly targeting demo
 SKIP_LIVE = True
 if (
-    os.getenv("KALSHI_API_KEY")
+    os.getenv("KALSHI_KEY_ID")
     and os.getenv("KALSHI_PRIVATE_KEY_PATH")
     and os.getenv("KALSHI_ENVIRONMENT") == "demo"
 ):
@@ -26,7 +26,7 @@ async def test_live_connection_and_balance():
     """Verify we can connect to Demo API and get balance."""
 
     client = KalshiClient(
-        key_id=os.getenv("KALSHI_API_KEY"),
+        key_id=os.getenv("KALSHI_KEY_ID"),
         private_key_path=os.getenv("KALSHI_PRIVATE_KEY_PATH"),
         environment="demo",
     )

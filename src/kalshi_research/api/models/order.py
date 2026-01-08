@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class OrderSide(str, Enum):
@@ -34,7 +34,6 @@ class OrderStatus(str, Enum):
     RESTING = "resting"
     CANCELED = "canceled"
     EXECUTED = "executed"
-    PENDING = "pending"  # Deprecated but might still appear? Docs say removed.
 
 
 class CreateOrderRequest(BaseModel):
@@ -55,6 +54,13 @@ class CreateOrderRequest(BaseModel):
     expiration_ts: int | None = None
     sell_position_floor: int | None = None
     buy_max_cost: int | None = None
+
+    @model_validator(mode="after")
+    def validate_limit_price(self) -> CreateOrderRequest:
+        """Ensure limit orders have a price."""
+        if self.type == OrderType.LIMIT and self.yes_price is None:
+            raise ValueError("Limit orders must provide yes_price")
+        return self
 
 
 class OrderResponse(BaseModel):

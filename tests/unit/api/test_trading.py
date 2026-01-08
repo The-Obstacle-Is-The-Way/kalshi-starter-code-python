@@ -40,7 +40,7 @@ class TestTrading:
         )
 
         mock_client._client.post.assert_called_once()
-        _args, kwargs = mock_client._client.post.call_args
+        _, kwargs = mock_client._client.post.call_args
         payload = kwargs["json"]
 
         assert payload["ticker"] == "KXTEST"
@@ -74,7 +74,7 @@ class TestTrading:
 
         # Check HTTP call
         mock_client._client.delete.assert_called_once()
-        args, _kwargs = mock_client._client.delete.call_args
+        args, _ = mock_client._client.delete.call_args
         assert args[0] == "/portfolio/orders/oid-123"
 
     @pytest.mark.asyncio

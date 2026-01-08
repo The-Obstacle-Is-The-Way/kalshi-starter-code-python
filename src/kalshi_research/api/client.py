@@ -666,6 +666,12 @@ class KalshiClient(KalshiPublicClient):
         if price is None and count is None:
             raise ValueError("Must provide either price or count")
 
+        if price is not None and (price < 1 or price > 99):
+            raise ValueError("Price must be between 1 and 99 cents")
+
+        if count is not None and count <= 0:
+            raise ValueError("Count must be positive")
+
         path = f"/portfolio/orders/{order_id}/amend"
         full_path = self.API_PATH + path
 
