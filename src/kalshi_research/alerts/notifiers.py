@@ -64,7 +64,7 @@ class FileNotifier:
             "market_data": alert.market_data,
         }
 
-        with self._file_path.open("a") as f:
+        with self._file_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(record) + "\n")
 
 
@@ -109,4 +109,4 @@ class WebhookNotifier:
                 response = client.post(self._webhook_url, json=payload)
                 response.raise_for_status()
         except httpx.HTTPError as e:
-            logger.warning("Webhook notification failed: %s", e)
+            logger.warning("Webhook notification failed", error=str(e))

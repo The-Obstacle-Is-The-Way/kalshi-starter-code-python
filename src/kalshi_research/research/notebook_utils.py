@@ -72,7 +72,7 @@ def setup_notebook(
             plt.rcParams["figure.figsize"] = (12, 6)
             plt.rcParams["font.size"] = 12
         except Exception as e:
-            logger.warning("setup_notebook() matplotlib configuration failed: %s", e)
+            logger.warning("setup_notebook() matplotlib configuration failed", error=str(e))
 
     print("Notebook configured for Kalshi research.")
 

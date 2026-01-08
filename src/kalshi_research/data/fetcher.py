@@ -161,7 +161,7 @@ class DataFetcher:
 
             await repo.commit()
 
-        logger.info("Synced %d events", count)
+        logger.info("Synced events", count=count)
         return count
 
     async def sync_markets(self, status: str | None = None, *, max_pages: int | None = None) -> int:
@@ -175,7 +175,7 @@ class DataFetcher:
         Returns:
             Number of markets synced
         """
-        logger.info("Starting market sync", extra={"status": status})
+        logger.info("Starting market sync", status=status)
         count = 0
 
         async with self._db.session_factory() as session:
@@ -201,11 +201,11 @@ class DataFetcher:
                 # Commit in batches to avoid long transactions
                 if count % 100 == 0:
                     await session.commit()
-                    logger.info("Synced %d markets so far", count)
+                    logger.info("Synced markets so far", count=count)
 
             await session.commit()
 
-        logger.info("Synced %d total markets", count)
+        logger.info("Synced total markets", count=count)
         return count
 
     async def sync_settlements(self, *, max_pages: int | None = None) -> int:
@@ -257,11 +257,11 @@ class DataFetcher:
                 # Commit in batches to avoid long transactions
                 if count % 100 == 0:
                     await session.commit()
-                    logger.info("Synced %d settlements so far", count)
+                    logger.info("Synced settlements so far", count=count)
 
             await session.commit()
 
-        logger.info("Synced %d total settlements (skipped=%d)", count, skipped)
+        logger.info("Synced total settlements", count=count, skipped=skipped)
         return count
 
     async def take_snapshot(
@@ -282,7 +282,7 @@ class DataFetcher:
             Number of snapshots taken
         """
         snapshot_time = datetime.now(UTC)
-        logger.info("Taking price snapshot at %s", snapshot_time.isoformat())
+        logger.info("Taking price snapshot", snapshot_time=snapshot_time.isoformat())
         count = 0
 
         async with self._db.session_factory() as session:
@@ -314,11 +314,11 @@ class DataFetcher:
                 # Commit in batches
                 if count % 100 == 0:
                     await session.commit()
-                    logger.debug("Took %d snapshots so far", count)
+                    logger.debug("Took snapshots so far", count=count)
 
             await session.commit()
 
-        logger.info("Took %d price snapshots", count)
+        logger.info("Took price snapshots", count=count)
         return count
 
     async def full_sync(self, *, max_pages: int | None = None) -> dict[str, int]:

@@ -6,19 +6,19 @@
 
 ## Outstanding Debt
 
-### 1. `cli.py` is 2426 lines — needs splitting
+### 1. `cli.py` is 2,426 lines — needs splitting
 
 **Priority:** High
 **Effort:** 2-4 hours
 **Risk:** Low (pure refactor, no behavior change)
 
-The official [Typer documentation](https://typer.tiangolo.com/tutorial/one-file-per-command/) recommends one file per command group. A 2400+ line file violates Single Responsibility Principle.
+The official [Typer documentation](https://typer.tiangolo.com/tutorial/one-file-per-command/) recommends one file per command group. A 2,426-line file violates the Single Responsibility Principle.
 
 **Current:**
 
 ```text
 src/kalshi_research/
-└── cli.py  # 2426 lines
+└── cli.py  # 2,426 lines
 ```
 
 **Target:**
@@ -88,7 +88,7 @@ src/kalshi_research/
 
 | File | Lines | Status |
 |------|-------|--------|
-| `cli.py` | 2426 | Needs splitting |
+| `cli.py` | 2,426 | Needs splitting |
 | `api/client.py` | 711 | Acceptable |
 | `analysis/correlation.py` | 394 | Acceptable |
 | `portfolio/syncer.py` | 355 | Acceptable |

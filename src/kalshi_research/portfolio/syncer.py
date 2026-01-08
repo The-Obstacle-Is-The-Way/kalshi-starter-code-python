@@ -102,7 +102,7 @@ class PortfolioSyncer:
         Returns:
             Number of positions synced
         """
-        logger.info("Syncing positions...")
+        logger.info("Syncing positions")
         api_positions = await self.client.get_positions()
         synced_count = 0
         now = datetime.now(UTC)
@@ -162,11 +162,11 @@ class PortfolioSyncer:
                     pos.quantity = 0
                     pos.closed_at = now
                     pos.last_synced = now
-                    logger.info("Marked position %s as closed", ticker)
+                    logger.info("Marked position as closed", ticker=ticker)
 
             await session.commit()
 
-        logger.info("Synced %d positions", synced_count)
+        logger.info("Synced positions", count=synced_count)
         return synced_count
 
     async def sync_trades(self, since: datetime | None = None) -> int:
@@ -179,7 +179,7 @@ class PortfolioSyncer:
         Returns:
             Number of trades synced
         """
-        logger.info("Syncing trades...")
+        logger.info("Syncing trades")
         min_ts = int(since.timestamp()) if since else None
 
         # Paginate through fills
@@ -217,14 +217,18 @@ class PortfolioSyncer:
                 side_raw = str(fill.get("side", "yes")).lower()
                 if side_raw not in {"yes", "no"}:
                     logger.warning(
-                        "Unknown fill side '%s' for trade_id=%s; skipping", side_raw, trade_id
+                        "Unknown fill side; skipping",
+                        side=side_raw,
+                        trade_id=trade_id,
                     )
                     continue
 
                 action_raw = str(fill.get("action", "buy")).lower()
                 if action_raw not in {"buy", "sell"}:
                     logger.warning(
-                        "Unknown fill action '%s' for trade_id=%s; skipping", action_raw, trade_id
+                        "Unknown fill action; skipping",
+                        action=action_raw,
+                        trade_id=trade_id,
                     )
                     continue
 
@@ -257,7 +261,7 @@ class PortfolioSyncer:
 
             await session.commit()
 
-        logger.info("Synced %d new trades", synced_count)
+        logger.info("Synced new trades", count=synced_count)
         return synced_count
 
     async def full_sync(self) -> SyncResult:
@@ -288,7 +292,7 @@ class PortfolioSyncer:
         Returns:
             Number of positions updated
         """
-        logger.info("Updating mark prices...")
+        logger.info("Updating mark prices")
         updated_count = 0
 
         async with self.db.session_factory() as session:
@@ -311,14 +315,14 @@ class PortfolioSyncer:
                     # Handle unpriced markets (0/0 or 0/100) - skip update
                     if market.yes_bid == 0 and market.yes_ask == 0:
                         logger.warning(
-                            "Market %s has no quotes (0/0), skipping mark price update",
-                            pos.ticker,
+                            "Market has no quotes; skipping mark price update",
+                            ticker=pos.ticker,
                         )
                         continue
                     if market.yes_bid == 0 and market.yes_ask == 100:
                         logger.warning(
-                            "Market %s has placeholder quotes (0/100), skipping mark price update",
-                            pos.ticker,
+                            "Market has placeholder quotes; skipping mark price update",
+                            ticker=pos.ticker,
                         )
                         continue
 
@@ -343,13 +347,13 @@ class PortfolioSyncer:
 
                 except Exception as e:
                     logger.warning(
-                        "Failed to fetch market data for %s: %s",
-                        pos.ticker,
-                        str(e),
+                        "Failed to fetch market data; skipping mark price update",
+                        ticker=pos.ticker,
+                        error=str(e),
                     )
                     continue
 
             await session.commit()
 
-        logger.info("Updated mark prices for %d positions", updated_count)
+        logger.info("Updated mark prices", count=updated_count)
         return updated_count

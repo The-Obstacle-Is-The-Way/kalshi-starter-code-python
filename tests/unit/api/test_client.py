@@ -8,6 +8,7 @@ These tests use respx to mock HTTP requests. Everything else
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import respx
@@ -98,6 +99,28 @@ class TestKalshiPublicClient:
 
         assert market.ticker == ticker
         assert route.call_count == 2  # Verify retry happened
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_rate_limit_retry_after_header_controls_backoff(
+        self, mock_market_response: dict[str, Any]
+    ) -> None:
+        """Retry-After header should control 429 backoff when present."""
+        ticker = "KXBTC-25JAN-T100000"
+        route = respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}")
+
+        route.side_effect = [
+            Response(429, headers={"Retry-After": "7"}, json={"error": "Rate limited"}),
+            Response(200, json=mock_market_response),
+        ]
+
+        with patch("asyncio.sleep", new=AsyncMock()) as mock_sleep:
+            async with KalshiPublicClient() as client:
+                market = await client.get_market(ticker)
+
+        assert market.ticker == ticker
+        assert route.call_count == 2
+        assert any(call.args and call.args[0] == 7 for call in mock_sleep.await_args_list)
 
     @pytest.mark.asyncio
     @respx.mock

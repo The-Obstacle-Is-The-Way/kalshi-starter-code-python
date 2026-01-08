@@ -189,7 +189,7 @@ class ThesisTracker:
         """Load theses from storage."""
         if self.storage_path.exists():
             try:
-                with self.storage_path.open() as f:
+                with self.storage_path.open(encoding="utf-8") as f:
                     raw = json.load(f)
             except json.JSONDecodeError as e:
                 raise ValueError(
@@ -246,7 +246,7 @@ class ThesisTracker:
                 self.theses = loaded_from_mapping
                 return
 
-            logger.warning("Theses file has no loadable theses: %s", self.storage_path)
+            logger.warning("Theses file has no loadable theses", path=str(self.storage_path))
             raise ValueError(f"Theses file has an unexpected schema: {self.storage_path}")
 
     def _save(self) -> None:
@@ -257,7 +257,7 @@ class ThesisTracker:
         tmp_path = self.storage_path.with_suffix(
             f"{self.storage_path.suffix}.tmp.{uuid.uuid4().hex}"
         )
-        with tmp_path.open("w") as f:
+        with tmp_path.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
             f.flush()
             os.fsync(f.fileno())

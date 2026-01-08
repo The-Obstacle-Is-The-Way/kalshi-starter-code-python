@@ -26,10 +26,10 @@ async def test_client_respects_retry_after(public_client):
     """Test that client waits when receiving 429 with Retry-After."""
 
     async with respx.mock(base_url="https://demo-api.kalshi.co/trade-api/v2") as respx_mock:
-        # First call returns 429 with Retry-After: 1
+        # First call returns 429 with Retry-After: 7
         respx_mock.get("/markets").mock(
             side_effect=[
-                httpx.Response(429, headers={"Retry-After": "1"}, text="Rate limit exceeded"),
+                httpx.Response(429, headers={"Retry-After": "7"}, text="Rate limit exceeded"),
                 httpx.Response(200, json={"markets": []}),
             ]
         )
@@ -40,8 +40,7 @@ async def test_client_respects_retry_after(public_client):
             await public_client.get_markets()
 
             # Should have slept at least once (for retry)
-            # Tenacity wait_exponential might be mocked or we verify we hit the retry logic
             assert mock_sleep.called
-            # Ideally we check it called with approx 1 second
+            assert any(call.args and call.args[0] == 7 for call in mock_sleep.await_args_list)
 
         assert respx_mock.calls.call_count == 2
