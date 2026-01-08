@@ -1,6 +1,6 @@
 # Kalshi Research Platform - Bug Tracker
 
-**Audit Date:** 2026-01-07
+**Audit Date:** 2026-01-08
 **Auditor:** Codex CLI (GPT-5.2)
 
 ---
@@ -13,10 +13,10 @@
 | `uv run ruff format --check .` | ✅ PASS |
 | `uv run mypy src/ --strict` | ✅ PASS |
 | `uv run pytest -m "not integration and not slow"` | ✅ PASS |
-| `KALSHI_RUN_LIVE_API=1 uv run pytest tests/integration -m integration --timeout=60` | ✅ PASS |
+| `uv run pytest` | ✅ PASS |
 
-**Test Results:** `404 passed, 34 deselected` (integration + slow excluded).
-**Integration Results:** `34 passed` (live API + authenticated endpoints).
+**Test Results:** `412 passed, 34 deselected` (`integration` + `slow` excluded).
+**Full Suite:** `438 passed, 8 skipped` (live API tests skipped unless `KALSHI_RUN_LIVE_API=1`).
 
 ---
 
@@ -62,6 +62,7 @@
 | BUG-037 | P4 | ✅ Fixed | `plot_edge_histogram` treats 0.0 as missing |
 | BUG-038 | P3 | ✅ Fixed | `scan arbitrage` inverse-sum noisy for one-sided quotes |
 | BUG-039 | P1 | ✅ Fixed | CLI doesn’t load `.env` for authenticated commands |
+| BUG-040 | P1 | ✅ Fixed | Alembic `fileConfig()` disables application loggers (test-order flake) |
 
 ---
 
