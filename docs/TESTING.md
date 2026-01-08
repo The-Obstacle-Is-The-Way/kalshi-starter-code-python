@@ -1,33 +1,53 @@
-# Testing (How-to)
+# Testing Guide
 
-## Install dependencies
+This project follows a strict **Test-Driven Development (TDD)** workflow.
+Tests are categorized into **Unit**, **Integration**, and **End-to-End (E2E)**.
 
-```bash
-uv sync --all-extras
-```
-
-## Quality gates (CI-like)
+## 1. Unit Tests (Fast, No IO)
+Run these frequently during development. They use mocks for all external dependencies.
 
 ```bash
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy src/ --strict
-uv run pytest -m "not integration and not slow"
+uv run pytest tests/unit
 ```
 
-Notes:
-- `tests/e2e/` uses mocked HTTP (respx) and runs in the fast suite.
-- `tests/integration/` may hit live endpoints depending on env.
-
-## Live API integration tests
-
-These tests require:
-- `.env` (or exported env vars) with `KALSHI_KEY_ID` and key material
-- `KALSHI_RUN_LIVE_API=1`
-
-Run:
+## 2. Integration Tests (Network/DB Logic)
+Tests database interactions (via in-memory SQLite) and API client logic (via `respx` mocking).
+These verify that requests are constructed correctly (auth headers, payloads) without hitting the real API.
 
 ```bash
-KALSHI_RUN_LIVE_API=1 uv run pytest tests/integration -m integration --timeout=60
+uv run pytest tests/integration
 ```
 
+## 3. Live API Tests (Real Network Calls)
+These tests hit the **LIVE** Kalshi API. They are skipped by default for safety.
+
+### 3.1 Public API (Safe, Read-Only)
+Tests connection to public endpoints (`/markets`, `/exchange/status`). No credentials needed.
+
+```bash
+KALSHI_RUN_LIVE_API=1 uv run pytest tests/integration/api/test_public_api_live.py
+```
+
+### 3.2 Authenticated API (Requires Credentials)
+Tests authenticated endpoints (`/portfolio/balance`, `/portfolio/orders`).
+**WARNING:** This requires a valid API key and private key. Use the **DEMO** environment if possible.
+
+**Prerequisites:**
+Set the following environment variables (or put them in `.env`):
+```bash
+export KALSHI_API_KEY="your-uuid-key-id"
+export KALSHI_PRIVATE_KEY_PATH="/path/to/your/private_key.pem"
+export KALSHI_ENVIRONMENT="demo"  # or "prod"
+```
+
+**Run Command:**
+```bash
+uv run pytest tests/e2e/test_live_demo.py
+```
+
+## 4. Coverage Report
+Check strict coverage requirements (aiming for 100% on critical modules).
+
+```bash
+uv run pytest --cov=kalshi_research
+```
