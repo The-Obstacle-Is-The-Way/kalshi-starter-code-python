@@ -1,6 +1,8 @@
 """Extended CLI tests for alerts, analysis, and research commands."""
 
 import json
+import os
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 from typer.testing import CliRunner
@@ -383,8 +385,8 @@ def test_analysis_metrics(mock_db_cls: MagicMock) -> None:
     """Test market metrics analysis."""
     # Mock price data
     mock_price = MagicMock()
-    mock_price.yes_bid = 50
-    mock_price.yes_ask = 52
+    mock_price.yes_bid = 0
+    mock_price.yes_ask = 2
     mock_price.no_bid = 48
     mock_price.no_ask = 50
     mock_price.volume_24h = 1000
@@ -422,6 +424,9 @@ def test_analysis_metrics(mock_db_cls: MagicMock) -> None:
 
     assert result.exit_code == 0
     assert "TEST-TICKER" in result.stdout
+
+    spread_row = next(line for line in result.stdout.splitlines() if "Spread" in line)
+    assert "2¢" in spread_row
 
 
 # ==================== Research CLI Tests ====================
@@ -565,6 +570,37 @@ def test_research_backtest(mock_db_cls: MagicMock) -> None:
     assert result.exit_code == 0
     # Should show some backtest output (even if placeholder)
     assert "Backtest" in result.stdout or "trades" in result.stdout.lower()
+
+
+# ==================== Portfolio CLI Tests ====================
+
+
+@patch("kalshi_research.api.KalshiClient")
+def test_portfolio_balance_loads_dotenv(mock_client_cls: MagicMock) -> None:
+    """Portfolio commands should read auth config from .env during CLI invocation."""
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_balance = AsyncMock(return_value={"available": 123})
+    mock_client_cls.return_value = mock_client
+
+    with runner.isolated_filesystem():
+        Path(".env").write_text(
+            "\n".join(
+                [
+                    "KALSHI_KEY_ID=test-key-id",
+                    "KALSHI_PRIVATE_KEY_B64=test-private-key-b64",
+                    "KALSHI_ENVIRONMENT=demo",
+                    "",
+                ]
+            )
+        )
+
+        with patch.dict(os.environ, {}, clear=True):
+            result = runner.invoke(app, ["portfolio", "balance"])
+
+    assert result.exit_code == 0
+    assert "Account Balance" in result.stdout
 
 
 # ==================== Portfolio-Thesis Link Tests (BUG-010) ====================

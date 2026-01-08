@@ -399,7 +399,7 @@ class TestFindInverseMarkets:
         assert m2.event_ticker == "E1"
 
     def test_excludes_unpriced_and_placeholder_markets(self) -> None:
-        """Unpriced markets (0/0, 0/100) should not create inverse pairs."""
+        """Markets without two-sided quotes should not create inverse pairs."""
         analyzer = CorrelationAnalyzer()
 
         markets = [
@@ -430,6 +430,27 @@ class TestFindInverseMarkets:
                 no_ask=100,
                 last_price=None,
             ),
+            # Event D: one-sided markets (no bid / no ask) -> excluded
+            make_market(
+                "D-YES",
+                "D",
+                50,
+                yes_bid=0,
+                yes_ask=40,
+                no_bid=60,
+                no_ask=100,
+                last_price=None,
+            ),
+            make_market(
+                "D-NO",
+                "D",
+                50,
+                yes_bid=99,
+                yes_ask=100,
+                no_bid=0,
+                no_ask=1,
+                last_price=None,
+            ),
         ]
 
         results = analyzer.find_inverse_markets(markets, tolerance=0.10)
@@ -438,13 +459,14 @@ class TestFindInverseMarkets:
         assert "A" in event_tickers
         assert "B" not in event_tickers
         assert "C" not in event_tickers
+        assert "D" not in event_tickers
 
 
 class TestIsPriced:
     """Test _is_priced helper."""
 
     def test_is_priced_helper(self) -> None:
-        """Detect unpriced and placeholder markets."""
+        """Detect unpriced, placeholder, and one-sided markets."""
         from kalshi_research.analysis.correlation import _is_priced
 
         assert not _is_priced(
@@ -468,6 +490,30 @@ class TestIsPriced:
                 yes_ask=100,
                 no_bid=0,
                 no_ask=100,
+                last_price=None,
+            )
+        )
+        assert not _is_priced(
+            make_market(
+                "NO_BID",
+                "E",
+                50,
+                yes_bid=0,
+                yes_ask=40,
+                no_bid=60,
+                no_ask=100,
+                last_price=None,
+            )
+        )
+        assert not _is_priced(
+            make_market(
+                "NO_ASK",
+                "E",
+                50,
+                yes_bid=99,
+                yes_ask=100,
+                no_bid=0,
+                no_ask=1,
                 last_price=None,
             )
         )

@@ -239,6 +239,28 @@ class TestPlotEdgeHistogram:
         with pytest.raises(ValueError, match="No edges with estimates"):
             plot_edge_histogram(edges)
 
+    def test_plot_edge_histogram_allows_zero_estimate(self) -> None:
+        """0.0 is a valid estimate and must not be treated as missing/falsy."""
+        from kalshi_research.analysis.edge import EdgeType
+
+        edges = [
+            Edge(
+                ticker="TEST",
+                edge_type=EdgeType.THESIS,
+                confidence=0.5,
+                market_price=0.5,
+                your_estimate=0.0,
+                expected_value=None,
+                description="Zero estimate",
+            )
+        ]
+
+        fig = plot_edge_histogram(edges, title="Zero estimate")
+        ax = fig.axes[0]
+        assert "-50.0%" in ax.get_title()
+
+        plt.close(fig)
+
     def test_plot_edge_histogram_save(self, sample_edges: list[Edge], tmp_path: Path) -> None:
         """Test saving edge histogram to file."""
         output_path = tmp_path / "edges.png"

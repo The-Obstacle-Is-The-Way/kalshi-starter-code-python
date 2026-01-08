@@ -14,15 +14,19 @@ The platform is stable and test-gated. Linting, formatting, strict mypy, and the
 - `uv run ruff check .` ✅
 - `uv run ruff format --check .` ✅
 - `uv run mypy src/ --strict` ✅
-- `uv run pytest -m "not integration and not slow"` ✅ → `400 passed, 34 deselected`
+- `uv run pytest -m "not integration and not slow"` ✅ → `404 passed, 34 deselected`
+- `KALSHI_RUN_LIVE_API=1 uv run pytest tests/integration -m integration --timeout=60` ✅ → `34 passed`
 
-**Note:** Integration tests are excluded from the fast local suite.
+**Note:** Integration tests hit the live public API and may be rate-limit sensitive.
 
 ---
 
 ## Key Findings & Fixes
 
 - **Truthiness traps (BUG-021, BUG-022):** Removed `if limit:` / `if min_ts:` style checks that mishandled `0` values; added regression tests.
+- **More truthiness traps (BUG-036, BUG-037):** Fixed silent `0`/`0.0` fallbacks in CLI metrics + edge histogram; added regression tests.
+- **Inverse-sum pricing safety (BUG-038):** Excluded one-sided quotes from midpoint-based inverse-sum and arbitrage pricing; added regression coverage.
+- **DX fix for auth (BUG-039):** CLI now loads `.env` on invocation, matching repo guidance and pytest behavior; added unit coverage.
 - **Silent failure removal (BUG-021):** Notebook setup now logs failures instead of swallowing exceptions.
 - **Export hardening (BUG-023):** `query_parquet()` now validates paths (defense-in-depth vs SQL-injection-through-path strings).
 - **Legacy HTTP reliability (BUG-024):** Added request timeouts and fixed 2xx status check in `src/kalshi_research/clients.py`.

@@ -24,7 +24,11 @@ def _is_priced(market: Market) -> bool:
     """
     Check if a market has meaningful price discovery.
 
-    A market is considered "priced" if it has real quotes (not placeholder).
+    A market is considered "priced" if it has quotes on both sides.
+
+    This module relies on bid/ask midpoints. If either side is missing
+    (commonly represented as `yes_bid == 0` or `yes_ask == 100`), the midpoint
+    is not meaningful and can create noisy signals.
 
     Args:
         market: Market to check
@@ -32,13 +36,7 @@ def _is_priced(market: Market) -> bool:
     Returns:
         True if market has meaningful quotes
     """
-    # Completely unpriced (no quotes at all)
-    if market.yes_bid == 0 and market.yes_ask == 0:
-        return False
-
-    # Placeholder quotes (0/100 = no real price discovery)
-    # Has at least some price discovery otherwise
-    return not (market.yes_bid == 0 and market.yes_ask == 100)
+    return market.yes_bid not in {0, 100} and market.yes_ask not in {0, 100}
 
 
 class CorrelationType(str, Enum):
@@ -316,7 +314,9 @@ class CorrelationAnalyzer:
         """
         opportunities: list[ArbitrageOpportunity] = []
         # Use midpoint of bid/ask as price
-        market_prices = {m.ticker: (m.yes_bid + m.yes_ask) / 2.0 / 100.0 for m in markets}
+        market_prices = {
+            m.ticker: (m.yes_bid + m.yes_ask) / 2.0 / 100.0 for m in markets if _is_priced(m)
+        }
 
         for pair in correlated_pairs:
             if pair.ticker_a not in market_prices:

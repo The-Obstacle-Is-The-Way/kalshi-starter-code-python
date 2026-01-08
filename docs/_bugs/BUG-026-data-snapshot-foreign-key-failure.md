@@ -127,9 +127,9 @@ async def take_snapshot(self, status: str | None = "open") -> int:
 
 ## Acceptance Criteria
 
-- [ ] `uv run kalshi data snapshot --db <new_db>` completes without integrity errors
-- [ ] `uv run kalshi data collect --once --db <new_db>` completes and reports non-zero snapshots
-- [ ] `uv run kalshi analysis metrics <ticker> --db <new_db>` finds latest snapshot
+- [x] `uv run kalshi data snapshot --db <new_db>` completes without integrity errors (manual smoke + integration CLI test)
+- [x] `uv run kalshi data collect --once --db <new_db>` completes and reports non-zero snapshots (manual smoke + integration CLI test)
+- [x] `uv run kalshi analysis metrics <ticker> --db <new_db>` finds latest snapshot (manual smoke)
 - [x] Unit test: `tests/unit/data/test_fetcher.py::test_take_snapshot_creates_missing_market_and_event`
 - [x] DB-level regression: fresh SQLite DB → snapshot insert → no FK errors (covered by the unit test above)
 

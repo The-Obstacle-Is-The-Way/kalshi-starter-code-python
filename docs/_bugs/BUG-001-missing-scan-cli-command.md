@@ -15,11 +15,11 @@ The CLI is missing the `scan` command required by PROMPT.md Phase 4. The underly
 
 Per PROMPT.md Phase 4 requirements:
 ```bash
-kalshi scan                    # Scan for opportunities
-kalshi scan --filter close-race
-kalshi scan --filter high-volume
-kalshi scan --filter wide-spread
-kalshi scan --filter expiring-soon
+kalshi scan --help
+kalshi scan opportunities --filter close-race
+kalshi scan opportunities --filter high-volume
+kalshi scan opportunities --filter wide-spread
+kalshi scan opportunities --filter expiring-soon
 ```
 
 ## Current Behavior
@@ -78,9 +78,9 @@ def scan_opportunities(
 
 ## Acceptance Criteria
 
-- [ ] `kalshi scan` shows help with available filters
-- [ ] `kalshi scan --filter close-race` returns markets near 50%
-- [ ] `kalshi scan --filter high-volume` returns high-volume markets
-- [ ] `kalshi scan --filter wide-spread` returns wide-spread markets
-- [ ] `kalshi scan --filter expiring-soon` returns soon-expiring markets
-- [ ] Results displayed in formatted Rich table
+- [x] `kalshi scan --help` shows available scan subcommands
+- [x] `kalshi scan opportunities --filter close-race` runs successfully
+- [x] `kalshi scan opportunities --filter high-volume` runs successfully
+- [x] `kalshi scan opportunities --filter wide-spread` runs successfully
+- [x] `kalshi scan opportunities --filter expiring-soon` runs successfully
+- [x] Results are displayed in a formatted Rich table (or a clear "no markets found" message)

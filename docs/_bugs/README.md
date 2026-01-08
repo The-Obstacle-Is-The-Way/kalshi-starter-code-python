@@ -13,8 +13,10 @@
 | `uv run ruff format --check .` | ✅ PASS |
 | `uv run mypy src/ --strict` | ✅ PASS |
 | `uv run pytest -m "not integration and not slow"` | ✅ PASS |
+| `KALSHI_RUN_LIVE_API=1 uv run pytest tests/integration -m integration --timeout=60` | ✅ PASS |
 
-**Test Results:** `400 passed, 34 deselected` (integration + slow excluded).
+**Test Results:** `404 passed, 34 deselected` (integration + slow excluded).
+**Integration Results:** `34 passed` (live API + authenticated endpoints).
 
 ---
 
@@ -56,6 +58,10 @@
 | BUG-033 | P0 | ✅ Fixed | Market model API schema mismatch (negative liquidity, missing status) |
 | BUG-034 | P4 | ✅ Fixed | Portfolio positions hides 0¢ mark price |
 | BUG-035 | P3 | ✅ Fixed | Scan/snapshot commands missing `--max-pages` safety limit |
+| BUG-036 | P4 | ✅ Fixed | `kalshi analysis metrics` spread treats 0 as missing |
+| BUG-037 | P4 | ✅ Fixed | `plot_edge_histogram` treats 0.0 as missing |
+| BUG-038 | P3 | ✅ Fixed | `scan arbitrage` inverse-sum noisy for one-sided quotes |
+| BUG-039 | P1 | ✅ Fixed | CLI doesn’t load `.env` for authenticated commands |
 
 ---
 

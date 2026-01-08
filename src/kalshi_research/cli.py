@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import typer
+from dotenv import find_dotenv, load_dotenv
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
@@ -46,6 +47,7 @@ console = Console()
 @app.callback()
 def main() -> None:
     """Kalshi Research Platform CLI."""
+    load_dotenv(find_dotenv(usecwd=True))
 
 
 @app.command()
@@ -1244,7 +1246,7 @@ def analysis_metrics(
 
         table.add_row("Yes Bid/Ask", f"{price.yes_bid}¢ / {price.yes_ask}¢")
         table.add_row("No Bid/Ask", f"{price.no_bid}¢ / {price.no_ask}¢")
-        spread = price.yes_ask - price.yes_bid if price.yes_ask and price.yes_bid else 0
+        spread = price.yes_ask - price.yes_bid
         table.add_row("Spread", f"{spread}¢")
         table.add_row("Volume (24h)", f"{price.volume_24h:,}")
         table.add_row("Open Interest", f"{price.open_interest:,}")

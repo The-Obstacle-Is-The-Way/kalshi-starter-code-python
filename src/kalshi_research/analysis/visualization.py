@@ -154,9 +154,7 @@ def plot_edge_histogram(
         raise ValueError("No edges provided")
 
     # Extract edge sizes (your estimate - market price)
-    edge_sizes = [
-        (e.your_estimate or 0.5) - e.market_price for e in edges if e.your_estimate is not None
-    ]
+    edge_sizes = [e.your_estimate - e.market_price for e in edges if e.your_estimate is not None]
 
     if not edge_sizes:
         raise ValueError("No edges with estimates")
