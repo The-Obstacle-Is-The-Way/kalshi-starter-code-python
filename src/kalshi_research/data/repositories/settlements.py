@@ -19,6 +19,22 @@ class SettlementRepository(BaseRepository[Settlement]):
 
     model = Settlement
 
+    async def upsert(self, settlement: Settlement) -> Settlement:
+        """Insert or update a settlement."""
+        existing = await self.get(settlement.ticker)
+        if existing is not None:
+            existing.event_ticker = settlement.event_ticker
+            existing.settled_at = settlement.settled_at
+            existing.result = settlement.result
+            existing.final_yes_price = settlement.final_yes_price
+            existing.final_no_price = settlement.final_no_price
+            existing.yes_payout = settlement.yes_payout
+            existing.no_payout = settlement.no_payout
+            await self._session.flush()
+            await self._session.refresh(existing)
+            return existing
+        return await self.add(settlement)
+
     async def get_by_event(self, event_ticker: str) -> Sequence[Settlement]:
         """Get all settlements for an event."""
         stmt = select(Settlement).where(Settlement.event_ticker == event_ticker)

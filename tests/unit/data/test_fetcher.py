@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from kalshi_research.api.models.event import Event
-from kalshi_research.api.models.market import Market, MarketStatus
+from kalshi_research.api.models.market import Market, MarketFilterStatus, MarketStatus
 from kalshi_research.data.fetcher import DataFetcher
 
 
@@ -94,6 +94,53 @@ async def test_sync_markets(data_fetcher, mock_client, mock_db):
 
         assert count == 1
         market_repo.upsert.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_sync_settlements(data_fetcher, mock_client, mock_db):
+    # Mock settled API market
+    from datetime import UTC, datetime, timedelta
+
+    mock_market = MagicMock(spec=Market)
+    mock_market.ticker = "TEST-MARKET"
+    mock_market.event_ticker = "TEST-EVENT"
+    mock_market.series_ticker = "TEST-SERIES"
+    mock_market.title = "Test Market"
+    mock_market.subtitle = "Subtitle"
+    mock_market.status = MarketStatus.FINALIZED
+    mock_market.result = "yes"
+    mock_market.open_time = datetime.now(UTC) - timedelta(days=2)
+    mock_market.close_time = datetime.now(UTC) - timedelta(days=1)
+    mock_market.expiration_time = datetime.now(UTC) - timedelta(days=1)
+
+    async def market_gen(status=None, max_pages: int | None = None):
+        yield mock_market
+
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+
+    with (
+        patch("kalshi_research.data.fetcher.SettlementRepository") as MockSettlementRepo,
+        patch("kalshi_research.data.fetcher.MarketRepository") as MockMarketRepo,
+        patch("kalshi_research.data.fetcher.EventRepository") as MockEventRepo,
+    ):
+        settlement_repo = AsyncMock()
+        MockSettlementRepo.return_value = settlement_repo
+
+        market_repo = AsyncMock()
+        MockMarketRepo.return_value = market_repo
+
+        event_repo = AsyncMock()
+        event_repo.get.return_value = MagicMock()  # Event exists
+        MockEventRepo.return_value = event_repo
+
+        count = await data_fetcher.sync_settlements()
+
+        assert count == 1
+        settlement_repo.upsert.assert_called_once()
+        market_repo.upsert.assert_called_once()
+        mock_client.get_all_markets.assert_called_once_with(
+            status=MarketFilterStatus.SETTLED, max_pages=None
+        )
 
 
 @pytest.mark.asyncio
@@ -192,3 +239,67 @@ async def test_take_snapshot_creates_missing_market_and_event(tmp_path) -> None:
             assert await event_repo.get("TEST-EVENT") is not None
             assert await market_repo.get("TEST-MARKET") is not None
             assert await price_repo.get_latest("TEST-MARKET") is not None
+
+
+@pytest.mark.asyncio
+async def test_sync_settlements_creates_missing_market_event_and_settlement(tmp_path) -> None:
+    """Settlements sync should auto-create missing market/event rows (FK robustness)."""
+    from datetime import UTC, datetime, timedelta
+
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.data.repositories import (
+        EventRepository,
+        MarketRepository,
+        SettlementRepository,
+    )
+
+    db_path = tmp_path / "kalshi_fetcher_settlements_fk.db"
+
+    api_market = Market(
+        ticker="TEST-MARKET",
+        event_ticker="TEST-EVENT",
+        series_ticker=None,
+        title="Test Market",
+        subtitle="",
+        status=MarketStatus.FINALIZED,
+        result="yes",
+        yes_bid=50,
+        yes_ask=52,
+        no_bid=48,
+        no_ask=50,
+        last_price=51,
+        volume=100,
+        volume_24h=10,
+        open_interest=20,
+        open_time=datetime.now(UTC) - timedelta(days=3),
+        close_time=datetime.now(UTC) - timedelta(days=2),
+        expiration_time=datetime.now(UTC) - timedelta(days=1),
+        liquidity=1000,
+    )
+
+    class StubClient:
+        async def get_all_markets(self, *args, **kwargs):
+            yield api_market
+
+    async with DatabaseManager(db_path) as db:
+        await db.create_tables()
+        async with DataFetcher(db, client=StubClient()) as fetcher:
+            count = await fetcher.sync_settlements()
+
+        assert count == 1
+
+        async with db.session_factory() as session:
+            event_repo = EventRepository(session)
+            market_repo = MarketRepository(session)
+            settlement_repo = SettlementRepository(session)
+
+            assert await event_repo.get("TEST-EVENT") is not None
+            assert await market_repo.get("TEST-MARKET") is not None
+
+            settlement = await settlement_repo.get("TEST-MARKET")
+            assert settlement is not None
+            assert settlement.result == "yes"
+            settled_at = settlement.settled_at
+            if settled_at.tzinfo is None:
+                settled_at = settled_at.replace(tzinfo=UTC)
+            assert settled_at == api_market.expiration_time

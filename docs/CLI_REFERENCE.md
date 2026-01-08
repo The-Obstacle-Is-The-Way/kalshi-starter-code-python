@@ -30,6 +30,7 @@ If you haven’t installed the `kalshi` entrypoint globally, use `uv run kalshi 
 
 - `kalshi data init`
 - `kalshi data sync-markets [--status open] [--max-pages N]`
+- `kalshi data sync-settlements [--max-pages N]`
 - `kalshi data snapshot [--status open] [--max-pages N]`
 - `kalshi data collect [--interval MIN] [--once] [--max-pages N]`
 - `kalshi data export [--format parquet|csv] [--output DIR]`

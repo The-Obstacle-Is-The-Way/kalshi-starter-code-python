@@ -84,7 +84,7 @@ class KalshiWebSocket:
         headers = self._auth.get_headers("GET", self.WS_PATH)
 
         logger.info("Connecting to WebSocket", url=self._url)
-        self._ws = await websockets.connect(self._url, extra_headers=headers)
+        self._ws = await websockets.connect(self._url, additional_headers=headers)
         self._running = True
         logger.info("WebSocket connected")
 

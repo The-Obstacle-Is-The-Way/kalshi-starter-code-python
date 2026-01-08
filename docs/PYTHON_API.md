@@ -7,7 +7,7 @@ This repo is a normal `src/` layout package. The main public entrypoints are exp
 - `kalshi_research.analysis` — analysis/scanning/visualization utilities
 - `kalshi_research.alerts` — alert conditions + monitor
 - `kalshi_research.portfolio` — portfolio models + sync + P&L
-- `kalshi_research.research` — thesis tracking + backtest scaffolding
+- `kalshi_research.research` — thesis tracking + backtesting
 
 ## Public API client (no auth)
 

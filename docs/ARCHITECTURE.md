@@ -10,7 +10,7 @@ The core package lives at `src/kalshi_research/`:
 - `analysis/` — calibration/metrics/correlation/scanning/visualization utilities
 - `alerts/` — alert conditions + monitor + notifiers
 - `portfolio/` — portfolio persistence + sync from authenticated API + FIFO P&L
-- `research/` — thesis tracking + backtest scaffolding
+- `research/` — thesis tracking + backtesting
 
 ## Data flow (typical)
 

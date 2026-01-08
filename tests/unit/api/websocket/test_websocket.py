@@ -57,7 +57,7 @@ async def test_connect_headers(mock_ws_connect, mock_auth):
 
     mock_connect.assert_called_once()
     _args, kwargs = mock_connect.call_args
-    assert kwargs["extra_headers"] == {"Auth": "Token"}
+    assert kwargs["additional_headers"] == {"Auth": "Token"}
 
 
 @pytest.mark.asyncio

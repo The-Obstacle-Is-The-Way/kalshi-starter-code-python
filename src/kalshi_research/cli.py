@@ -198,6 +198,46 @@ def data_sync_markets(
     asyncio.run(_sync())
 
 
+@data_app.command("sync-settlements")
+def data_sync_settlements(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit. None = iterate until exhausted.",
+        ),
+    ] = None,
+) -> None:
+    """Sync settled market outcomes from Kalshi API to database.
+
+    Notes:
+        The public markets endpoint provides a `result` but does not expose a clear settlement
+        timestamp.
+        We store `Settlement.settled_at` using `Market.expiration_time` as a documented proxy.
+    """
+    from kalshi_research.data import DatabaseManager, DataFetcher
+
+    async def _sync() -> None:
+        async with DatabaseManager(db_path) as db:
+            await db.create_tables()
+            async with DataFetcher(db) as fetcher:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console,
+                ) as progress:
+                    progress.add_task("Syncing settlements...", total=None)
+                    settlements = await fetcher.sync_settlements(max_pages=max_pages)
+
+        console.print(f"[green]✓[/green] Synced {settlements} settlements")
+
+    asyncio.run(_sync())
+
+
 @data_app.command("snapshot")
 def data_snapshot(
     db_path: Annotated[

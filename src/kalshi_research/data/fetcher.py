@@ -7,13 +7,16 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from kalshi_research.api import KalshiPublicClient
+from kalshi_research.api.models.market import MarketFilterStatus
 from kalshi_research.data.models import Event as DBEvent
 from kalshi_research.data.models import Market as DBMarket
 from kalshi_research.data.models import PriceSnapshot
+from kalshi_research.data.models import Settlement as DBSettlement
 from kalshi_research.data.repositories import (
     EventRepository,
     MarketRepository,
     PriceRepository,
+    SettlementRepository,
 )
 
 if TYPE_CHECKING:
@@ -117,6 +120,23 @@ class DataFetcher:
             liquidity=api_market.liquidity,
         )
 
+    def _api_market_to_settlement(self, api_market: APIMarket) -> DBSettlement | None:
+        """Convert a settled API market to a settlement row.
+
+        Notes:
+            Kalshi's public markets endpoint exposes `result` but does not provide a clear
+            `settled_at` timestamp. We use `expiration_time` as an explicit proxy for `settled_at`.
+        """
+        if not api_market.result:
+            return None
+
+        return DBSettlement(
+            ticker=api_market.ticker,
+            event_ticker=api_market.event_ticker,
+            settled_at=api_market.expiration_time,
+            result=api_market.result,
+        )
+
     async def sync_events(self, *, max_pages: int | None = None) -> int:
         """
         Sync all events from API to database.
@@ -185,6 +205,62 @@ class DataFetcher:
             await session.commit()
 
         logger.info("Synced %d total markets", count)
+        return count
+
+    async def sync_settlements(self, *, max_pages: int | None = None) -> int:
+        """
+        Sync settled market outcomes from API to database.
+
+        This uses the public markets endpoint with the `settled` filter and materializes rows in the
+        `settlements` table for backtesting and analysis.
+
+        Args:
+            max_pages: Optional pagination safety limit. None = iterate until exhausted.
+
+        Returns:
+            Number of settlements synced
+        """
+        logger.info("Starting settlement sync")
+        count = 0
+        skipped = 0
+
+        async with self._db.session_factory() as session:
+            settlement_repo = SettlementRepository(session)
+            market_repo = MarketRepository(session)
+            event_repo = EventRepository(session)
+
+            async for api_market in self.client.get_all_markets(
+                status=MarketFilterStatus.SETTLED, max_pages=max_pages
+            ):
+                settlement = self._api_market_to_settlement(api_market)
+                if settlement is None:
+                    skipped += 1
+                    continue
+
+                # Ensure event exists first (FK robustness)
+                existing_event = await event_repo.get(api_market.event_ticker)
+                if existing_event is None:
+                    event = DBEvent(
+                        ticker=api_market.event_ticker,
+                        series_ticker=api_market.series_ticker or api_market.event_ticker,
+                        title=api_market.event_ticker,  # Placeholder
+                    )
+                    await event_repo.add(event)
+
+                # Ensure market row exists (FK constraint)
+                await market_repo.upsert(self._api_market_to_db(api_market))
+
+                await settlement_repo.upsert(settlement)
+                count += 1
+
+                # Commit in batches to avoid long transactions
+                if count % 100 == 0:
+                    await session.commit()
+                    logger.info("Synced %d settlements so far", count)
+
+            await session.commit()
+
+        logger.info("Synced %d total settlements (skipped=%d)", count, skipped)
         return count
 
     async def take_snapshot(

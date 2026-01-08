@@ -111,6 +111,28 @@ def test_data_sync_markets(mock_db_cls: MagicMock, mock_fetcher_cls: MagicMock) 
 
 @patch("kalshi_research.data.DataFetcher")
 @patch("kalshi_research.data.DatabaseManager")
+def test_data_sync_settlements(mock_db_cls: MagicMock, mock_fetcher_cls: MagicMock) -> None:
+    """Test syncing settlements."""
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = None
+    mock_db_cls.return_value = mock_db
+
+    mock_fetcher = AsyncMock()
+    mock_fetcher.__aenter__.return_value = mock_fetcher
+    mock_fetcher.__aexit__.return_value = None
+    mock_fetcher.sync_settlements.return_value = 123
+    mock_fetcher_cls.return_value = mock_fetcher
+
+    result = runner.invoke(app, ["data", "sync-settlements"])
+
+    assert result.exit_code == 0
+    assert "123 settlements" in result.stdout
+    mock_fetcher.sync_settlements.assert_called_once_with(max_pages=None)
+
+
+@patch("kalshi_research.data.DataFetcher")
+@patch("kalshi_research.data.DatabaseManager")
 def test_data_snapshot(mock_db_cls: MagicMock, mock_fetcher_cls: MagicMock) -> None:
     """Test taking a snapshot."""
     mock_db = AsyncMock()
