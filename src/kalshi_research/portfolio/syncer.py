@@ -2,14 +2,78 @@
 
 from __future__ import annotations
 
+import logging
+from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
+
+from sqlalchemy import select
+
+from kalshi_research.portfolio.models import Position, Trade
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
-    from kalshi_research.api.client import KalshiClient
+    from kalshi_research.api.client import KalshiClient, KalshiPublicClient
     from kalshi_research.data.database import DatabaseManager
+
+logger = logging.getLogger(__name__)
+
+
+def compute_fifo_cost_basis(trades: list[Trade], side: str) -> int:
+    """
+    Compute average cost basis for a position using FIFO.
+
+    FIFO (First-In-First-Out) is the IRS default method and the safest choice.
+    We track a queue of lots and compute weighted average of remaining shares.
+
+    Args:
+        trades: List of Trade records for this ticker, sorted by executed_at
+        side: "yes" or "no" - the position side we're computing cost for
+
+    Returns:
+        Average cost basis in cents (0 if no position)
+
+    Reference: https://coinledger.io/blog/cryptocurrency-tax-calculations-fifo-and-lifo-costing-methods-explained
+    """
+    # Queue of lots: (quantity, price_cents)
+    lots: deque[tuple[int, int]] = deque()
+
+    for trade in trades:
+        # Filter to trades matching the position side
+        if trade.side != side:
+            continue
+
+        price = trade.price_cents
+        qty = trade.quantity
+
+        if trade.action == "buy":
+            # Add to position - push lot onto queue
+            lots.append((qty, price))
+        elif trade.action == "sell":
+            # Reduce position - pop FIFO from queue
+            remaining = qty
+            while remaining > 0 and lots:
+                lot_qty, _lot_price = lots[0]
+                if lot_qty <= remaining:
+                    # Consume entire lot
+                    lots.popleft()
+                    remaining -= lot_qty
+                else:
+                    # Partial lot consumption
+                    lots[0] = (lot_qty - remaining, _lot_price)
+                    remaining = 0
+
+    # Compute weighted average of remaining lots
+    if not lots:
+        return 0
+
+    total_qty = sum(qty for qty, _ in lots)
+    total_cost = sum(qty * price for qty, price in lots)
+
+    if total_qty == 0:
+        return 0
+
+    return total_cost // total_qty
 
 
 @dataclass
@@ -33,15 +97,79 @@ class PortfolioSyncer:
         """
         Fetch current positions from Kalshi API and update database.
 
+        Computes cost basis from synced trades using FIFO method.
+
         Returns:
             Number of positions synced
         """
-        # TODO: Implement when Kalshi API positions endpoint is available
-        # positions = await self.client.get_positions()  # noqa: ERA001
-        # Update local database with positions
-        return 0
+        logger.info("Syncing positions...")
+        api_positions = await self.client.get_positions()
+        synced_count = 0
+        now = datetime.now(UTC)
 
-    async def sync_trades(self, since: datetime | None = None) -> int:  # noqa: ARG002
+        async with self.db.session_factory() as session:
+            # Get existing open positions to handle closures
+            result = await session.execute(
+                select(Position).where(Position.quantity > 0, Position.closed_at.is_(None))
+            )
+            existing_open = {p.ticker: p for p in result.scalars().all()}
+            seen_tickers = set()
+
+            for pos_data in api_positions:
+                # API returns position dictionaries with keys like:
+                # ticker, position, market_exposure, realized_pnl, fees_paid.
+                ticker = pos_data["ticker"]
+                quantity = abs(int(pos_data["position"]))
+                side = "yes" if pos_data["position"] > 0 else "no"
+                seen_tickers.add(ticker)
+
+                # Compute cost basis from trades using FIFO
+                trades_result = await session.execute(
+                    select(Trade).where(Trade.ticker == ticker).order_by(Trade.executed_at)
+                )
+                trades = list(trades_result.scalars().all())
+                avg_price_cents = compute_fifo_cost_basis(trades, side)
+
+                # Check if exists
+                existing = existing_open.get(ticker)
+
+                if existing:
+                    # Update existing
+                    existing.quantity = quantity
+                    existing.side = side
+                    existing.avg_price_cents = avg_price_cents
+                    existing.realized_pnl_cents = int(pos_data.get("realized_pnl", 0))
+                    existing.last_synced = now
+                else:
+                    # Create new
+                    new_pos = Position(
+                        ticker=ticker,
+                        side=side,
+                        quantity=quantity,
+                        avg_price_cents=avg_price_cents,
+                        current_price_cents=None,  # Updated by update_mark_prices()
+                        realized_pnl_cents=int(pos_data.get("realized_pnl", 0)),
+                        opened_at=now,  # Approximation for new sync
+                        last_synced=now,
+                    )
+                    session.add(new_pos)
+
+                synced_count += 1
+
+            # Handle closed positions (in DB but not in API)
+            for ticker, pos in existing_open.items():
+                if ticker not in seen_tickers:
+                    pos.quantity = 0
+                    pos.closed_at = now
+                    pos.last_synced = now
+                    logger.info("Marked position %s as closed", ticker)
+
+            await session.commit()
+
+        logger.info("Synced %d positions", synced_count)
+        return synced_count
+
+    async def sync_trades(self, since: datetime | None = None) -> int:
         """
         Fetch trade history from Kalshi API and update database.
 
@@ -51,10 +179,86 @@ class PortfolioSyncer:
         Returns:
             Number of trades synced
         """
-        # TODO: Implement when Kalshi API fills endpoint is available
-        # trades = await self.client.get_fills(min_ts=since)  # noqa: ERA001
-        # Insert new trades into database
-        return 0
+        logger.info("Syncing trades...")
+        min_ts = int(since.timestamp()) if since else None
+
+        # Paginate through fills
+        fills: list[dict[str, Any]] = []
+        cursor = None
+
+        while True:
+            response = await self.client.get_fills(min_ts=min_ts, limit=100, cursor=cursor)
+            page_fills = response.get("fills", [])
+            if not page_fills:
+                break
+
+            fills.extend(page_fills)
+            cursor = response.get("cursor")
+            if not cursor:
+                break
+
+        synced_count = 0
+        now = datetime.now(UTC)
+
+        async with self.db.session_factory() as session:
+            # Check for existing trades to avoid duplicates
+            # Using kalshi_trade_id for idempotency
+            existing_ids_result = await session.execute(select(Trade.kalshi_trade_id))
+            existing_ids = set(existing_ids_result.scalars().all())
+
+            for fill in fills:
+                # Fill dictionaries contain keys like:
+                # trade_id, ticker, yes_price, no_price, count, action, side, created_time.
+                trade_id = fill["trade_id"]
+                if trade_id in existing_ids:
+                    continue
+
+                executed_at = datetime.fromisoformat(fill["created_time"].replace("Z", "+00:00"))
+                side_raw = str(fill.get("side", "yes")).lower()
+                if side_raw not in {"yes", "no"}:
+                    logger.warning(
+                        "Unknown fill side '%s' for trade_id=%s; skipping", side_raw, trade_id
+                    )
+                    continue
+
+                action_raw = str(fill.get("action", "buy")).lower()
+                if action_raw not in {"buy", "sell"}:
+                    logger.warning(
+                        "Unknown fill action '%s' for trade_id=%s; skipping", action_raw, trade_id
+                    )
+                    continue
+
+                yes_price = int(fill["yes_price"])
+                if side_raw == "yes":
+                    price = yes_price
+                else:
+                    no_price = fill.get("no_price")
+                    price = int(no_price) if no_price is not None else 100 - yes_price
+                quantity = int(fill["count"])
+
+                trade = Trade(
+                    kalshi_trade_id=trade_id,
+                    ticker=fill["ticker"],
+                    side=side_raw,
+                    action=action_raw,
+                    quantity=quantity,
+                    price_cents=price,
+                    total_cost_cents=price * quantity,
+                    fee_cents=0,  # API doesn't always provide per-trade fees in fills
+                    executed_at=executed_at,
+                    synced_at=now,
+                )
+                session.add(trade)
+                synced_count += 1
+
+                # Check 1000 item flush
+                if synced_count % 1000 == 0:
+                    await session.commit()
+
+            await session.commit()
+
+        logger.info("Synced %d new trades", synced_count)
+        return synced_count
 
     async def full_sync(self) -> SyncResult:
         """
@@ -63,10 +267,89 @@ class PortfolioSyncer:
         Returns:
             SyncResult with counts of synced items
         """
-        positions = await self.sync_positions()
         trades = await self.sync_trades()
+        positions = await self.sync_positions()
 
         return SyncResult(
             positions_synced=positions,
             trades_synced=trades,
         )
+
+    async def update_mark_prices(self, public_client: KalshiPublicClient) -> int:
+        """
+        Fetch current market prices and update mark prices + unrealized P&L.
+
+        Uses midpoint of bid/ask as mark price (standard practice for illiquid markets).
+        Reference: https://help.margex.com/help-center/leverage-trading-guide/how-leverage-works/pnl-calculation
+
+        Args:
+            public_client: Unauthenticated client for fetching market data
+
+        Returns:
+            Number of positions updated
+        """
+        logger.info("Updating mark prices...")
+        updated_count = 0
+
+        async with self.db.session_factory() as session:
+            # Get all open positions
+            result = await session.execute(
+                select(Position).where(Position.quantity > 0, Position.closed_at.is_(None))
+            )
+            open_positions = list(result.scalars().all())
+
+            if not open_positions:
+                logger.info("No open positions to update")
+                return 0
+
+            # Fetch market data for each position's ticker
+            for pos in open_positions:
+                try:
+                    market = await public_client.get_market(pos.ticker)
+
+                    # Compute mark price as midpoint (in cents)
+                    # Handle unpriced markets (0/0 or 0/100) - skip update
+                    if market.yes_bid == 0 and market.yes_ask == 0:
+                        logger.warning(
+                            "Market %s has no quotes (0/0), skipping mark price update",
+                            pos.ticker,
+                        )
+                        continue
+                    if market.yes_bid == 0 and market.yes_ask == 100:
+                        logger.warning(
+                            "Market %s has placeholder quotes (0/100), skipping mark price update",
+                            pos.ticker,
+                        )
+                        continue
+
+                    # Mark price = midpoint of bid/ask
+                    if pos.side == "yes":
+                        mark_price = (market.yes_bid + market.yes_ask) // 2
+                    else:
+                        # For NO positions, use NO side midpoint
+                        mark_price = (market.no_bid + market.no_ask) // 2
+
+                    pos.current_price_cents = mark_price
+
+                    # Compute unrealized P&L
+                    # Unrealized P&L = (mark_price - avg_cost) * quantity
+                    if pos.avg_price_cents > 0:
+                        pos.unrealized_pnl_cents = (mark_price - pos.avg_price_cents) * pos.quantity
+                    else:
+                        # No cost basis available, cannot compute unrealized P&L
+                        pos.unrealized_pnl_cents = None
+
+                    updated_count += 1
+
+                except Exception as e:
+                    logger.warning(
+                        "Failed to fetch market data for %s: %s",
+                        pos.ticker,
+                        str(e),
+                    )
+                    continue
+
+            await session.commit()
+
+        logger.info("Updated mark prices for %d positions", updated_count)
+        return updated_count

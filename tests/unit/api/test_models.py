@@ -13,7 +13,7 @@ from typing import Any
 
 import pytest
 
-from kalshi_research.api.models.market import Market, MarketStatus
+from kalshi_research.api.models.market import Market, MarketFilterStatus, MarketStatus
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.trade import Trade
 
@@ -37,6 +37,7 @@ class TestMarketModel:
         for status_str, expected_enum in [
             ("initialized", MarketStatus.INITIALIZED),
             ("active", MarketStatus.ACTIVE),
+            ("inactive", MarketStatus.INACTIVE),
             ("closed", MarketStatus.CLOSED),
             ("determined", MarketStatus.DETERMINED),
             ("finalized", MarketStatus.FINALIZED),
@@ -64,6 +65,14 @@ class TestMarketModel:
             )
             assert market.status == expected_enum
 
+    def test_market_rejects_negative_liquidity(self, make_market: Any) -> None:
+        """Liquidity must be non-negative per Kalshi API spec."""
+        from pydantic import ValidationError
+
+        data = make_market(liquidity=-170750)
+        with pytest.raises(ValidationError, match="greater than or equal to 0"):
+            Market.model_validate(data)
+
     def test_market_immutability(self, make_market: Any) -> None:
         """Market model is frozen (immutable)."""
         from pydantic import ValidationError
@@ -72,6 +81,14 @@ class TestMarketModel:
 
         with pytest.raises(ValidationError):
             market.ticker = "CHANGED"  # type: ignore[misc]
+
+    def test_market_filter_status_values(self) -> None:
+        """Verify MarketFilterStatus values match API SSOT."""
+        assert MarketFilterStatus.UNOPENED == "unopened"
+        assert MarketFilterStatus.OPEN == "open"
+        assert MarketFilterStatus.PAUSED == "paused"
+        assert MarketFilterStatus.CLOSED == "closed"
+        assert MarketFilterStatus.SETTLED == "settled"
 
 
 class TestOrderbookModel:

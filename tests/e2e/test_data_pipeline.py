@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 
 from kalshi_research.cli import app
 
-pytestmark = [pytest.mark.e2e, pytest.mark.integration, pytest.mark.slow]
+pytestmark = [pytest.mark.e2e]
 
 
 def _event_dict(event_ticker: str = "EVT1") -> dict[str, Any]:
@@ -23,7 +23,13 @@ def _event_dict(event_ticker: str = "EVT1") -> dict[str, Any]:
     }
 
 
-def _market_dict(ticker: str, *, event_ticker: str = "EVT1") -> dict[str, Any]:
+def _market_dict(
+    ticker: str,
+    *,
+    event_ticker: str = "EVT1",
+    yes_bid: int = 49,
+    yes_ask: int = 51,
+) -> dict[str, Any]:
     return {
         "ticker": ticker,
         "event_ticker": event_ticker,
@@ -32,11 +38,11 @@ def _market_dict(ticker: str, *, event_ticker: str = "EVT1") -> dict[str, Any]:
         "subtitle": "",
         "status": "active",
         "result": "",
-        "yes_bid": 49,
-        "yes_ask": 51,
-        "no_bid": 49,
-        "no_ask": 51,
-        "last_price": 50,
+        "yes_bid": yes_bid,
+        "yes_ask": yes_ask,
+        "no_bid": 100 - yes_ask,
+        "no_ask": 100 - yes_bid,
+        "last_price": (yes_bid + yes_ask) // 2,
         "volume": 1_000,
         "volume_24h": 10_000,
         "open_interest": 100,
@@ -59,23 +65,71 @@ def test_full_data_pipeline_init_sync_snapshot_verify() -> None:
                 json={"events": [_event_dict()], "cursor": None, "milestones": []},
             )
         )
-        respx.get("https://api.elections.kalshi.com/trade-api/v2/markets").mock(
-            return_value=Response(
+        markets_route = respx.get("https://api.elections.kalshi.com/trade-api/v2/markets")
+        markets_route.side_effect = [
+            # data sync-markets
+            Response(
                 200,
-                json={"markets": [_market_dict("MKT1")], "cursor": None},
-            )
-        )
+                json={"markets": [_market_dict("MKT1", yes_bid=40, yes_ask=42)], "cursor": None},
+            ),
+            # data snapshot #1 (lower price)
+            Response(
+                200,
+                json={"markets": [_market_dict("MKT1", yes_bid=40, yes_ask=42)], "cursor": None},
+            ),
+            # data snapshot #2 (higher price)
+            Response(
+                200,
+                json={"markets": [_market_dict("MKT1", yes_bid=60, yes_ask=62)], "cursor": None},
+            ),
+            # scan movers (current markets)
+            Response(
+                200,
+                json={"markets": [_market_dict("MKT1", yes_bid=60, yes_ask=62)], "cursor": None},
+            ),
+        ]
 
         init = runner.invoke(app, ["data", "init", "--db", str(db_path)])
         assert init.exit_code == 0
 
-        sync = runner.invoke(app, ["data", "sync-markets", "--db", str(db_path)])
+        sync = runner.invoke(
+            app, ["data", "sync-markets", "--db", str(db_path), "--max-pages", "1"]
+        )
         assert sync.exit_code == 0
 
         snapshot = runner.invoke(
             app, ["data", "snapshot", "--db", str(db_path), "--status", "open"]
         )
         assert snapshot.exit_code == 0
+
+        snapshot2 = runner.invoke(
+            app, ["data", "snapshot", "--db", str(db_path), "--status", "open"]
+        )
+        assert snapshot2.exit_code == 0
+
+        metrics = runner.invoke(app, ["analysis", "metrics", "MKT1", "--db", str(db_path)])
+        assert metrics.exit_code == 0
+        assert "Metrics:" in metrics.stdout
+        assert "60¢ / 62¢" in metrics.stdout
+        assert "2¢" in metrics.stdout
+
+        movers = runner.invoke(
+            app,
+            [
+                "scan",
+                "movers",
+                "--db",
+                str(db_path),
+                "--period",
+                "1h",
+                "--top",
+                "5",
+                "--max-pages",
+                "1",
+            ],
+        )
+        assert movers.exit_code == 0
+        assert "Biggest Movers" in movers.stdout
 
         assert db_path.exists()
         with sqlite3.connect(db_path) as conn:
@@ -88,5 +142,5 @@ def test_full_data_pipeline_init_sync_snapshot_verify() -> None:
 
         assert events == 1
         assert markets == 1
-        assert snaps == 1
+        assert snaps == 2
         assert joined == 1

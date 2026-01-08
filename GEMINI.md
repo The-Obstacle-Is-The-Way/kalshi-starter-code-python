@@ -2,6 +2,41 @@
 
 The **Kalshi Research Platform** is a Python-based toolset designed for analyzing prediction markets on Kalshi. It focuses on research, data collection, and thesis tracking rather than automated high-frequency trading.
 
+## CRITICAL: Commit Safety Protocol
+
+**NEVER commit code without running quality gates first.** A previous incident introduced syntax corruption (`时不时` instead of `import`) that broke the entire codebase. This was caused by committing without pre-commit hooks installed.
+
+### MANDATORY Before ANY Commit
+
+```bash
+# 1. FIRST: Ensure pre-commit hooks are installed (do this ONCE after clone)
+uv run pre-commit install
+
+# 2. ALWAYS run pre-commit before staging/committing
+uv run pre-commit run --all-files
+
+# 3. If pre-commit passes, THEN commit
+git add . && git commit -m "Your message"
+
+# 4. NEVER use --no-verify to bypass hooks
+# git commit --no-verify  # <- FORBIDDEN
+```
+
+### Pre-commit Will Automatically Check
+
+1. **Python syntax validation** (`check-ast`) - Catches encoding corruption
+2. **Ruff linting** - Code quality and style
+3. **Ruff formatting** - Consistent formatting
+4. **Mypy type checking** - Static type safety
+5. **Unit tests** - Quick smoke test
+
+### FORBIDDEN Patterns
+
+- **NO `# type: ignore`** - Fix the type error properly
+- **NO untyped `Any`** - Use specific types (exception: JSON dicts as `dict[str, Any]`)
+- **NO `--no-verify` commits** - Always run pre-commit hooks
+- **NO manual git commits without pre-commit** - Always verify first
+
 ## Project Overview
 
 This platform enables users to:
@@ -29,9 +64,13 @@ This platform enables users to:
 ### Setup
 1.  **Install Dependencies:**
     ```bash
-    uv sync
+    uv sync --all-extras
     ```
-2.  **Initialize Database:**
+2.  **Install Pre-commit Hooks (CRITICAL):**
+    ```bash
+    uv run pre-commit install
+    ```
+3.  **Initialize Database:**
     ```bash
     uv run kalshi data init
     ```
@@ -96,13 +135,16 @@ The application is accessed via the `kalshi` command (run via `uv run`).
     ```
 
 ### Quality Gates
-Before committing, ensure all quality checks pass:
+Before committing, **ALWAYS** run pre-commit:
 ```bash
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy src/
-uv run pytest tests/unit
+uv run pre-commit run --all-files
 ```
+
+This will automatically check:
+- Python syntax (AST validation)
+- Ruff linting and formatting
+- Mypy type checking
+- Unit tests
 
 ### Directory Structure
 *   `src/kalshi_research/`: Main source code.

@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 
 from kalshi_research.cli import app
 
-pytestmark = [pytest.mark.e2e, pytest.mark.integration, pytest.mark.slow]
+pytestmark = [pytest.mark.e2e]
 
 
 def _event_dict(event_ticker: str = "EVT1") -> dict[str, Any]:
@@ -87,10 +87,12 @@ def test_sync_scan_alert_notify_pipeline() -> None:
         init = runner.invoke(app, ["data", "init", "--db", str(db_path)])
         assert init.exit_code == 0
 
-        sync = runner.invoke(app, ["data", "sync-markets", "--db", str(db_path)])
+        sync = runner.invoke(
+            app, ["data", "sync-markets", "--db", str(db_path), "--max-pages", "1"]
+        )
         assert sync.exit_code == 0
 
-        scan = runner.invoke(app, ["scan", "opportunities", "--top", "5"])
+        scan = runner.invoke(app, ["scan", "opportunities", "--top", "5", "--max-pages", "1"])
         assert scan.exit_code == 0
 
         add_alert = runner.invoke(app, ["alerts", "add", "price", "MKT1", "--above", "0.6"])
@@ -99,6 +101,8 @@ def test_sync_scan_alert_notify_pipeline() -> None:
         stored = json.loads(Path("data/alerts.json").read_text())
         assert len(stored.get("conditions", [])) == 1
 
-        monitor = runner.invoke(app, ["alerts", "monitor", "--once", "--interval", "1"])
+        monitor = runner.invoke(
+            app, ["alerts", "monitor", "--once", "--interval", "1", "--max-pages", "1"]
+        )
         assert monitor.exit_code == 0
         assert "alert(s) triggered" in monitor.stdout or "ALERT TRIGGERED" in monitor.stdout

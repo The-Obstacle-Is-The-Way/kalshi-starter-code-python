@@ -1,6 +1,8 @@
 """Extended CLI tests for alerts, analysis, and research commands."""
 
 import json
+import os
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 from typer.testing import CliRunner
@@ -88,7 +90,231 @@ def test_alerts_remove_not_found() -> None:
     assert "not found" in result.stdout.lower()
 
 
+@patch("kalshi_research.cli._load_alerts")
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_alerts_monitor_once_exits(
+    mock_client_cls: MagicMock,
+    mock_load_alerts: MagicMock,
+) -> None:
+    """--once mode should exit after single check with correct messaging."""
+    mock_load_alerts.return_value = {
+        "conditions": [
+            {
+                "id": "alert-123",
+                "condition_type": "price_above",
+                "ticker": "TEST-TICKER",
+                "threshold": 0.9,
+                "label": "price_above TEST-TICKER > 0.9",
+            }
+        ]
+    }
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_market = MagicMock()
+    mock_market.ticker = "TEST-TICKER"
+    mock_market.title = "Test Market"
+    mock_market.yes_bid = 50
+    mock_market.yes_ask = 52
+    mock_market.volume = 1000
+
+    async def market_gen(status=None, max_pages: int | None = None):
+        yield mock_market
+
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+
+    result = runner.invoke(app, ["alerts", "monitor", "--once"])
+
+    assert result.exit_code == 0
+    assert "Press Ctrl+C" not in result.stdout
+    assert "Running single check" in result.stdout
+    assert "Fetching markets" in result.stdout
+    assert "Single check complete" in result.stdout
+
+
+@patch("kalshi_research.cli._load_alerts")
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_alerts_monitor_continuous_shows_ctrl_c(
+    mock_client_cls: MagicMock,
+    mock_load_alerts: MagicMock,
+) -> None:
+    """Continuous mode should show Ctrl+C message."""
+    mock_load_alerts.return_value = {
+        "conditions": [
+            {
+                "id": "alert-123",
+                "condition_type": "price_above",
+                "ticker": "TEST-TICKER",
+                "threshold": 0.9,
+                "label": "price_above TEST-TICKER > 0.9",
+            }
+        ]
+    }
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_market = MagicMock()
+    mock_market.ticker = "TEST-TICKER"
+    mock_market.title = "Test Market"
+    mock_market.yes_bid = 50
+    mock_market.yes_ask = 52
+    mock_market.volume = 1000
+
+    async def market_gen(status=None, max_pages: int | None = None):
+        yield mock_market
+
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+
+    with patch("kalshi_research.cli.asyncio.sleep", new=AsyncMock(side_effect=KeyboardInterrupt)):
+        result = runner.invoke(app, ["alerts", "monitor", "--interval", "1"])
+
+    assert result.exit_code == 0
+    assert "Press Ctrl+C" in result.stdout
+
+
 # ==================== Analysis CLI Tests ====================
+
+
+# ==================== Scan CLI Tests ====================
+
+
+@patch("kalshi_research.data.repositories.PriceRepository")
+@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_scan_movers_uses_probability_units(
+    mock_client_cls: MagicMock,
+    mock_db_cls: MagicMock,
+    mock_price_repo_cls: MagicMock,
+) -> None:
+    """`scan movers` should treat snapshot midpoints as probabilities (not raw cents)."""
+    from datetime import UTC, datetime, timedelta
+
+    from kalshi_research.data.models import PriceSnapshot
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_market = MagicMock()
+    mock_market.ticker = "TEST-TICKER"
+    mock_market.title = "Test Market"
+    mock_market.volume = 1000
+
+    async def market_gen(status=None, max_pages: int | None = None):
+        yield mock_market
+
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+
+    now = datetime.now(UTC)
+    newest = PriceSnapshot(
+        ticker="TEST-TICKER",
+        snapshot_time=now,
+        yes_bid=51,
+        yes_ask=53,  # midpoint = 52c -> 52.0%
+        no_bid=47,
+        no_ask=49,
+        last_price=52,
+        volume=100,
+        volume_24h=10,
+        open_interest=20,
+        liquidity=1000,
+    )
+    oldest = PriceSnapshot(
+        ticker="TEST-TICKER",
+        snapshot_time=now - timedelta(hours=1),
+        yes_bid=49,
+        yes_ask=51,  # midpoint = 50c -> 50.0%
+        no_bid=49,
+        no_ask=51,
+        last_price=50,
+        volume=100,
+        volume_24h=10,
+        open_interest=20,
+        liquidity=1000,
+    )
+
+    mock_price_repo = MagicMock()
+    mock_price_repo.get_for_market = AsyncMock(return_value=[newest, oldest])
+    mock_price_repo_cls.return_value = mock_price_repo
+
+    mock_session_cm = AsyncMock()
+    mock_session_cm.__aenter__.return_value = mock_session_cm
+    mock_session_cm.__aexit__.return_value = False
+
+    mock_db_cm = AsyncMock()
+    mock_db_cm.__aenter__.return_value = mock_db_cm
+    mock_db_cm.__aexit__.return_value = False
+    mock_db_cm.session_factory = MagicMock(return_value=mock_session_cm)
+    mock_db_cls.return_value = mock_db_cm
+
+    with patch("pathlib.Path.exists", return_value=True):
+        result = runner.invoke(app, ["scan", "movers", "--period", "24h", "--top", "1"])
+
+    assert result.exit_code == 0
+    assert "50.0% → 52.0%" in result.stdout
+    assert "2.0%" in result.stdout
+
+
+@patch("kalshi_research.data.repositories.PriceRepository")
+@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_scan_arbitrage_warns_when_tickers_truncated(
+    mock_client_cls: MagicMock,
+    mock_db_cls: MagicMock,
+    mock_price_repo_cls: MagicMock,
+) -> None:
+    """`scan arbitrage` should warn when correlation analysis is truncated for performance."""
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    m1 = MagicMock()
+    m1.ticker = "T1"
+    m1.event_ticker = "E1"
+    m1.title = "Market 1"
+    m1.yes_bid = 50
+    m1.yes_ask = 52
+
+    m2 = MagicMock()
+    m2.ticker = "T2"
+    m2.event_ticker = "E2"
+    m2.title = "Market 2"
+    m2.yes_bid = 48
+    m2.yes_ask = 50
+
+    async def market_gen(status=None, max_pages: int | None = None):
+        yield m1
+        yield m2
+
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+
+    mock_price_repo = MagicMock()
+    mock_price_repo.get_for_market = AsyncMock(return_value=[])
+    mock_price_repo_cls.return_value = mock_price_repo
+
+    mock_session_cm = AsyncMock()
+    mock_session_cm.__aenter__.return_value = mock_session_cm
+    mock_session_cm.__aexit__.return_value = False
+
+    mock_db_cm = AsyncMock()
+    mock_db_cm.__aenter__.return_value = mock_db_cm
+    mock_db_cm.__aexit__.return_value = False
+    mock_db_cm.session_factory = MagicMock(return_value=mock_session_cm)
+    mock_db_cls.return_value = mock_db_cm
+
+    with patch("pathlib.Path.exists", return_value=True):
+        result = runner.invoke(app, ["scan", "arbitrage", "--tickers-limit", "1"])
+
+    assert result.exit_code == 0
+    assert "Limiting correlation analysis to first 1 tickers" in result.stdout
 
 
 @patch("kalshi_research.analysis.CalibrationAnalyzer")
@@ -159,8 +385,8 @@ def test_analysis_metrics(mock_db_cls: MagicMock) -> None:
     """Test market metrics analysis."""
     # Mock price data
     mock_price = MagicMock()
-    mock_price.yes_bid = 50
-    mock_price.yes_ask = 52
+    mock_price.yes_bid = 0
+    mock_price.yes_ask = 2
     mock_price.no_bid = 48
     mock_price.no_ask = 50
     mock_price.volume_24h = 1000
@@ -198,6 +424,9 @@ def test_analysis_metrics(mock_db_cls: MagicMock) -> None:
 
     assert result.exit_code == 0
     assert "TEST-TICKER" in result.stdout
+
+    spread_row = next(line for line in result.stdout.splitlines() if "Spread" in line)
+    assert "2¢" in spread_row
 
 
 # ==================== Research CLI Tests ====================
@@ -341,6 +570,37 @@ def test_research_backtest(mock_db_cls: MagicMock) -> None:
     assert result.exit_code == 0
     # Should show some backtest output (even if placeholder)
     assert "Backtest" in result.stdout or "trades" in result.stdout.lower()
+
+
+# ==================== Portfolio CLI Tests ====================
+
+
+@patch("kalshi_research.api.KalshiClient")
+def test_portfolio_balance_loads_dotenv(mock_client_cls: MagicMock) -> None:
+    """Portfolio commands should read auth config from .env during CLI invocation."""
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_balance = AsyncMock(return_value={"available": 123})
+    mock_client_cls.return_value = mock_client
+
+    with runner.isolated_filesystem():
+        Path(".env").write_text(
+            "\n".join(
+                [
+                    "KALSHI_KEY_ID=test-key-id",
+                    "KALSHI_PRIVATE_KEY_B64=test-private-key-b64",
+                    "KALSHI_ENVIRONMENT=demo",
+                    "",
+                ]
+            )
+        )
+
+        with patch.dict(os.environ, {}, clear=True):
+            result = runner.invoke(app, ["portfolio", "balance"])
+
+    assert result.exit_code == 0
+    assert "Account Balance" in result.stdout
 
 
 # ==================== Portfolio-Thesis Link Tests (BUG-010) ====================
@@ -491,6 +751,40 @@ def test_portfolio_suggest_links_no_matches(mock_db_cls: MagicMock) -> None:
 
     assert result.exit_code == 0
     assert "no" in result.stdout.lower() or "not found" in result.stdout.lower()
+
+
+@patch("kalshi_research.data.DatabaseManager")
+def test_portfolio_positions_shows_zero_mark_price(mock_db_cls: MagicMock) -> None:
+    """0-valued mark prices should render as `0¢` (not `-`)."""
+    mock_position = MagicMock()
+    mock_position.ticker = "TEST-TICKER"
+    mock_position.side = "yes"
+    mock_position.quantity = 1
+    mock_position.avg_price_cents = 10
+    mock_position.current_price_cents = 0
+    mock_position.unrealized_pnl_cents = 0
+    mock_position.closed_at = None
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = [mock_position]
+
+    mock_session = AsyncMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value = mock_session
+
+    mock_db = AsyncMock()
+    mock_db.session_factory = mock_session_factory
+    mock_db.close = AsyncMock()
+    mock_db_cls.return_value = mock_db
+
+    result = runner.invoke(app, ["portfolio", "positions"])
+
+    assert result.exit_code == 0
+    assert "0¢" in result.stdout
 
 
 @patch("kalshi_research.data.DatabaseManager")

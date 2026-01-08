@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -20,19 +21,38 @@ class KalshiAuth:
     Handles Kalshi API authentication (RSA-PSS signing).
     """
 
-    def __init__(self, key_id: str, private_key_path: str) -> None:
+    def __init__(
+        self,
+        key_id: str,
+        private_key_path: str | None = None,
+        private_key_b64: str | None = None,
+    ) -> None:
         self.key_id = key_id
-        self.private_key = self._load_private_key(private_key_path)
+        self.private_key = self._load_private_key(
+            private_key_path=private_key_path,
+            private_key_b64=private_key_b64,
+        )
 
-    def _load_private_key(self, path: str) -> RSAPrivateKey:
-        """Load RSA private key from PEM file."""
+    def _load_private_key(
+        self,
+        *,
+        private_key_path: str | None,
+        private_key_b64: str | None,
+    ) -> RSAPrivateKey:
+        """Load RSA private key from PEM file or base64 string."""
         from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 
-        with Path(path).open("rb") as key_file:
-            private_key = serialization.load_pem_private_key(
-                key_file.read(),
-                password=None,
-            )
+        if private_key_b64:
+            try:
+                pem_bytes = base64.b64decode(private_key_b64.strip())
+            except (binascii.Error, ValueError) as e:
+                raise ValueError("Invalid base64 private key") from e
+        else:
+            if not private_key_path:
+                raise ValueError("private_key_path or private_key_b64 is required")
+            pem_bytes = Path(private_key_path).read_bytes()
+
+        private_key = serialization.load_pem_private_key(pem_bytes, password=None)
         if not isinstance(private_key, RSAPrivateKey):
             raise ValueError("Invalid key type: expected RSA private key")
         return private_key

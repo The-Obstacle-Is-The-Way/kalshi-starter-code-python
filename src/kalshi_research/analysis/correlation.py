@@ -20,6 +20,25 @@ from kalshi_research.api.models import Market  # noqa: TC001
 from kalshi_research.data.models import PriceSnapshot  # noqa: TC001
 
 
+def _is_priced(market: Market) -> bool:
+    """
+    Check if a market has meaningful price discovery.
+
+    A market is considered "priced" if it has quotes on both sides.
+
+    This module relies on bid/ask midpoints. If either side is missing
+    (commonly represented as `yes_bid == 0` or `yes_ask == 100`), the midpoint
+    is not meaningful and can create noisy signals.
+
+    Args:
+        market: Market to check
+
+    Returns:
+        True if market has meaningful quotes
+    """
+    return market.yes_bid not in {0, 100} and market.yes_ask not in {0, 100}
+
+
 class CorrelationType(str, Enum):
     """Types of correlation relationships."""
 
@@ -249,9 +268,13 @@ class CorrelationAnalyzer:
         """
         results: list[tuple[Market, Market, float]] = []
 
-        # Group by event
+        # Group by event, filtering out unpriced markets
         by_event: dict[str, list[Market]] = {}
         for m in markets:
+            # SKIP: Unpriced markets (0/0, 0/100 placeholder quotes)
+            if not _is_priced(m):
+                continue
+
             event_ticker = m.event_ticker
             if event_ticker not in by_event:
                 by_event[event_ticker] = []
@@ -291,7 +314,9 @@ class CorrelationAnalyzer:
         """
         opportunities: list[ArbitrageOpportunity] = []
         # Use midpoint of bid/ask as price
-        market_prices = {m.ticker: (m.yes_bid + m.yes_ask) / 2.0 / 100.0 for m in markets}
+        market_prices = {
+            m.ticker: (m.yes_bid + m.yes_ask) / 2.0 / 100.0 for m in markets if _is_priced(m)
+        }
 
         for pair in correlated_pairs:
             if pair.ticker_a not in market_prices:

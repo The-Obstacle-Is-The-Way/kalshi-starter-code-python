@@ -2,12 +2,48 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL: Commit Safety Protocol
+
+**NEVER commit code without running quality gates first.** A previous incident introduced syntax corruption (`时不时` instead of `import`) that broke the entire codebase. This was caused by committing without pre-commit hooks installed.
+
+### MANDATORY Before ANY Commit
+
+```bash
+# 1. FIRST: Ensure pre-commit hooks are installed (do this ONCE after clone)
+uv run pre-commit install
+
+# 2. ALWAYS run pre-commit before staging/committing
+uv run pre-commit run --all-files
+
+# 3. If pre-commit passes, THEN commit
+git add . && git commit -m "Your message"
+
+# 4. NEVER use --no-verify to bypass hooks
+# git commit --no-verify  # <- FORBIDDEN
+```
+
+### Pre-commit Will Automatically Check
+
+1. **Python syntax validation** (`check-ast`) - Catches encoding corruption
+2. **Ruff linting** - Code quality and style
+3. **Ruff formatting** - Consistent formatting
+4. **Mypy type checking** - Static type safety
+5. **Unit tests** - Quick smoke test
+
+### If Pre-commit Fails
+
+1. Review the error output
+2. Fix the issues (many auto-fix with `--fix`)
+3. Re-run `uv run pre-commit run --all-files`
+4. Only commit after ALL checks pass
+
 ## Build & Development Commands
 
 ```bash
 # Install dependencies (use uv, not pip)
 uv sync                      # Production deps only
 uv sync --all-extras         # All deps including dev and research
+uv run pre-commit install    # CRITICAL: Install commit hooks
 
 # Quality gates (all must pass before commits)
 uv run ruff check .          # Lint
@@ -32,6 +68,15 @@ uv run kalshi data init
 uv run kalshi data sync-markets
 uv run kalshi scan opportunities --filter close-race
 ```
+
+## Code Quality Standards
+
+### FORBIDDEN Patterns
+
+- **NO `# type: ignore`** - Fix the type error properly
+- **NO untyped `Any`** - Use specific types (exception: JSON dicts as `dict[str, Any]`)
+- **NO `--no-verify` commits** - Always run pre-commit hooks
+- **NO manual git commits** - Use `uv run pre-commit run` first
 
 ## Architecture
 

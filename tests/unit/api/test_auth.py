@@ -54,10 +54,26 @@ class TestKalshiAuth:
             == original_key.public_key().public_numbers()
         )
 
+    def test_init_loads_key_from_base64(self, key_file: tuple[Path, rsa.RSAPrivateKey]) -> None:
+        """Constructor loads the private key from base64 content."""
+        path, original_key = key_file
+        key_b64 = base64.b64encode(path.read_bytes()).decode("utf-8")
+        auth = KalshiAuth(key_id="test-key-123", private_key_b64=key_b64)
+
+        assert auth.key_id == "test-key-123"
+        assert (
+            auth.private_key.public_key().public_numbers()
+            == original_key.public_key().public_numbers()
+        )
+
     def test_init_missing_file(self) -> None:
         """Constructor raises for missing key file."""
         with pytest.raises(FileNotFoundError):
             KalshiAuth(key_id="test", private_key_path="/nonexistent/key.pem")
+
+    def test_init_missing_key_material_raises(self) -> None:
+        with pytest.raises(ValueError, match="private_key_path or private_key_b64"):
+            KalshiAuth(key_id="test")
 
     def test_sign_pss_text(self, key_file: tuple[Path, rsa.RSAPrivateKey]) -> None:
         """sign_pss_text produces valid base64 signature."""

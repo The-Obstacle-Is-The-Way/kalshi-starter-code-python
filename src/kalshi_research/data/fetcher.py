@@ -117,9 +117,12 @@ class DataFetcher:
             liquidity=api_market.liquidity,
         )
 
-    async def sync_events(self) -> int:
+    async def sync_events(self, *, max_pages: int | None = None) -> int:
         """
         Sync all events from API to database.
+
+        Args:
+            max_pages: Optional pagination safety limit. None = iterate until exhausted.
 
         Returns:
             Number of events synced
@@ -130,7 +133,7 @@ class DataFetcher:
         async with self._db.session_factory() as session:
             repo = EventRepository(session)
 
-            async for api_event in self.client.get_all_events(limit=200):
+            async for api_event in self.client.get_all_events(limit=200, max_pages=max_pages):
                 db_event = self._api_event_to_db(api_event)
                 await repo.upsert(db_event)
                 count += 1
@@ -140,12 +143,13 @@ class DataFetcher:
         logger.info("Synced %d events", count)
         return count
 
-    async def sync_markets(self, status: str | None = None) -> int:
+    async def sync_markets(self, status: str | None = None, *, max_pages: int | None = None) -> int:
         """
         Sync markets from API to database.
 
         Args:
             status: Optional filter for market status (open, closed, etc.)
+            max_pages: Optional pagination safety limit. None = iterate until exhausted.
 
         Returns:
             Number of markets synced
@@ -157,7 +161,7 @@ class DataFetcher:
             market_repo = MarketRepository(session)
             event_repo = EventRepository(session)
 
-            async for api_market in self.client.get_all_markets(status=status):
+            async for api_market in self.client.get_all_markets(status=status, max_pages=max_pages):
                 # Ensure event exists first
                 existing_event = await event_repo.get(api_market.event_ticker)
                 if existing_event is None:
@@ -183,12 +187,19 @@ class DataFetcher:
         logger.info("Synced %d total markets", count)
         return count
 
-    async def take_snapshot(self, status: str | None = "open") -> int:
+    async def take_snapshot(
+        self, status: str | None = "open", *, max_pages: int | None = None
+    ) -> int:
         """
         Take a price snapshot of all markets.
 
+        This method is robust to missing market rows - it will upsert
+        minimal Market records before inserting snapshots to satisfy
+        foreign key constraints.
+
         Args:
             status: Optional filter for market status (default: open)
+            max_pages: Optional pagination safety limit. None = iterate until exhausted.
 
         Returns:
             Number of snapshots taken
@@ -199,8 +210,26 @@ class DataFetcher:
 
         async with self._db.session_factory() as session:
             price_repo = PriceRepository(session)
+            market_repo = MarketRepository(session)
+            event_repo = EventRepository(session)
 
-            async for api_market in self.client.get_all_markets(status=status):
+            async for api_market in self.client.get_all_markets(status=status, max_pages=max_pages):
+                # Ensure market row exists (FK constraint robustness)
+                existing_market = await market_repo.get(api_market.ticker)
+                if existing_market is None:
+                    # Ensure event exists first
+                    existing_event = await event_repo.get(api_market.event_ticker)
+                    if existing_event is None:
+                        event = DBEvent(
+                            ticker=api_market.event_ticker,
+                            series_ticker=api_market.series_ticker or api_market.event_ticker,
+                            title=api_market.event_ticker,  # Placeholder
+                        )
+                        await event_repo.add(event)
+
+                    db_market = self._api_market_to_db(api_market)
+                    await market_repo.upsert(db_market)
+
                 snapshot = self._api_market_to_snapshot(api_market, snapshot_time)
                 await price_repo.add(snapshot)
                 count += 1
@@ -215,18 +244,21 @@ class DataFetcher:
         logger.info("Took %d price snapshots", count)
         return count
 
-    async def full_sync(self) -> dict[str, int]:
+    async def full_sync(self, *, max_pages: int | None = None) -> dict[str, int]:
         """
         Perform a full sync: events, markets, and snapshot.
+
+        Args:
+            max_pages: Optional pagination safety limit. None = iterate until exhausted.
 
         Returns:
             Dictionary with counts for each sync type
         """
         logger.info("Starting full sync")
 
-        events = await self.sync_events()
-        markets = await self.sync_markets()
-        snapshots = await self.take_snapshot()
+        events = await self.sync_events(max_pages=max_pages)
+        markets = await self.sync_markets(max_pages=max_pages)
+        snapshots = await self.take_snapshot(max_pages=max_pages)
 
         return {
             "events": events,

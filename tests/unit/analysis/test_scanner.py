@@ -97,6 +97,50 @@ class TestCloseRaceScan:
 
         assert len(results) == 0
 
+    def test_excludes_unpriced_and_placeholder_markets(self) -> None:
+        """Unpriced markets (0/0, 0/100) should be excluded from close-race scan."""
+        scanner = MarketScanner()
+        markets = [
+            make_market("PRICED", yes_bid=48, yes_ask=52, volume_24h=1000),
+            make_market("UNPRICED_00", yes_bid=0, yes_ask=0, volume_24h=0),
+            make_market("PLACEHOLDER_0_100", yes_bid=0, yes_ask=100, volume_24h=0),
+        ]
+
+        results = scanner.scan_close_races(markets, top_n=10)
+
+        tickers = {r.ticker for r in results}
+        assert "PRICED" in tickers
+        assert "UNPRICED_00" not in tickers
+        assert "PLACEHOLDER_0_100" not in tickers
+
+    def test_respects_min_volume_24h(self) -> None:
+        """Markets below min_volume_24h should be excluded."""
+        scanner = MarketScanner()
+        markets = [
+            make_market("HIGH_VOL", yes_bid=48, yes_ask=52, volume_24h=10_000),
+            make_market("LOW_VOL", yes_bid=48, yes_ask=52, volume_24h=100),
+        ]
+
+        results = scanner.scan_close_races(markets, top_n=10, min_volume_24h=1000)
+
+        tickers = {r.ticker for r in results}
+        assert "HIGH_VOL" in tickers
+        assert "LOW_VOL" not in tickers
+
+    def test_respects_max_spread(self) -> None:
+        """Markets with spread > max_spread should be excluded."""
+        scanner = MarketScanner()
+        markets = [
+            make_market("TIGHT", yes_bid=48, yes_ask=52, volume_24h=1000),  # spread=4
+            make_market("WIDE", yes_bid=20, yes_ask=80, volume_24h=1000),  # spread=60
+        ]
+
+        results = scanner.scan_close_races(markets, top_n=10, max_spread=10)
+
+        tickers = {r.ticker for r in results}
+        assert "TIGHT" in tickers
+        assert "WIDE" not in tickers
+
 
 class TestHighVolumeScan:
     """Test scanning for high volume."""

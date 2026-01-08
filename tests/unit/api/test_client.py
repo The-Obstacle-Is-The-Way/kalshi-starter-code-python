@@ -7,6 +7,7 @@ These tests use respx to mock HTTP requests. Everything else
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import pytest
@@ -144,6 +145,183 @@ class TestKalshiPublicClient:
 
     @pytest.mark.asyncio
     @respx.mock
+    async def test_get_markets_with_mve_filter(self) -> None:
+        """Test mve_filter is passed correctly."""
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/markets").mock(
+            return_value=Response(200, json={"markets": [], "cursor": None})
+        )
+
+        async with KalshiPublicClient() as client:
+            await client.get_markets(mve_filter="only")
+            await client.get_markets(mve_filter="exclude")
+
+        assert route.call_count == 2
+        assert route.calls[0].request.url.params["mve_filter"] == "only"
+        assert route.calls[1].request.url.params["mve_filter"] == "exclude"
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_all_markets_has_no_default_page_cap(self) -> None:
+        """Default max_pages=None should not stop at 100 pages."""
+        base_market = {
+            "event_ticker": "EVT",
+            "title": "Market",
+            "subtitle": "",
+            "status": "active",
+            "result": "",
+            "yes_bid": 50,
+            "yes_ask": 52,
+            "no_bid": 48,
+            "no_ask": 50,
+            "last_price": 51,
+            "volume": 1000,
+            "volume_24h": 100,
+            "open_interest": 500,
+            "liquidity": 1000,
+            "open_time": "2024-01-01T00:00:00Z",
+            "close_time": "2025-01-01T00:00:00Z",
+            "expiration_time": "2025-01-02T00:00:00Z",
+        }
+
+        responses = []
+        for i in range(101):
+            responses.append(
+                Response(
+                    200,
+                    json={
+                        "markets": [{**base_market, "ticker": f"MKT-{i}"}],
+                        "cursor": f"cursor-{i + 1}" if i < 100 else None,
+                    },
+                )
+            )
+
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/markets")
+        route.side_effect = responses
+
+        async with KalshiPublicClient() as client:
+            markets = [m async for m in client.get_all_markets()]
+
+        assert len(markets) == 101
+        assert route.call_count == 101
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_all_markets_warns_when_truncated(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Emit warning when max_pages reached but cursor still present."""
+        base_market = {
+            "event_ticker": "EVT",
+            "title": "Market",
+            "subtitle": "",
+            "status": "active",
+            "result": "",
+            "yes_bid": 50,
+            "yes_ask": 52,
+            "no_bid": 48,
+            "no_ask": 50,
+            "last_price": 51,
+            "volume": 1000,
+            "volume_24h": 100,
+            "open_interest": 500,
+            "liquidity": 1000,
+            "open_time": "2024-01-01T00:00:00Z",
+            "close_time": "2025-01-01T00:00:00Z",
+            "expiration_time": "2025-01-02T00:00:00Z",
+        }
+        page1 = {
+            "markets": [{**base_market, "ticker": "MKT-1"}],
+            "cursor": "next_cursor",
+        }
+
+        respx.get("https://api.elections.kalshi.com/trade-api/v2/markets").mock(
+            return_value=Response(200, json=page1)
+        )
+
+        with caplog.at_level(logging.WARNING):
+            async with KalshiPublicClient() as client:
+                markets = [m async for m in client.get_all_markets(max_pages=1)]
+
+        assert len(markets) == 1
+        assert "Pagination truncated" in caplog.text
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_all_events_warns_when_truncated(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Emit warning when max_pages reached but cursor still present."""
+        page1 = {
+            "events": [
+                {
+                    "event_ticker": "EVT-1",
+                    "series_ticker": "SER-1",
+                    "title": "Event 1",
+                    "sub_title": "",
+                    "category": None,
+                    "mutually_exclusive": False,
+                    "available_on_brokers": False,
+                    "collateral_return_type": "",
+                    "strike_period": "",
+                    "strike_date": "",
+                }
+            ],
+            "cursor": "next_cursor",
+        }
+
+        respx.get("https://api.elections.kalshi.com/trade-api/v2/events").mock(
+            return_value=Response(200, json=page1)
+        )
+
+        with caplog.at_level(logging.WARNING):
+            async with KalshiPublicClient() as client:
+                events = [e async for e in client.get_all_events(max_pages=1)]
+
+        assert len(events) == 1
+        assert "Pagination truncated" in caplog.text
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_all_events_has_no_default_page_cap(self) -> None:
+        """Default max_pages=None should not stop at 100 pages."""
+        responses = []
+        for i in range(101):
+            responses.append(
+                Response(
+                    200,
+                    json={
+                        "events": [
+                            {
+                                "event_ticker": f"EVT-{i}",
+                                "series_ticker": "SER-1",
+                                "title": f"Event {i}",
+                                "sub_title": "",
+                                "category": None,
+                                "mutually_exclusive": False,
+                                "available_on_brokers": False,
+                                "collateral_return_type": "",
+                                "strike_period": "",
+                                "strike_date": "",
+                            }
+                        ],
+                        "cursor": f"cursor-{i + 1}" if i < 100 else None,
+                    },
+                )
+            )
+
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/events")
+        route.side_effect = responses
+
+        async with KalshiPublicClient() as client:
+            events = [e async for e in client.get_all_events()]
+
+        assert len(events) == 101
+        assert route.call_count == 101
+
+    @pytest.mark.asyncio
+    @respx.mock
     async def test_get_orderbook(self) -> None:
         """Test orderbook parsing with [[price, qty], ...] format."""
         ticker = "KXBTC-25JAN-T100000"
@@ -195,6 +373,22 @@ class TestKalshiPublicClient:
         assert len(trades) == 1
         assert trades[0].trade_id == "trade123"
         assert trades[0].yes_price == 46
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_trades_includes_zero_timestamps(self) -> None:
+        """0-valued timestamps should be sent (avoid truthiness traps)."""
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/markets/trades").mock(
+            return_value=Response(200, json={"trades": []})
+        )
+
+        async with KalshiPublicClient() as client:
+            await client.get_trades(ticker="TEST-MKT", limit=1, min_ts=0, max_ts=0)
+
+        assert route.called
+        params = dict(route.calls[0].request.url.params)
+        assert params["min_ts"] == "0"
+        assert params["max_ts"] == "0"
 
     @pytest.mark.asyncio
     @respx.mock

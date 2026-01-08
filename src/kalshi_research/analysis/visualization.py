@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
     from pathlib import Path
 
     from matplotlib.figure import Figure
@@ -61,11 +61,14 @@ def plot_calibration_curve(
     ax.grid(True, alpha=0.3)
 
     # Add size legend
+    def _size_to_samples(size: Any) -> Any:
+        return (size / 5.0) ** 2
+
     handles, labels = scatter.legend_elements(
         prop="sizes",
         num=4,
         alpha=0.6,
-        func=lambda s: (s / 5.0) ** 2,  # type: ignore[operator] # Reverse the sqrt scaling
+        func=_size_to_samples,
     )
     ax.legend(handles, labels, title="Samples", loc="upper left")
 
@@ -106,12 +109,15 @@ def plot_probability_timeline(
 
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    ax.plot(timestamps, prices, "b-", linewidth=1.5)  # type: ignore[arg-type]
-    ax.fill_between(timestamps, prices, alpha=0.2)  # type: ignore[arg-type]
+    timestamps_any: Any = timestamps
+    ax.plot(timestamps_any, prices, "b-", linewidth=1.5)
+    ax.fill_between(timestamps_any, prices, alpha=0.2)
 
     # Format x-axis
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))  # type: ignore[no-untyped-call]
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())  # type: ignore[no-untyped-call]
+    date_formatter: Callable[[str], Any] = mdates.DateFormatter
+    ax.xaxis.set_major_formatter(date_formatter("%m/%d"))
+    auto_locator: Callable[[], Any] = mdates.AutoDateLocator
+    ax.xaxis.set_major_locator(auto_locator())
 
     ax.set_xlabel("Date")
     ax.set_ylabel("Probability")
@@ -148,9 +154,7 @@ def plot_edge_histogram(
         raise ValueError("No edges provided")
 
     # Extract edge sizes (your estimate - market price)
-    edge_sizes = [
-        (e.your_estimate or 0.5) - e.market_price for e in edges if e.your_estimate is not None
-    ]
+    edge_sizes = [e.your_estimate - e.market_price for e in edges if e.your_estimate is not None]
 
     if not edge_sizes:
         raise ValueError("No edges with estimates")
@@ -162,7 +166,7 @@ def plot_edge_histogram(
     _n, bins_out, patches = ax.hist(edge_sizes, bins=bins.tolist(), edgecolor="black", alpha=0.7)
 
     # Color positive/negative differently
-    for i, patch in enumerate(patches):  # type: ignore[arg-type]
+    for i, patch in enumerate(cast("list[Any]", patches)):
         if bins_out[i] >= 0:
             patch.set_facecolor("green")
         else:
@@ -209,11 +213,14 @@ def plot_spread_timeline(
 
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    ax.plot(timestamps, spreads, "purple", linewidth=1)  # type: ignore[arg-type]
-    ax.fill_between(timestamps, spreads, alpha=0.2, color="purple")  # type: ignore[arg-type]
+    timestamps_any: Any = timestamps
+    ax.plot(timestamps_any, spreads, "purple", linewidth=1)
+    ax.fill_between(timestamps_any, spreads, alpha=0.2, color="purple")
 
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))  # type: ignore[no-untyped-call]
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())  # type: ignore[no-untyped-call]
+    date_formatter: Callable[[str], Any] = mdates.DateFormatter
+    ax.xaxis.set_major_formatter(date_formatter("%m/%d"))
+    auto_locator: Callable[[], Any] = mdates.AutoDateLocator
+    ax.xaxis.set_major_locator(auto_locator())
 
     ax.set_xlabel("Date")
     ax.set_ylabel("Spread (cents)")

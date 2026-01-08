@@ -1,5 +1,40 @@
 # Repository Guidelines
 
+## CRITICAL: Commit Safety Protocol
+
+**NEVER commit code without running quality gates first.** A previous incident introduced syntax corruption (`时不时` instead of `import`) that broke the entire codebase. This was caused by committing without pre-commit hooks installed.
+
+### MANDATORY Before ANY Commit
+
+```bash
+# 1. FIRST: Ensure pre-commit hooks are installed (do this ONCE after clone)
+uv run pre-commit install
+
+# 2. ALWAYS run pre-commit before staging/committing
+uv run pre-commit run --all-files
+
+# 3. If pre-commit passes, THEN commit
+git add . && git commit -m "Your message"
+
+# 4. NEVER use --no-verify to bypass hooks
+# git commit --no-verify  # <- FORBIDDEN
+```
+
+### Pre-commit Will Automatically Check
+
+1. **Python syntax validation** (`check-ast`) - Catches encoding corruption
+2. **Ruff linting** - Code quality and style
+3. **Ruff formatting** - Consistent formatting
+4. **Mypy type checking** - Static type safety
+5. **Unit tests** - Quick smoke test
+
+### FORBIDDEN Patterns
+
+- **NO `# type: ignore`** - Fix the type error properly
+- **NO untyped `Any`** - Use specific types (exception: JSON dicts as `dict[str, Any]`)
+- **NO `--no-verify` commits** - Always run pre-commit hooks
+- **NO manual git commits without pre-commit** - Always verify first
+
 ## Project Structure & Module Organization
 
 - `src/kalshi_research/`: main package (src-layout)
@@ -18,12 +53,12 @@ Preferred dependency manager is `uv` (see `uv.lock`):
 
 ```bash
 uv sync --all-extras              # install dev + research extras
+uv run pre-commit install         # CRITICAL: Install commit hooks
 uv run kalshi --help              # run CLI without global install
 uv run ruff check .               # lint (CI)
 uv run ruff format --check .      # format check (CI); drop --check to format
 uv run mypy src/                  # strict type checking (CI)
 uv run pytest -m "not integration and not slow"  # fast local suite (CI-like)
-uv run pre-commit install         # enable hooks (ruff/format/mypy, etc.)
 ```
 
 ## Coding Style & Naming Conventions
@@ -40,7 +75,8 @@ uv run pre-commit install         # enable hooks (ruff/format/mypy, etc.)
 
 ## Commit & Pull Request Guidelines
 
-- Use atomic commits; follow the repo’s common pattern: `[BUG-###] Fix: ...`, `[SPEC-###] Implement: ...`, `[FEATURE] Add: ...`, `[QUALITY-###] Fix: ...`.
+- **ALWAYS run `uv run pre-commit run --all-files` before committing**
+- Use atomic commits; follow the repo's common pattern: `[BUG-###] Fix: ...`, `[SPEC-###] Implement: ...`, `[FEATURE] Add: ...`, `[QUALITY-###] Fix: ...`.
 - PRs should include: what changed, how it was tested (commands run), and any user-facing doc updates (often `docs/USAGE.md` / `docs/QUICKSTART.md`).
 - Before review, ensure local checks match CI: `ruff`, `mypy`, and `pytest` are green.
 

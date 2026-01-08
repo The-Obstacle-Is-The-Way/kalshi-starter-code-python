@@ -1,83 +1,107 @@
-# Quick Start Guide
+# Quickstart (Tutorial)
 
-Get started with Kalshi Research in 5 minutes.
+Get a working local research pipeline: create a database, sync markets, take snapshots, run scans, and (optionally)
+enable authenticated portfolio commands.
 
 ## Prerequisites
 
 - Python 3.11+
-- [uv](https://github.com/astral-sh/uv) (recommended) or pip
+- `uv` (recommended) or any virtualenv + `pip`
 
-## Installation
-
-```bash
-git clone <repo>
-cd kalshi-research
-uv sync
-```
-
-## First Steps
-
-### 1. Initialize Database
+## Install
 
 ```bash
-kalshi data init
+uv sync --all-extras
 ```
 
-Creates SQLite database at `data/kalshi.db`.
-
-### 2. Sync Market Data
+Run the CLI without installing globally:
 
 ```bash
-kalshi data sync-markets
+uv run kalshi version
+uv run kalshi --help
 ```
 
-Fetches all markets and events from Kalshi API.
-
-### 3. Explore Markets
+## 1) Create a database
 
 ```bash
-# List open markets
-kalshi market list
-
-# Get specific market
-kalshi market get KXBTC-25JAN01-60000
-
-# View orderbook
-kalshi market orderbook KXBTC-25JAN01-60000
+uv run kalshi data init
 ```
 
-### 4. Scan for Opportunities
+Default DB path is `data/kalshi.db` (override with `--db` on any DB-backed command).
+
+## 2) Sync markets/events (start small)
+
+For a quick smoke test, use a small pagination cap:
 
 ```bash
-# Close races (50/50 markets)
-kalshi scan opportunities --filter close-race
-
-# High volume markets
-kalshi scan opportunities --filter high-volume
-
-# Wide spread (arbitrage potential)
-kalshi scan opportunities --filter wide-spread
+uv run kalshi data sync-markets --max-pages 1
 ```
 
-### 5. Start Continuous Collection
+When you want a complete sync, omit `--max-pages` (or set it to `None` via Python).
+
+## 3) Take snapshots (for metrics/movers/correlation)
 
 ```bash
-# Collect price snapshots every 15 minutes
-kalshi data collect --interval 15
+uv run kalshi data snapshot --max-pages 1
+uv run kalshi data snapshot --max-pages 1
 ```
 
-### 6. Export for Analysis
+Taking at least two snapshots makes “movers” meaningful.
+
+## 4) Inspect the database
 
 ```bash
-# Export to Parquet (for pandas/DuckDB)
-kalshi data export --format parquet
-
-# Export to CSV
-kalshi data export --format csv
+uv run kalshi data stats
 ```
 
-## Next Steps
+## 5) Pick a ticker and inspect live market data
 
-- Open `notebooks/exploration.ipynb` for interactive analysis
-- Read [USAGE.md](USAGE.md) for advanced features
-- Set up alerts for price movements
+```bash
+uv run kalshi market list --status open --limit 5
+uv run kalshi market get <TICKER>
+uv run kalshi market orderbook <TICKER> --depth 5
+```
+
+## 6) Run scans
+
+```bash
+uv run kalshi scan opportunities --filter close-race --top 10 --max-pages 1 --min-volume 1000 --max-spread 10
+uv run kalshi scan movers --period 1h --top 10 --db data/kalshi.db --max-pages 1
+uv run kalshi scan arbitrage --top 10 --db data/kalshi.db --max-pages 1
+```
+
+## 7) Set up alerts (optional)
+
+```bash
+uv run kalshi alerts add price <TICKER> --above 0.60
+uv run kalshi alerts monitor --once --max-pages 1
+```
+
+Alerts are stored locally at `data/alerts.json`.
+
+## 8) Enable authenticated portfolio commands (optional)
+
+Create a `.env` file (the CLI loads it automatically):
+
+```bash
+cp .env.example .env
+```
+
+Populate:
+- `KALSHI_KEY_ID`
+- `KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`
+- `KALSHI_ENVIRONMENT` (`demo` or `prod`)
+
+Then:
+
+```bash
+uv run kalshi portfolio balance
+uv run kalshi portfolio sync --skip-mark-prices
+uv run kalshi portfolio positions
+```
+
+## Next
+
+- `docs/USAGE.md` for task-based workflows
+- `docs/CLI_REFERENCE.md` for the command index
+- `docs/ARCHITECTURE.md` for system structure

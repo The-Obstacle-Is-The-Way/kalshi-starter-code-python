@@ -121,12 +121,24 @@ def test_data_sync_snapshot_and_collect_once(runner: CliRunner) -> None:
         assert "Synced 1 events and 1 markets" in sync.stdout
 
         snapshot = runner.invoke(
-            app, ["data", "snapshot", "--db", str(db_path), "--status", "open"]
+            app,
+            [
+                "data",
+                "snapshot",
+                "--db",
+                str(db_path),
+                "--status",
+                "open",
+                "--max-pages",
+                "1",
+            ],
         )
         assert snapshot.exit_code == 0
         assert "Took 1 price snapshots" in snapshot.stdout
 
-        collect = runner.invoke(app, ["data", "collect", "--db", str(db_path), "--once"])
+        collect = runner.invoke(
+            app, ["data", "collect", "--db", str(db_path), "--once", "--max-pages", "1"]
+        )
         assert collect.exit_code == 0
         assert "Full sync complete" in collect.stdout
 
@@ -206,7 +218,7 @@ def test_scan_commands(runner: CliRunner) -> None:
         ]
         _mock_events_and_markets(markets=markets)
 
-        opp = runner.invoke(app, ["scan", "opportunities", "--top", "5"])
+        opp = runner.invoke(app, ["scan", "opportunities", "--top", "5", "--max-pages", "1"])
         assert opp.exit_code == 0
         assert "Scan Results" in opp.stdout
 
@@ -477,13 +489,44 @@ def test_analysis_correlation_success(runner: CliRunner) -> None:
 
 
 def test_portfolio_commands_smoke(runner: CliRunner) -> None:
+    class _FakeKalshiClient:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        async def __aenter__(self) -> _FakeKalshiClient:
+            return self
+
+        async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc_val: BaseException | None,
+            exc_tb: object,
+        ) -> None:
+            return None
+
+        async def get_positions(self) -> list[dict[str, Any]]:
+            return []
+
+        async def get_fills(self, **_: object) -> dict[str, Any]:
+            return {"fills": [], "cursor": None}
+
+        async def get_balance(self) -> dict[str, Any]:
+            return {"balance": 0}
+
     with runner.isolated_filesystem():
         db_path = Path("data/test.db")
         init = runner.invoke(app, ["data", "init", "--db", str(db_path)])
         assert init.exit_code == 0
 
-        sync = runner.invoke(app, ["portfolio", "sync"])
-        assert sync.exit_code == 0
+        env = {
+            "KALSHI_KEY_ID": "test",
+            "KALSHI_PRIVATE_KEY_PATH": "dummy.pem",
+            "KALSHI_ENVIRONMENT": "demo",
+        }
+        with patch("kalshi_research.api.KalshiClient", _FakeKalshiClient):
+            sync = runner.invoke(app, ["portfolio", "sync", "--db", str(db_path)], env=env)
+            assert sync.exit_code == 0
+            assert "Synced" in sync.stdout
 
         positions = runner.invoke(app, ["portfolio", "positions", "--db", str(db_path)])
         assert positions.exit_code == 0
@@ -497,8 +540,10 @@ def test_portfolio_commands_smoke(runner: CliRunner) -> None:
         assert history.exit_code == 0
         assert "No trades found" in history.stdout
 
-        balance = runner.invoke(app, ["portfolio", "balance"])
-        assert balance.exit_code == 0
+        with patch("kalshi_research.api.KalshiClient", _FakeKalshiClient):
+            balance = runner.invoke(app, ["portfolio", "balance"], env=env)
+            assert balance.exit_code == 0
+            assert "Account Balance" in balance.stdout
 
         link = runner.invoke(
             app, ["portfolio", "link", "MKT1", "--thesis", "123", "--db", str(db_path)]

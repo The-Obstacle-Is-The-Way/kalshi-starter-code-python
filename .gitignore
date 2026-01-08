@@ -60,9 +60,10 @@ kalshi_private_key*
 
 # Data (will be tracked selectively)
 data/*.db
+data/*.db-shm
+data/*.db-wal
 data/*.json
 data/exports/
-!data/.gitkeep
 
 # OS
 .DS_Store

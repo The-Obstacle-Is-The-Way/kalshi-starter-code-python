@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+import logging
+import uuid
+from typing import TYPE_CHECKING, Any, Literal
 
 import httpx
 from tenacity import (
@@ -13,12 +15,15 @@ from tenacity import (
 )
 
 from kalshi_research.api.auth import KalshiAuth
+from kalshi_research.api.config import APIConfig, Environment, get_config
 from kalshi_research.api.exceptions import KalshiAPIError, RateLimitError
 from kalshi_research.api.models.candlestick import Candlestick, CandlestickResponse
 from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market, MarketFilterStatus
+from kalshi_research.api.models.order import OrderAction, OrderResponse, OrderSide
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.trade import Trade
+from kalshi_research.api.rate_limiter import RateLimiter, RateTier
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -31,15 +36,18 @@ class KalshiPublicClient:
     Use this for market research - no API keys required.
     """
 
-    BASE_URL = "https://api.elections.kalshi.com/trade-api/v2"
-
     def __init__(
         self,
+        environment: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 5,
     ) -> None:
+        config = get_config()
+        if environment:
+            config = APIConfig(environment=Environment(environment))
+
         self._client = httpx.AsyncClient(
-            base_url=self.BASE_URL,
+            base_url=config.base_url,
             timeout=timeout,
             headers={"Accept": "application/json"},
         )
@@ -57,7 +65,12 @@ class KalshiPublicClient:
         await self._client.aclose()
 
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Make rate-limited GET request with retry."""
+        """
+        Make rate-limited GET request with retry.
+
+        Returns:
+            JSON response as dictionary.
+        """
         async for attempt in AsyncRetrying(
             retry=retry_if_exception_type(
                 (
@@ -95,6 +108,7 @@ class KalshiPublicClient:
         series_ticker: str | None = None,
         limit: int = 100,
         cursor: str | None = None,
+        mve_filter: Literal["only", "exclude"] | None = None,
     ) -> tuple[list[Market], str | None]:
         """
         Fetch a single page of markets and return the next cursor (if any).
@@ -112,6 +126,8 @@ class KalshiPublicClient:
             params["series_ticker"] = series_ticker
         if cursor:
             params["cursor"] = cursor
+        if mve_filter:
+            params["mve_filter"] = mve_filter
 
         data = await self._get("/markets", params)
         markets = [Market.model_validate(m) for m in data.get("markets", [])]
@@ -123,6 +139,7 @@ class KalshiPublicClient:
         event_ticker: str | None = None,
         series_ticker: str | None = None,
         limit: int = 100,
+        mve_filter: Literal["only", "exclude"] | None = None,
     ) -> list[Market]:
         """
         Fetch markets with optional filters.
@@ -136,6 +153,7 @@ class KalshiPublicClient:
             event_ticker=event_ticker,
             series_ticker=series_ticker,
             limit=limit,
+            mve_filter=mve_filter,
         )
         return markets
 
@@ -143,19 +161,33 @@ class KalshiPublicClient:
         self,
         status: MarketFilterStatus | str | None = None,
         limit: int = 1000,
-        max_pages: int = 100,
+        max_pages: int | None = None,
+        mve_filter: Literal["only", "exclude"] | None = None,
     ) -> AsyncIterator[Market]:
         """
         Iterate through ALL markets with automatic pagination.
-        Includes a safety limit to prevent infinite loops.
+
+        Args:
+            status: Filter by market status (open, closed, settled)
+            limit: Page size (max 1000)
+            max_pages: Optional safety limit. None = iterate until exhausted.
+            mve_filter: Filter for multivariate events ("only" or "exclude")
+
+        Yields:
+            Market objects
+
+        Warns:
+            If max_pages reached but cursor still present (data truncated)
         """
+        logger = logging.getLogger(__name__)
         cursor: str | None = None
         pages = 0
-        while pages < max_pages:
+        while True:
             markets, cursor = await self.get_markets_page(
                 status=status,
                 limit=limit,
                 cursor=cursor,
+                mve_filter=mve_filter,
             )
 
             for market in markets:
@@ -163,7 +195,17 @@ class KalshiPublicClient:
 
             if not cursor or not markets:
                 break
+
             pages += 1
+
+            # Safety limit check with warning
+            if max_pages is not None and pages >= max_pages:
+                logger.warning(
+                    "Pagination truncated: reached max_pages=%d but cursor still present. "
+                    "Data may be incomplete. Set max_pages=None for full iteration.",
+                    max_pages,
+                )
+                break
 
     async def get_market(self, ticker: str) -> Market:
         """Fetch single market by ticker."""
@@ -191,9 +233,9 @@ class KalshiPublicClient:
         params: dict[str, Any] = {"limit": min(limit, 1000)}
         if ticker:
             params["ticker"] = ticker
-        if min_ts:
+        if min_ts is not None:
             params["min_ts"] = min_ts
-        if max_ts:
+        if max_ts is not None:
             params["max_ts"] = max_ts
 
         data = await self._get("/markets/trades", params)
@@ -250,9 +292,9 @@ class KalshiPublicClient:
             period_interval: Candle period in minutes (1, 60, or 1440)
         """
         params: dict[str, Any] = {"period_interval": period_interval}
-        if start_ts:
+        if start_ts is not None:
             params["start_ts"] = start_ts
-        if end_ts:
+        if end_ts is not None:
             params["end_ts"] = end_ts
 
         data = await self._get(f"/series/{series_ticker}/markets/{ticker}/candlesticks", params)
@@ -300,16 +342,27 @@ class KalshiPublicClient:
         status: MarketFilterStatus | str | None = None,
         series_ticker: str | None = None,
         limit: int = 200,
-        max_pages: int = 100,
+        max_pages: int | None = None,
     ) -> AsyncIterator[Event]:
         """
         Iterate through ALL events with automatic pagination.
 
-        Events pagination exists but the endpoint enforces a max limit of 200.
+        Args:
+            status: Filter by event status
+            series_ticker: Filter by series
+            limit: Page size (max 200 for events endpoint)
+            max_pages: Optional safety limit. None = iterate until exhausted.
+
+        Yields:
+            Event objects
+
+        Warns:
+            If max_pages reached but cursor still present (data truncated)
         """
+        logger = logging.getLogger(__name__)
         cursor: str | None = None
         pages = 0
-        while pages < max_pages:
+        while True:
             events, cursor = await self.get_events_page(
                 status=status,
                 series_ticker=series_ticker,
@@ -322,7 +375,17 @@ class KalshiPublicClient:
 
             if not cursor or not events:
                 break
+
             pages += 1
+
+            # Safety limit check with warning
+            if max_pages is not None and pages >= max_pages:
+                logger.warning(
+                    "Pagination truncated: reached max_pages=%d but cursor still present. "
+                    "Data may be incomplete. Set max_pages=None for full iteration.",
+                    max_pages,
+                )
+                break
 
     async def get_event(self, event_ticker: str) -> Event:
         """Fetch single event by ticker."""
@@ -344,23 +407,33 @@ class KalshiClient(KalshiPublicClient):
     The signature is computed over: timestamp + method + full_path (without query params).
     """
 
-    DEMO_BASE = "https://demo-api.kalshi.co"
-    PROD_BASE = "https://api.elections.kalshi.com"
     API_PATH = "/trade-api/v2"
 
     def __init__(
         self,
         key_id: str,
-        private_key_path: str,
-        environment: str = "prod",
+        private_key_path: str | None = None,
+        private_key_b64: str | None = None,
+        environment: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 5,
+        rate_tier: str | RateTier = RateTier.BASIC,
     ) -> None:
-        # Don't call super().__init__() - we create client with environment-specific URL
-        base_host = self.DEMO_BASE if environment == "demo" else self.PROD_BASE
-        self._base_url = base_host + self.API_PATH
-        self._auth = KalshiAuth(key_id, private_key_path)
+        # Resolve configuration
+        config = get_config()
+        if environment:
+            config = APIConfig(environment=Environment(environment))
+
+        self._base_url = config.base_url
+        self._auth = KalshiAuth(
+            key_id, private_key_path=private_key_path, private_key_b64=private_key_b64
+        )
         self._max_retries = max_retries
+
+        # Initialize rate limiter
+        if isinstance(rate_tier, str):
+            rate_tier = RateTier(rate_tier)
+        self._rate_limiter = RateLimiter(tier=rate_tier)
 
         self._client = httpx.AsyncClient(
             base_url=self._base_url,
@@ -438,3 +511,201 @@ class KalshiClient(KalshiPublicClient):
         data = await self._auth_get("/portfolio/orders", params or None)
         orders: list[dict[str, Any]] = data.get("orders", [])
         return orders
+
+    async def get_fills(
+        self,
+        ticker: str | None = None,
+        min_ts: int | None = None,
+        max_ts: int | None = None,
+        limit: int = 100,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Fetch matched trades (fills) from the portfolio.
+
+        Args:
+            ticker: Filter by market ticker
+            min_ts: Filter trades after this timestamp (Unix seconds)
+            max_ts: Filter trades before this timestamp
+            limit: Number of results per page (max 200)
+            cursor: Pagination cursor
+        """
+        params: dict[str, Any] = {"limit": min(limit, 200)}
+        if ticker:
+            params["ticker"] = ticker
+        if min_ts is not None:
+            params["min_ts"] = min_ts
+        if max_ts is not None:
+            params["max_ts"] = max_ts
+        if cursor:
+            params["cursor"] = cursor
+
+        return await self._auth_get("/portfolio/fills", params)
+
+    # ==================== Trading ====================
+
+    async def create_order(
+        self,
+        ticker: str,
+        side: Literal["yes", "no"] | OrderSide,
+        action: Literal["buy", "sell"] | OrderAction,
+        count: int,
+        price: int,
+        client_order_id: str | None = None,
+        expiration_ts: int | None = None,
+    ) -> OrderResponse:
+        """
+        Create a new limit order.
+
+        Args:
+            ticker: Market ticker
+            side: "yes" or "no"
+            action: "buy" or "sell"
+            count: Number of contracts (must be > 0)
+            price: Limit price in CENTS (1-99)
+            client_order_id: Optional unique ID (generated if not provided)
+            expiration_ts: Optional Unix timestamp for expiration
+
+        Returns:
+            OrderResponse with order_id and status
+        """
+        if price < 1 or price > 99:
+            raise ValueError("Price must be between 1 and 99 cents")
+
+        if count <= 0:
+            raise ValueError("Count must be positive")
+
+        if not client_order_id:
+            client_order_id = str(uuid.uuid4())
+
+        payload = {
+            "ticker": ticker,
+            "action": action if isinstance(action, str) else action.value,
+            "side": side if isinstance(side, str) else side.value,
+            "count": count,
+            "type": "limit",
+            "yes_price": price,
+            "client_order_id": client_order_id,
+        }
+        if expiration_ts:
+            payload["expiration_ts"] = expiration_ts
+
+        # Acquire rate limit for WRITE
+        await self._rate_limiter.acquire("POST", "/portfolio/orders")
+
+        # Auth headers for POST
+        headers = self._auth.get_headers("POST", self.API_PATH + "/portfolio/orders")
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
+            stop=stop_after_attempt(self._max_retries),
+            wait=wait_exponential(multiplier=1, min=1, max=60),
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.post(
+                    "/portfolio/orders", json=payload, headers=headers
+                )
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    wait_seconds = int(retry_after) if retry_after else None
+                    raise RateLimitError("Rate limit exceeded", retry_after=wait_seconds)
+
+                if response.status_code >= 400:
+                    raise KalshiAPIError(response.status_code, response.text)
+
+                data = response.json()
+                return OrderResponse.model_validate(data["order"])
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
+
+    async def cancel_order(self, order_id: str) -> dict[str, Any]:
+        """Cancel an existing order."""
+        path = f"/portfolio/orders/{order_id}"
+        full_path = self.API_PATH + path
+
+        await self._rate_limiter.acquire("DELETE", path)
+        headers = self._auth.get_headers("DELETE", full_path)
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
+            stop=stop_after_attempt(self._max_retries),
+            wait=wait_exponential(multiplier=1, min=1, max=60),
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.delete(path, headers=headers)
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                    )
+
+                if response.status_code >= 400:
+                    raise KalshiAPIError(response.status_code, response.text)
+
+                result: dict[str, Any] = response.json()
+                return result
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
+
+    async def amend_order(
+        self,
+        order_id: str,
+        price: int | None = None,
+        count: int | None = None,
+    ) -> OrderResponse:
+        """Amend an existing order's price or quantity."""
+        if price is None and count is None:
+            raise ValueError("Must provide either price or count")
+
+        if price is not None and (price < 1 or price > 99):
+            raise ValueError("Price must be between 1 and 99 cents")
+
+        if count is not None and count <= 0:
+            raise ValueError("Count must be positive")
+
+        path = f"/portfolio/orders/{order_id}/amend"
+        full_path = self.API_PATH + path
+
+        payload: dict[str, Any] = {"order_id": order_id}
+        if price is not None:
+            payload["yes_price"] = price
+        if count is not None:
+            payload["count"] = count
+
+        await self._rate_limiter.acquire("POST", path)
+        headers = self._auth.get_headers("POST", full_path)
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
+            stop=stop_after_attempt(self._max_retries),
+            wait=wait_exponential(multiplier=1, min=1, max=60),
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.post(path, json=payload, headers=headers)
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                    )
+
+                if response.status_code >= 400:
+                    raise KalshiAPIError(response.status_code, response.text)
+
+                data = response.json()
+                return OrderResponse.model_validate(data["order"])
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover

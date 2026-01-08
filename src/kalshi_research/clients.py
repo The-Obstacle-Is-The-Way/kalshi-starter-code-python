@@ -95,12 +95,14 @@ class KalshiHttpClient(KalshiBaseClient):
         key_id: str,
         private_key: rsa.RSAPrivateKey,
         environment: Environment = Environment.DEMO,
+        timeout_seconds: float = 10.0,
     ) -> None:
         super().__init__(key_id, private_key, environment)
         self.host = self.HTTP_BASE_URL
         self.exchange_url = "/trade-api/v2/exchange"
         self.markets_url = "/trade-api/v2/markets"
         self.portfolio_url = "/trade-api/v2/portfolio"
+        self._timeout_seconds = timeout_seconds
 
     def rate_limit(self) -> None:
         """Built-in rate limiter to prevent exceeding API rate limits."""
@@ -114,14 +116,17 @@ class KalshiHttpClient(KalshiBaseClient):
 
     def raise_if_bad_response(self, response: requests.Response) -> None:
         """Raises an HTTPError if the response status code indicates an error."""
-        if response.status_code not in range(200, 299):
+        if not 200 <= response.status_code < 300:
             response.raise_for_status()
 
     def post(self, path: str, body: dict[str, Any]) -> Any:
         """Performs an authenticated POST request to the Kalshi API."""
         self.rate_limit()
         response = requests.post(
-            self.host + path, json=body, headers=self.request_headers("POST", path)
+            self.host + path,
+            json=body,
+            headers=self.request_headers("POST", path),
+            timeout=self._timeout_seconds,
         )
         self.raise_if_bad_response(response)
         return response.json()
@@ -133,6 +138,7 @@ class KalshiHttpClient(KalshiBaseClient):
             self.host + path,
             headers=self.request_headers("GET", path),
             params=params or {},
+            timeout=self._timeout_seconds,
         )
         self.raise_if_bad_response(response)
         return response.json()
@@ -144,6 +150,7 @@ class KalshiHttpClient(KalshiBaseClient):
             self.host + path,
             headers=self.request_headers("DELETE", path),
             params=params or {},
+            timeout=self._timeout_seconds,
         )
         self.raise_if_bad_response(response)
         return response.json()

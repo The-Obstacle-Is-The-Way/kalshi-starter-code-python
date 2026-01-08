@@ -11,12 +11,10 @@ import json
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
+from typing import Annotated, Any
 
 import typer
+from dotenv import find_dotenv, load_dotenv
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
@@ -47,8 +45,38 @@ console = Console()
 
 
 @app.callback()
-def main() -> None:
+def main(
+    environment: Annotated[
+        str,
+        typer.Option(
+            "--env",
+            "-e",
+            help="API environment (prod/demo). Defaults to KALSHI_ENVIRONMENT or prod.",
+        ),
+    ] = "prod",
+) -> None:
     """Kalshi Research Platform CLI."""
+    import os
+
+    from kalshi_research.api.config import Environment, set_environment
+
+    load_dotenv(find_dotenv(usecwd=True))
+
+    # Priority: CLI flag > KALSHI_ENVIRONMENT env var > default "prod"
+    env_var = os.getenv("KALSHI_ENVIRONMENT")
+
+    # If user didn't override --env (still "prod") and env var is set, use env var
+    final_env = environment
+    if environment == "prod" and env_var:
+        final_env = env_var
+
+    try:
+        set_environment(Environment(final_env))
+    except ValueError:
+        console.print(
+            f"[yellow]Warning:[/yellow] Invalid environment '{final_env}', defaulting to prod"
+        )
+        set_environment(Environment.PRODUCTION)
 
 
 @app.command()
@@ -93,6 +121,13 @@ def data_sync_markets(
         str | None,
         typer.Option("--status", "-s", help="Filter by status (open, closed, etc)."),
     ] = None,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit. None = iterate until exhausted.",
+        ),
+    ] = None,
 ) -> None:
     """Sync markets from Kalshi API to database."""
     from kalshi_research.data import DatabaseManager, DataFetcher
@@ -107,11 +142,11 @@ def data_sync_markets(
                     console=console,
                 ) as progress:
                     task1 = progress.add_task("Syncing events...", total=None)
-                    events = await fetcher.sync_events()
+                    events = await fetcher.sync_events(max_pages=max_pages)
                     progress.update(task1, description=f"Synced {events} events")
 
                     progress.add_task("Syncing markets...", total=None)
-                    markets = await fetcher.sync_markets(status=status)
+                    markets = await fetcher.sync_markets(status=status, max_pages=max_pages)
 
         console.print(f"[green]✓[/green] Synced {events} events and {markets} markets")
 
@@ -128,6 +163,13 @@ def data_snapshot(
         str | None,
         typer.Option("--status", "-s", help="Filter by status (default: open)."),
     ] = "open",
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit. None = iterate until exhausted.",
+        ),
+    ] = None,
 ) -> None:
     """Take a price snapshot of all markets."""
     from kalshi_research.data import DatabaseManager, DataFetcher
@@ -143,7 +185,7 @@ def data_snapshot(
                     console=console,
                 ) as progress:
                     progress.add_task("Taking snapshot...", total=None)
-                    count = await fetcher.take_snapshot(status=status)
+                    count = await fetcher.take_snapshot(status=status, max_pages=max_pages)
 
         console.print(f"[green]✓[/green] Took {count} price snapshots")
 
@@ -164,6 +206,13 @@ def data_collect(
         bool,
         typer.Option("--once", help="Run a single full sync and exit."),
     ] = False,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit. None = iterate until exhausted.",
+        ),
+    ] = None,
 ) -> None:
     """Run continuous data collection."""
     from kalshi_research.data import DatabaseManager, DataFetcher, DataScheduler
@@ -174,7 +223,7 @@ def data_collect(
 
             async with DataFetcher(db) as fetcher:
                 if once:
-                    counts = await fetcher.full_sync()
+                    counts = await fetcher.full_sync(max_pages=max_pages)
                     console.print(
                         "[green]✓[/green] Full sync complete: "
                         f"{counts['events']} events, {counts['markets']} markets, "
@@ -185,10 +234,10 @@ def data_collect(
                 scheduler = DataScheduler()
 
                 async def sync_task() -> None:
-                    await fetcher.sync_markets(status="open")
+                    await fetcher.sync_markets(status="open", max_pages=max_pages)
 
                 async def snapshot_task() -> None:
-                    count = await fetcher.take_snapshot(status="open")
+                    count = await fetcher.take_snapshot(status="open", max_pages=max_pages)
                     console.print(f"[dim]Took {count} snapshots[/dim]")
 
                 # Schedule tasks
@@ -210,7 +259,7 @@ def data_collect(
 
                 async with scheduler:
                     # Initial sync
-                    await fetcher.full_sync()
+                    await fetcher.full_sync(max_pages=max_pages)
 
                     # Run forever until interrupted
                     try:
@@ -478,19 +527,33 @@ def scan_opportunities(
         ),
     ] = None,
     top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
+    min_volume: Annotated[
+        int,
+        typer.Option(
+            "--min-volume",
+            help="Minimum 24h volume (close-race filter only).",
+        ),
+    ] = 0,
+    max_spread: Annotated[
+        int,
+        typer.Option(
+            "--max-spread",
+            help="Maximum bid-ask spread in cents (close-race filter only).",
+        ),
+    ] = 100,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit for market fetch (None = full).",
+        ),
+    ] = None,
 ) -> None:
     """Scan markets for opportunities."""
     from kalshi_research.analysis.scanner import MarketScanner
     from kalshi_research.api import KalshiPublicClient
 
     async def _scan() -> None:
-        from typing import TYPE_CHECKING
-
-        if TYPE_CHECKING:
-            from kalshi_research.api.models import Market
-
-        from kalshi_research.analysis.scanner import ScanResult
-
         async with KalshiPublicClient() as client:
             with Progress(
                 SpinnerColumn(),
@@ -499,27 +562,42 @@ def scan_opportunities(
             ) as progress:
                 progress.add_task("Fetching markets...", total=None)
                 # Fetch all open markets for scanning
-                markets = [m async for m in client.get_all_markets(status="open")]
+                markets = [
+                    m async for m in client.get_all_markets(status="open", max_pages=max_pages)
+                ]
 
         scanner = MarketScanner()
 
         if filter_type:
-            filter_map: dict[str, Callable[[list[Market], int], list[ScanResult]]] = {
-                "close-race": scanner.scan_close_races,
-                "high-volume": scanner.scan_high_volume,
-                "wide-spread": scanner.scan_wide_spread,
-                "expiring-soon": scanner.scan_expiring_soon,
-            }
-            if filter_type not in filter_map:
+            if filter_type == "close-race":
+                results = scanner.scan_close_races(
+                    markets,
+                    top_n,
+                    min_volume_24h=min_volume,
+                    max_spread=max_spread,
+                )
+                title = "Scan Results (close-race)"
+            elif filter_type == "high-volume":
+                results = scanner.scan_high_volume(markets, top_n)
+                title = "Scan Results (high-volume)"
+            elif filter_type == "wide-spread":
+                results = scanner.scan_wide_spread(markets, top_n)
+                title = "Scan Results (wide-spread)"
+            elif filter_type == "expiring-soon":
+                results = scanner.scan_expiring_soon(markets, top_n)
+                title = "Scan Results (expiring-soon)"
+            else:
                 console.print(f"[red]Error:[/red] Unknown filter: {filter_type}")
                 raise typer.Exit(1)
-
-            results = filter_map[filter_type](markets, top_n)
-            title = f"Scan Results ({filter_type})"
         else:
             # Default to "interesting" markets logic (e.g. close races for now)
             # In a real impl, this might combine multiple signals
-            results = scanner.scan_close_races(markets, top_n)
+            results = scanner.scan_close_races(
+                markets,
+                top_n,
+                min_volume_24h=min_volume,
+                max_spread=max_spread,
+            )
             title = "Scan Results (Close Races)"
 
         if not results:
@@ -557,6 +635,20 @@ def scan_arbitrage(
         float, typer.Option("--threshold", help="Min divergence to flag (0-1)")
     ] = 0.10,
     top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
+    tickers_limit: Annotated[
+        int,
+        typer.Option(
+            "--tickers-limit",
+            help="Limit historical correlation analysis to N tickers (0 = analyze all tickers).",
+        ),
+    ] = 50,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit for market fetch (None = full).",
+        ),
+    ] = None,
 ) -> None:
     """Find arbitrage opportunities from correlated markets."""
     from kalshi_research.analysis.correlation import CorrelationAnalyzer
@@ -568,9 +660,44 @@ def scan_arbitrage(
             "[yellow]Warning:[/yellow] Database not found, analyzing current markets only"
         )
 
-    async def _scan() -> None:
+    async def _load_correlated_pairs(markets: list[Any]) -> list[Any]:
+        if not db_path.exists():
+            return []
+
         from kalshi_research.data.repositories import PriceRepository
 
+        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+            price_repo = PriceRepository(session)
+
+            tickers = [m.ticker for m in markets]
+            if tickers_limit > 0 and len(tickers) > tickers_limit:
+                console.print(
+                    "[yellow]Warning:[/yellow] Limiting correlation analysis to first "
+                    f"{tickers_limit} tickers (out of {len(tickers)}). "
+                    "Use --tickers-limit to adjust."
+                )
+                tickers = tickers[:tickers_limit]
+
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                progress.add_task("Analyzing correlations...", total=None)
+
+                snapshots = {}
+                for ticker in tickers:
+                    snaps = await price_repo.get_for_market(ticker, limit=100)
+                    if snaps and len(snaps) > 30:
+                        snapshots[ticker] = list(snaps)
+
+            if len(snapshots) < 2:
+                return []
+
+            analyzer = CorrelationAnalyzer(min_correlation=0.5)
+            return await analyzer.find_correlated_markets(snapshots, top_n=50)
+
+    async def _scan() -> None:
         # Fetch current markets
         async with KalshiPublicClient() as client:
             with Progress(
@@ -579,44 +706,17 @@ def scan_arbitrage(
                 console=console,
             ) as progress:
                 progress.add_task("Fetching markets...", total=None)
-                markets = [m async for m in client.get_all_markets(status="open")]
+                markets = [
+                    m async for m in client.get_all_markets(status="open", max_pages=max_pages)
+                ]
 
         if not markets:
             console.print("[yellow]No open markets found[/yellow]")
             return
 
-        # Find correlated pairs from historical data (if DB exists)
-        correlated_pairs = []
-        if db_path.exists():
-            async with DatabaseManager(db_path) as db, db.session_factory() as session:
-                price_repo = PriceRepository(session)
+        correlated_pairs = await _load_correlated_pairs(markets)
 
-                # Get tickers from current markets
-                tickers = [m.ticker for m in markets[:50]]  # Limit to avoid too much processing
-
-                with Progress(
-                    SpinnerColumn(),
-                    TextColumn("[progress.description]{task.description}"),
-                    console=console,
-                ) as progress:
-                    progress.add_task("Analyzing correlations...", total=None)
-
-                    # Fetch snapshots
-                    snapshots = {}
-                    for ticker in tickers:
-                        snaps = await price_repo.get_for_market(ticker, limit=100)
-                        if snaps and len(snaps) > 30:
-                            snapshots[ticker] = list(snaps)
-
-                    if len(snapshots) >= 2:
-                        analyzer = CorrelationAnalyzer(min_correlation=0.5)
-                        correlated_pairs = await analyzer.find_correlated_markets(
-                            snapshots, top_n=50
-                        )
-
-        # Find inverse markets (should sum to 100%)
         analyzer = CorrelationAnalyzer()
-        inverse_pairs = analyzer.find_inverse_markets(markets, tolerance=divergence_threshold)
 
         # Find arbitrage opportunities
         opportunities = analyzer.find_arbitrage_opportunities(
@@ -624,7 +724,9 @@ def scan_arbitrage(
         )
 
         # Combine with inverse pairs
-        for m1, m2, deviation in inverse_pairs:
+        for m1, m2, deviation in analyzer.find_inverse_markets(
+            markets, tolerance=divergence_threshold
+        ):
             from kalshi_research.analysis.correlation import ArbitrageOpportunity
 
             opportunities.append(
@@ -683,6 +785,13 @@ def scan_movers(  # noqa: PLR0915
     ] = Path("data/kalshi.db"),
     period: Annotated[str, typer.Option("--period", "-p", help="Time period: 1h, 6h, 24h")] = "24h",
     top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit for market fetch (None = full).",
+        ),
+    ] = None,
 ) -> None:
     """Show biggest price movers over a time period."""
     from datetime import timedelta
@@ -721,7 +830,9 @@ def scan_movers(  # noqa: PLR0915
                 console=console,
             ) as progress:
                 progress.add_task("Fetching current markets...", total=None)
-                markets = [m async for m in client.get_all_markets(status="open")]
+                markets = [
+                    m async for m in client.get_all_markets(status="open", max_pages=max_pages)
+                ]
 
         market_lookup = {m.ticker: m for m in markets}
 
@@ -755,7 +866,9 @@ def scan_movers(  # noqa: PLR0915
                     oldest = recent_snaps[-1]  # Oldest in range
                     newest = recent_snaps[0]  # Most recent
 
-                    price_change = newest.midpoint - oldest.midpoint
+                    old_prob = oldest.implied_probability
+                    new_prob = newest.implied_probability
+                    price_change = new_prob - old_prob
 
                     if abs(price_change) > 0.01:  # At least 1% move
                         movers.append(
@@ -763,8 +876,8 @@ def scan_movers(  # noqa: PLR0915
                                 "ticker": ticker,
                                 "title": market.title,
                                 "price_change": price_change,
-                                "old_price": oldest.midpoint,
-                                "new_price": newest.midpoint,
+                                "old_price": old_prob,
+                                "new_price": new_prob,
                                 "volume": market.volume,
                             }
                         )
@@ -943,6 +1056,13 @@ def alerts_monitor(
         bool,
         typer.Option("--once", help="Run a single check cycle and exit."),
     ] = False,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit for market fetch (None = full).",
+        ),
+    ] = None,
 ) -> None:
     """Start monitoring alerts (runs in foreground)."""
     from kalshi_research.alerts import AlertMonitor
@@ -980,10 +1100,15 @@ def alerts_monitor(
         )
         monitor.add_condition(condition)
 
-    console.print(
-        f"[green]✓[/green] Monitoring {len(conditions_data)} alerts (checking every {interval}s)"
-    )
-    console.print("[dim]Press Ctrl+C to stop[/dim]\n")
+    if once:
+        console.print(f"[green]✓[/green] Monitoring {len(conditions_data)} alerts (single check)")
+        console.print("[dim]Running single check...[/dim]\n")
+    else:
+        console.print(
+            f"[green]✓[/green] Monitoring {len(conditions_data)} alerts "
+            f"(checking every {interval}s)"
+        )
+        console.print("[dim]Press Ctrl+C to stop[/dim]\n")
 
     async def _monitor_loop() -> None:
         """Main monitoring loop."""
@@ -991,8 +1116,12 @@ def alerts_monitor(
         async with KalshiPublicClient() as client:
             try:
                 while True:
-                    # Fetch all open markets
-                    markets = [m async for m in client.get_all_markets(status="open")]
+                    # Fetch all open markets (with progress for long-running fetch)
+                    console.print("[dim]Fetching markets...[/dim]", end="")
+                    markets = [
+                        m async for m in client.get_all_markets(status="open", max_pages=max_pages)
+                    ]
+                    console.print(f"[dim] ({len(markets)} markets)[/dim]")
 
                     # Check conditions
                     alerts = await monitor.check_conditions(markets)
@@ -1004,6 +1133,7 @@ def alerts_monitor(
                         )
 
                     if once:
+                        console.print("[green]✓[/green] Single check complete")
                         return
 
                     # Wait for next check
@@ -1145,7 +1275,7 @@ def analysis_metrics(
 
         table.add_row("Yes Bid/Ask", f"{price.yes_bid}¢ / {price.yes_ask}¢")
         table.add_row("No Bid/Ask", f"{price.no_bid}¢ / {price.no_ask}¢")
-        spread = price.yes_ask - price.yes_bid if price.yes_ask and price.yes_bid else 0
+        spread = price.yes_ask - price.yes_bid
         table.add_row("Spread", f"{spread}¢")
         table.add_row("Volume (24h)", f"{price.volume_24h:,}")
         table.add_row("Open Interest", f"{price.open_interest:,}")
@@ -1482,47 +1612,277 @@ def research_thesis_resolve(
     console.print(f"[yellow]Thesis not found: {thesis_id}[/yellow]")
 
 
+def _parse_backtest_dates(start: str, end: str) -> tuple[datetime, datetime]:
+    """Parse and validate backtest dates."""
+    try:
+        start_dt = datetime.fromisoformat(start)
+        end_dt = datetime.fromisoformat(end)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] Invalid date format: {e}")
+        console.print("[dim]Use YYYY-MM-DD format.[/dim]")
+        raise typer.Exit(1) from None
+
+    if start_dt >= end_dt:
+        console.print("[red]Error:[/red] Start date must be before end date")
+        raise typer.Exit(1)
+
+    return start_dt, end_dt
+
+
+def _display_backtest_results(results: list[Any], start: str, end: str) -> None:
+    """Helper to display backtest results."""
+    # Calculate aggregate statistics
+    total_trades = sum(r.total_trades for r in results)
+    total_pnl = sum(r.total_pnl for r in results)
+    total_wins = sum(r.winning_trades for r in results)
+    avg_brier = sum(r.brier_score for r in results) / len(results) if results else 0
+
+    # Display summary table
+    summary_table = Table(title="Backtest Summary")
+    summary_table.add_column("Metric", style="cyan")
+    summary_table.add_column("Value", style="green")
+
+    summary_table.add_row("Date Range", f"{start} to {end}")
+    summary_table.add_row("Theses Tested", str(len(results)))
+    summary_table.add_row("Total Trades", str(total_trades))
+    summary_table.add_row(
+        "Aggregate Win Rate",
+        f"{total_wins / total_trades:.1%}" if total_trades > 0 else "N/A",
+    )
+    pnl_color = "green" if total_pnl >= 0 else "red"
+    summary_table.add_row("Total P&L", f"[{pnl_color}]{total_pnl:+.0f}¢[/{pnl_color}]")
+    summary_table.add_row("Avg Brier Score", f"{avg_brier:.4f}")
+
+    console.print(summary_table)
+    console.print()
+
+    # Display per-thesis results
+    detail_table = Table(title="Per-Thesis Results")
+    detail_table.add_column("Thesis ID", style="cyan", max_width=15)
+    detail_table.add_column("Trades", justify="right")
+    detail_table.add_column("Win Rate", justify="right")
+    detail_table.add_column("P&L", justify="right")
+    detail_table.add_column("Brier", justify="right")
+    detail_table.add_column("Sharpe", justify="right")
+
+    for result in sorted(results, key=lambda r: r.total_pnl, reverse=True):
+        pnl_str = f"{result.total_pnl:+.0f}¢"
+        pnl_color = "green" if result.total_pnl >= 0 else "red"
+        detail_table.add_row(
+            result.thesis_id[:15],
+            str(result.total_trades),
+            f"{result.win_rate:.1%}" if result.total_trades > 0 else "N/A",
+            f"[{pnl_color}]{pnl_str}[/{pnl_color}]",
+            f"{result.brier_score:.4f}",
+            f"{result.sharpe_ratio:.2f}" if result.sharpe_ratio != 0 else "N/A",
+        )
+
+    console.print(detail_table)
+
+
 @research_app.command("backtest")
 def research_backtest(
     start: Annotated[str, typer.Option("--start", help="Start date (YYYY-MM-DD)")],
     end: Annotated[str, typer.Option("--end", help="End date (YYYY-MM-DD)")],
+    thesis_id: Annotated[
+        str | None,
+        typer.Option(
+            "--thesis",
+            "-t",
+            help="Specific thesis ID to backtest (default: all resolved)",
+        ),
+    ] = None,
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
     ] = Path("data/kalshi.db"),
 ) -> None:
-    """Run a backtest (placeholder - requires strategy implementation)."""
+    """
+    Run backtests on resolved theses using historical settlements.
+
+    Uses the ThesisBacktester class to compute real P&L, win rate, and Brier scores
+    from actual settlement data in the database.
+
+    Examples:
+        kalshi research backtest --start 2024-01-01 --end 2024-12-31
+        kalshi research backtest --thesis abc123 --start 2024-06-01 --end 2024-12-31
+    """
+    from sqlalchemy import select
+
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.data.models import Settlement
+    from kalshi_research.research.backtest import ThesisBacktester
+    from kalshi_research.research.thesis import ThesisManager, ThesisStatus
+
     if not db_path.exists():
         console.print(f"[red]Error:[/red] Database not found at {db_path}")
+        console.print("[dim]Run 'kalshi data init' first.[/dim]")
         raise typer.Exit(1)
 
-    console.print(f"[yellow]Backtest:[/yellow] {start} to {end}")
-    console.print(
-        "[dim]Note: Full backtesting requires strategy definition. "
-        "See ThesisBacktester class for implementation.[/dim]"
-    )
+    async def _backtest() -> None:
+        db = DatabaseManager(db_path)
+        thesis_mgr = ThesisManager()
+        backtester = ThesisBacktester()
 
-    # Mock output for now
-    table = Table(title="Backtest Results")
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="green")
+        console.print(f"[dim]Backtesting from {start} to {end}...[/dim]")
 
-    table.add_row("Total Trades", "10")
-    table.add_row("Win Rate", "60.0%")
-    table.add_row("Total P&L", "$150.00")
-    table.add_row("Sharpe Ratio", "1.5")
+        try:
+            start_dt, end_dt = _parse_backtest_dates(start, end)
 
-    console.print(table)
+            # Load theses
+            if thesis_id:
+                thesis = thesis_mgr.get(thesis_id)
+                if not thesis:
+                    console.print(f"[red]Error:[/red] Thesis '{thesis_id}' not found")
+                    console.print(
+                        "[dim]Use 'kalshi research thesis list' to see available theses.[/dim]"
+                    )
+                    raise typer.Exit(1)
+                theses = [thesis]
+            else:
+                theses = thesis_mgr.list_all()
+
+            # Filter to resolved theses only
+            resolved = [t for t in theses if t.status == ThesisStatus.RESOLVED]
+            if not resolved:
+                console.print("[yellow]No resolved theses to backtest[/yellow]")
+                console.print(
+                    "[dim]Theses must be resolved before backtesting. "
+                    "Use 'kalshi research thesis resolve'.[/dim]"
+                )
+                return
+
+            console.print(f"[dim]Found {len(resolved)} resolved theses[/dim]")
+
+            # Load settlements from DB
+            async with db.session_factory() as session:
+                result = await session.execute(
+                    select(Settlement).where(
+                        Settlement.settled_at >= start_dt,
+                        Settlement.settled_at <= end_dt,
+                    )
+                )
+                settlements = list(result.scalars().all())
+
+            if not settlements:
+                console.print(f"[yellow]No settlements found between {start} and {end}[/yellow]")
+                console.print(
+                    "[dim]Run 'kalshi data sync-settlements' to fetch settlement data.[/dim]"
+                )
+                return
+
+            console.print(f"[dim]Found {len(settlements)} settlements in date range[/dim]")
+
+            # Run backtest with progress indicator
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                transient=True,
+            ) as progress:
+                progress.add_task(f"Backtesting {len(resolved)} theses...", total=None)
+                results = await backtester.backtest_all(resolved, settlements)
+
+            if not results:
+                console.print("[yellow]No backtest results generated[/yellow]")
+                console.print("[dim]This can happen if no theses match the settlement data.[/dim]")
+                return
+
+            _display_backtest_results(results, start, end)
+
+        finally:
+            await db.close()
+
+    asyncio.run(_backtest())
 
 
 # ==================== Portfolio Commands ====================
 
 
 @portfolio_app.command("sync")
-def portfolio_sync() -> None:
-    """Sync positions and trades from Kalshi API."""
-    console.print("[yellow]⚠[/yellow] Portfolio sync requires authentication (not yet implemented)")
-    console.print("[dim]Set KALSHI_API_KEY and KALSHI_PRIVATE_KEY_PATH to enable sync[/dim]")
+def portfolio_sync(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = Path("data/kalshi.db"),
+    environment: Annotated[
+        str | None,
+        typer.Option("--env", help="Override global environment (demo or prod)."),
+    ] = None,
+    skip_mark_prices: Annotated[
+        bool,
+        typer.Option(
+            "--skip-mark-prices",
+            help="Skip fetching current market prices (faster sync).",
+        ),
+    ] = False,
+) -> None:
+    """Sync positions and trades from Kalshi API.
+
+    Syncs positions, trades, cost basis (FIFO), mark prices, and unrealized P&L.
+    """
+    import os
+
+    from kalshi_research.api import KalshiClient, KalshiPublicClient
+    from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.portfolio.syncer import PortfolioSyncer
+
+    key_id = os.getenv("KALSHI_KEY_ID")
+    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
+    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
+
+    if not key_id or (not private_key_path and not private_key_b64):
+        console.print("[red]Error:[/red] Portfolio sync requires authentication.")
+        console.print(
+            "[dim]Set KALSHI_KEY_ID and KALSHI_PRIVATE_KEY_PATH "
+            "(or KALSHI_PRIVATE_KEY_B64) to enable portfolio sync[/dim]"
+        )
+        raise typer.Exit(1)
+
+    async def _sync() -> None:
+        db = DatabaseManager(db_path)
+        try:
+            await db.create_tables()
+            async with KalshiClient(
+                key_id=key_id,
+                private_key_path=private_key_path,
+                private_key_b64=private_key_b64,
+                environment=environment,
+            ) as client:
+                syncer = PortfolioSyncer(client=client, db=db)
+
+                # Sync trades first (needed for cost basis calculation)
+                console.print("[dim]Syncing trades...[/dim]")
+                trades_count = await syncer.sync_trades()
+                console.print(f"[green]✓[/green] Synced {trades_count} trades")
+
+                # Sync positions (computes cost basis from trades via FIFO)
+                console.print("[dim]Syncing positions + cost basis (FIFO)...[/dim]")
+                positions_count = await syncer.sync_positions()
+                console.print(f"[green]✓[/green] Synced {positions_count} positions")
+
+                # Update mark prices + unrealized P&L (requires public API)
+                if not skip_mark_prices and positions_count > 0:
+                    console.print("[dim]Fetching mark prices...[/dim]")
+                    # Use same environment for public client
+                    async with KalshiPublicClient(environment=environment) as public_client:
+                        updated = await syncer.update_mark_prices(public_client)
+                        console.print(
+                            f"[green]✓[/green] Updated mark prices for {updated} positions"
+                        )
+
+                console.print(
+                    f"\n[green]✓[/green] Portfolio sync complete: "
+                    f"{positions_count} positions, {trades_count} trades"
+                )
+
+        except KalshiAPIError as e:
+            console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+            raise typer.Exit(1) from None
+        finally:
+            await db.close()
+
+    asyncio.run(_sync())
 
 
 @portfolio_app.command("positions")
@@ -1570,7 +1930,11 @@ def portfolio_positions(
                 total_unrealized = 0
                 for pos in positions:
                     avg_price = f"{pos.avg_price_cents}¢"
-                    current = f"{pos.current_price_cents}¢" if pos.current_price_cents else "-"
+                    current = (
+                        f"{pos.current_price_cents}¢"
+                        if pos.current_price_cents is not None
+                        else "-"
+                    )
 
                     unrealized = pos.unrealized_pnl_cents or 0
                     total_unrealized += unrealized
@@ -1681,14 +2045,55 @@ def portfolio_pnl(  # noqa: PLR0915
 
 
 @portfolio_app.command("balance")
-def portfolio_balance() -> None:
+def portfolio_balance(
+    environment: Annotated[
+        str | None,
+        typer.Option("--env", help="Override global environment (demo or prod)."),
+    ] = None,
+) -> None:
     """View account balance."""
-    console.print(
-        "[yellow]⚠[/yellow] Account balance requires authentication (not yet implemented)"
-    )
-    console.print(
-        "[dim]Set KALSHI_API_KEY and KALSHI_PRIVATE_KEY_PATH to enable balance check[/dim]"
-    )
+    import os
+
+    from kalshi_research.api import KalshiClient
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    key_id = os.getenv("KALSHI_KEY_ID")
+    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
+    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
+
+    if not key_id or (not private_key_path and not private_key_b64):
+        console.print("[red]Error:[/red] Balance requires authentication.")
+        console.print(
+            "[dim]Set KALSHI_KEY_ID and KALSHI_PRIVATE_KEY_PATH "
+            "(or KALSHI_PRIVATE_KEY_B64) to enable balance checks[/dim]"
+        )
+        raise typer.Exit(1)
+
+    async def _balance() -> None:
+        async with KalshiClient(
+            key_id=key_id,
+            private_key_path=private_key_path,
+            private_key_b64=private_key_b64,
+            environment=environment,
+        ) as client:
+            try:
+                balance = await client.get_balance()
+            except KalshiAPIError as e:
+                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+                raise typer.Exit(1) from None
+
+        if not balance:
+            console.print("[yellow]No balance data returned[/yellow]")
+            return
+
+        table = Table(title="Account Balance")
+        table.add_column("Field", style="cyan")
+        table.add_column("Value", style="green")
+        for k, v in sorted(balance.items()):
+            table.add_row(str(k), str(v))
+        console.print(table)
+
+    asyncio.run(_balance())
 
 
 @portfolio_app.command("history")

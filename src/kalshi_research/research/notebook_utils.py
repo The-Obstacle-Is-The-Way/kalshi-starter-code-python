@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any
 
 import pandas as pd
@@ -28,11 +29,15 @@ try:
 except ImportError:
     IPYTHON_AVAILABLE = False
 
+logger = logging.getLogger(__name__)
+
 try:
+    plt: Any | None
     import matplotlib.pyplot as plt
 
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
+    plt = None
     MATPLOTLIB_AVAILABLE = False
 
 
@@ -56,7 +61,7 @@ def setup_notebook(
     pd.set_option("display.float_format", "{:.4f}".format)
 
     # Matplotlib settings
-    if MATPLOTLIB_AVAILABLE and IPYTHON_AVAILABLE:
+    if MATPLOTLIB_AVAILABLE and IPYTHON_AVAILABLE and plt is not None:
         try:
             ipython = get_ipython()
             if ipython:
@@ -66,9 +71,8 @@ def setup_notebook(
             plt.style.use("seaborn-v0_8-whitegrid")
             plt.rcParams["figure.figsize"] = (12, 6)
             plt.rcParams["font.size"] = 12
-        except Exception:
-            # Silently fail if matplotlib config fails
-            pass
+        except Exception as e:
+            logger.warning("setup_notebook() matplotlib configuration failed: %s", e)
 
     print("Notebook configured for Kalshi research.")
 
@@ -92,6 +96,8 @@ async def load_markets(
         count = 0
 
         async for market in client.get_all_markets(status=status):
+            if limit is not None and count >= limit:
+                break
             midpoint = (market.yes_bid + market.yes_ask) / 2
             markets.append(
                 {
@@ -111,8 +117,6 @@ async def load_markets(
             )
 
             count += 1
-            if limit and count >= limit:
-                break
 
     return pd.DataFrame(markets)
 
@@ -124,6 +128,8 @@ async def load_events(limit: int | None = None) -> pd.DataFrame:
         count = 0
 
         async for event in client.get_all_events():
+            if limit is not None and count >= limit:
+                break
             events.append(
                 {
                     "event_ticker": event.event_ticker,
@@ -134,8 +140,6 @@ async def load_events(limit: int | None = None) -> pd.DataFrame:
             )
 
             count += 1
-            if limit and count >= limit:
-                break
 
     return pd.DataFrame(events)
 
