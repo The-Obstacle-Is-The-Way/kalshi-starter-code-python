@@ -19,8 +19,13 @@ class KalshiAPIError(KalshiError):
 class RateLimitError(KalshiAPIError):
     """Rate limit exceeded (HTTP 429)."""
 
-    def __init__(self, message: str = "Rate limit exceeded") -> None:
+    def __init__(
+        self,
+        message: str = "Rate limit exceeded",
+        retry_after: int | None = None,
+    ) -> None:
         super().__init__(429, message)
+        self.retry_after = retry_after
 
 
 class AuthenticationError(KalshiAPIError):
