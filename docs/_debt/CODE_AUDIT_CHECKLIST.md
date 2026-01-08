@@ -2,7 +2,7 @@
 
 **Purpose:** Systematic checklist for detecting bugs, anti-patterns, and security vulnerabilities in codebases—especially those containing AI-generated code.
 
-**Last Updated:** 2026-01-07
+**Last Updated:** 2026-01-08
 **Sources:** Web research from 2025-2026 industry reports, OWASP, security researchers, and engineering blogs.
 
 ---
@@ -15,10 +15,10 @@
 
 **Why this is egregious:** Mock data in production code paths is the ultimate form of "reward hacking" — the code looks complete, tests may pass, demos look good, but **zero actual work is being done**. This is the AI equivalent of a contractor installing a fake wall that looks real but has nothing behind it.
 
-### Real Example Found (2026-01-07)
+### Historical Example Found (2026-01-07)
 
 ```python
-# src/kalshi_research/cli.py lines 1635-1645 - EGREGIOUS
+# Historical example (this repo, pre-SPEC-018 CLI refactor): src/kalshi_research/cli.py
 @research_app.command("backtest")
 def research_backtest(start, end, db_path):
     # ... validation code that looks legit ...
@@ -86,12 +86,12 @@ For EVERY CLI command and public API function:
 4. **Check parameter usage** — Are all parameters actually used or ignored?
 5. **Diff multiple runs** — Does output change with different inputs?
 
-### Current Known Violations
+### Historical Known Violations (Fixed)
 
-| File | Lines | Issue | Severity |
-|------|-------|-------|----------|
-| `cli.py` | 1635-1645 | `kalshi research backtest` outputs hardcoded fake results | 🔴 CRITICAL |
-| `cli.py` | 1053 | `--daemon` flag accepted but not implemented | 🟡 MEDIUM |
+| File | Lines | Issue | Status |
+|------|-------|-------|--------|
+| `cli.py` (removed; now `cli/research.py`) | N/A | `kalshi research backtest` previously output hardcoded fake results | ✅ Fixed |
+| `cli.py` (removed; now `cli/alerts.py`) | N/A | `--daemon` flag previously accepted but not implemented | ✅ Fixed |
 
 ### The Fix Pattern
 

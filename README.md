@@ -1,5 +1,12 @@
 # Kalshi Research Platform
 
+[![CI](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/The-Obstacle-Is-The-Way/kalshi-starter-code-python/branch/main/graph/badge.svg)](https://codecov.io/gh/The-Obstacle-Is-The-Way/kalshi-starter-code-python)
+[![Python](https://img.shields.io/badge/python-3.11%E2%80%933.13-blue)](https://www.python.org/)
+[![Ruff](https://img.shields.io/badge/code%20style-ruff-261230?logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
+[![Mypy](https://img.shields.io/badge/type%20checked-mypy-blue)](https://mypy-lang.org/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
+
 Research tools for Kalshi prediction market analysis.
 
 ## Features
@@ -19,7 +26,7 @@ Notes:
 
 ```bash
 # Clone the repo
-git clone https://github.com/Kalshi/kalshi-starter-code-python.git
+git clone https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python.git
 cd kalshi-starter-code-python
 
 # Install with uv (recommended)

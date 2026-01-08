@@ -9,9 +9,9 @@
 
 ## Implementation References
 
-- `src/kalshi_research/cli.py` (`kalshi alerts monitor`)
+- `src/kalshi_research/cli/alerts.py` (`kalshi alerts monitor`)
 - `docs/CLI_REFERENCE.md` (`kalshi alerts monitor` help/behavior)
-- `docs/_TODO/REMAINING-WORK.md` (Issue #2)
+- `docs/_archive/todo/TODO-002-remaining-work-audit.md` (Issue #2)
 
 ---
 
@@ -124,4 +124,4 @@ All existing tests must remain green.
 ## 5. Documentation Updates
 
 - Update `docs/CLI_REFERENCE.md` to describe `--daemon` as implemented, including the log file path.
-- Update `docs/_TODO/README.md` and `docs/_TODO/REMAINING-WORK.md` to mark the deferred item as completed.
+- Update `docs/_todo/README.md` and `docs/_archive/todo/TODO-002-remaining-work-audit.md` to mark the deferred item as completed.

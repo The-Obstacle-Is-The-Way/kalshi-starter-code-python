@@ -1,3 +1,4 @@
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from typer.testing import CliRunner
@@ -212,7 +213,7 @@ def test_alerts_list_invalid_json_exits_with_error(tmp_path) -> None:
     alerts_file = tmp_path / "alerts.json"
     alerts_file.write_text("{not json", encoding="utf-8")
 
-    with patch("kalshi_research.cli._get_alerts_file", return_value=alerts_file):
+    with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
         result = runner.invoke(app, ["alerts", "list"])
 
     assert result.exit_code == 1
@@ -223,8 +224,96 @@ def test_thesis_list_invalid_json_exits_with_error(tmp_path) -> None:
     thesis_file = tmp_path / "theses.json"
     thesis_file.write_text("{not json", encoding="utf-8")
 
-    with patch("kalshi_research.cli._get_thesis_file", return_value=thesis_file):
+    with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
         result = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result.exit_code == 1
     assert "Theses file is not valid JSON" in result.stdout
+
+
+def test_global_env_uses_env_var_when_no_flag() -> None:
+    from kalshi_research.api.config import Environment, get_config, set_environment
+
+    set_environment(Environment.PRODUCTION)
+    try:
+        with patch.dict(os.environ, {"KALSHI_ENVIRONMENT": "demo"}, clear=False):
+            result = runner.invoke(app, ["version"])
+
+        assert result.exit_code == 0
+        assert get_config().environment == Environment.DEMO
+    finally:
+        set_environment(Environment.PRODUCTION)
+
+
+def test_global_env_flag_overrides_env_var() -> None:
+    from kalshi_research.api.config import Environment, get_config, set_environment
+
+    set_environment(Environment.PRODUCTION)
+    try:
+        with patch.dict(os.environ, {"KALSHI_ENVIRONMENT": "demo"}, clear=False):
+            result = runner.invoke(app, ["--env", "prod", "version"])
+
+        assert result.exit_code == 0
+        assert get_config().environment == Environment.PRODUCTION
+    finally:
+        set_environment(Environment.PRODUCTION)
+
+
+def test_invalid_global_env_exits_with_error() -> None:
+    with patch.dict(os.environ, {"KALSHI_ENVIRONMENT": "nope"}, clear=False):
+        result = runner.invoke(app, ["version"])
+
+    assert result.exit_code == 1
+    assert "Invalid environment" in result.stdout
+
+
+def test_alerts_monitor_daemon_calls_spawn() -> None:
+    from pathlib import Path
+
+    with (
+        patch("kalshi_research.cli.alerts._load_alerts", return_value={"conditions": [{}]}),
+        patch(
+            "kalshi_research.cli.alerts._spawn_alert_monitor_daemon",
+            return_value=(12345, Path("data/alert_monitor.log")),
+        ) as mock_spawn,
+    ):
+        result = runner.invoke(
+            app, ["--env", "demo", "alerts", "monitor", "--daemon", "--interval", "5"]
+        )
+
+    assert result.exit_code == 0
+    assert "Alert monitor started in background" in result.stdout
+    mock_spawn.assert_called_once()
+    assert mock_spawn.call_args.kwargs["environment"] == "demo"
+    assert mock_spawn.call_args.kwargs["interval"] == 5
+
+
+def test_portfolio_balance_requires_auth() -> None:
+    with patch.dict(
+        os.environ,
+        {
+            "KALSHI_KEY_ID": "",
+            "KALSHI_PRIVATE_KEY_PATH": "",
+            "KALSHI_PRIVATE_KEY_B64": "",
+        },
+        clear=False,
+    ):
+        result = runner.invoke(app, ["portfolio", "balance"])
+
+    assert result.exit_code == 1
+    assert "Balance requires authentication" in result.stdout
+
+
+def test_portfolio_balance_invalid_private_key_b64_exits_cleanly() -> None:
+    with patch.dict(
+        os.environ,
+        {
+            "KALSHI_KEY_ID": "dummy",
+            "KALSHI_PRIVATE_KEY_B64": "not base64",
+        },
+        clear=False,
+    ):
+        result = runner.invoke(app, ["portfolio", "balance"])
+
+    assert result.exit_code == 1
+    assert "Invalid base64 private key" in result.stdout

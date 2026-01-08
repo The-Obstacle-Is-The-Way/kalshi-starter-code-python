@@ -156,8 +156,8 @@ class TestMockDataDetection:
         """CLI should not contain '# Mock' or '# for now' comments."""
         import re
 
-        cli_path = Path("src/kalshi_research/cli.py")
-        content = cli_path.read_text()
+        cli_dir = Path("src/kalshi_research/cli")
+        assert cli_dir.is_dir(), f"Expected CLI package directory at: {cli_dir}"
 
         mock_patterns = [
             r"#\s*[Mm]ock",
@@ -168,13 +168,15 @@ class TestMockDataDetection:
             r"#\s*hardcoded",
         ]
 
-        for pattern in mock_patterns:
-            matches = re.findall(pattern, content)
-            if matches:
-                pytest.fail(
-                    f"Found mock/placeholder comment in cli.py: {matches}. "
-                    "This indicates unfinished implementation masquerading as complete."
-                )
+        for cli_file in sorted(cli_dir.glob("*.py")):
+            content = cli_file.read_text(encoding="utf-8")
+            for pattern in mock_patterns:
+                matches = re.findall(pattern, content)
+                if matches:
+                    pytest.fail(
+                        f"Found mock/placeholder comment in {cli_file}: {matches}. "
+                        "This indicates unfinished implementation masquerading as complete."
+                    )
 
     def test_cli_commands_use_their_imports(self) -> None:
         """
@@ -185,10 +187,6 @@ class TestMockDataDetection:
         import ast
         from pathlib import Path
 
-        cli_path = Path("src/kalshi_research/cli.py")
-        content = cli_path.read_text()
-        tree = ast.parse(content)
-
         # Find all imports of implementation classes
         implementation_classes = {
             "ThesisBacktester",
@@ -197,16 +195,24 @@ class TestMockDataDetection:
             "AlertMonitor",
         }
 
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom):
-                for alias in node.names:
-                    if alias.name in implementation_classes:
-                        # This class is imported somewhere - verify it's instantiated
-                        class_name = alias.name
-                        # Simple check: is it called anywhere?
-                        if f"{class_name}(" not in content:
-                            pytest.fail(
-                                f"{class_name} is imported but never instantiated. "
-                                "This may indicate a mock implementation that imports "
-                                "the real class but doesn't use it."
-                            )
+        cli_dir = Path("src/kalshi_research/cli")
+        assert cli_dir.is_dir(), f"Expected CLI package directory at: {cli_dir}"
+
+        for cli_file in sorted(cli_dir.glob("*.py")):
+            content = cli_file.read_text(encoding="utf-8")
+            tree = ast.parse(content)
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom):
+                    for alias in node.names:
+                        if alias.name in implementation_classes:
+                            # This class is imported somewhere - verify it's instantiated.
+                            class_name = alias.name
+                            # Simple check: is it called anywhere in this module?
+                            if f"{class_name}(" not in content:
+                                pytest.fail(
+                                    f"{class_name} is imported but never instantiated in "
+                                    f"{cli_file}."
+                                    " This may indicate a mock implementation that imports "
+                                    "the real class but doesn't use it."
+                                )

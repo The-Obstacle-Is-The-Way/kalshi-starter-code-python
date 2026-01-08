@@ -17,7 +17,7 @@ This documentation set follows the Diataxis structure: **Tutorials**, **How-to g
 - `docs/CLI_REFERENCE.md` — command index and common options (SSOT = `kalshi --help`).
 - `docs/CONFIGURATION.md` — environment variables, `.env`, auth, demo/prod.
 - `docs/PYTHON_API.md` — public Python APIs and import paths.
-- `docs/kalshi/OFFICIAL-API-REFERENCE.md` — upstream Kalshi API reference (vendor docs).
+- `docs/kalshi-docs/OFFICIAL-API-REFERENCE.md` — upstream Kalshi API reference (vendor docs).
 
 ## Explanation
 

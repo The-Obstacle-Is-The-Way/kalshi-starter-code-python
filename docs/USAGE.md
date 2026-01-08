@@ -179,7 +179,7 @@ The CLI loads `.env` automatically. Configure:
 
 - `KALSHI_KEY_ID`
 - `KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`
-- `KALSHI_ENVIRONMENT` (`demo` or `prod`; defaults to `prod` if unset)
+- `KALSHI_ENVIRONMENT` (`demo` or `prod`; defaults to `prod` if unset; invalid values exit with an error)
 
 ### Balance
 

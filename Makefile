@@ -64,7 +64,7 @@ test-integration:
 	uv run pytest tests/integration -v
 
 test-cov:
-	uv run pytest --cov=src/kalshi_research --cov-report=term-missing --cov-report=html
+	uv run pytest --cov=kalshi_research --cov-report=term-missing --cov-report=html
 
 lint:
 	uv run ruff check .

@@ -75,6 +75,8 @@ class RateLimiter:
     Manages rate limiting for Kalshi API requests.
     """
 
+    BATCH_ORDERS_PATH = "/portfolio/orders/batched"
+
     # Endpoints that count as write operations
     # Note: DELETE is implicitly a write
     WRITE_ENDPOINTS_PREFIX = frozenset(
@@ -132,15 +134,18 @@ class RateLimiter:
         )
 
         if is_write:
+            # Kalshi write-limit cost model:
+            # - CreateOrder / CancelOrder / AmendOrder / DecreaseOrder: 1 transaction
+            # - BatchCreateOrders: 1 transaction per order item
+            # - BatchCancelOrders: 0.2 transactions per cancel item (sole 0.2 exception)
             cost = 1.0
 
-            # Cancel operations are cheaper (0.2)
-            if method == "DELETE" or "decrease" in path:
-                cost = 0.2
-
-            # Batch operations
-            if batch_size > 0:
-                cost = cost * batch_size
+            if path == self.BATCH_ORDERS_PATH:
+                item_count = float(batch_size if batch_size > 0 else 1)
+                if method == "DELETE":
+                    cost = 0.2 * item_count
+                elif method == "POST":
+                    cost = item_count
 
             await self.acquire_write(cost)
         else:

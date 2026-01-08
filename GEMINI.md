@@ -154,7 +154,7 @@ This will automatically check:
     *   `research/`: Thesis management.
     *   `portfolio/`: Position and P&L tracking.
     *   `alerts/`: Alert monitoring system.
-    *   `cli.py`: Typer CLI application entry point.
+    *   `cli/`: Typer CLI application package entry point.
 *   `tests/`: Unit and integration tests.
 *   `docs/`: Documentation and specifications (`_specs`).
 *   `notebooks/`: Jupyter notebooks for exploratory analysis.

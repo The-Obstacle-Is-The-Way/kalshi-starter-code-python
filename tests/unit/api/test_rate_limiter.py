@@ -122,6 +122,35 @@ class TestRateLimiter:
         limiter._write_bucket.acquire.assert_called_once_with(5.0)
 
     @pytest.mark.asyncio
+    async def test_batch_cancel_cost_is_discounted(self) -> None:
+        """Batch cancels are the sole 0.2 write-cost exception."""
+        limiter = RateLimiter(tier=RateTier.BASIC)
+
+        async def mock_acquire(*args, **kwargs):
+            pass
+
+        limiter._write_bucket = MagicMock(spec=TokenBucket)
+        limiter._write_bucket.acquire = MagicMock(side_effect=mock_acquire)
+
+        # Batch cancels -> cost = 0.2 per cancel
+        await limiter.acquire("DELETE", "/portfolio/orders/batched", batch_size=5)
+        limiter._write_bucket.acquire.assert_called_once_with(1.0)
+
+    @pytest.mark.asyncio
+    async def test_single_cancel_order_cost_is_not_discounted(self) -> None:
+        """Single cancel is a normal write (not the 0.2 batch-cancel exception)."""
+        limiter = RateLimiter(tier=RateTier.BASIC)
+
+        async def mock_acquire(*args, **kwargs):
+            pass
+
+        limiter._write_bucket = MagicMock(spec=TokenBucket)
+        limiter._write_bucket.acquire = MagicMock(side_effect=mock_acquire)
+
+        await limiter.acquire("DELETE", "/portfolio/orders/order-id-123")
+        limiter._write_bucket.acquire.assert_called_once_with(1.0)
+
+    @pytest.mark.asyncio
     async def test_non_write_post(self) -> None:
         """POST to non-write endpoint should be read."""
         limiter = RateLimiter(tier=RateTier.BASIC)

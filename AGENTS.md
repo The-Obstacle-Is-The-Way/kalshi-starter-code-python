@@ -41,7 +41,7 @@ git add . && git commit -m "Your message"
   - `api/`: Kalshi HTTP clients + Pydantic models
   - `data/`: async SQLite/SQLAlchemy persistence, repositories, exports
   - `analysis/`, `research/`, `alerts/`, `portfolio/`: domain modules
-  - `cli.py`: Typer CLI entrypoint (`kalshi`)
+  - `cli/`: Typer CLI package entrypoint (`kalshi`)
 - `tests/`: `unit/` mirrors `src/`; `integration/` hits real API (needs creds)
 - `docs/`: usage guides plus specs/bug tracker (`docs/_specs/`, `docs/_bugs/`)
 - `alembic/`, `alembic.ini`: database migrations

@@ -10,13 +10,19 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class MarketStatus(str, Enum):
-    """Market status as returned in API responses."""
+    """Market status as returned in API responses.
+
+    Note: Filter params use different values (MarketFilterStatus).
+    See: docs/kalshi-docs/OFFICIAL-API-REFERENCE.md
+    """
 
     INITIALIZED = "initialized"  # New markets not yet open
     ACTIVE = "active"
     INACTIVE = "inactive"
     CLOSED = "closed"
     DETERMINED = "determined"
+    DISPUTED = "disputed"  # Market outcome under dispute
+    AMENDED = "amended"  # Market terms were amended
     FINALIZED = "finalized"
 
 

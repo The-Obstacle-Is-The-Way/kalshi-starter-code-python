@@ -4,7 +4,7 @@
 
 The core package lives at `src/kalshi_research/`:
 
-- `cli.py` — Typer CLI entrypoint (`kalshi`)
+- `cli/` — Typer CLI package entrypoint (`kalshi`)
 - `api/` — async HTTP clients (`KalshiPublicClient`, `KalshiClient`) + Pydantic models
 - `data/` — async SQLite/SQLAlchemy persistence (`DatabaseManager`), repositories, export utilities, scheduler
 - `analysis/` — calibration/metrics/correlation/scanning/visualization utilities

@@ -5,6 +5,9 @@
 **Status:** ✅ RESOLVED (All critical issues fixed)
 **Resolution Date:** 2026-01-07
 
+> Note: This document is archived. References to `src/kalshi_research/cli.py` are historical (pre-SPEC-018).
+> The current CLI lives in `src/kalshi_research/cli/`.
+
 ---
 
 # ⚠️ CRITICAL FINDING: Mock Data in Production Code
