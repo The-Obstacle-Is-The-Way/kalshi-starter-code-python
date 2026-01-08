@@ -2,12 +2,15 @@
 
 This directory is the staging area for **active** bug reports. Once resolved, bugs are moved to the archive.
 
-## 🟢 Current Status
-**No active bugs.** All known issues have been resolved.
+## Active Bugs
 
-## 📋 Next ID Tracker
+| ID | Title | Priority | Status |
+|---|---|---|---|
+| **BUG-045** | [Legacy WebSocket Client Uses print()](BUG-045-legacy-websocket-client-uses-print.md) | P3 | Open |
+
+## Next ID Tracker
 Use this ID for the next bug report you create:
-# **BUG-045**
+# **BUG-046**
 
 ---
 
