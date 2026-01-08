@@ -1,78 +1,57 @@
-# Kalshi Research Platform - Bug Tracker
+# Bug Reports Index
 
-**Audit Date:** 2026-01-08
-**Auditor:** Codex CLI (GPT-5.2)
+This directory is the staging area for **active** bug reports. Once resolved, bugs are moved to the archive.
 
----
+## 🟢 Current Status
+**No active bugs.** All known issues have been resolved.
 
-## Quality Gates (CI-like)
-
-| Check | Status |
-|-------|--------|
-| `uv run ruff check .` | ✅ PASS |
-| `uv run ruff format --check .` | ✅ PASS |
-| `uv run mypy src/ --strict` | ✅ PASS |
-| `uv run pytest -m "not integration and not slow"` | ✅ PASS |
-| `uv run pytest` | ✅ PASS |
-
-**Test Results:** `412 passed, 34 deselected` (`integration` + `slow` excluded).
-**Full Suite:** `438 passed, 8 skipped` (live API tests skipped unless `KALSHI_RUN_LIVE_API=1`).
+## 📋 Next ID Tracker
+Use this ID for the next bug report you create:
+# **BUG-041**
 
 ---
 
-## Bug Status Overview
+## 🗄️ Archive (Resolved)
+All resolved bug reports are stored in [`../_archive/bugs/`](../_archive/bugs/).
 
-| ID | Priority | Status | Summary |
-|----|----------|--------|---------|
-| BUG-001 | P1 | ✅ Fixed | Missing `scan` CLI command |
-| BUG-002 | P2 | ✅ Fixed | Missing Alembic configuration |
-| BUG-003 | P3 | ✅ Fixed | Missing notebooks directory |
-| BUG-004 | P3 | ✅ Fixed | Missing analysis modules |
-| BUG-005 | P3 | ✅ Fixed | Missing research/backtest modules |
-| BUG-006 | P1 | ✅ Fixed | Missing alerts system |
-| BUG-007 | P1 | ✅ Fixed | CI/CD test failures |
-| BUG-008 | P4 | ✅ Fixed | Inconsistent test structure |
-| BUG-009 | P3 | ✅ Fixed | Incomplete CLI commands |
-| BUG-010 | P4 | ✅ Fixed | Portfolio ↔ thesis linking commands |
-| BUG-011 | P0 | ✅ Fixed | `/events` `limit` capped to 200 |
-| BUG-012 | P1 | ✅ Fixed | `MarketStatus` missing `"initialized"` |
-| BUG-013 | P1 | ✅ Fixed | DB init omitted portfolio tables |
-| BUG-014 | P1 | ✅ Fixed | `kalshi analysis calibration` crash |
-| BUG-015 | P1 | ✅ Fixed | `kalshi scan movers` timezone crash |
-| BUG-016 | P1 | ✅ Fixed | `kalshi data snapshot` missing init |
-| BUG-018 | P4 | ✅ Fixed | API Client internal typing (Tech Debt) |
-| BUG-019 | P3 | ✅ Fixed | Portfolio sync + CLI wiring |
-| BUG-020 | P4 | ✅ Fixed | Visualization strict typing friction |
-| BUG-021 | P3 | ✅ Fixed | Notebook utils limit + exception handling |
-| BUG-022 | P2 | ✅ Fixed | API client 0-valued params + fills limit cap |
-| BUG-023 | P2 | ✅ Fixed | `query_parquet()` path validation |
-| BUG-024 | P2 | ✅ Fixed | Legacy `requests` client timeouts |
-| BUG-025 | P2 | ✅ Fixed | Positions missing cost basis + mark price |
-| BUG-026 | P0 | ✅ Fixed | `kalshi data snapshot` FOREIGN KEY constraint failure |
-| BUG-027 | P1 | ✅ Fixed | Pagination cap silently truncates markets/events |
-| BUG-028 | P2 | ✅ Fixed | `kalshi alerts monitor --once` UX + progress |
-| BUG-029 | P2 | ✅ Fixed | Close-race scanner returns illiquid/unpriced markets |
-| BUG-030 | P3 | ✅ Fixed | Arbitrage scan false positives from 0/0 markets |
-| BUG-031 | P2 | ✅ Fixed | `kalshi scan movers` percent units wrong |
-| BUG-032 | P3 | ✅ Fixed | `kalshi scan arbitrage` silently truncates tickers |
-| BUG-033 | P0 | ✅ Fixed | Market model API schema mismatch (negative liquidity, missing status) |
-| BUG-034 | P4 | ✅ Fixed | Portfolio positions hides 0¢ mark price |
-| BUG-035 | P3 | ✅ Fixed | Scan/snapshot commands missing `--max-pages` safety limit |
-| BUG-036 | P4 | ✅ Fixed | `kalshi analysis metrics` spread treats 0 as missing |
-| BUG-037 | P4 | ✅ Fixed | `plot_edge_histogram` treats 0.0 as missing |
-| BUG-038 | P3 | ✅ Fixed | `scan arbitrage` inverse-sum noisy for one-sided quotes |
-| BUG-039 | P1 | ✅ Fixed | CLI doesn’t load `.env` for authenticated commands |
-| BUG-040 | P1 | ✅ Fixed | Alembic `fileConfig()` disables application loggers (test-order flake) |
-
----
-
-## Open Bugs
-
-None. All bugs have been fixed. 🎉
-
----
-
-## References
-
-- Spec index: `docs/_specs/README.md`
-- Full audit report: `AUDIT_REPORT.md`
+| ID | Title | Status |
+|---|---|---|
+| **BUG-040** | Alembic FileConfig Disables Existing Loggers | ✅ Fixed |
+| **BUG-039** | CLI Dotenv Not Loaded for Auth | ✅ Fixed |
+| **BUG-038** | Scan Arbitrage Inverse One-Sided Quotes | ✅ Fixed |
+| **BUG-037** | Edge Histogram Zero Estimate Truthiness | ✅ Fixed |
+| **BUG-036** | Analysis Metrics Spread Truthiness | ✅ Fixed |
+| **BUG-035** | Scan & Snapshot Missing Max Pages | ✅ Fixed |
+| **BUG-034** | Portfolio Positions Hides Zero Price | ✅ Fixed |
+| **BUG-033** | Market Model API Schema Mismatch | ✅ Fixed |
+| **BUG-032** | Scan Arbitrage Tickers Limit Silent | ✅ Fixed |
+| **BUG-031** | Scan Movers Percent Units Wrong | ✅ Fixed |
+| **BUG-030** | Scan Arbitrage Inverse Sum False Positives | ✅ Fixed |
+| **BUG-029** | Scan Close Race Returns Illiquid Junk | ✅ Fixed |
+| **BUG-028** | Alerts Monitor "Once" Flag Ignored | ✅ Fixed |
+| **BUG-027** | Pagination Cap Silently Truncates Data | ✅ Fixed |
+| **BUG-026** | Data Snapshot Foreign Key Failure | ✅ Fixed |
+| **BUG-025** | Portfolio Positions Missing Cost Basis | ✅ Fixed |
+| **BUG-024** | Legacy Client Missing Timeouts | ✅ Fixed |
+| **BUG-023** | Query Parquet Path Validation | ✅ Fixed |
+| **BUG-022** | API Client Truthiness Filters | ✅ Fixed |
+| **BUG-021** | Notebook Utils Limit & Exception Handling | ✅ Fixed |
+| **BUG-020** | Visualization Type Ignores | ✅ Fixed |
+| **BUG-019** | Portfolio Sync Incomplete | ✅ Fixed |
+| **BUG-018** | API Client Type Safety | ✅ Fixed |
+| **BUG-016** | Data Snapshot Missing Init | ✅ Fixed |
+| **BUG-015** | Scan Movers Timezone Crash | ✅ Fixed |
+| **BUG-014** | CLI Analysis Calibration Broken | ✅ Fixed |
+| **BUG-013** | Database Init Missing Portfolio Tables | ✅ Fixed |
+| **BUG-012** | Missing Market Status Enum | ✅ Fixed |
+| **BUG-011** | API Limit Exceeds Max | ✅ Fixed |
+| **BUG-010** | Missing Portfolio Link | ✅ Fixed |
+| **BUG-009** | Incomplete CLI Commands | ✅ Fixed |
+| **BUG-008** | Inconsistent Test Structure | ✅ Fixed |
+| **BUG-007** | CI/CD Test Failures | ✅ Fixed |
+| **BUG-006** | Missing Alerts System | ✅ Fixed |
+| **BUG-005** | Missing Research Modules | ✅ Fixed |
+| **BUG-004** | Missing Analysis Modules | ✅ Fixed |
+| **BUG-003** | Missing Notebooks Directory | ✅ Fixed |
+| **BUG-002** | Missing Alembic Configuration | ✅ Fixed |
+| **BUG-001** | Missing Scan CLI Command | ✅ Fixed |
