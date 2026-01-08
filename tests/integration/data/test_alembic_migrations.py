@@ -19,7 +19,7 @@ def prevent_alembic_logging_pollution(monkeypatch):
     """
     import logging.config
 
-    monkeypatch.setattr(logging.config, "fileConfig", lambda *args, **kwargs: None)
+    monkeypatch.setattr(logging.config, "fileConfig", lambda *_args, **_kwargs: None)
 
 
 def _tables(db_path) -> set[str]:
