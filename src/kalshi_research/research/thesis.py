@@ -182,13 +182,28 @@ class ThesisTracker:
         if self.storage_path.exists():
             with self.storage_path.open() as f:
                 data = json.load(f)
-            self.theses = {k: Thesis.from_dict(v) for k, v in data.items()}
+
+            # Handle CLI format {"theses": [...]}
+            if "theses" in data and isinstance(data["theses"], list):
+                self.theses = {t["id"]: Thesis.from_dict(t) for t in data["theses"]}
+            else:
+                # Fallback to direct dict format (if any exist or for backward compat)
+                # Note: This branch might fail if data contains other keys like 'conditions'
+                # so we should be careful. But for now, assuming if not "theses", it's legacy dict.
+                try:
+                    self.theses = {k: Thesis.from_dict(v) for k, v in data.items() if isinstance(v, dict)}
+                except (AttributeError, KeyError):
+                    self.theses = {}
 
     def _save(self) -> None:
         """Save theses to storage."""
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+        # Save in CLI-compatible format
+        data = {
+            "theses": [t.to_dict() for t in self.theses.values()]
+        }
         with self.storage_path.open("w") as f:
-            json.dump({k: v.to_dict() for k, v in self.theses.items()}, f, indent=2)
+            json.dump(data, f, indent=2)
 
     def add(self, thesis: Thesis) -> None:
         """Add a thesis."""
@@ -221,6 +236,10 @@ class ThesisTracker:
     def list_by_status(self, status: ThesisStatus) -> list[Thesis]:
         """Get theses by status."""
         return [t for t in self.theses.values() if t.status == status]
+
+    def list_all(self) -> list[Thesis]:
+        """Get all theses."""
+        return list(self.theses.values())
 
     def performance_summary(self) -> dict[str, Any]:
         """
@@ -256,3 +275,6 @@ class ThesisTracker:
                 sum(t.edge_size for t in incorrect) / len(incorrect) if incorrect else None
             ),
         }
+
+
+ThesisManager = ThesisTracker
