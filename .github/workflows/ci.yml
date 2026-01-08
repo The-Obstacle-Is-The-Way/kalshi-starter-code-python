@@ -34,9 +34,6 @@ jobs:
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -58,14 +55,20 @@ jobs:
             --cov-report=xml \
             --cov-report=term-missing \
             -m "not integration and not slow"
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        if: matrix.python-version == '3.11'
+      - name: Upload coverage (tokenless)
+        uses: codecov/codecov-action@v5
+        if: matrix.python-version == '3.11' && secrets.CODECOV_TOKEN == ''
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+
+      - name: Upload coverage (token)
+        uses: codecov/codecov-action@v5
+        if: matrix.python-version == '3.11' && secrets.CODECOV_TOKEN != ''
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
-          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
 
   integration:
     name: Integration Tests
