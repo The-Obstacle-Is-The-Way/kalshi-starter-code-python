@@ -11,6 +11,7 @@ If you haven’t installed the `kalshi` entrypoint globally, use `uv run kalshi 
 
 ## Top-level
 
+- Global option: `--env/-e` (defaults to `KALSHI_ENVIRONMENT` or `prod`)
 - `kalshi version`
 - `kalshi data ...`
 - `kalshi market ...`
@@ -82,7 +83,7 @@ The CLI loads `.env` automatically. Authenticated commands require:
 
 - `KALSHI_KEY_ID`
 - `KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`
-- `KALSHI_ENVIRONMENT` (`demo` or `prod`, default `demo`)
+- `KALSHI_ENVIRONMENT` (`demo` or `prod`; defaults to `prod` if unset)
 
 Commands:
 

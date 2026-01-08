@@ -13,14 +13,14 @@ Research tools for Kalshi prediction market analysis.
 - **Notebooks** - Jupyter templates for exploration
 
 Notes:
-- `kalshi research backtest` exists but is currently a placeholder.
+- `kalshi research backtest` runs real backtests on resolved theses (requires settlements in your DB).
 
 ## Installation
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/kalshi-research.git
-cd kalshi-research
+git clone https://github.com/Kalshi/kalshi-starter-code-python.git
+cd kalshi-starter-code-python
 
 # Install with uv (recommended)
 uv sync --all-extras

@@ -221,7 +221,7 @@ chmod 600 keys/demo_private_key.pem
 
 # Set environment variables
 export KALSHI_ENVIRONMENT=demo
-export KALSHI_API_KEY=your-demo-key-id
+export KALSHI_KEY_ID=your-demo-key-id
 export KALSHI_PRIVATE_KEY_PATH=./keys/demo_private_key.pem
 ```
 
@@ -242,7 +242,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       KALSHI_ENVIRONMENT: demo
-      KALSHI_API_KEY: ${{ secrets.DEMO_API_KEY }}
+      KALSHI_KEY_ID: ${{ secrets.DEMO_KEY_ID }}
       KALSHI_PRIVATE_KEY: ${{ secrets.DEMO_PRIVATE_KEY }}
     steps:
       - uses: actions/checkout@v4

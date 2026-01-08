@@ -43,7 +43,6 @@ When you want a complete sync, omit `--max-pages` (or set it to `None` via Pytho
 
 ```bash
 uv run kalshi data snapshot --max-pages 1
-uv run kalshi data snapshot --max-pages 1
 ```
 
 Taking at least two snapshots makes “movers” meaningful.

@@ -119,6 +119,7 @@ uv run kalshi alerts remove <ALERT_ID_PREFIX>
 ```bash
 uv run kalshi alerts monitor --interval 60
 uv run kalshi alerts monitor --once --max-pages 10
+uv run kalshi alerts monitor --daemon --interval 60
 ```
 
 ---
@@ -178,7 +179,7 @@ The CLI loads `.env` automatically. Configure:
 
 - `KALSHI_KEY_ID`
 - `KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`
-- `KALSHI_ENVIRONMENT` (`demo` or `prod`, default `demo`)
+- `KALSHI_ENVIRONMENT` (`demo` or `prod`; defaults to `prod` if unset)
 
 ### Balance
 
