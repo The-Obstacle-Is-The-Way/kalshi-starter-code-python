@@ -134,15 +134,15 @@ class RateLimiter:
 
         if is_write:
             cost = 1.0
-            
+
             # Cancel operations are cheaper (0.2)
             if method == "DELETE" or "decrease" in path:
                 cost = 0.2
-            
+
             # Batch operations
             if batch_size > 0:
                 cost = cost * batch_size
-                
+
             await self.acquire_write(cost)
         else:
             await self.acquire_read()

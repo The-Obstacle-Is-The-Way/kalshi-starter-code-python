@@ -1,14 +1,13 @@
 """Unit tests for WebSocket client."""
 
-import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-import websockets
 
 from kalshi_research.api.websocket.client import KalshiWebSocket
 from kalshi_research.api.websocket.messages import TickerUpdate
+
 
 class MockWebSocket:
     def __init__(self):
@@ -50,10 +49,10 @@ def mock_auth():
 async def test_connect_headers(mock_ws_connect, mock_auth):
     """Test connection includes auth headers."""
     mock_connect, _ = mock_ws_connect
-    
+
     client = KalshiWebSocket(key_id="test", private_key_b64="fake", environment="demo")
     await client.connect()
-    
+
     mock_connect.assert_called_once()
     args, kwargs = mock_connect.call_args
     assert kwargs["extra_headers"] == {"Auth": "Token"}
@@ -62,15 +61,15 @@ async def test_connect_headers(mock_ws_connect, mock_auth):
 async def test_subscribe_ticker(mock_ws_connect, mock_auth):
     """Test ticker subscription sends correct JSON."""
     mock_connect, mock_ws = mock_ws_connect
-    
+
     client = KalshiWebSocket(key_id="test", private_key_b64="fake", environment="demo")
     await client.connect()
-    
+
     await client.subscribe_ticker(AsyncMock(), ["KXTEST"])
-    
+
     mock_ws.send.assert_called_once()
     sent_msg = json.loads(mock_ws.send.call_args[0][0])
-    
+
     assert sent_msg["cmd"] == "subscribe"
     assert sent_msg["params"]["channels"] == ["ticker"]
     assert sent_msg["params"]["market_tickers"] == ["KXTEST"]
@@ -79,7 +78,7 @@ async def test_subscribe_ticker(mock_ws_connect, mock_auth):
 async def test_message_routing(mock_ws_connect, mock_auth):
     """Test message routing to callbacks."""
     mock_connect, mock_ws = mock_ws_connect
-    
+
     # Prepare message
     ticker_msg = {
         "type": "ticker",
@@ -93,31 +92,31 @@ async def test_message_routing(mock_ws_connect, mock_auth):
         }
     }
     mock_ws.add_message(ticker_msg)
-    
+
     client = KalshiWebSocket(key_id="test", private_key_b64="fake", environment="demo")
     await client.connect()
-    
+
     # Register handler
     callback = AsyncMock()
     await client.subscribe_ticker(callback, ["KXTEST"])
-    
+
     # Run loop manually for one tick
     # Since run_forever is infinite, we can't await it directly without cancelling
     # But our mock iterator stops after 1 message, so it should exit the loop?
     # Wait, run_forever loop condition is `while self._running`.
-    # And inside `async for message in self._ws`. 
+    # And inside `async for message in self._ws`.
     # If iterator finishes, loop continues?
     # Logic:
     # async for message in self._ws: ...
     # if loop ends (StopAsyncIteration), we go back to while self._running.
     # We check if ws.closed. Our mock isn't closed.
     # So it will try to reconnect or loop.
-    
+
     # Let's modify run_forever logic or test _handle_message directly.
     # Testing _handle_message directly is easier and safer for unit tests.
-    
+
     await client._handle_message(json.dumps(ticker_msg))
-    
+
     callback.assert_called_once()
     arg = callback.call_args[0][0]
     assert isinstance(arg, TickerUpdate)

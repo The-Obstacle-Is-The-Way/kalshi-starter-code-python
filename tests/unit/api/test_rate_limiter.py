@@ -27,12 +27,12 @@ class TestTokenBucket:
         bucket = TokenBucket(tokens_per_second=10, burst_size=1)
         # Use the one token
         await bucket.acquire()
-        
+
         start = time.monotonic()
         # Should wait ~0.1 sec (1 token / 10 per sec)
         await bucket.acquire()
         elapsed = time.monotonic() - start
-        
+
         # Allow some jitter, but it should be at least 0.08s
         assert 0.08 < elapsed < 0.2
 
@@ -41,17 +41,17 @@ class TestTokenBucket:
         """Should handle burst capacity."""
         # 10 tokens/sec, but can hold 5
         bucket = TokenBucket(tokens_per_second=10, burst_size=5)
-        
+
         # Wait for bucket to fill (0.5s)
         await asyncio.sleep(0.6)
-        
+
         start = time.monotonic()
         # Should be able to consume 5 instantly
         for _ in range(5):
             await bucket.acquire()
         elapsed = time.monotonic() - start
         assert elapsed < 0.1
-        
+
         # The 6th should block
         start = time.monotonic()
         await bucket.acquire()
@@ -82,13 +82,13 @@ class TestRateLimiter:
     async def test_read_vs_write_separation(self) -> None:
         """Read and write should have separate buckets."""
         limiter = RateLimiter(tier=RateTier.BASIC)
-        
+
         async def mock_acquire(*args, **kwargs): pass
 
         # Mock the buckets
         limiter._read_bucket = MagicMock(spec=TokenBucket)
         limiter._read_bucket.acquire = MagicMock(side_effect=mock_acquire)
-        
+
         limiter._write_bucket = MagicMock(spec=TokenBucket)
         limiter._write_bucket.acquire = MagicMock(side_effect=mock_acquire)
 
@@ -96,7 +96,7 @@ class TestRateLimiter:
         await limiter.acquire("GET", "/markets")
         limiter._read_bucket.acquire.assert_called_once()
         limiter._write_bucket.acquire.assert_not_called()
-        
+
         limiter._read_bucket.reset_mock()
         limiter._write_bucket.reset_mock()
 
@@ -109,9 +109,9 @@ class TestRateLimiter:
     async def test_batch_write_cost(self) -> None:
         """Batch writes should consume multiple tokens."""
         limiter = RateLimiter(tier=RateTier.BASIC)
-        
+
         async def mock_acquire(*args, **kwargs): pass
-        
+
         limiter._write_bucket = MagicMock(spec=TokenBucket)
         limiter._write_bucket.acquire = MagicMock(side_effect=mock_acquire)
 
@@ -123,12 +123,12 @@ class TestRateLimiter:
     async def test_non_write_post(self) -> None:
         """POST to non-write endpoint should be read."""
         limiter = RateLimiter(tier=RateTier.BASIC)
-        
+
         async def mock_acquire(*args, **kwargs): pass
-        
+
         limiter._read_bucket = MagicMock(spec=TokenBucket)
         limiter._read_bucket.acquire = MagicMock(side_effect=mock_acquire)
-        
+
         limiter._write_bucket = MagicMock(spec=TokenBucket)
         limiter._write_bucket.acquire = MagicMock(side_effect=mock_acquire)
 

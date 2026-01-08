@@ -3,8 +3,6 @@ Integration tests for Trading API flow using respx.
 Verifies the full stack from Client -> Auth -> Network (mocked).
 """
 
-import os
-from unittest.mock import patch
 
 import httpx
 import pytest
@@ -13,7 +11,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from kalshi_research.api.client import KalshiClient
-from kalshi_research.api.models.order import OrderAction, OrderSide, OrderType
 
 
 @pytest.fixture
@@ -46,7 +43,7 @@ async def authenticated_client(temp_private_key):
 @pytest.mark.asyncio
 async def test_create_order_flow(authenticated_client):
     """Test full create order flow including auth header generation."""
-    
+
     # Mock the API endpoint
     async with respx.mock(base_url="https://demo-api.kalshi.co/trade-api/v2") as respx_mock:
         create_route = respx_mock.post("/portfolio/orders").mock(
@@ -73,11 +70,11 @@ async def test_create_order_flow(authenticated_client):
         # Assertions
         assert response.order_id == "8a7c8a8a-..."
         assert response.order_status == "resting"
-        
+
         # Verify Request
         assert create_route.called
         request = create_route.calls.last.request
-        
+
         # 1. Check Body
         import json
         body = json.loads(request.content)
@@ -87,13 +84,13 @@ async def test_create_order_flow(authenticated_client):
         assert body["count"] == 10
         assert body["yes_price"] == 50
         assert body["type"] == "limit"
-        
+
         # 2. Check Auth Headers (Critical Security Check)
         assert "KALSHI-ACCESS-KEY" in request.headers
         assert request.headers["KALSHI-ACCESS-KEY"] == "test-key-uuid"
         assert "KALSHI-ACCESS-SIGNATURE" in request.headers
         assert "KALSHI-ACCESS-TIMESTAMP" in request.headers
-        
+
         # Verify signature is not empty (we can't verify content easily without public key)
         assert len(request.headers["KALSHI-ACCESS-SIGNATURE"]) > 0
 
@@ -102,14 +99,14 @@ async def test_create_order_flow(authenticated_client):
 @pytest.mark.asyncio
 async def test_cancel_order_flow(authenticated_client):
     """Test cancel order flow."""
-    
+
     async with respx.mock(base_url="https://demo-api.kalshi.co/trade-api/v2") as respx_mock:
         cancel_route = respx_mock.delete("/portfolio/orders/oid-123").mock(
             return_value=httpx.Response(200, json={"order": {"status": "canceled"}})
         )
 
         await authenticated_client.cancel_order("oid-123")
-        
+
         assert cancel_route.called
         request = cancel_route.calls.last.request
         assert request.method == "DELETE"
@@ -121,19 +118,19 @@ async def test_cancel_order_flow(authenticated_client):
 @pytest.mark.asyncio
 async def test_amend_order_flow(authenticated_client):
     """Test amend order flow."""
-    
+
     async with respx.mock(base_url="https://demo-api.kalshi.co/trade-api/v2") as respx_mock:
         amend_route = respx_mock.post("/portfolio/orders/oid-123/amend").mock(
             return_value=httpx.Response(
-                200, 
+                200,
                 json={"order": {"order_id": "oid-123", "order_status": "executed"}}
             )
         )
 
         response = await authenticated_client.amend_order("oid-123", price=55)
-        
+
         assert response.order_status == "executed"
-        
+
         assert amend_route.called
         request = amend_route.calls.last.request
         import json

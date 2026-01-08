@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -21,7 +20,7 @@ class TickerUpdate(BaseModel):
     yes_ask: int = Field(..., description="Best yes ask in CENTS")
     volume: int
     open_interest: int
-    
+
     # Dollar fields (strings)
     price_dollars: str | None = None
     yes_bid_dollars: str | None = None

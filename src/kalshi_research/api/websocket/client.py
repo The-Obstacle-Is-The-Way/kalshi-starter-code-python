@@ -42,21 +42,21 @@ class KalshiWebSocket:
         config = get_config()
         if environment:
             config = APIConfig(environment=Environment(environment))
-        
+
         self._url = config.websocket_url
         self._auth = KalshiAuth(
             key_id, private_key_path=private_key_path, private_key_b64=private_key_b64
         )
         self._auto_reconnect = auto_reconnect
         self._max_reconnect = max_reconnect_attempts
-        
+
         self._ws: WebSocketClientProtocol | None = None
         self._running = False
         self._lock = asyncio.Lock()
-        
+
         # Handlers: channel -> callback
         self._handlers: dict[str, list[Callable[[Any], Coroutine[Any, Any, None]]]] = {}
-        
+
         # Active subscriptions for resubscribe logic
         self._subscriptions: set[tuple[str, tuple[str, ...]]] = set()
 
@@ -71,7 +71,7 @@ class KalshiWebSocket:
         """Establish WebSocket connection."""
         # Generate auth headers
         headers = self._auth.get_headers("GET", self.WS_PATH)
-        
+
         logger.info("Connecting to WebSocket", url=self._url)
         self._ws = await websockets.connect(self._url, extra_headers=headers)
         self._running = True
@@ -108,9 +108,9 @@ class KalshiWebSocket:
         }
         if market_tickers:
             msg["params"]["market_tickers"] = market_tickers
-            
+
         await self._send(msg)
-        
+
         # Track for resubscribe
         tickers_tuple = tuple(sorted(market_tickers)) if market_tickers else ()
         for channel in channels:
@@ -142,7 +142,7 @@ class KalshiWebSocket:
         """Subscribe to trade updates."""
         self._add_handler("trade", callback)
         await self.subscribe(["trade"], market_tickers)
-        
+
     async def subscribe_positions(
         self,
         callback: Callable[[MarketPositionUpdate], Coroutine[Any, Any, None]],
@@ -160,7 +160,7 @@ class KalshiWebSocket:
         """Process incoming messages loop."""
         if not self._ws:
             raise ConnectionError("WebSocket not connected")
-            
+
         while self._running:
             try:
                 if not self._ws or self._ws.closed:
@@ -168,10 +168,10 @@ class KalshiWebSocket:
                          await self._reconnect()
                      else:
                          break
-                
+
                 async for message in self._ws:
                     await self._handle_message(message)
-                    
+
             except websockets.ConnectionClosed:
                 logger.warning("WebSocket connection closed")
                 if self._auto_reconnect:
@@ -189,19 +189,19 @@ class KalshiWebSocket:
         try:
             data = json.loads(raw_message)
             channel = data.get("type") or data.get("channel")
-            
+
             # Skip non-data messages (subscription confirmations, etc)
             # Kalshi messages usually have 'type' corresponding to channel
-            
+
             if not channel or channel not in self._handlers:
                 return
-                
+
             msg_obj: Any = None
             msg_data = data.get("msg") or data # Sometimes msg is nested, sometimes flat?
             # Check official docs example:
             # { "type": "ticker", "channel": "ticker", "sid": 1, "msg": { ... } }
             # So the data is in "msg" field.
-            
+
             payload = data.get("msg")
             if not payload:
                 # Some system messages might differ
@@ -215,14 +215,14 @@ class KalshiWebSocket:
                 msg_obj = TradeUpdate.model_validate(payload)
             elif channel == "market_positions":
                 msg_obj = MarketPositionUpdate.model_validate(payload)
-            
+
             if msg_obj:
                 for handler in self._handlers[channel]:
                     try:
                         await handler(msg_obj)
                     except Exception as e:
                         logger.exception(f"Handler error: {e}")
-                        
+
         except json.JSONDecodeError:
             pass
         except Exception as e:
@@ -240,7 +240,7 @@ class KalshiWebSocket:
                 return
             except Exception as e:
                 logger.error(f"Reconnect attempt {attempt+1} failed: {e}")
-        
+
         self._running = False
         raise ConnectionError("Max reconnect attempts exceeded")
 

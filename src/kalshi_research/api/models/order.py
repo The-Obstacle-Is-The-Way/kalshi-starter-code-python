@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -47,15 +46,15 @@ class CreateOrderRequest(BaseModel):
     count: int = Field(gt=0, description="Number of contracts")
     type: OrderType = OrderType.LIMIT
     yes_price: int | None = Field(
-        None, 
-        ge=1, 
-        le=99, 
+        None,
+        ge=1,
+        le=99,
         description="Limit price in CENTS (1-99). Required for limit orders."
     )
     no_price: int | None = Field(
-        None, 
-        ge=1, 
-        le=99, 
+        None,
+        ge=1,
+        le=99,
         description="Implicit no price (100 - yes_price). Optional."
     )
     client_order_id: str
