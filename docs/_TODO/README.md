@@ -29,14 +29,10 @@ The `--daemon` flag for `kalshi alerts monitor` is not yet implemented.
 
 ---
 
-## Completed Items
+## Archive (Completed)
+
+Completed todo items are stored in [`../_archive/todo/`](../_archive/todo/).
 
 | ID | Title | Status |
 |---|---|---|
-| **TODO-001** | [Missing Features](MISSING_FEATURES.md) | ✅ All Implemented |
-
----
-
-## Archive
-
-Archived todo items are stored in [`../_archive/todo/`](../_archive/todo/).
+| **TODO-001** | Missing Features | ✅ All Implemented |
