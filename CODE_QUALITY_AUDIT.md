@@ -1,267 +1,256 @@
-# Code Quality Audit: Configuration & Magic Number Analysis
+# Code Quality Audit: Configuration Analysis
 
-**Date:** 2026-01-08
-**Scope:** API Client → Data Fetcher → Repository → CLI vertical slice
-**Status:** Findings documented, prioritized for future cleanup
+**Date:** 2026-01-08 (Revised)
+**Scope:** Full codebase vertical slice + test suite
+**Methodology:** First-principles validation against 12-factor app best practices
 
 ---
 
 ## Executive Summary
 
-This audit analyzed the core data flow path through the codebase. While the code is functional and well-tested, there are opportunities to improve maintainability through centralized configuration.
+After critical review and validation against [Python 2025-2026 best practices](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) and [12-factor app methodology](https://medium.com/datamindedbe/twelve-factor-python-applications-using-pydantic-settings-f74a69906f2f), this audit identifies **true issues** while correcting **false positives** from the initial analysis.
 
-**Key Finding:** Magic numbers and hard-coded paths are scattered across ~15 files. Centralizing these into a config module would reduce duplication and improve maintainability.
+**Key Finding:** The codebase follows correct patterns for CLI defaults with overrides. The primary legitimate issues are:
+1. Path constants could be centralized (DRY)
+2. Logging uses mixed systems (logging vs structlog)
 
----
-
-## Priority 1: Hard-Coded Paths (Duplicated 57+ times)
-
-### Database Path Sprawl
-The path `data/kalshi.db` appears as a default in 12+ CLI commands:
-
-| File | Line | Context |
-|------|------|---------|
-| `cli.py` | 148, 169, 211, 251, 289, 369, 409, 721, 873, 1291, 1385, 1427, 1629, 1827, 1938, 2023, 2100, 2234, 2305, 2345 | `--db` option default |
-| `database.py` | 28 | Constructor default |
-
-**Recommendation:** Create `DEFAULT_DB_PATH` constant in a central config module.
-
-### Other Hard-Coded Paths
-
-| Path | File | Line | Usage |
-|------|------|------|-------|
-| `data/alerts.json` | `cli.py` | 1015 | `_get_alerts_file()` |
-| `data/theses.json` | `cli.py` | 1534 | `_get_thesis_file()` |
-| `data/exports` | `cli.py` | 376 | Export output default |
-| `data/alert_monitor.log` | `cli.py` | 48 | Daemon log path |
+Most items flagged as "magic numbers" are actually **correct by design**.
 
 ---
 
-## Priority 2: API Client Magic Numbers
+## False Positives (Corrected)
 
-### Retry & Timeout Configuration
+These were initially flagged but are **NOT issues**:
 
-| File | Line | Value | Purpose |
-|------|------|-------|---------|
-| `client.py` | 42 | `30.0` | HTTP timeout (seconds) |
-| `client.py` | 43 | `5` | Max retries |
-| `client.py` | 83, 473, 604, 638, 692 | `multiplier=1, min=1, max=60` | Exponential backoff params |
-| `client.py` | 410 | `"/trade-api/v2"` | API path prefix |
+### 1. API Limits (1000, 200, 100)
 
-**Recommendation:** Move to `APIConfig` class:
+| Value | Purpose | Why NOT a Magic Number |
+|-------|---------|------------------------|
+| `1000` | Markets max per page | **Kalshi API constraint** - cannot be changed |
+| `200` | Events max per page | **Kalshi API constraint** - documented in API |
+| `100` | Candlesticks max tickers | **Kalshi API constraint** - external limit |
+
+These are **immutable external constraints**, not tunables. Putting them in config would mislead users into thinking they're configurable.
+
+### 2. Price Validation (1-99)
+
 ```python
-@dataclass
-class APIConfig:
-    timeout_seconds: float = 30.0
-    max_retries: int = 5
-    backoff_multiplier: float = 1.0
-    backoff_min_seconds: float = 1.0
-    backoff_max_seconds: float = 60.0
+if price < 1 or price > 99:
+    raise ValueError("Price must be between 1 and 99 cents")
 ```
 
-### Pagination Limits
+This is a **Kalshi business rule** - prediction market prices are in cents, 1-99. This is an invariant, not a magic number.
 
-| File | Line | Value | API Endpoint |
-|------|------|-------|--------------|
-| `client.py` | 109, 141 | `100` | Markets default limit |
-| `client.py` | 120, 233 | `1000` | Markets max limit |
-| `client.py` | 163, 344 | `1000` | Markets page size |
-| `client.py` | 314 | `200` | Events max limit (API constraint) |
-| `client.py` | 263 | `100` | Candlesticks max tickers |
-| `client.py` | 533 | `200` | Fills max limit |
+### 3. API Path Prefix
 
-**Recommendation:** Document API constraints in constants:
 ```python
-class APILimits:
-    MARKETS_MAX_PER_PAGE = 1000
-    EVENTS_MAX_PER_PAGE = 200
-    CANDLESTICKS_MAX_TICKERS = 100
-    FILLS_MAX_PER_PAGE = 200
+API_PATH = "/trade-api/v2"
 ```
 
----
+This is **API versioning** - correctly defined as a class constant. Changing it would break the API integration.
 
-## Priority 3: Rate Limiter Magic Numbers
+### 4. CLI Default Values with `--override`
 
-| File | Line | Value | Purpose |
-|------|------|-------|---------|
-| `rate_limiter.py` | 65 | `0.1` | Log threshold (only log waits > 100ms) |
-| `rate_limiter.py` | 89 | `0.9` | Safety margin (use 90% of limit) |
-| `rate_limiter.py` | 139 | `0.2` | Cancel operation cost factor |
+The pattern:
+```python
+db_path: Path = Path("data/kalshi.db"),  # Default
+typer.Option("--db", "-d", help="...")   # Override available
+```
 
----
+This is the **correct pattern** per 12-factor app: sensible defaults with CLI overrides. NOT a problem.
 
-## Priority 4: Scanner & Analysis Magic Numbers
-
-### MarketScanner Thresholds
-
-| File | Line | Value | Purpose |
-|------|------|-------|---------|
-| `scanner.py` | 61 | `(0.40, 0.60)` | Close race probability range |
-| `scanner.py` | 62 | `10000` | High volume threshold |
-| `scanner.py` | 63 | `5` | Wide spread threshold (cents) |
-| `scanner.py` | 169 | `6` | Volume log10 scale factor |
-| `scanner.py` | 216 | `20` | Spread cap for scoring |
-
-### CorrelationAnalyzer Thresholds
-
-| File | Line | Value | Purpose |
-|------|------|-------|---------|
-| `correlation.py` | 82-87 | `0.3`, `0.7` | Strength classification thresholds |
-| `correlation.py` | 113-117 | `30`, `0.5`, `0.05` | min_samples, min_correlation, significance |
-| `correlation.py` | 173 | `0.3` | Correlation type threshold |
-
----
-
-## Priority 5: CLI Default Values
-
-### Intervals & Timeouts
-
-| File | Line | Value | Purpose |
-|------|------|-------|---------|
-| `cli.py` | 294 | `15` | Snapshot interval (minutes) |
-| `cli.py` | 337 | `3600` | Market sync interval (hourly) |
-| `cli.py` | 510 | `5` | Orderbook depth default |
-| `cli.py` | 564 | `20` | Market list limit |
-| `cli.py` | 619 | `10` | Scan top_n default |
-| `cli.py` | 1175 | `60` | Alert monitor interval (seconds) |
-
-### Analysis Thresholds
-
-| File | Line | Value | Purpose |
-|------|------|-------|---------|
-| `cli.py` | 787 | `0.5` | Min correlation for arbitrage |
-| `cli.py` | 963 | `0.01` | Price move threshold (1%) |
-| `cli.py` | 898 | `{"1h": 1, "6h": 6, "24h": 24, "7d": 168}` | Period hours mapping |
-
----
-
-## Priority 6: Data Layer Magic Numbers
-
-### Batch Commit Sizes
-
-| File | Line | Value | Purpose |
-|------|------|-------|---------|
-| `fetcher.py` | 201, 257, 314 | `100` | Commit batch size |
-
----
-
-## Non-Issues (Intentional Design)
-
-These are **not** problems - they're documented API constraints or intentional defaults:
-
-1. **Price validation (1-99)** in `client.py:572-573` - Kalshi API constraint
-2. **API path prefix** in `client.py:410` - Matches Kalshi API versioning
-3. **Rate tier limits** in `rate_limiter.py:25-30` - Matches Kalshi documentation
-
----
-
-## Inconsistent Logging
-
-The codebase uses two logging systems:
-
-| Pattern | Files Using |
-|---------|-------------|
-| `logging.getLogger(__name__)` | `client.py`, `fetcher.py`, `scheduler.py`, `export.py` |
-| `structlog.get_logger()` | `rate_limiter.py`, `websocket/client.py`, `notifiers.py`, `notebook_utils.py`, `syncer.py`, `thesis.py` |
-
-**Recommendation:** Standardize on `structlog` for consistency with modern async patterns.
-
----
-
-## Proposed Solution: Centralized Config Module
-
-Create `src/kalshi_research/config.py`:
+### 5. Retry Parameters
 
 ```python
-"""Centralized configuration for Kalshi Research Platform."""
+timeout: float = 30.0
+max_retries: int = 5
+wait_exponential(multiplier=1, min=1, max=60)
+```
 
-from dataclasses import dataclass, field
+These are **industry-standard sensible defaults**. Users who need customization can subclass or pass parameters.
+
+---
+
+## True Issues
+
+### Issue 1: Path Constants Could Be Centralized (DRY)
+
+**Severity:** Low (Code Smell, not Bug)
+
+The path `data/kalshi.db` appears 20+ times as a CLI default. While each instance correctly allows override via `--db`, there's no single source of truth.
+
+**Current State:**
+```python
+# cli.py (repeated 20+ times)
+db_path: Path = Path("data/kalshi.db")
+```
+
+**Recommendation:** Define once, import everywhere:
+```python
+# src/kalshi_research/paths.py
 from pathlib import Path
-from typing import Literal
 
-@dataclass(frozen=True)
-class Paths:
-    """Default paths for data storage."""
-    DATA_DIR: Path = Path("data")
-    DATABASE: Path = Path("data/kalshi.db")
-    ALERTS_FILE: Path = Path("data/alerts.json")
-    THESES_FILE: Path = Path("data/theses.json")
-    EXPORTS_DIR: Path = Path("data/exports")
-    ALERT_LOG: Path = Path("data/alert_monitor.log")
-
-
-@dataclass(frozen=True)
-class APILimits:
-    """Kalshi API pagination limits (documented constraints)."""
-    MARKETS_MAX_PER_PAGE: int = 1000
-    EVENTS_MAX_PER_PAGE: int = 200
-    CANDLESTICKS_MAX_TICKERS: int = 100
-    FILLS_MAX_PER_PAGE: int = 200
-
-
-@dataclass(frozen=True)
-class RetryConfig:
-    """HTTP retry configuration."""
-    timeout_seconds: float = 30.0
-    max_retries: int = 5
-    backoff_multiplier: float = 1.0
-    backoff_min_seconds: float = 1.0
-    backoff_max_seconds: float = 60.0
-
-
-@dataclass(frozen=True)
-class ScannerConfig:
-    """Market scanner thresholds."""
-    close_race_range: tuple[float, float] = (0.40, 0.60)
-    high_volume_threshold: int = 10000
-    wide_spread_threshold: int = 5
-
-
-@dataclass(frozen=True)
-class CorrelationConfig:
-    """Correlation analysis thresholds."""
-    min_samples: int = 30
-    min_correlation: float = 0.5
-    significance_level: float = 0.05
-
-
-# Default instances
-PATHS = Paths()
-API_LIMITS = APILimits()
-RETRY_CONFIG = RetryConfig()
-SCANNER_CONFIG = ScannerConfig()
-CORRELATION_CONFIG = CorrelationConfig()
+DEFAULT_DATA_DIR = Path("data")
+DEFAULT_DB_PATH = DEFAULT_DATA_DIR / "kalshi.db"
+DEFAULT_ALERTS_PATH = DEFAULT_DATA_DIR / "alerts.json"
+DEFAULT_THESES_PATH = DEFAULT_DATA_DIR / "theses.json"
+DEFAULT_EXPORTS_DIR = DEFAULT_DATA_DIR / "exports"
 ```
 
----
-
-## Action Items (Prioritized)
-
-### Immediate (Low Risk)
-- [ ] Create `src/kalshi_research/config.py` with centralized constants
-- [ ] Update `database.py` to use `PATHS.DATABASE`
-- [ ] Update CLI storage functions to use `PATHS.*`
-
-### Short-term (Medium Risk)
-- [ ] Refactor `client.py` to use `RetryConfig` and `APILimits`
-- [ ] Standardize on `structlog` for all logging
-- [ ] Update scanner/correlation to use config dataclasses
-
-### Long-term (Higher Risk)
-- [ ] Add environment variable overrides for config values
-- [ ] Add `--config` CLI option for custom config file
-- [ ] Consider YAML/TOML config file for power users
+**Risk:** Very low - pure refactoring, no behavior change.
 
 ---
 
-## Conclusion
+### Issue 2: Inconsistent Logging Systems
 
-The codebase is functional and well-tested. The magic numbers identified are defaults, not bugs. However, centralizing configuration would:
+**Severity:** Low (Technical Debt)
 
-1. **Reduce duplication** - Single source of truth for paths/limits
-2. **Improve discoverability** - All tunables in one place
-3. **Enable customization** - Easy to add env var overrides
-4. **Aid documentation** - Config module serves as reference
+| System | Files Using |
+|--------|-------------|
+| `logging.getLogger(__name__)` | `client.py`, `fetcher.py`, `scheduler.py`, `export.py` |
+| `structlog.get_logger()` | `rate_limiter.py`, `websocket/client.py`, `notifiers.py`, `syncer.py`, `thesis.py` |
 
-This audit recommends a phased approach, starting with path centralization (lowest risk) and progressing to full config refactoring.
+**Recommendation:** Standardize on `structlog` - it's already a dependency and provides better async support.
+
+---
+
+## What Belongs Where: `.env` vs Code Constants
+
+Based on [12-factor app principles](https://geekcoding101.com/tech/system-design/12-factor-crash-course/):
+
+### `.env` File (Already Correct)
+
+The `.env.example` is **properly wired**. All env vars are used:
+
+| Variable | Used In | Purpose |
+|----------|---------|---------|
+| `KALSHI_ENVIRONMENT` | `cli.py:116` | Switch prod/demo |
+| `KALSHI_KEY_ID` | `cli.py:1962, 2192` | Auth |
+| `KALSHI_PRIVATE_KEY_PATH` | `cli.py:1963, 2193` | Auth |
+| `KALSHI_PRIVATE_KEY_B64` | `cli.py:1964, 2194` | Auth (CI) |
+| `KALSHI_RUN_LIVE_API` | `tests/` | Enable live tests |
+
+**Verdict:** `.env.example` is complete and accurate.
+
+### Code Constants (Paths Module)
+
+Non-secret, non-environment-specific defaults belong in code:
+- File paths with CLI overrides
+- API limits (external constraints)
+- Reasonable defaults for timeouts/retries
+
+---
+
+## Test Suite Analysis
+
+The test suite does **NOT** have parallel debt problems:
+
+1. **E2E tests use `runner.isolated_filesystem()`** - Creates temp directories, so `data/kalshi.db` is relative to temp, not hardcoded to a real path.
+
+2. **Unit tests use in-memory SQLite** - `sqlite+aiosqlite:///:memory:` in `conftest.py`
+
+3. **Test fixtures are well-designed** - `make_market`, `make_orderbook`, `make_trade` factories return dicts matching API structure.
+
+4. **No magic numbers in assertions** - Test values are explicit and documented.
+
+**Verdict:** Test suite is clean.
+
+---
+
+## Scanner/Analysis Thresholds
+
+These ARE legitimate tunables that users might want to adjust:
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| Close race range | `(0.40, 0.60)` | What's "close to 50%" |
+| High volume threshold | `10000` | What's "high volume" |
+| Wide spread threshold | `5` | What's "wide" |
+| Min correlation | `0.5` | Statistical significance |
+
+**Current design:** These are constructor parameters, allowing customization:
+```python
+scanner = MarketScanner(close_race_range=(0.45, 0.55))
+```
+
+This is the **correct pattern** - defaults with optional override. Not a bug.
+
+---
+
+## Proposed Changes (Minimal, High-Value)
+
+### Change 1: Centralize Paths
+
+Create `src/kalshi_research/paths.py`:
+
+```python
+"""Centralized path defaults for Kalshi Research Platform."""
+
+from pathlib import Path
+
+# All paths are relative to CWD, overridable via CLI
+DEFAULT_DATA_DIR = Path("data")
+DEFAULT_DB_PATH = DEFAULT_DATA_DIR / "kalshi.db"
+DEFAULT_ALERTS_PATH = DEFAULT_DATA_DIR / "alerts.json"
+DEFAULT_THESES_PATH = DEFAULT_DATA_DIR / "theses.json"
+DEFAULT_EXPORTS_DIR = DEFAULT_DATA_DIR / "exports"
+DEFAULT_ALERT_LOG = DEFAULT_DATA_DIR / "alert_monitor.log"
+```
+
+Then update `cli.py` imports:
+```python
+from kalshi_research.paths import DEFAULT_DB_PATH
+# ...
+db_path: Path = DEFAULT_DB_PATH,
+```
+
+### Change 2: Standardize Logging (Optional)
+
+Replace `logging.getLogger(__name__)` with `structlog.get_logger()` in:
+- `client.py`
+- `fetcher.py`
+- `scheduler.py`
+- `export.py`
+
+---
+
+## NOT Recommended
+
+These changes would be **over-engineering**:
+
+1. **`pydantic-settings` for config** - Overkill for this project. The current approach (defaults + CLI overrides) is correct.
+
+2. **YAML/TOML config files** - Adds complexity without benefit. CLI args are sufficient.
+
+3. **Environment variable overrides for everything** - Would couple code to env vars unnecessarily. CLI overrides are more explicit.
+
+4. **Moving API limits to config** - They're external constraints, not tunables. Misleading to put in config.
+
+---
+
+## Summary
+
+| Category | Status |
+|----------|--------|
+| `.env.example` wiring | Complete and correct |
+| Test suite | Clean, no parallel debt |
+| API limits | Correctly hardcoded (external constraints) |
+| CLI defaults | Correct pattern (defaults + override) |
+| Path constants | Could centralize (DRY improvement) |
+| Logging | Could standardize (minor tech debt) |
+
+**Overall Assessment:** The codebase is well-designed. The initial audit over-flagged by treating external constraints and sensible defaults as "magic numbers." The only true issues are:
+
+1. **Path centralization** - Easy DRY improvement
+2. **Logging consistency** - Minor standardization
+
+Both are optional improvements, not bugs.
+
+---
+
+## Sources
+
+- [Pydantic Settings Documentation](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
+- [Twelve-Factor Python Applications](https://medium.com/datamindedbe/twelve-factor-python-applications-using-pydantic-settings-f74a69906f2f)
+- [12 Factor Crash Course (2025)](https://geekcoding101.com/tech/system-design/12-factor-crash-course/)
+- [FastAPI Settings Best Practices](https://fastapi.tiangolo.com/advanced/settings/)
