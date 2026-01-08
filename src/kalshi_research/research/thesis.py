@@ -191,7 +191,9 @@ class ThesisTracker:
                 # Note: This branch might fail if data contains other keys like 'conditions'
                 # so we should be careful. But for now, assuming if not "theses", it's legacy dict.
                 try:
-                    self.theses = {k: Thesis.from_dict(v) for k, v in data.items() if isinstance(v, dict)}
+                    self.theses = {
+                        k: Thesis.from_dict(v) for k, v in data.items() if isinstance(v, dict)
+                    }
                 except (AttributeError, KeyError):
                     self.theses = {}
 
@@ -199,9 +201,7 @@ class ThesisTracker:
         """Save theses to storage."""
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         # Save in CLI-compatible format
-        data = {
-            "theses": [t.to_dict() for t in self.theses.values()]
-        }
+        data = {"theses": [t.to_dict() for t in self.theses.values()]}
         with self.storage_path.open("w") as f:
             json.dump(data, f, indent=2)
 

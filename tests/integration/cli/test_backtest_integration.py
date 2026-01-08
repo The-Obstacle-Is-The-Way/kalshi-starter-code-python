@@ -6,7 +6,6 @@ These tests verify that the backtest command uses REAL data, not mock output.
 from __future__ import annotations
 
 import subprocess
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -31,37 +30,54 @@ class TestBacktestCLI:
         # Run backtest with two different date ranges
         result1 = subprocess.run(
             [
-                "uv", "run", "kalshi", "research", "backtest",
-                "--start", "2024-01-01",
-                "--end", "2024-06-30",
-                "--db", str(db_path),
+                "uv",
+                "run",
+                "kalshi",
+                "research",
+                "backtest",
+                "--start",
+                "2024-01-01",
+                "--end",
+                "2024-06-30",
+                "--db",
+                str(db_path),
             ],
             capture_output=True,
             text=True,
+            check=False,
         )
 
         result2 = subprocess.run(
             [
-                "uv", "run", "kalshi", "research", "backtest",
-                "--start", "2024-07-01",
-                "--end", "2024-12-31",
-                "--db", str(db_path),
+                "uv",
+                "run",
+                "kalshi",
+                "research",
+                "backtest",
+                "--start",
+                "2024-07-01",
+                "--end",
+                "2024-12-31",
+                "--db",
+                str(db_path),
             ],
             capture_output=True,
             text=True,
+            check=False,
         )
 
         # If both outputs are identical AND contain numbers, it's probably mock data
-        if "10" in result1.stdout and "60.0%" in result1.stdout:
-            if result1.stdout == result2.stdout:
-                pytest.fail(
-                    "MOCK DATA DETECTED: Output identical for different date ranges. "
-                    "The backtest command is returning hardcoded fake results!"
-                )
+        if (
+            "10" in result1.stdout
+            and "60.0%" in result1.stdout
+            and result1.stdout == result2.stdout
+        ):
+            pytest.fail(
+                "MOCK DATA DETECTED: Output identical for different date ranges. "
+                "The backtest command is returning hardcoded fake results!"
+            )
 
-    def test_backtest_with_no_data_shows_appropriate_message(
-        self, tmp_path: Path
-    ) -> None:
+    def test_backtest_with_no_data_shows_appropriate_message(self, tmp_path: Path) -> None:
         """Should show 'no settlements' message, not fake results."""
         db_path = tmp_path / "empty.db"
 
@@ -74,13 +90,21 @@ class TestBacktestCLI:
 
         result = subprocess.run(
             [
-                "uv", "run", "kalshi", "research", "backtest",
-                "--start", "2024-01-01",
-                "--end", "2024-12-31",
-                "--db", str(db_path),
+                "uv",
+                "run",
+                "kalshi",
+                "research",
+                "backtest",
+                "--start",
+                "2024-01-01",
+                "--end",
+                "2024-12-31",
+                "--db",
+                str(db_path),
             ],
             capture_output=True,
             text=True,
+            check=False,
         )
 
         # Should NOT show fake successful results
@@ -101,17 +125,26 @@ class TestBacktestCLI:
         # The date range should appear in the output
         result = subprocess.run(
             [
-                "uv", "run", "kalshi", "research", "backtest",
-                "--start", "2024-03-15",
-                "--end", "2024-09-22",
-                "--db", str(db_path),
+                "uv",
+                "run",
+                "kalshi",
+                "research",
+                "backtest",
+                "--start",
+                "2024-03-15",
+                "--end",
+                "2024-09-22",
+                "--db",
+                str(db_path),
             ],
             capture_output=True,
             text=True,
+            check=False,
         )
 
         # The specific dates should appear in output (proves they're being used)
-        assert "2024-03-15" in result.stdout or "2024-09-22" in result.stdout, (
+        # Note: We now print "Backtesting from X to Y..." at the start
+        assert "2024-03-15" in result.stdout and "2024-09-22" in result.stdout, (
             "Date parameters should appear in output, proving they're used"
         )
 

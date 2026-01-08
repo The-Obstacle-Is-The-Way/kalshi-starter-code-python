@@ -1612,13 +1612,85 @@ def research_thesis_resolve(
     console.print(f"[yellow]Thesis not found: {thesis_id}[/yellow]")
 
 
+def _parse_backtest_dates(start: str, end: str) -> tuple[datetime, datetime]:
+    """Parse and validate backtest dates."""
+    try:
+        start_dt = datetime.fromisoformat(start)
+        end_dt = datetime.fromisoformat(end)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] Invalid date format: {e}")
+        console.print("[dim]Use YYYY-MM-DD format.[/dim]")
+        raise typer.Exit(1) from None
+
+    if start_dt >= end_dt:
+        console.print("[red]Error:[/red] Start date must be before end date")
+        raise typer.Exit(1)
+
+    return start_dt, end_dt
+
+
+def _display_backtest_results(results: list[Any], start: str, end: str) -> None:
+    """Helper to display backtest results."""
+    # Calculate aggregate statistics
+    total_trades = sum(r.total_trades for r in results)
+    total_pnl = sum(r.total_pnl for r in results)
+    total_wins = sum(r.winning_trades for r in results)
+    avg_brier = sum(r.brier_score for r in results) / len(results) if results else 0
+
+    # Display summary table
+    summary_table = Table(title="Backtest Summary")
+    summary_table.add_column("Metric", style="cyan")
+    summary_table.add_column("Value", style="green")
+
+    summary_table.add_row("Date Range", f"{start} to {end}")
+    summary_table.add_row("Theses Tested", str(len(results)))
+    summary_table.add_row("Total Trades", str(total_trades))
+    summary_table.add_row(
+        "Aggregate Win Rate",
+        f"{total_wins / total_trades:.1%}" if total_trades > 0 else "N/A",
+    )
+    pnl_color = "green" if total_pnl >= 0 else "red"
+    summary_table.add_row("Total P&L", f"[{pnl_color}]{total_pnl:+.0f}¢[/{pnl_color}]")
+    summary_table.add_row("Avg Brier Score", f"{avg_brier:.4f}")
+
+    console.print(summary_table)
+    console.print()
+
+    # Display per-thesis results
+    detail_table = Table(title="Per-Thesis Results")
+    detail_table.add_column("Thesis ID", style="cyan", max_width=15)
+    detail_table.add_column("Trades", justify="right")
+    detail_table.add_column("Win Rate", justify="right")
+    detail_table.add_column("P&L", justify="right")
+    detail_table.add_column("Brier", justify="right")
+    detail_table.add_column("Sharpe", justify="right")
+
+    for result in sorted(results, key=lambda r: r.total_pnl, reverse=True):
+        pnl_str = f"{result.total_pnl:+.0f}¢"
+        pnl_color = "green" if result.total_pnl >= 0 else "red"
+        detail_table.add_row(
+            result.thesis_id[:15],
+            str(result.total_trades),
+            f"{result.win_rate:.1%}" if result.total_trades > 0 else "N/A",
+            f"[{pnl_color}]{pnl_str}[/{pnl_color}]",
+            f"{result.brier_score:.4f}",
+            f"{result.sharpe_ratio:.2f}" if result.sharpe_ratio != 0 else "N/A",
+        )
+
+    console.print(detail_table)
+
+
 @research_app.command("backtest")
 def research_backtest(
     start: Annotated[str, typer.Option("--start", help="Start date (YYYY-MM-DD)")],
     end: Annotated[str, typer.Option("--end", help="End date (YYYY-MM-DD)")],
     thesis_id: Annotated[
         str | None,
-        typer.Option("--thesis", "-t", help="Specific thesis ID to backtest (default: all resolved)"),
+        typer.Option(
+            "--thesis",
+            "-t",
+            help="Specific thesis ID to backtest (default: all resolved)",
+        ),
     ] = None,
     db_path: Annotated[
         Path,
@@ -1635,8 +1707,6 @@ def research_backtest(
         kalshi research backtest --start 2024-01-01 --end 2024-12-31
         kalshi research backtest --thesis abc123 --start 2024-06-01 --end 2024-12-31
     """
-    from datetime import datetime
-
     from sqlalchemy import select
 
     from kalshi_research.data import DatabaseManager
@@ -1654,26 +1724,19 @@ def research_backtest(
         thesis_mgr = ThesisManager()
         backtester = ThesisBacktester()
 
-        try:
-            # Parse date range
-            try:
-                start_dt = datetime.fromisoformat(start)
-                end_dt = datetime.fromisoformat(end)
-            except ValueError as e:
-                console.print(f"[red]Error:[/red] Invalid date format: {e}")
-                console.print("[dim]Use YYYY-MM-DD format.[/dim]")
-                raise typer.Exit(1) from None
+        console.print(f"[dim]Backtesting from {start} to {end}...[/dim]")
 
-            if start_dt >= end_dt:
-                console.print("[red]Error:[/red] Start date must be before end date")
-                raise typer.Exit(1)
+        try:
+            start_dt, end_dt = _parse_backtest_dates(start, end)
 
             # Load theses
             if thesis_id:
                 thesis = thesis_mgr.get(thesis_id)
                 if not thesis:
                     console.print(f"[red]Error:[/red] Thesis '{thesis_id}' not found")
-                    console.print("[dim]Use 'kalshi research thesis list' to see available theses.[/dim]")
+                    console.print(
+                        "[dim]Use 'kalshi research thesis list' to see available theses.[/dim]"
+                    )
                     raise typer.Exit(1)
                 theses = [thesis]
             else:
@@ -1683,7 +1746,10 @@ def research_backtest(
             resolved = [t for t in theses if t.status == ThesisStatus.RESOLVED]
             if not resolved:
                 console.print("[yellow]No resolved theses to backtest[/yellow]")
-                console.print("[dim]Theses must be resolved before backtesting. Use 'kalshi research thesis resolve'.[/dim]")
+                console.print(
+                    "[dim]Theses must be resolved before backtesting. "
+                    "Use 'kalshi research thesis resolve'.[/dim]"
+                )
                 return
 
             console.print(f"[dim]Found {len(resolved)} resolved theses[/dim]")
@@ -1700,7 +1766,9 @@ def research_backtest(
 
             if not settlements:
                 console.print(f"[yellow]No settlements found between {start} and {end}[/yellow]")
-                console.print("[dim]Run 'kalshi data sync-settlements' to fetch settlement data.[/dim]")
+                console.print(
+                    "[dim]Run 'kalshi data sync-settlements' to fetch settlement data.[/dim]"
+                )
                 return
 
             console.print(f"[dim]Found {len(settlements)} settlements in date range[/dim]")
@@ -1719,53 +1787,7 @@ def research_backtest(
                 console.print("[dim]This can happen if no theses match the settlement data.[/dim]")
                 return
 
-            # Calculate aggregate statistics
-            total_trades = sum(r.total_trades for r in results)
-            total_pnl = sum(r.total_pnl for r in results)
-            total_wins = sum(r.winning_trades for r in results)
-            avg_brier = sum(r.brier_score for r in results) / len(results) if results else 0
-
-            # Display summary table
-            summary_table = Table(title="Backtest Summary")
-            summary_table.add_column("Metric", style="cyan")
-            summary_table.add_column("Value", style="green")
-
-            summary_table.add_row("Date Range", f"{start} to {end}")
-            summary_table.add_row("Theses Tested", str(len(results)))
-            summary_table.add_row("Total Trades", str(total_trades))
-            summary_table.add_row(
-                "Aggregate Win Rate",
-                f"{total_wins / total_trades:.1%}" if total_trades > 0 else "N/A",
-            )
-            pnl_color = "green" if total_pnl >= 0 else "red"
-            summary_table.add_row("Total P&L", f"[{pnl_color}]{total_pnl:+.0f}¢[/{pnl_color}]")
-            summary_table.add_row("Avg Brier Score", f"{avg_brier:.4f}")
-
-            console.print(summary_table)
-            console.print()
-
-            # Display per-thesis results
-            detail_table = Table(title="Per-Thesis Results")
-            detail_table.add_column("Thesis ID", style="cyan", max_width=15)
-            detail_table.add_column("Trades", justify="right")
-            detail_table.add_column("Win Rate", justify="right")
-            detail_table.add_column("P&L", justify="right")
-            detail_table.add_column("Brier", justify="right")
-            detail_table.add_column("Sharpe", justify="right")
-
-            for result in sorted(results, key=lambda r: r.total_pnl, reverse=True):
-                pnl_str = f"{result.total_pnl:+.0f}¢"
-                pnl_color = "green" if result.total_pnl >= 0 else "red"
-                detail_table.add_row(
-                    result.thesis_id[:15],
-                    str(result.total_trades),
-                    f"{result.win_rate:.1%}" if result.total_trades > 0 else "N/A",
-                    f"[{pnl_color}]{pnl_str}[/{pnl_color}]",
-                    f"{result.brier_score:.4f}",
-                    f"{result.sharpe_ratio:.2f}" if result.sharpe_ratio != 0 else "N/A",
-                )
-
-            console.print(detail_table)
+            _display_backtest_results(results, start, end)
 
         finally:
             await db.close()
