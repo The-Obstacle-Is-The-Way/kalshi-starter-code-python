@@ -67,6 +67,20 @@ def test_alerts_add_spread() -> None:
         assert len(stored["conditions"]) == 1
 
 
+def test_alerts_add_volume_rejects_below() -> None:
+    """Test that volume alerts reject --below (only --above is supported)."""
+    result = runner.invoke(app, ["alerts", "add", "volume", "TEST-TICKER", "--below", "1000"])
+    assert result.exit_code == 1
+    assert "volume alerts only support --above" in result.stdout
+
+
+def test_alerts_add_spread_rejects_below() -> None:
+    """Test that spread alerts reject --below (only --above is supported)."""
+    result = runner.invoke(app, ["alerts", "add", "spread", "TEST-TICKER", "--below", "5"])
+    assert result.exit_code == 1
+    assert "spread alerts only support --above" in result.stdout
+
+
 def test_alerts_remove() -> None:
     """Test removing an alert."""
     with runner.isolated_filesystem():

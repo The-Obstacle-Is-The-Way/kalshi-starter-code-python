@@ -144,8 +144,13 @@ def alerts_add(
         console.print("[red]Error:[/red] Must specify either --above or --below")
         raise typer.Exit(1)
 
+    # Validate: volume and spread only support --above (no BELOW condition types exist)
+    if alert_type in ("volume", "spread") and below is not None:
+        console.print(f"[red]Error:[/red] {alert_type} alerts only support --above threshold")
+        raise typer.Exit(1)
+
     # Map alert type to condition type
-    type_map = {
+    type_map: dict[str, ConditionType] = {
         "price": ConditionType.PRICE_ABOVE if above else ConditionType.PRICE_BELOW,
         "volume": ConditionType.VOLUME_ABOVE,
         "spread": ConditionType.SPREAD_ABOVE,
