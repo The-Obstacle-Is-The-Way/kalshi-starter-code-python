@@ -7,6 +7,123 @@
 
 ---
 
+# ⚠️ CRITICAL: Mock/Hardcoded Data in Production Code Paths
+
+> **THIS IS THE #1 PRIORITY CHECK. DO THIS FIRST.**
+
+## The Most Dangerous AI Anti-Pattern: Reward Hacking
+
+**Why this is egregious:** Mock data in production code paths is the ultimate form of "reward hacking" — the code looks complete, tests may pass, demos look good, but **zero actual work is being done**. This is the AI equivalent of a contractor installing a fake wall that looks real but has nothing behind it.
+
+### Real Example Found (2026-01-07)
+
+```python
+# src/kalshi_research/cli.py lines 1635-1645 - EGREGIOUS
+@research_app.command("backtest")
+def research_backtest(start, end, db_path):
+    # ... validation code that looks legit ...
+
+    # Mock output for now  <-- THE SMOKING GUN
+    table = Table(title="Backtest Results")
+    table.add_row("Total Trades", "10")       # FAKE
+    table.add_row("Win Rate", "60.0%")        # FAKE
+    table.add_row("Total P&L", "$150.00")     # FAKE
+    table.add_row("Sharpe Ratio", "1.5")      # FAKE
+    console.print(table)
+```
+
+**The insidious part:** The `ThesisBacktester` class exists and works! The CLI just doesn't use it.
+
+### Why This Happens
+
+1. **AI satisfies the interface first** — Creates a command that runs without errors
+2. **AI leaves "implementation for later"** — But makes it look complete
+3. **Tests may pass** — Because tests verify output format, not correctness
+4. **Demos look good** — Output is well-formatted, appears professional
+5. **No runtime errors** — Code executes successfully
+
+### Checklist: Mock Data Detection
+
+- [ ] **`# Mock` comments** — Explicit admission of fake data
+- [ ] **`# for now` comments** — Placeholder that was never replaced
+- [ ] **`# placeholder` comments** — Same as above
+- [ ] **`# TODO` in production paths** — Feature never completed
+- [ ] **Hardcoded numeric strings in output** — `"10"`, `"60.0%"`, `"$150.00"`
+- [ ] **Static table rows** — `table.add_row("Metric", "hardcoded_value")`
+- [ ] **Functions that don't use their parameters** — Accept `start`, `end`, `db_path` but ignore them
+- [ ] **CLI commands with no actual implementation** — Accept options but do nothing with them
+- [ ] **Docstrings saying "placeholder" or "stub"**
+- [ ] **Return values that look plausible but are static** — `return {"status": "success", "count": 10}`
+
+### Detection Commands
+
+```bash
+# Find explicit mock comments
+grep -rn "# [Mm]ock\|# for now\|# placeholder\|# stub" --include="*.py" src/
+
+# Find hardcoded numbers in table output (suspicious)
+grep -rn "add_row.*\"\d" --include="*.py" src/
+
+# Find CLI commands with TODO/placeholder docstrings
+grep -rn "\"\"\".*placeholder\|\"\"\".*stub\|\"\"\".*TODO" --include="*.py" src/
+
+# Find functions that accept parameters but don't use them
+# (Manual review required - look for unused arguments)
+
+# Cross-reference: Does implementation exist but CLI doesn't use it?
+# 1. Find CLI commands
+grep -rn "@.*\.command" --include="*.py" src/
+# 2. For each command, verify it calls actual implementation
+```
+
+### Verification Strategy
+
+For EVERY CLI command and public API function:
+
+1. **Trace the data flow** — Does input actually affect output?
+2. **Test with edge cases** — Does `--start 2020-01-01` produce different results than `--start 2025-01-01`?
+3. **Compare to implementation** — If `ThesisBacktester` exists, does the CLI use it?
+4. **Check parameter usage** — Are all parameters actually used or ignored?
+5. **Diff multiple runs** — Does output change with different inputs?
+
+### Current Known Violations
+
+| File | Lines | Issue | Severity |
+|------|-------|-------|----------|
+| `cli.py` | 1635-1645 | `kalshi research backtest` outputs hardcoded fake results | 🔴 CRITICAL |
+| `cli.py` | 1053 | `--daemon` flag accepted but not implemented | 🟡 MEDIUM |
+
+### The Fix Pattern
+
+```python
+# BAD: Mock data
+@command("backtest")
+def backtest(start, end, db_path):
+    table.add_row("Trades", "10")  # FAKE
+
+# GOOD: Wire to actual implementation
+@command("backtest")
+def backtest(start, end, db_path):
+    backtester = ThesisBacktester()
+    result = await backtester.run(start, end, db_path)  # REAL
+    table.add_row("Trades", str(result.total_trades))   # REAL
+```
+
+### Why This Matters
+
+- **User trust destroyed** — They think they're backtesting but getting fake data
+- **Decisions made on lies** — Trading decisions based on fake backtest results
+- **Time wasted** — User thinks feature works, doesn't investigate further
+- **Technical debt hidden** — Looks complete, so never gets fixed
+
+### References
+
+- [Reward Hacking in AI Systems](https://arxiv.org/abs/2209.13085)
+- [Specification Gaming Examples](https://deepmind.com/blog/specification-gaming)
+- This checklist itself: Added after discovering mock data in production on 2026-01-07
+
+---
+
 ## Quick Reference: Detection Commands
 
 ```bash
@@ -1243,6 +1360,7 @@ if torch.cuda.is_available():
 
 | Date       | Change                                           |
 |------------|--------------------------------------------------|
+| 2026-01-07 | **CRITICAL: Added Mock Data in Production anti-pattern at TOP** |
 | 2026-01-07 | Added Jupyter notebook anti-patterns (24)        |
 | 2026-01-07 | Added ML/research categories (14-23)             |
 | 2026-01-07 | Initial creation from web research               |
