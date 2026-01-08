@@ -1028,7 +1028,7 @@ def _atomic_write_json(path: Path, data: dict[str, Any]) -> None:
 
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(f"{path.suffix}.tmp.{uuid.uuid4().hex}")
-    with tmp_path.open("w") as f:
+    with tmp_path.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
         f.flush()
         os.fsync(f.fileno())
@@ -1040,7 +1040,7 @@ def _load_json_storage_file(*, path: Path, kind: str, required_list_key: str) ->
         return {required_list_key: []}
 
     try:
-        with path.open() as f:
+        with path.open(encoding="utf-8") as f:
             raw = json.load(f)
     except json.JSONDecodeError:
         console.print(f"[red]Error:[/red] {kind} file is not valid JSON: {path}")
@@ -1377,7 +1377,7 @@ def analysis_calibration(
                 "actual_freqs": result.actual_freqs.tolist(),
                 "bin_counts": result.bin_counts.tolist(),
             }
-            with output.open("w") as f:
+            with output.open("w", encoding="utf-8") as f:
                 json.dump(output_data, f, indent=2)
             console.print(f"\n[dim]Saved to {output}[/dim]")
 
