@@ -56,7 +56,7 @@ uv run pytest tests/unit/api/test_client.py -v
 uv run pytest tests/unit/api/test_client.py::test_name -v
 
 # Test with coverage
-uv run pytest --cov=src/kalshi_research --cov-report=term-missing
+uv run pytest --cov=kalshi_research --cov-report=term-missing
 
 # Database migrations
 uv run alembic upgrade head              # Run migrations
@@ -112,7 +112,7 @@ src/kalshi_research/
 │   ├── models.py        # Position, Trade models
 │   ├── pnl.py           # P&L calculator
 │   └── syncer.py        # Sync from Kalshi API
-└── cli.py         # Typer CLI (kalshi command)
+└── cli/           # Typer CLI package (kalshi command)
 ```
 
 ### Key Patterns

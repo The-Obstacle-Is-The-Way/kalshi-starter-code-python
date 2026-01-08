@@ -1,6 +1,7 @@
 import asyncio
 import subprocess
 import sys
+import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -63,6 +64,7 @@ def _spawn_alert_monitor_daemon(
 
     daemon_env = dict(os.environ)
     daemon_env["KALSHI_ENVIRONMENT"] = environment
+    daemon_env.setdefault("PYTHONUNBUFFERED", "1")
 
     _ALERT_MONITOR_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _ALERT_MONITOR_LOG_PATH.open("a") as log_file:
@@ -80,6 +82,16 @@ def _spawn_alert_monitor_daemon(
             popen_kwargs["start_new_session"] = True
 
         proc = subprocess.Popen(args, **popen_kwargs)
+
+    # Quick sanity check: if the child dies immediately (import error, bad args),
+    # don't claim the daemon started successfully.
+    time.sleep(0.25)
+    returncode = proc.poll()
+    if isinstance(returncode, int) and (returncode != 0 or not once):
+        raise RuntimeError(
+            f"Daemon exited immediately with code {returncode}. See logs: {_ALERT_MONITOR_LOG_PATH}"
+        )
+
     return proc.pid, _ALERT_MONITOR_LOG_PATH
 
 
@@ -230,7 +242,7 @@ def alerts_monitor(
                 max_pages=max_pages,
                 environment=environment_value,
             )
-        except OSError as exc:
+        except (OSError, RuntimeError) as exc:
             console.print(f"[red]Error:[/red] Failed to start daemon: {exc}")
             raise typer.Exit(1) from None
 

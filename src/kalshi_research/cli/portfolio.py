@@ -20,6 +20,37 @@ def _load_theses() -> dict[str, Any]:
     )
 
 
+def _validate_environment_override(environment: str | None) -> str | None:
+    if environment is None:
+        return None
+
+    from kalshi_research.api.config import Environment
+
+    raw = environment
+    normalized = raw.strip().lower()
+    try:
+        return Environment(normalized).value
+    except ValueError:
+        console.print(f"[red]Error:[/red] Invalid environment '{raw}'. Expected 'prod' or 'demo'.")
+        raise typer.Exit(1) from None
+
+
+def _require_auth_env(*, purpose: str) -> tuple[str, str | None, str | None]:
+    key_id = os.getenv("KALSHI_KEY_ID")
+    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
+    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
+
+    if not key_id or (not private_key_path and not private_key_b64):
+        console.print(f"[red]Error:[/red] {purpose} requires authentication.")
+        console.print(
+            "[dim]Set KALSHI_KEY_ID and KALSHI_PRIVATE_KEY_PATH "
+            "(or KALSHI_PRIVATE_KEY_B64) to enable authenticated commands.[/dim]"
+        )
+        raise typer.Exit(1)
+
+    return key_id, private_key_path, private_key_b64
+
+
 @app.command("sync")
 def portfolio_sync(
     db_path: Annotated[
@@ -47,28 +78,21 @@ def portfolio_sync(
     from kalshi_research.data import DatabaseManager
     from kalshi_research.portfolio.syncer import PortfolioSyncer
 
-    key_id = os.getenv("KALSHI_KEY_ID")
-    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
-    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
-
-    if not key_id or (not private_key_path and not private_key_b64):
-        console.print("[red]Error:[/red] Portfolio sync requires authentication.")
-        console.print(
-            "[dim]Set KALSHI_KEY_ID and KALSHI_PRIVATE_KEY_PATH "
-            "(or KALSHI_PRIVATE_KEY_B64) to enable portfolio sync[/dim]"
-        )
-        raise typer.Exit(1)
+    environment_override = _validate_environment_override(environment)
+    key_id, private_key_path, private_key_b64 = _require_auth_env(purpose="Portfolio sync")
 
     async def _sync() -> None:
-        db = DatabaseManager(db_path)
         try:
-            await db.create_tables()
-            async with KalshiClient(
-                key_id=key_id,
-                private_key_path=private_key_path,
-                private_key_b64=private_key_b64,
-                environment=environment,
-            ) as client:
+            async with (
+                KalshiClient(
+                    key_id=key_id,
+                    private_key_path=private_key_path,
+                    private_key_b64=private_key_b64,
+                    environment=environment_override,
+                ) as client,
+                DatabaseManager(db_path) as db,
+            ):
+                await db.create_tables()
                 syncer = PortfolioSyncer(client=client, db=db)
 
                 # Sync trades first (needed for cost basis calculation)
@@ -84,8 +108,10 @@ def portfolio_sync(
                 # Update mark prices + unrealized P&L (requires public API)
                 if not skip_mark_prices and positions_count > 0:
                     console.print("[dim]Fetching mark prices...[/dim]")
-                    # Use same environment for public client
-                    async with KalshiPublicClient(environment=environment) as public_client:
+                    # Use same environment override for public client
+                    async with KalshiPublicClient(
+                        environment=environment_override
+                    ) as public_client:
                         updated = await syncer.update_mark_prices(public_client)
                         console.print(
                             f"[green]✓[/green] Updated mark prices for {updated} positions"
@@ -99,8 +125,9 @@ def portfolio_sync(
         except KalshiAPIError as e:
             console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
             raise typer.Exit(1) from None
-        finally:
-            await db.close()
+        except (OSError, ValueError) as e:
+            console.print(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1) from None
 
     asyncio.run(_sync())
 
@@ -271,30 +298,26 @@ def portfolio_balance(
     from kalshi_research.api import KalshiClient
     from kalshi_research.api.exceptions import KalshiAPIError
 
-    key_id = os.getenv("KALSHI_KEY_ID")
-    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
-    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
-
-    if not key_id or (not private_key_path and not private_key_b64):
-        console.print("[red]Error:[/red] Balance requires authentication.")
-        console.print(
-            "[dim]Set KALSHI_KEY_ID and KALSHI_PRIVATE_KEY_PATH "
-            "(or KALSHI_PRIVATE_KEY_B64) to enable balance checks[/dim]"
-        )
-        raise typer.Exit(1)
+    environment_override = _validate_environment_override(environment)
+    key_id, private_key_path, private_key_b64 = _require_auth_env(purpose="Balance")
 
     async def _balance() -> None:
-        async with KalshiClient(
-            key_id=key_id,
-            private_key_path=private_key_path,
-            private_key_b64=private_key_b64,
-            environment=environment,
-        ) as client:
-            try:
-                balance = await client.get_balance()
-            except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+        balance: dict[str, Any] | None = None
+        try:
+            async with KalshiClient(
+                key_id=key_id,
+                private_key_path=private_key_path,
+                private_key_b64=private_key_b64,
+                environment=environment_override,
+            ) as client:
+                try:
+                    balance = await client.get_balance()
+                except KalshiAPIError as e:
+                    console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+                    raise typer.Exit(1) from None
+        except (OSError, ValueError) as e:
+            console.print(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1) from None
 
         if not balance:
             console.print("[yellow]No balance data returned[/yellow]")

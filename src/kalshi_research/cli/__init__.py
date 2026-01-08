@@ -38,13 +38,14 @@ app.add_typer(portfolio_app, name="portfolio")
 @app.callback()
 def main(
     environment: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--env",
             "-e",
             help="API environment (prod/demo). Defaults to KALSHI_ENVIRONMENT or prod.",
+            show_default=False,
         ),
-    ] = "prod",
+    ] = None,
 ) -> None:
     """Kalshi Research Platform CLI."""
     import os
@@ -56,18 +57,15 @@ def main(
     # Priority: CLI flag > KALSHI_ENVIRONMENT env var > default "prod"
     env_var = os.getenv("KALSHI_ENVIRONMENT")
 
-    # If user didn't override --env (still "prod") and env var is set, use env var
-    final_env = environment
-    if environment == "prod" and env_var:
-        final_env = env_var
-
     try:
+        final_env = (environment or env_var or "prod").strip().lower()
         set_environment(Environment(final_env))
     except ValueError:
         console.print(
-            f"[yellow]Warning:[/yellow] Invalid environment '{final_env}', defaulting to prod"
+            f"[red]Error:[/red] Invalid environment '{environment or env_var}'. "
+            "Expected 'prod' or 'demo'."
         )
-        set_environment(Environment.PRODUCTION)
+        raise typer.Exit(1) from None
 
 
 @app.command()

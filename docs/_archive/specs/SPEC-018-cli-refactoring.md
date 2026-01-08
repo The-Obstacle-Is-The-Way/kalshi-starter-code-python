@@ -4,6 +4,7 @@
 - **State**: Implemented
 - **Created**: 2026-01-08
 - **Completed**: 2026-01-08
+- **Archived**: 2026-01-08
 - **Target Version**: 0.2.0
 
 ## Context
@@ -37,7 +38,8 @@ src/kalshi_research/cli/
 
 1.  **`__init__.py`**
     - Instantiates the main `typer.Typer` app (`kalshi`).
-    - Defines the global `main` callback (environment setup, dotenv loading).
+    - Defines the global `main` callback (dotenv loading, environment setup).
+    - Validates `--env` / `KALSHI_ENVIRONMENT` and fails fast on invalid values (no silent fallback).
     - Registers sub-apps using `app.add_typer()`.
     - Implements the `version` command.
     - Exposes the `app` object for the entry point.
@@ -75,6 +77,8 @@ src/kalshi_research/cli/
     - **Internal Logic**:
       - `_spawn_alert_monitor_daemon()` — Spawns background monitor process.
       - `_get_alerts_file()` — Returns path to alerts JSON.
+    - **Notes**:
+      - `alerts monitor --daemon` validates the child starts (fails if it exits immediately).
 
 8.  **`analysis.py`**
     - **Sub-app**: `analysis`

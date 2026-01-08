@@ -26,4 +26,4 @@ Completed todo items are stored in [`../_archive/todo/`](../_archive/todo/).
 | ID | Title | Status |
 |---|---|---|
 | **TODO-001** | Missing Features | ✅ All Implemented |
-| **TODO-002** | Remaining Work Audit | ✅ Alerts daemon mode implemented |
+| **TODO-002** | Remaining Work Audit | ✅ Resolved (archived) |

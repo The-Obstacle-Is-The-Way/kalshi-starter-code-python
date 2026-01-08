@@ -23,7 +23,8 @@ This is intended for local development and running authenticated commands withou
 ### Optional
 
 - `KALSHI_ENVIRONMENT` — `demo` or `prod` (default: `prod`)
-  - You can also pass `kalshi --env demo ...` / `kalshi -e demo ...` to override.
+  - Precedence: `kalshi --env/-e ...` overrides `KALSHI_ENVIRONMENT`.
+  - Invalid values cause the CLI to exit with an error (no silent fallback).
 
 ### Tests only
 
@@ -33,6 +34,7 @@ This is intended for local development and running authenticated commands withou
 
 ```bash
 # The CLI defaults to `prod` if this is unset. For safer experimentation, use `demo`.
+# Invalid values will cause the CLI to exit with an error.
 KALSHI_ENVIRONMENT=demo
 KALSHI_KEY_ID=your_key_id_here
 KALSHI_PRIVATE_KEY_PATH=/absolute/path/to/kalshi-private-key.pem

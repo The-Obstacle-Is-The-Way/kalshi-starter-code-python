@@ -2,7 +2,7 @@
 
 **Source:** [docs.kalshi.com](https://docs.kalshi.com/welcome)
 **OpenAPI Spec:** [docs.kalshi.com/openapi.yaml](https://docs.kalshi.com/openapi.yaml)
-**Last Verified:** 2026-01-07
+**Last Verified:** 2026-01-08
 
 ---
 
@@ -67,7 +67,7 @@ Only these count against **write** limits:
 |-----------|------|
 | `CreateOrder` | 1 transaction |
 | `BatchCreateOrders` | 1 transaction per order item |
-| `CancelOrder` | 0.2 transactions |
+| `CancelOrder` | 1 transaction |
 | `BatchCancelOrders` | 0.2 transactions per cancel |
 | `AmendOrder` | 1 transaction |
 | `DecreaseOrder` | 1 transaction |
@@ -84,19 +84,21 @@ Only these count against **write** limits:
 
 | Parameter | Description |
 |-----------|-------------|
-| `limit` | Page size (default: 100) |
+| `limit` | Page size (most endpoints; default: 100; endpoint-specific max) |
+| `page_size` | Page size for `GET /structured_targets` (default: 100; max: 2000) |
 | `cursor` | Pass from previous response to get next page |
 
 **Continue until `cursor` is null/empty/missing.**
 
 ### Maximum Limits by Endpoint
 
-| Endpoint | Max Limit |
-|----------|-----------|
-| `GET /markets` | 1000 |
-| `GET /markets/trades` | 1000 |
-| `GET /structured-targets` | 2000 |
-| Others | Typically 100-1000 |
+| Endpoint | Page Size Param | Max |
+|----------|------------------|-----|
+| `GET /markets` | `limit` | 1000 |
+| `GET /markets/trades` | `limit` | 1000 |
+| `GET /events` | `limit` | 200 |
+| `GET /events/multivariate` | `limit` | 200 |
+| `GET /structured_targets` | `page_size` | 2000 |
 
 ---
 
@@ -127,6 +129,12 @@ Only these count against **write** limits:
 | `GET /events/{ticker}` | Single event details |
 | `GET /events/{ticker}/metadata` | Event metadata |
 | `GET /events/{ticker}/candlesticks` | Event-level candlestick data |
+| `GET /structured_targets` | List structured targets (cursor + `page_size`) |
+| `GET /structured_targets/{structured_target_id}` | Structured target details |
+
+> **Docs conflict (market data auth):** Kalshi’s quickstart docs describe market-data REST endpoints as public, but
+> the OpenAPI spec marks some (notably orderbook) as requiring auth headers. As of 2026-01-08, unauthenticated
+> `GET /markets/{ticker}/orderbook` works in practice; if you see 401s, retry with signed headers.
 
 ### GET /markets Parameters
 
@@ -144,6 +152,12 @@ Only these count against **write** limits:
 | `min_settled_ts` / `max_settled_ts` | int | Settlement time filters |
 
 **Note:** Timestamp filters are mutually exclusive. Only one status filter allowed.
+
+### Market status gotcha (filter vs response)
+
+- Query filter (`GET /markets?status=...`): `unopened`, `open`, `paused`, `closed`, `settled`
+- Market object field (`market.status` in responses): `initialized`, `inactive`, `active`, `closed`, `determined`,
+  `disputed`, `amended`, `finalized`
 
 ### Orders (Authenticated)
 
@@ -210,6 +224,7 @@ Use the same three headers as REST:
 
 ```json
 {
+  "id": 1,
   "cmd": "subscribe",
   "params": {
     "channels": ["ticker"],
@@ -217,6 +232,8 @@ Use the same three headers as REST:
   }
 }
 ```
+
+`params` supports either `market_ticker` (single) or `market_tickers` (list).
 
 Other commands: `unsubscribe`, `list_subscriptions`, `update_subscription`
 
@@ -257,16 +274,17 @@ Other commands: `unsubscribe`, `list_subscriptions`, `update_subscription`
 ### Python (Current)
 
 ```bash
-pip install kalshi-python-sync   # Synchronous
-pip install kalshi-python-async  # Asynchronous
+pip install kalshi_python_sync   # Synchronous
+pip install kalshi_python_async  # Asynchronous
 ```
 
-> **⚠️ DEPRECATED:** `kalshi-python` is deprecated. Migrate to `kalshi-python-sync` or `kalshi-python-async`.
+> **Docs conflict:** Kalshi’s Python SDK docs currently have both `kalshi-python` and the newer
+> `kalshi_python_sync` / `kalshi_python_async` pages live. The quickstart calls `kalshi-python` deprecated.
 
 ### TypeScript/JavaScript
 
 ```bash
-npm install @kalshi/sdk
+npm install kalshi-typescript
 ```
 
 ---
@@ -282,23 +300,32 @@ For institutional traders and high-frequency operations:
 
 ## Recent Breaking Changes (2025-2026)
 
-### Field Deprecations (Jan 2026)
+### Market response field removals (release Jan 15, 2026)
 
-Cent-denominated fields being **removed** from REST responses:
-- `yes_bid`, `no_ask`, `liquidity` → Use `*_dollars` fields instead
-- `category`, `risk_limit_cents` → Removed from Market object
+Cent-denominated fields being removed from **Market** responses:
+- `response_price_units`, `notional_value`, `yes_bid`, `yes_ask`, `no_bid`, `no_ask`, `last_price`,
+  `previous_yes_bid`, `previous_yes_ask`, `previous_price`, `liquidity` → Use `*_dollars` equivalents.
+- `tick_size` → Use `price_level_structure` and `price_ranges`.
 
-### Order Changes (Nov 2025)
+### Market response field removals (release Jan 8, 2026)
 
-- Orders with past `expiration_ts` now rejected
-- Cannot combine `time_in_force: "immediate_or_cancel"` with `expiration_ts`
-- "Pending" status removed from order enum
+- `category`, `risk_limit_cents` removed from Market responses.
 
-### Multivariate Events (Nov 2025)
+### API key scopes (release Dec 18, 2025)
+
+- Keys support `scopes: ["read", "write"]` (defaults to full access if omitted; existing keys have both).
+
+### Multivariate events (release Dec 4, 2025)
 
 - `GET /events` now **excludes** multivariate events
 - Use `GET /events/multivariate` for multivariate events
 - Use `mve_filter` parameter on `/markets` to filter
+
+### Order semantics (late 2025)
+
+- “Pending” removed from order status enum (expected release Nov 27, 2025).
+- Order expiration constraints (`expiration_ts` validation and `immediate_or_cancel` interaction) were announced with a
+  TBD release date in the changelog; code defensively.
 
 ---
 

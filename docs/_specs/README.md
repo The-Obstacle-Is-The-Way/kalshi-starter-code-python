@@ -4,12 +4,12 @@ This directory contains **active** design specifications for pending features.
 
 ## Current Status
 
-**No active specifications.** All 17 specs have been implemented.
+**No active specifications.** All 18 specs have been implemented.
 
 ## Next ID Tracker
 
 Use this ID for the next specification you create:
-**SPEC-018**
+**SPEC-019**
 
 ---
 
@@ -19,6 +19,7 @@ Completed specifications are stored in [`../_archive/specs/`](../_archive/specs/
 
 | ID | Title | Status |
 |---|---|---|
+| **SPEC-018** | CLI Refactoring | ✅ Implemented |
 | **SPEC-017** | Alert Monitor Daemon Mode | ✅ Implemented |
 | **SPEC-016** | Demo Environment Testing | ✅ Implemented |
 | **SPEC-015** | Rate Limit Tier Management | ✅ Implemented |

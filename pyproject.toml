@@ -5,7 +5,7 @@ description = "Research platform for Kalshi prediction market analysis"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
-authors = [{ name = "Your Name", email = "you@example.com" }]
+authors = [{ name = "The-Obstacle-Is-The-Way" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -60,6 +60,9 @@ all = ["kalshi-research[dev,research]"]
 [project.scripts]
 kalshi = "kalshi_research.cli:app"
 
+[project.urls]
+Repository = "https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -83,7 +86,7 @@ select = [
     "UP",
     "ARG",
     "SIM",
-    "TCH",
+    "TC",
     "PTH",
     "ERA",
     "PL",
@@ -95,7 +98,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["PLC0415", "ERA001", "ARG001", "ARG002"]  # Allow imports inside fixtures, test code patterns
+"tests/**" = ["PLC0415", "ERA001", "ARG001", "ARG002"]  # Allow imports inside fixtures, test code patterns
 "src/kalshi_research/cli/*.py" = ["PLC0415"]  # Allow lazy imports in CLI for faster startup
 "src/kalshi_research/api/auth.py" = ["PLC0415"]  # Allow lazy import to prevent circular imports
 "src/kalshi_research/api/models/*.py" = ["TC003"]  # Pydantic models need datetime at runtime

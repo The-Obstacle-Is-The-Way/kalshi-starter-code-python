@@ -78,7 +78,7 @@ description = "Research platform for Kalshi prediction market analysis"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
-authors = [{ name = "Your Name", email = "you@example.com" }]
+authors = [{ name = "The-Obstacle-Is-The-Way" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -159,7 +159,7 @@ select = [
     "UP",     # pyupgrade
     "ARG",    # flake8-unused-arguments
     "SIM",    # flake8-simplify
-    "TCH",    # flake8-type-checking
+    "TC",     # flake8-type-checking
     "PTH",    # flake8-use-pathlib
     "ERA",    # eradicate (commented code)
     "PL",     # pylint
