@@ -10,12 +10,12 @@ import pytest
 import respx
 
 from kalshi_research.api.client import KalshiPublicClient
-from kalshi_research.api.rate_limiter import RateTier
 
 
 @pytest.fixture
 async def public_client():
-    client = KalshiPublicClient(environment="demo", rate_tier=RateTier.BASIC)
+    # Note: rate_tier is only available on KalshiClient (authenticated), not KalshiPublicClient
+    client = KalshiPublicClient(environment="demo")
     async with client:
         yield client
 
