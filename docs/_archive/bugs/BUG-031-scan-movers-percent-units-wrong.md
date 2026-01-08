@@ -44,4 +44,3 @@ moves.
 
 - [x] `scan movers` displays change and old/new prices in consistent probability units
 - [x] Regression test passes
-

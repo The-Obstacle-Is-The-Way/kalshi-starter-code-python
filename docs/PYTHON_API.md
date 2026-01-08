@@ -81,4 +81,3 @@ High-level exports live in `kalshi_research.analysis`:
 - plotting helpers (`plot_probability_timeline`, `plot_spread_timeline`, etc.)
 
 Some analyzers live in submodules (e.g. `kalshi_research.analysis.correlation.CorrelationAnalyzer`).
-

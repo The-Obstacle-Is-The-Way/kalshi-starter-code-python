@@ -43,4 +43,3 @@ Since `0` is falsy, this collapsed valid `0` values into the fallback path.
 ## Regression Test
 
 - `tests/unit/test_cli_extended.py::test_analysis_metrics`
-

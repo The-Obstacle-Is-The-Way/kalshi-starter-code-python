@@ -224,4 +224,3 @@ uv run kalshi portfolio suggest-links --db data/kalshi.db
 - `docs/PYTHON_API.md`
 - `docs/TESTING.md`
 - `docs/ARCHITECTURE.md`
-

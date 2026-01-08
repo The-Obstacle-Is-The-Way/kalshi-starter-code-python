@@ -39,4 +39,3 @@ Core tables (see `src/kalshi_research/data/models.py`):
 - **Integration tests** (`tests/integration/`): DB migrations/repositories and (optionally) live API tests.
 
 See `docs/TESTING.md` for the exact commands.
-

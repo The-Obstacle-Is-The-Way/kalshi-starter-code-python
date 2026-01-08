@@ -92,4 +92,3 @@ Commands:
 - `kalshi portfolio history [--db PATH] [--limit N] [--ticker TICKER]`
 - `kalshi portfolio link <TICKER> --thesis <THESIS_ID> [--db PATH]`
 - `kalshi portfolio suggest-links [--db PATH]`
-

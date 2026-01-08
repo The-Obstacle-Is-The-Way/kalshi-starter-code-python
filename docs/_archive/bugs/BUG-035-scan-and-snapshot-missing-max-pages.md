@@ -41,4 +41,3 @@ Several CLI commands fetch *all* open markets via `get_all_markets()` with no wa
 - [x] Long-running CLI fetches can be bounded via `--max-pages`
 - [x] When bounded, the underlying client warns if results are truncated
 - [x] Unit/integration tests still pass
-

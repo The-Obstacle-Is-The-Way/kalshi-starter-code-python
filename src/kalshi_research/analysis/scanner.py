@@ -285,7 +285,7 @@ class MarketScanner:
 
         def get_hours_left(r: ScanResult) -> float:
             val = r.details.get("hours_left", 999.0)
-            return float(val) if isinstance(val, (int, float)) else 999.0
+            return float(val) if isinstance(val, int | float) else 999.0
 
         results.sort(key=get_hours_left)
         return results[:top_n]

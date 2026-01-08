@@ -13,8 +13,9 @@ from kalshi_research.api.auth import KalshiAuth
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
+    from types import TracebackType
 
-    from websockets.client import WebSocketClientProtocol
+    from websockets.asyncio.client import ClientConnection
 
 from kalshi_research.api.config import APIConfig, Environment, get_config
 from kalshi_research.api.websocket.messages import (
@@ -54,7 +55,7 @@ class KalshiWebSocket:
         self._auto_reconnect = auto_reconnect
         self._max_reconnect = max_reconnect_attempts
 
-        self._ws: WebSocketClientProtocol | None = None
+        self._ws: ClientConnection | None = None
         self._running = False
         self._lock = asyncio.Lock()
 
@@ -68,7 +69,12 @@ class KalshiWebSocket:
         await self.connect()
         return self
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         await self.close()
 
     async def connect(self) -> None:
@@ -76,7 +82,7 @@ class KalshiWebSocket:
         # Generate auth headers
         headers = self._auth.get_headers("GET", self.WS_PATH)
 
-        logger.info("Connecting to WebSocket", url=self._url)
+        logger.info("Connecting to WebSocket: %s", self._url)
         self._ws = await websockets.connect(self._url, extra_headers=headers)
         self._running = True
         logger.info("WebSocket connected")
@@ -106,9 +112,10 @@ class KalshiWebSocket:
             channels: List of channel names (ticker, orderbook_delta, etc)
             market_tickers: Optional list of market tickers
         """
-        msg = {"cmd": "subscribe", "params": {"channels": channels}}
+        params: dict[str, Any] = {"channels": channels}
         if market_tickers:
-            msg["params"]["market_tickers"] = market_tickers
+            params["market_tickers"] = market_tickers
+        msg: dict[str, Any] = {"cmd": "subscribe", "params": params}
 
         await self._send(msg)
 
@@ -152,7 +159,9 @@ class KalshiWebSocket:
         self._add_handler("market_positions", callback)
         await self.subscribe(["market_positions"])
 
-    def _add_handler(self, channel: str, callback: Callable) -> None:
+    def _add_handler(
+        self, channel: str, callback: Callable[[Any], Coroutine[Any, Any, None]]
+    ) -> None:
         if channel not in self._handlers:
             self._handlers[channel] = []
         self._handlers[channel].append(callback)
@@ -164,7 +173,7 @@ class KalshiWebSocket:
 
         while self._running:
             try:
-                if not self._ws or self._ws.closed:
+                if not self._ws or self._ws.state.name == "CLOSED":
                     if self._auto_reconnect:
                         await self._reconnect()
                     else:

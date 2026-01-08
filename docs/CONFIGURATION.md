@@ -37,4 +37,3 @@ KALSHI_PRIVATE_KEY_PATH=/absolute/path/to/kalshi-private-key.pem
 # OR:
 # KALSHI_PRIVATE_KEY_B64=base64_encoded_private_key_material
 ```
-

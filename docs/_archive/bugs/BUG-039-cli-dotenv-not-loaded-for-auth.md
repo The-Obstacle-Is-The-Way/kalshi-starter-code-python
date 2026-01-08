@@ -62,4 +62,3 @@ This keeps behavior explicit to the CLI and supports running from subdirectories
 ## Regression Test Added
 
 - `tests/unit/test_cli_extended.py::test_portfolio_balance_loads_dotenv`
-

@@ -78,4 +78,3 @@ asserts it is never disabled across upgrade/downgrade.
 - [x] Running Alembic migrations in-process does not disable `kalshi_research.*` loggers.
 - [x] Full `pytest` suite is order-independent; `caplog` warnings assertions remain stable.
 - [x] `uv run pytest` passes.
-

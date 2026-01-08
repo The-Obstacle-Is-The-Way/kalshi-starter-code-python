@@ -27,4 +27,3 @@ This documentation set follows the Diataxis structure: **Tutorials**, **How-to g
 
 - `docs/_specs/README.md` — aspirational specs / design notes (not always fully implemented).
 - `docs/_bugs/README.md` — bug tracker + audit report (SSOT for fixed bugs).
-

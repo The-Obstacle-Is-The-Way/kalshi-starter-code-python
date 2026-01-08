@@ -513,7 +513,7 @@ def export_to_parquet(sqlite_path: str | Path, output_dir: str | Path) -> None:
     ```python
     # GOOD
     dt = datetime.now(timezone.utc)
-    
+
     # BAD
     dt = datetime.now()  # Naive (local time)
     ```

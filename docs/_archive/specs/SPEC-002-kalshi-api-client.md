@@ -724,12 +724,12 @@ class KalshiClient(KalshiPublicClient):
         # Determine base URL based on environment
         base_host = self.DEMO_BASE if environment == "demo" else self.PROD_BASE
         self._base_url = base_host + self.API_PATH
-        
+
         # Initialize parent with the correct base_url
         # Note: We override the hardcoded BASE_URL of the parent instance
         super().__init__(timeout=timeout)
         self._client.base_url = self._base_url  # Update httpx client base URL
-        
+
         self._auth = KalshiAuth(key_id, private_key_path)
 
     async def __aenter__(self) -> "KalshiClient":

@@ -51,4 +51,3 @@ The CLI used a hard-coded slice (`markets[:50]`) as a performance guardrail but 
 - [x] CLI warns when correlation analysis is truncated
 - [x] CLI exposes `--tickers-limit` to control/disable truncation
 - [x] Regression test passes
-

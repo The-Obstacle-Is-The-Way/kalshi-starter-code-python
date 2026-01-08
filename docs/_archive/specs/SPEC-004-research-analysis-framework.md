@@ -294,7 +294,7 @@ class EdgeDetector:
     ) -> Edge | None:
         """
         Detect edge when your estimate differs from market.
-        
+
         Args:
             ticker: Market ticker
             market_prob: Current market probability (0-1)
@@ -358,7 +358,7 @@ class EdgeDetector:
             detected_at=datetime.now(timezone.utc),
             metadata={"bid": bid, "ask": ask, "spread": spread},
         )
-    
+
     # ... other detectors ...
 ```
 

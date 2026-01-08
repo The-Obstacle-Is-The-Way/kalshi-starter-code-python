@@ -44,4 +44,3 @@ Even though the code already filtered `your_estimate is not None`, `0.0` is fals
 ## Regression Test
 
 - `tests/unit/analysis/test_visualization.py::TestPlotEdgeHistogram.test_plot_edge_histogram_allows_zero_estimate`
-
