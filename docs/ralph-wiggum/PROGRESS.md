@@ -141,8 +141,6 @@ done
 
 The platform is fully complete with all optional polish.
 
-When ALL boxes are checked AND all quality gates pass, the loop can output:
+When ALL boxes are checked AND all quality gates pass, the project is complete.
 
-```
-KALSHI RESEARCH PLATFORM COMPLETE
-```
+The loop operator verifies completion by checking this file's state (all `[x]`).

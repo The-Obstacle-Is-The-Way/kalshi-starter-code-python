@@ -88,7 +88,35 @@ main (protected, production)
         └── ralph-wiggum-loop (autonomous work)
 ```
 
-If you don’t use a `dev` branch, use `ralph-wiggum-loop` directly off `main` and merge via PR.
+If you don't use a `dev` branch, use `ralph-wiggum-loop` directly off `main` and merge via PR.
+
+### Step 1.5: File Placement (Clean Root Pattern)
+
+**Storage vs Runtime locations:**
+
+To keep your project root clean, store Ralph files in a subdirectory:
+```
+docs/ralph-wiggum/
+├── PROTOCOL.md   # This file (reference, stays here)
+├── PROMPT.md     # Template (move to root when running)
+└── PROGRESS.md   # State file (move to root when running)
+```
+
+**Before running the loop**, move the active files to root:
+```bash
+git checkout ralph-wiggum-loop
+cp docs/ralph-wiggum/PROMPT.md ./PROMPT.md
+cp docs/ralph-wiggum/PROGRESS.md ./PROGRESS.md
+```
+
+**After the loop completes**, move them back:
+```bash
+mv PROMPT.md docs/ralph-wiggum/PROMPT.md
+mv PROGRESS.md docs/ralph-wiggum/PROGRESS.md
+git add -A && git commit -m "chore: Archive ralph-wiggum state files"
+```
+
+This keeps your main/dev branches clean while preserving the files for future use.
 
 ### Step 2: Create State File (PROGRESS.md)
 
@@ -121,11 +149,11 @@ This is the **brain** of the loop. Each iteration reads this to find the next ta
 
 ## Completion Criteria
 
-When ALL boxes are checked:
+When ALL boxes are checked, the project is complete.
 
-\`\`\`
-PROJECT COMPLETE
-\`\`\`
+**Note:** Do NOT include a magic completion phrase here. The loop operator verifies
+completion by checking this file's state (all `[x]`), not by parsing output strings.
+This prevents reward hacking where the model outputs completion phrases prematurely.
 ```
 
 ### Step 3: Create Prompt File (PROMPT.md)
@@ -193,13 +221,10 @@ uv run pytest tests/ -v       # Tests
 
 ## Completion
 
-When ALL items checked AND quality gates pass:
+When ALL items in PROGRESS.md are checked AND quality gates pass, exit cleanly.
 
-\`\`\`
-PROJECT COMPLETE
-\`\`\`
-
-**CRITICAL:** Only output this when TRUE. Do not lie to exit.
+**CRITICAL:** Do not claim completion prematurely. The loop operator verifies
+via PROGRESS.md state, not by parsing your output for magic phrases.
 ```
 
 ### Step 4: Create Spec/Bug Docs
@@ -253,14 +278,18 @@ while true; do
 done
 ```
 
-**With iteration limit (recommended):**
+**With iteration limit and state-based completion (recommended):**
 
 ```bash
 MAX=50
 for i in $(seq 1 $MAX); do
   echo "=== Iteration $i/$MAX ==="
-  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)" | tee -a .claude/ralph.log
-  grep -q "PROJECT COMPLETE" .claude/ralph.log && { echo "✅ Done!"; break; }
+  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"
+  # Check state file instead of parsing output (prevents reward hacking)
+  if ! grep -q "^\- \[ \]" PROGRESS.md; then
+    echo "✅ All tasks complete!"
+    break
+  fi
   sleep 2
 done
 ```
@@ -274,9 +303,12 @@ MAX=50
 for i in $(seq 1 $MAX); do
   echo "=== Iteration $i/$MAX ==="
   claude -p "$(cat PROMPT.md)" \
-    --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
-    | tee -a .claude/ralph.log
-  grep -q "PROJECT COMPLETE" .claude/ralph.log && break
+    --allowedTools "Read,Write,Edit,Glob,Grep,Bash"
+  # Check state file instead of parsing output
+  if ! grep -q "^\- \[ \]" PROGRESS.md; then
+    echo "✅ All tasks complete!"
+    break
+  fi
   sleep 2
 done
 ```
@@ -300,12 +332,15 @@ claude  # Start interactive session
 
 Then inside Claude Code:
 ```
-/ralph-loop "See PROMPT.md. Follow it exactly." --max-iterations 20 --completion-promise "PROJECT COMPLETE"
+/ralph-loop "See PROMPT.md. Follow it exactly." --max-iterations 20
 ```
 
 To cancel: `/cancel-ralph`
 
 **Note:** Plugin state lives in `.claude/ralph-loop.local.md`.
+
+**⚠️ Warning:** The plugin supports `--completion-promise` flags, but we recommend
+against using them. Rely on state-file verification instead to prevent reward hacking.
 
 ---
 
@@ -335,33 +370,25 @@ To cancel: `/cancel-ralph`
 
 Your loop should stop when:
 1. **Iteration limit reached** - Always set `MAX` in your loop
-2. **Completion detected** - `grep` for your completion phrase in the log
+2. **All tasks complete** - Check `PROGRESS.md` for all `[x]` markers
 3. **Manual intervention** - Ctrl+C when you're satisfied
 
-**The completion phrase is a convenience, not a guarantee.** Tests/linters are your real verification.
+**IMPORTANT: Avoid magic completion phrases entirely.**
 
-**IMPORTANT: Plain text vs XML tags for completion phrases:**
+Do NOT instruct the model to output phrases like "PROJECT COMPLETE" or use XML tags
+like `<promise>...</promise>`. This creates reward hacking risk where the model
+outputs the phrase prematurely to exit the loop.
 
-The Claude Code plugin (`/ralph-loop`) uses `<promise>` XML tags because its stop hook parses for that specific format. However, for external bash loops, **use plain text completion phrases**:
-
-- **External loop**: `grep -q "PROJECT COMPLETE"` in your bash script
-- **Plugin**: The plugin internally looks for `<promise>PROJECT COMPLETE</promise>`
-
-**Why avoid XML tags in external loops:**
-1. **LLM bias** - XML-like tags can trigger unintended model behavior
-2. **Reward hacking** - The model may output tags prematurely to "satisfy" the loop
-3. **Simplicity** - Plain text is cleaner and grep-friendly
-4. **No parser needed** - External loops use simple grep, not XML parsing
-
-If you're using an external bash loop (Option A or B above), your prompt should specify:
-```
-When complete, output: PROJECT COMPLETE
+**Instead, verify completion via state:**
+```bash
+# Check if all tasks are marked complete
+if ! grep -q "^\- \[ \]" PROGRESS.md; then
+  echo "✅ All tasks complete"
+  break
+fi
 ```
 
-NOT:
-```
-When complete, output: <promise>PROJECT COMPLETE</promise>
-```
+This verifies actual progress (checked boxes) rather than trusting model output.
 
 ### Safety Philosophy
 
@@ -616,41 +643,38 @@ git rebase --continue
 git checkout main && git pull
 git checkout -b ralph-wiggum-loop
 
-# 2. Create PROGRESS.md with [ ] tasks
+# 2. Move state files to root (if stored in docs/ralph-wiggum/)
+cp docs/ralph-wiggum/PROMPT.md ./PROMPT.md
+cp docs/ralph-wiggum/PROGRESS.md ./PROGRESS.md
 
-# 3. Create PROMPT.md with instructions
+# 3. Create spec docs for each task (docs/_specs/, docs/_bugs/)
 
-# 4. Create spec docs for each task (docs/_specs/, docs/_bugs/)
-
-# 5. Start tmux
+# 4. Start tmux
 tmux new -s ralph
 
-# 6. Run the loop (pick one):
-
-# Option A: Simple YOLO (recommended)
+# 5. Run the loop (state-based completion check):
 MAX=50; for i in $(seq 1 $MAX); do
   echo "=== Iteration $i/$MAX ==="
-  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)" | tee -a .claude/ralph.log
-  grep -q "PROJECT COMPLETE" .claude/ralph.log && break
+  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"
+  # Check if all tasks complete (no unchecked boxes)
+  if ! grep -q "^\- \[ \]" PROGRESS.md; then
+    echo "✅ All tasks complete"
+    break
+  fi
   sleep 2
 done
 
-# Option B: Granular permissions
-MAX=50; for i in $(seq 1 $MAX); do
-  claude -p "$(cat PROMPT.md)" --allowedTools "Read,Write,Edit,Bash" | tee -a .claude/ralph.log
-  grep -q "PROJECT COMPLETE" .claude/ralph.log && break
-  sleep 2
-done
-
-# Option C: Plugin (inside claude interactive session)
-# /ralph-loop "See PROMPT.md" --max-iterations 20 --completion-promise "PROJECT COMPLETE"
-
-# 7. Monitor in another pane
+# 6. Monitor in another pane
 watch -n 5 'git log --oneline -10'
 
-# 8. Audit when done
+# 7. Audit when done
 git log main..ralph-wiggum-loop --oneline
 git diff main..ralph-wiggum-loop --stat
+
+# 8. Archive state files back
+mv PROMPT.md docs/ralph-wiggum/PROMPT.md
+mv PROGRESS.md docs/ralph-wiggum/PROGRESS.md
+git add -A && git commit -m "chore: Archive ralph-wiggum state"
 
 # 9. Merge if good
 git checkout main && git merge ralph-wiggum-loop
