@@ -53,5 +53,5 @@ uv run pytest tests/e2e/test_live_demo.py
 Check strict coverage requirements (aiming for 100% on critical modules).
 
 ```bash
-uv run pytest --cov=kalshi_research
+uv run pytest --cov=src/kalshi_research --cov-report=term-missing
 ```

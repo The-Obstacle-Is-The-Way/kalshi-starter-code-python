@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import structlog
 import websockets
+from websockets.protocol import State
 
 from kalshi_research.api.auth import KalshiAuth
 
@@ -168,7 +169,7 @@ class KalshiWebSocket:
 
     async def _check_connection(self) -> bool:
         """Check connection state and reconnect if needed. Returns True if connected."""
-        if not self._ws or self._ws.state.name == "CLOSED":
+        if not self._ws or self._ws.state is State.CLOSED:
             if self._auto_reconnect:
                 await self._reconnect()
                 return True
@@ -187,6 +188,11 @@ class KalshiWebSocket:
 
                 async for message in self._ws:
                     await self._handle_message(message)
+
+                if self._running and self._ws and self._ws.state is not State.CLOSED:
+                    logger.warning("WebSocket iterator exhausted but socket not closed")
+                    await asyncio.sleep(0.1)
+                    continue
 
                 # Iterator exhausted (clean close) - reconnect if enabled
                 logger.warning("WebSocket iterator exhausted (clean close)")

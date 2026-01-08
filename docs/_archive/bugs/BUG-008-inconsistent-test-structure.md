@@ -14,7 +14,7 @@ The test directory structure is inconsistent. Newer modules (created by Ralph lo
 
 ### Current State (Inconsistent)
 
-```
+```tree
 tests/unit/
 ├── alerts/
 ├── analysis/
@@ -29,7 +29,7 @@ tests/unit/
 
 ### Desired State (Consistent)
 
-```
+```tree
 tests/unit/
 ├── api/
 │   ├── __init__.py
@@ -94,6 +94,9 @@ Root-level unit tests remain only for truly root-level concerns (`cli.py` and le
 # All tests should still pass after restructure
 uv run pytest tests/unit -v
 
+# CI-like suite (excluding integration/slow)
+uv run pytest -m "not integration and not slow"
+
 # Structure should mirror src/
 diff <(find src/kalshi_research -type d | sed 's|src/kalshi_research|tests/unit|' | sort) \
      <(find tests/unit -type d -not -name __pycache__ | sort)
@@ -107,7 +110,3 @@ diff <(find src/kalshi_research -type d | sed 's|src/kalshi_research|tests/unit|
 - Improves codebase navigability
 - Makes it easier to find tests for specific modules
 - Priority P4 - can be done after all functional work is complete
-
-## Verification
-
-- `uv run pytest -m "not integration and not slow"`
