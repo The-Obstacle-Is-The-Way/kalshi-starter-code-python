@@ -8,14 +8,14 @@ These tests use respx to mock HTTP requests. Everything else
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import respx
 from httpx import Response
 from structlog.testing import capture_logs
 
-from kalshi_research.api.client import KalshiPublicClient
+from kalshi_research.api.client import KalshiClient, KalshiPublicClient
 from kalshi_research.api.exceptions import KalshiAPIError
 from kalshi_research.api.models.market import Market, MarketStatus
 
@@ -505,6 +505,26 @@ class TestKalshiPublicClient:
         assert route.called
         assert route.calls[0].request.url.params.get("limit") == "200"
 
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_public_client_read_operations_use_rate_limiter(
+        self, mock_market_response: dict[str, Any]
+    ) -> None:
+        """Regression for BUG-049: Public client GET requests should be rate limited."""
+        ticker = "KXBTC-25JAN-T100000"
+        respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}").mock(
+            return_value=Response(200, json=mock_market_response)
+        )
+
+        async with KalshiPublicClient() as client:
+            # Mock the rate limiter to track calls
+            client._rate_limiter = AsyncMock()
+
+            await client.get_market(ticker)
+
+            # Verify rate limiter was called for GET request
+            client._rate_limiter.acquire.assert_called_once_with("GET", f"/markets/{ticker}")
+
 
 class TestMarketModelValidation:
     """Test Market model validation with real API-like data."""
@@ -546,3 +566,32 @@ class TestMarketModelValidation:
         assert market.result == ""  # Default value
         assert market.last_price is None  # Optional field
         assert market.series_ticker is None  # Optional field
+
+
+class TestKalshiClientRateLimiting:
+    """Test rate limiting for authenticated client."""
+
+    @pytest.mark.asyncio
+    async def test_auth_get_uses_rate_limiter(self) -> None:
+        """Regression for BUG-049: Authenticated GET requests should be rate limited."""
+        with patch("kalshi_research.api.client.KalshiAuth") as MockAuth:
+            # Configure the mock auth
+            mock_auth_instance = MockAuth.return_value
+            mock_auth_instance.get_headers.return_value = {"X-Signed": "true"}
+
+            client = KalshiClient(key_id="test-key", private_key_b64="fake", environment="demo")
+
+            # Mock the internal HTTP client and rate limiter
+            client._client = AsyncMock()
+            client._client.get.return_value = MagicMock(
+                status_code=200, json=lambda: {"balance": 1000}
+            )
+            client._rate_limiter = AsyncMock()
+            client._auth = mock_auth_instance
+
+            await client.get_balance()
+
+            # Verify rate limiter was called for GET request
+            client._rate_limiter.acquire.assert_called_once_with("GET", "/portfolio/balance")
+
+            await client._client.aclose()

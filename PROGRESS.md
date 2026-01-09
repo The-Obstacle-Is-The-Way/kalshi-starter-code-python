@@ -7,12 +7,12 @@
 
 ## Phase 1: Critical Bug Fixes
 
-- [x] **BUG-048**: Fix negative liquidity validation → `api/models/market.py`
+- [ ] **BUG-048**: Fix negative liquidity validation (REOPENED - see updated doc) → `api/models/market.py`
 - [x] **BUG-050**: Add logging to silent exception → `cli/alerts.py:117`
 
 ## Phase 2: Safety-Critical Fixes
 
-- [ ] **BUG-049**: Add rate limiter to read operations → `api/client.py`
+- [x] **BUG-049**: Add rate limiter to read operations → `api/client.py`
 - [ ] **TODO-007**: Implement `MarketStatusVerifier` → `analysis/scanner.py`
 - [ ] **TODO-008**: Add `dry_run` parameter to `create_order` → `api/client.py`
 

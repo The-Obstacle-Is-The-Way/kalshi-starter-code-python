@@ -57,6 +57,7 @@ class KalshiPublicClient:
         environment: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 5,
+        rate_tier: str | RateTier = RateTier.BASIC,
     ) -> None:
         config = get_config()
         if environment:
@@ -68,6 +69,11 @@ class KalshiPublicClient:
             headers={"Accept": "application/json"},
         )
         self._max_retries = max_retries
+
+        # Initialize rate limiter for read operations
+        if isinstance(rate_tier, str):
+            rate_tier = RateTier(rate_tier)
+        self._rate_limiter = RateLimiter(tier=rate_tier)
 
     async def __aenter__(self) -> KalshiPublicClient:
         return self
@@ -87,6 +93,9 @@ class KalshiPublicClient:
         Returns:
             JSON response as dictionary.
         """
+        # Acquire rate limit for READ
+        await self._rate_limiter.acquire("GET", path)
+
         async for attempt in AsyncRetrying(
             retry=retry_if_exception_type(
                 (
@@ -482,6 +491,9 @@ class KalshiClient(KalshiPublicClient):
 
         CRITICAL: Auth signing uses the FULL path including /trade-api/v2 prefix.
         """
+        # Acquire rate limit for READ
+        await self._rate_limiter.acquire("GET", path)
+
         # Sign with full path (e.g., /trade-api/v2/portfolio/balance)
         full_path = self.API_PATH + path
         headers = self._auth.get_headers("GET", full_path)
