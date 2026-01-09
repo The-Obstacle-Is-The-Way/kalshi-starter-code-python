@@ -28,12 +28,38 @@ cat docs/_todo/README.md
 
 1. Find the **FIRST** unchecked `[ ]` item in PROGRESS.md
 2. Read the corresponding doc: `docs/_bugs/BUG-XXX.md`, `docs/_debt/DEBT-XXX.md`, or `docs/_todo/TODO-XXX.md`
-3. Complete that ONE item fully (tests pass, quality checks pass)
-4. Check off the item: `[ ]` → `[x]`
-5. **ATOMIC COMMIT** (see format below)
-6. Exit
+3. **READ THE ACCEPTANCE CRITERIA** in the task doc - you MUST complete ALL of them
+4. Complete that ONE item fully (all acceptance criteria met, tests pass, quality checks pass)
+5. **UPDATE THE TASK DOC** - check off `[x]` each acceptance criterion you completed
+6. Check off the item in PROGRESS.md: `[ ]` → `[x]`
+7. **ATOMIC COMMIT** (see format below)
+8. Exit
 
 **DO NOT** attempt multiple tasks. One task per iteration.
+
+## A++ STANDARD: Acceptance Criteria Enforcement
+
+**CRITICAL**: A task is NOT complete until ALL acceptance criteria in the task doc are checked off.
+
+Before marking ANY task complete, verify:
+1. Read the task doc's **Acceptance Criteria** section
+2. EVERY `[ ]` criterion MUST become `[x]`
+3. If you only complete SOME criteria, the task stays `[ ]` in PROGRESS.md
+4. Update the task doc to show which criteria are done with `[x]`
+
+**Partial implementations are FAILURES.** Do not check off PROGRESS.md until ALL criteria pass.
+
+Example of WRONG behavior:
+```
+Task has 3 acceptance criteria, you complete 1, mark task done in PROGRESS.md
+```
+
+Example of CORRECT behavior:
+```
+Task has 3 acceptance criteria, you complete 1, task stays [ ] in PROGRESS.md
+Next iteration completes criterion 2, task stays [ ] in PROGRESS.md
+Next iteration completes criterion 3, NOW mark task [x] in PROGRESS.md
+```
 
 ## Atomic Commit Format
 
@@ -44,13 +70,14 @@ git add -A && git commit -m "$(cat <<'EOF'
 - What was implemented/fixed
 - Tests added/updated
 - Quality gates passed
+- Acceptance criteria: X/Y complete
 EOF
 )"
 ```
 
 **Examples:**
 - `[BUG-048] Fix: Allow negative liquidity values`
-- `[TODO-005] Add: Display open_time in market get`
+- `[TODO-005b] Add: Temporal validation to research workflow`
 - `[DEBT-003] Refactor: Add session.begin() transaction boundaries`
 
 ## Quality Gates (MUST PASS)
@@ -76,10 +103,12 @@ If ANY check fails, fix it before proceeding.
 1. **ONE task per iteration**
 2. **Read PROGRESS.md first**
 3. **Read the task doc (BUG-XXX.md, etc.)**
-4. **Quality gates must pass**
-5. **Mark task complete before exit**
-6. **Commit before exit**
-7. **Exit when done**
+4. **Verify ALL acceptance criteria are addressed**
+5. **Quality gates must pass**
+6. **Update task doc acceptance criteria checkboxes**
+7. **Mark PROGRESS.md task complete ONLY if ALL criteria done**
+8. **Commit before exit**
+9. **Exit when done**
 
 ## BEFORE EXIT CHECKLIST (MANDATORY)
 
@@ -92,13 +121,18 @@ uv run ruff format .          # Auto-format
 uv run mypy src/              # Fix type errors
 uv run pytest tests/unit -v   # All tests pass
 
-# 2. Stage ALL changes (including test files!)
+# 2. Verify acceptance criteria
+# - Read task doc's Acceptance Criteria section
+# - Ensure ALL criteria are [x] checked
+# - If any are [ ], do NOT mark PROGRESS.md as complete
+
+# 3. Stage ALL changes (including test files and docs!)
 git add -A
 
-# 3. Verify nothing is unstaged
+# 4. Verify nothing is unstaged
 git status  # Should show "nothing to commit" or all staged
 
-# 4. Commit with proper message
+# 5. Commit with proper message
 git commit -m "$(cat <<'EOF'
 [TASK-ID] Brief description
 
@@ -109,11 +143,12 @@ EOF
 )"
 ```
 
-**⚠️ CRITICAL:** Do NOT exit if:
+**CRITICAL - Do NOT exit if:**
 
 - `git status` shows unstaged changes
 - Any quality gate failed
 - You haven't committed
+- Task doc has unchecked acceptance criteria but PROGRESS.md shows `[x]`
 
 **If quality gates fail:** Fix them, re-run all gates, then commit.
 
@@ -124,8 +159,32 @@ EOF
 - TODOs: `docs/_todo/TODO-*.md`
 - Source: `src/kalshi_research/`
 - Tests: `tests/unit/`, `tests/integration/`
+- Skills: `.claude/skills/kalshi-cli/`
+
+## Task-Specific Guidance
+
+### TODO-005b: Temporal Validation
+- Add `TemporalValidator` class to `research/thesis.py`
+- Validates that researched events occurred AFTER `market.open_time`
+- Add test in `tests/unit/research/test_thesis.py`
+
+### TODO-005c: GOTCHAS Documentation
+- Add "Market Timing Trap" section to `.claude/skills/kalshi-cli/GOTCHAS.md`
+- Explain that events before `open_time` don't count
+- Include the Stranger Things example
+
+### DOCS-001: Sync Task Doc Acceptance Criteria
+- Review each task doc in `docs/_bugs/`, `docs/_debt/`, `docs/_todo/`
+- Update acceptance criteria checkboxes to match actual implementation state
+- This is a documentation-only task (no code changes)
 
 ## Completion
 
 When ALL items in PROGRESS.md are checked AND all quality gates pass, exit cleanly.
 The loop operator verifies via PROGRESS.md state, not output parsing.
+
+**A++ Standard means:**
+- ALL PROGRESS.md items are `[x]`
+- ALL task doc acceptance criteria are `[x]`
+- ALL quality gates pass
+- Clean git working tree

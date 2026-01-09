@@ -1,7 +1,7 @@
 # TODO-005: Market Open Date Validation for Research Recommendations
 
 **Priority**: High
-**Status**: Active
+**Status**: PARTIAL - 1/3 criteria complete
 **Created**: 2026-01-09
 **Spec**: [SPEC-025: Market Open Time Display](../_specs/SPEC-025-market-open-time-display.md)
 
@@ -42,29 +42,19 @@ Market opened Jan 5, 2026. S5 finale was Dec 31, 2025. Therefore S5 does NOT cou
 
 ## Required Fixes
 
-### 1. CLI Enhancement: Add `open_time` to Market Display
+### 1. CLI Enhancement: Add `open_time` to Market Display ✅ COMPLETE
 
 **File**: `src/kalshi_research/cli/market.py`
+**Commit**: `d7a9694` (2026-01-09)
 
-The `market get` command **currently only shows `Close Time`** but should also display:
+The `market get` command now displays:
 - `open_time` - when trading started
-- `created_time` - when market was created
+- `created_time` - when market was created (if present)
+- `close_time` - market expiration
 
-**Current output** (missing open_time):
-```
-│ Close Time    │ 2027-01-01T04:59:00+00:00                                    │
-```
+### 2. Research Workflow: Temporal Validation ❌ NOT STARTED
 
-**Needed output**:
-```
-│ Open Time     │ 2026-01-05T20:00:00+00:00                                    │
-│ Created Time  │ 2026-01-05T17:50:26+00:00                                    │
-│ Close Time    │ 2027-01-01T04:59:00+00:00                                    │
-```
-
-This helps users understand temporal context for research.
-
-### 2. Research Workflow: Temporal Validation
+**File**: `src/kalshi_research/research/thesis.py`
 
 When researching time-sensitive markets (media releases, events, elections), the workflow MUST:
 
@@ -72,21 +62,48 @@ When researching time-sensitive markets (media releases, events, elections), the
 2. Only research events that occurred AFTER `open_time`
 3. Flag if researched events predate market opening
 
-### 3. Documentation: Add Warning to Research Commands
+**Implementation Guidance:**
 
-Add documentation noting that market timing matters:
-- Markets asking "Will X happen before Y?" only count events AFTER market opens
-- Always verify `open_time` for conditional markets
+```python
+# In thesis.py or a new temporal_validator.py
+def validate_research_temporal_alignment(
+    market: Market,
+    event_date: datetime,
+) -> TemporalValidationResult:
+    """
+    Check if researched event occurred after market opened.
 
-## Current Position Assessment
+    Returns warning if event predates market.open_time.
+    """
+    if event_date < market.open_time:
+        return TemporalValidationResult(
+            valid=False,
+            warning=f"Event ({event_date}) predates market open ({market.open_time}). "
+                    "This event likely does NOT count for this market."
+        )
+    return TemporalValidationResult(valid=True)
+```
 
-**Stranger Things Market (KXMEDIARELEASEST-27JAN01)**
+### 3. Documentation: Add Warning to GOTCHAS.md ❌ NOT STARTED
 
-- User owns: 36 shares YES at 13¢ ($4.68 cost)
-- Current: 12-14¢
-- Potential loss if NO: ~$4.68
+**File**: `.claude/skills/kalshi-cli/GOTCHAS.md`
 
-**Note**: The purpose of this TODO is the *engineering* failure (missing market timing validation), not market advice. Any content/release-date claims should be treated as unverified unless linked to primary sources.
+Add section:
+
+```markdown
+## Market Timing Trap
+
+**Problem**: Markets asking "Will X happen before Y?" only count events AFTER market opens.
+
+**Example**: Stranger Things S5 released Dec 2025, but market asking about "new episode"
+opened Jan 2026. S5 doesn't count - market is asking about S6 or beyond.
+
+**Prevention**:
+1. Always run `kalshi market get <ticker>` first
+2. Check `Open Time` before researching
+3. If researched event predates open_time, it DOES NOT COUNT
+4. Be suspicious if price seems "too good" (11-14% for "sure thing" = red flag)
+```
 
 ## Lessons Learned
 
@@ -96,12 +113,13 @@ Add documentation noting that market timing matters:
 
 ## Related Files
 
-- `src/kalshi_research/cli/market.py` - market display commands
+- `src/kalshi_research/cli/market.py` - market display commands ✅
 - `src/kalshi_research/api/client.py` - API data fetching
-- `src/kalshi_research/research/` - research tools
+- `src/kalshi_research/research/thesis.py` - research tools ❌
+- `.claude/skills/kalshi-cli/GOTCHAS.md` - gotchas documentation ❌
 
 ## Acceptance Criteria
 
-- [ ] `market get` displays `open_time` and `created_time`
+- [x] `market get` displays `open_time` and `created_time` (commit: d7a9694)
 - [ ] Research workflow includes temporal validation
-- [ ] Documentation updated with market timing warnings
+- [ ] Documentation updated with market timing warnings in GOTCHAS.md
