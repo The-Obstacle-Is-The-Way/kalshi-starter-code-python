@@ -70,5 +70,5 @@ class Market(BaseModel):
     close_time: datetime
     expiration_time: datetime
 
-    # Liquidity
-    liquidity: int = Field(..., ge=0, description="Dollar liquidity in cents")
+    # Liquidity (can be negative in API responses)
+    liquidity: int = Field(..., description="Dollar liquidity in cents")
