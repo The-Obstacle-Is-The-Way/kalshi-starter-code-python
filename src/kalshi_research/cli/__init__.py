@@ -15,6 +15,7 @@ from kalshi_research.cli.alerts import app as alerts_app
 from kalshi_research.cli.analysis import app as analysis_app
 from kalshi_research.cli.data import app as data_app
 from kalshi_research.cli.market import app as market_app
+from kalshi_research.cli.news import app as news_app
 from kalshi_research.cli.portfolio import app as portfolio_app
 from kalshi_research.cli.research import app as research_app
 from kalshi_research.cli.scan import app as scan_app
@@ -33,6 +34,7 @@ app.add_typer(alerts_app, name="alerts")
 app.add_typer(analysis_app, name="analysis")
 app.add_typer(research_app, name="research")
 app.add_typer(portfolio_app, name="portfolio")
+app.add_typer(news_app, name="news")
 
 
 @app.callback()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -150,3 +150,96 @@ class Settlement(Base):
 
     # Relationships
     market: Mapped[Market] = relationship("Market", back_populates="settlement")
+
+
+class TrackedItem(Base):
+    """A market or event being tracked for news collection."""
+
+    __tablename__ = "tracked_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    item_type: Mapped[str] = mapped_column(String(20), nullable=False)  # "market" or "event"
+    search_queries: Mapped[str] = mapped_column(Text, nullable=False)  # JSON array
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    last_collected_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class NewsArticle(Base):
+    """A news article related to tracked items."""
+
+    __tablename__ = "news_articles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    url: Mapped[str] = mapped_column(String(2000), unique=True, nullable=False)
+    url_hash: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    source_domain: Mapped[str] = mapped_column(String(200), nullable=False)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    text_snippet: Mapped[str | None] = mapped_column(Text, nullable=True)
+    full_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    exa_request_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    sentiments: Mapped[list[NewsSentiment]] = relationship(
+        "NewsSentiment", back_populates="article"
+    )
+
+    __table_args__ = (
+        Index("idx_news_articles_collected_at", "collected_at"),
+        Index("idx_news_articles_published_at", "published_at"),
+    )
+
+
+class NewsArticleMarket(Base):
+    """Many-to-many mapping: articles can relate to multiple markets."""
+
+    __tablename__ = "news_article_markets"
+
+    article_id: Mapped[int] = mapped_column(ForeignKey("news_articles.id"), primary_key=True)
+    ticker: Mapped[str] = mapped_column(
+        String(100),
+        ForeignKey("markets.ticker"),
+        primary_key=True,
+        index=True,
+    )
+
+
+class NewsArticleEvent(Base):
+    """Many-to-many mapping: articles can relate to multiple events."""
+
+    __tablename__ = "news_article_events"
+
+    article_id: Mapped[int] = mapped_column(ForeignKey("news_articles.id"), primary_key=True)
+    event_ticker: Mapped[str] = mapped_column(
+        String(100),
+        ForeignKey("events.ticker"),
+        primary_key=True,
+        index=True,
+    )
+
+
+class NewsSentiment(Base):
+    """Sentiment analysis result for an article."""
+
+    __tablename__ = "news_sentiments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    article_id: Mapped[int] = mapped_column(ForeignKey("news_articles.id"), index=True)
+    analyzed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    label: Mapped[str] = mapped_column(String(20), nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    method: Mapped[str] = mapped_column(String(50), nullable=False)
+    keywords_matched: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON list
+
+    article: Mapped[NewsArticle] = relationship("NewsArticle", back_populates="sentiments")
+
+    __table_args__ = (Index("idx_news_sentiments_analyzed_at", "analyzed_at"),)

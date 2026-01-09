@@ -5,7 +5,7 @@ import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import typer
 from rich.table import Table
@@ -20,6 +20,9 @@ from kalshi_research.paths import DEFAULT_ALERT_LOG, DEFAULT_ALERTS_PATH
 app = typer.Typer(help="Alert management commands.")
 
 _ALERT_MONITOR_LOG_PATH = DEFAULT_ALERT_LOG
+
+if TYPE_CHECKING:
+    from kalshi_research.alerts import AlertMonitor
 
 
 def _get_alerts_file() -> Path:
@@ -95,6 +98,78 @@ def _spawn_alert_monitor_daemon(
     return proc.pid, _ALERT_MONITOR_LOG_PATH
 
 
+async def _compute_sentiment_shifts(
+    tickers: set[str],
+    *,
+    db_path: Path,
+) -> dict[str, float]:
+    from kalshi_research.data import DatabaseManager
+    from kalshi_research.news import SentimentAggregator
+
+    shifts: dict[str, float] = {}
+    try:
+        async with DatabaseManager(db_path) as db:
+            aggregator = SentimentAggregator(db)
+            for ticker in tickers:
+                summary = await aggregator.get_market_summary(ticker, days=7, compare_previous=True)
+                if summary and summary.score_change is not None:
+                    shifts[ticker] = summary.score_change
+    except Exception:
+        return {}
+    return shifts
+
+
+async def _run_alert_monitor_loop(
+    *,
+    interval: int,
+    once: bool,
+    max_pages: int | None,
+    monitor: "AlertMonitor",
+) -> None:
+    from kalshi_research.alerts.conditions import ConditionType
+    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.paths import DEFAULT_DB_PATH
+
+    async with KalshiPublicClient() as client:
+        try:
+            while True:
+                console.print("[dim]Fetching markets...[/dim]", end="")
+                markets = [
+                    m async for m in client.get_all_markets(status="open", max_pages=max_pages)
+                ]
+                console.print(f"[dim] ({len(markets)} markets)[/dim]")
+
+                sentiment_conditions = [
+                    c
+                    for c in monitor.list_conditions()
+                    if c.condition_type == ConditionType.SENTIMENT_SHIFT
+                ]
+                sentiment_shift_by_ticker: dict[str, float] | None = None
+                if sentiment_conditions:
+                    sentiment_shift_by_ticker = await _compute_sentiment_shifts(
+                        {c.ticker for c in sentiment_conditions},
+                        db_path=DEFAULT_DB_PATH,
+                    )
+
+                alerts = await monitor.check_conditions(
+                    markets,
+                    sentiment_shift_by_ticker=sentiment_shift_by_ticker,
+                )
+
+                if alerts:
+                    console.print(
+                        f"\n[green]✓[/green] {len(alerts)} alert(s) triggered at {datetime.now()}"
+                    )
+
+                if once:
+                    console.print("[green]✓[/green] Single check complete")
+                    return
+
+                await asyncio.sleep(interval)
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Monitoring stopped[/yellow]")
+
+
 @app.command("list")
 def alerts_list() -> None:
     """List all active alerts."""
@@ -128,7 +203,7 @@ def alerts_list() -> None:
 
 @app.command("add")
 def alerts_add(
-    alert_type: Annotated[str, typer.Argument(help="Alert type: price, volume, spread")],
+    alert_type: Annotated[str, typer.Argument(help="Alert type: price, volume, spread, sentiment")],
     ticker: Annotated[str, typer.Argument(help="Market ticker to monitor")],
     above: Annotated[
         float | None, typer.Option("--above", help="Trigger when above threshold")
@@ -144,8 +219,8 @@ def alerts_add(
         console.print("[red]Error:[/red] Must specify either --above or --below")
         raise typer.Exit(1)
 
-    # Validate: volume and spread only support --above (no BELOW condition types exist)
-    if alert_type in ("volume", "spread") and below is not None:
+    # Validate: volume/spread/sentiment only support --above (no BELOW condition types exist)
+    if alert_type in ("volume", "spread", "sentiment") and below is not None:
         console.print(f"[red]Error:[/red] {alert_type} alerts only support --above threshold")
         raise typer.Exit(1)
 
@@ -154,6 +229,7 @@ def alerts_add(
         "price": ConditionType.PRICE_ABOVE if above else ConditionType.PRICE_BELOW,
         "volume": ConditionType.VOLUME_ABOVE,
         "spread": ConditionType.SPREAD_ABOVE,
+        "sentiment": ConditionType.SENTIMENT_SHIFT,
     }
 
     if alert_type not in type_map:
@@ -165,12 +241,15 @@ def alerts_add(
 
     # Create alert condition
     alert_id = str(uuid.uuid4())
+    comparison = ">" if above is not None else "<"
+    if condition_type == ConditionType.SENTIMENT_SHIFT:
+        comparison = "|Δ| ≥"
     condition = {
         "id": alert_id,
         "condition_type": condition_type.value,
         "ticker": ticker,
         "threshold": threshold,
-        "label": f"{alert_type} {ticker} {'>' if above else '<'} {threshold}",
+        "label": f"{alert_type} {ticker} {comparison} {threshold}",
         "created_at": datetime.now(UTC).isoformat(),
     }
 
@@ -224,7 +303,6 @@ def alerts_monitor(
     from kalshi_research.alerts import AlertMonitor
     from kalshi_research.alerts.conditions import AlertCondition, ConditionType
     from kalshi_research.alerts.notifiers import ConsoleNotifier
-    from kalshi_research.api import KalshiPublicClient
 
     # Load alert conditions from storage
     data = _load_alerts()
@@ -280,35 +358,11 @@ def alerts_monitor(
         )
         console.print("[dim]Press Ctrl+C to stop[/dim]\n")
 
-    async def _monitor_loop() -> None:
-        """Main monitoring loop."""
-
-        async with KalshiPublicClient() as client:
-            try:
-                while True:
-                    # Fetch all open markets (with progress for long-running fetch)
-                    console.print("[dim]Fetching markets...[/dim]", end="")
-                    markets = [
-                        m async for m in client.get_all_markets(status="open", max_pages=max_pages)
-                    ]
-                    console.print(f"[dim] ({len(markets)} markets)[/dim]")
-
-                    # Check conditions
-                    alerts = await monitor.check_conditions(markets)
-
-                    if alerts:
-                        console.print(
-                            f"\n[green]✓[/green] {len(alerts)} alert(s) triggered at "
-                            f"{datetime.now()}"
-                        )
-
-                    if once:
-                        console.print("[green]✓[/green] Single check complete")
-                        return
-
-                    # Wait for next check
-                    await asyncio.sleep(interval)
-            except KeyboardInterrupt:
-                console.print("\n[yellow]Monitoring stopped[/yellow]")
-
-    asyncio.run(_monitor_loop())
+    asyncio.run(
+        _run_alert_monitor_loop(
+            interval=interval,
+            once=once,
+            max_pages=max_pages,
+            monitor=monitor,
+        )
+    )

@@ -59,6 +59,21 @@ def test_alerts_add_spread() -> None:
         assert len(stored["conditions"]) == 1
 
 
+def test_alerts_add_sentiment() -> None:
+    with runner.isolated_filesystem():
+        alerts_file = Path("alerts.json")
+        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+            result = runner.invoke(
+                app, ["alerts", "add", "sentiment", "TEST-TICKER", "--above", "0.2"]
+            )
+
+        assert result.exit_code == 0
+        assert "Alert added" in result.stdout
+        stored = json.loads(alerts_file.read_text(encoding="utf-8"))
+        assert len(stored["conditions"]) == 1
+        assert stored["conditions"][0]["condition_type"] == "sentiment_shift"
+
+
 def test_alerts_add_volume_rejects_below() -> None:
     result = runner.invoke(app, ["alerts", "add", "volume", "TEST-TICKER", "--below", "1000"])
     assert result.exit_code == 1
@@ -69,6 +84,12 @@ def test_alerts_add_spread_rejects_below() -> None:
     result = runner.invoke(app, ["alerts", "add", "spread", "TEST-TICKER", "--below", "5"])
     assert result.exit_code == 1
     assert "spread alerts only support --above" in result.stdout
+
+
+def test_alerts_add_sentiment_rejects_below() -> None:
+    result = runner.invoke(app, ["alerts", "add", "sentiment", "TEST-TICKER", "--below", "0.2"])
+    assert result.exit_code == 1
+    assert "sentiment alerts only support --above" in result.stdout
 
 
 def test_alerts_remove() -> None:

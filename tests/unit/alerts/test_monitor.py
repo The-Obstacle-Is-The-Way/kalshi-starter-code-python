@@ -382,6 +382,29 @@ class TestAlertMonitor:
         # Condition should still exist (not triggered)
         assert len(monitor.list_conditions()) == 1
 
+    @pytest.mark.asyncio
+    async def test_sentiment_shift_triggers(self) -> None:
+        monitor = AlertMonitor()
+
+        condition = AlertCondition(
+            id="sentiment-test",
+            condition_type=ConditionType.SENTIMENT_SHIFT,
+            ticker="TEST-SENT",
+            threshold=0.2,
+            label="Sentiment shift",
+        )
+        monitor.add_condition(condition)
+
+        market = make_market(ticker="TEST-SENT", yes_price=50)
+        alerts = await monitor.check_conditions(
+            [market],
+            sentiment_shift_by_ticker={"TEST-SENT": 0.25},
+        )
+
+        assert len(alerts) == 1
+        assert alerts[0].condition.id == "sentiment-test"
+        assert alerts[0].current_value == 0.25
+
     def test_list_alerts(self) -> None:
         """Test listing triggered alerts."""
         monitor = AlertMonitor()
