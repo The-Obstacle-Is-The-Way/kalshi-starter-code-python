@@ -6,6 +6,7 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 - `docs/_debt/code-audit-checklist.md`: Periodic audit checklist / runbook.
 - `docs/_debt/technical-debt.md`: Living register of known debt (add new items here).
+- `docs/_debt/security-audit.md`: Deep security audit findings (Agent Safety, Injection Risks).
 
 ## Workflow
 

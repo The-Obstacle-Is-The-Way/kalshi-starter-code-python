@@ -56,10 +56,21 @@ The following were investigated and determined **NOT** to be debt. They are **Pl
 
 ## Plan
 
-1.  **Remediation (Comments)**: Add explanatory comments citing the Vendor Docs next to these "False Positives" in the code to prevent future confusion.
+### Phase 1: Comments (Partial - In Progress)
 
-    *   *Action*: Update `src/kalshi_research/analysis/scanner.py` and `src/kalshi_research/api/client.py`.
+Add explanatory comments citing the Vendor Docs next to the "False Positives" to prevent future confusion.
 
-2.  **Configuration**: Create `src/kalshi_research/config/analysis.py` with `AnalysisConfig` Pydantic model for the *actual* strategy defaults (0.40, 10000, 5).
+**Status**: Partially complete
+- [x] `scanner.py:116-120` - Comment added for 200.0 divisor (2026-01-09)
+- [ ] `scanner.py` - Other 200.0 occurrences (reference canonical comment)
+- [ ] `client.py:146` - Comment for 1000 page limit
+- [ ] `client.py:258` - Comment for 1000 page limit (trades)
+- [ ] `client.py:606-607` - Comment for 1-99 price validation
 
-3.  **Refactoring**: Inject `AnalysisConfig` into `MarketScanner` and `EdgeDetector`.
+### Phase 2: Configuration
+
+Create `src/kalshi_research/config/analysis.py` with `AnalysisConfig` Pydantic model for the *actual* strategy defaults (0.40, 10000, 5).
+
+### Phase 3: Refactoring
+
+Inject `AnalysisConfig` into `MarketScanner` and `EdgeDetector`.

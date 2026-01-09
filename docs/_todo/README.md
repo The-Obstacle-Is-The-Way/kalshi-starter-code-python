@@ -4,22 +4,23 @@ This directory contains todo/task tracking files for ongoing work.
 
 ## Current Status
 
-**2 active items.**
+**3 active items.**
 
 ## Next ID Tracker
 
 Use this ID for the next todo you create:
-**TODO-007**
+**TODO-008**
 
 ---
 
 ## Active Items
 
-| ID | Title | Priority | Status | Spec |
-|---|---|---|---|---|
-| **TODO-005** | [Market Open Date Validation](TODO-005-market-open-date-validation.md) | High | Active | [SPEC-025](../_specs/SPEC-025-market-open-time-display.md) |
-| **TODO-006** | [Session Friction Audit & System Improvements](TODO-006-session-friction-audit.md) | High | Active | - |
-| **TODO-007** | [Market Timing Safety Mechanism](TODO-007-market-timing-safety.md) | High | Active | - |
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| **TODO-005** | Market Open/Close Validation | High | Proposed |
+| **TODO-006** | Session Friction Audit | Medium | Proposed |
+| **TODO-007** | Market Timing Safety | High | Proposed |
+| **TODO-008** | Agent Safety Rails (Harness) | High | Proposed |
 
 *Note: Previous TODO-005 (portfolio sync) was reclassified as [BUG-047](../_bugs/BUG-047-portfolio-positions-sync.md).*
 

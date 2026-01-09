@@ -113,7 +113,10 @@ class MarketScanner:
             if m.volume_24h < min_volume_24h:
                 continue
 
-            # Calculate probability from midpoint
+            # Calculate probability from midpoint.
+            # 200.0 = (bid + ask) / 2 for midpoint, then / 100 to convert cents to probability.
+            # This is NOT a magic number - it's standard binary market math.
+            # See: docs/_vendor-docs/kalshi-api-reference.md (Binary market math)
             prob = (m.yes_bid + m.yes_ask) / 200.0
 
             # Check if in close race range
@@ -162,6 +165,7 @@ class MarketScanner:
 
         for m in markets:
             if m.volume_24h >= self.high_volume_threshold:
+                # Midpoint probability: see scan_close_races for derivation of 200.0
                 prob = (m.yes_bid + m.yes_ask) / 200.0
                 spread = m.yes_ask - m.yes_bid
 

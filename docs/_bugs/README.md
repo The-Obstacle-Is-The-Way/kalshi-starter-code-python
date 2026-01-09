@@ -8,10 +8,12 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 |---|---|---|---|
 | **BUG-047** | Portfolio sync shows 0 positions despite portfolio_value > 0 | Medium | Investigating |
 | **BUG-048** | Negative liquidity validation error crashes market scan | Medium | Active |
+| **BUG-049** | Asymmetrical rate limiting (reads unprotected) | High | Active |
+| **BUG-050** | Silent exception swallowing in alerts sentiment computation | Medium | Active |
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-049**
+**BUG-051**
 
 ---
 
