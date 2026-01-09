@@ -1,9 +1,10 @@
-# SPEC-024: Exa Research Agent
+# FUTURE-001: Exa Research Agent
 
-**Status:** 📋 Planned
+**Status:** Deferred (Future Work)
 **Priority:** P2 (Advanced feature)
-**Estimated Complexity:** High
-**Dependencies:** SPEC-020, SPEC-021, SPEC-023
+**Estimated Effort:** ~16-26 hours
+**Dependencies:** SPEC-020, SPEC-021, SPEC-023 (all implemented)
+**Why Deferred:** Complex feature, MCP alternative exists for interactive research
 
 ---
 
