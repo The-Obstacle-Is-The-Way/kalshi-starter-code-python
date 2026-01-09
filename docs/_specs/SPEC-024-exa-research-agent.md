@@ -363,7 +363,8 @@ class ResearchAgent:
                         "6. Bear case arguments (why NO)\n"
                         "7. Probability assessment with reasoning"
                     ),
-                    "model": "exa-research" if depth == ResearchDepth.DEEP else "exa-research-pro",
+                    # Use PRO only for exhaustive depth; DEEP uses the standard research tier by default.
+                    "model": "exa-research-pro" if depth == ResearchDepth.EXHAUSTIVE else "exa-research",
                 },
             ))
 
@@ -425,6 +426,8 @@ class ResearchAgent:
                     step.cost = response.cost_dollars.total
 
             elif step.action == "research":
+                # NOTE: This uses the internal `ExaClient` interface specified in SPEC-020 (async httpx client).
+                # The official `exa-py` SDK has different method names/fields; keep internal APIs consistent across specs.
                 task = await self.exa.create_research_task(**step.params)
                 completed = await self.exa.wait_for_research(
                     task.research_id,

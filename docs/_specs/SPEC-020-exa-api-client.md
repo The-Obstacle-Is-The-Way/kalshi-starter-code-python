@@ -589,7 +589,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, AsyncIterator
+from typing import TYPE_CHECKING, Any
 
 import httpx
 import structlog
@@ -717,9 +717,24 @@ class ExaClient:
                     raise ExaAuthError("Invalid API key")
 
                 if response.status_code == 429:
-                    retry_after = int(
-                        response.headers.get("retry-after", self._config.retry_delay_seconds)
-                    )
+                    retry_after_header = response.headers.get("retry-after")
+                    retry_after = int(self._config.retry_delay_seconds)
+                    if retry_after_header:
+                        try:
+                            retry_after = int(float(retry_after_header))
+                        except ValueError:
+                            try:
+                                from email.utils import parsedate_to_datetime
+
+                                retry_at = parsedate_to_datetime(retry_after_header)
+                                now = (
+                                    datetime.now(retry_at.tzinfo)
+                                    if retry_at.tzinfo
+                                    else datetime.now()
+                                )
+                                retry_after = max(0, int((retry_at - now).total_seconds()))
+                            except Exception:
+                                retry_after = int(self._config.retry_delay_seconds)
                     raise ExaRateLimitError(f"Rate limited. Retry after {retry_after}s")
 
                 if response.status_code >= 400:
@@ -743,6 +758,16 @@ class ExaClient:
                     )
 
         raise ExaAPIError(f"Request failed after {self._config.max_retries} attempts") from last_exception
+
+    def _normalize_summary_option(
+        self,
+        summary: bool | SummaryOptions | None,
+    ) -> SummaryOptions | None:
+        if isinstance(summary, SummaryOptions):
+            return summary
+        if summary:
+            return SummaryOptions()
+        return None
 
     # ─────────────────────────────────────────────────────────────────
     # Search
@@ -812,17 +837,10 @@ class ExaClient:
         if text or highlights or summary or context:
             # OpenAPI documents `highlights`/`summary` as objects; the official SDK also accepts booleans.
             # Normalize booleans to empty option objects for predictable serialization.
-            summary_option = (
-                summary
-                if isinstance(summary, SummaryOptions)
-                else SummaryOptions()
-                if summary
-                else None
-            )
             contents = ContentsRequest(
                 text=True if text else None,
                 highlights=HighlightsOptions() if highlights else None,
-                summary=summary_option,
+                summary=self._normalize_summary_option(summary),
                 context=True if context else None,
             )
 
@@ -905,13 +923,7 @@ class ExaClient:
             urls=urls,
             text=True if text else None,
             highlights=HighlightsOptions() if highlights else None,
-            summary=(
-                summary
-                if isinstance(summary, SummaryOptions)
-                else SummaryOptions()
-                if summary
-                else None
-            ),
+            summary=self._normalize_summary_option(summary),
             livecrawl=livecrawl,
         )
 
