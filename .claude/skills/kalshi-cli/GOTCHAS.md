@@ -82,7 +82,7 @@ sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE title LIKE '%Sup
 
 CLI display truncates long tickers with `...`:
 
-```
+```text
 KXFEDCHAIRNOM-29-...  # Displayed
 KXFEDCHAIRNOM-29-KW   # Actual
 ```
@@ -243,7 +243,7 @@ When rate limited, the client respects `Retry-After` headers from the API.
 
 Database uses WAL (Write-Ahead Logging) for concurrent access. May leave `.db-wal` and `.db-shm` files:
 
-```
+```text
 data/kalshi.db
 data/kalshi.db-wal
 data/kalshi.db-shm
