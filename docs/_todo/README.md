@@ -15,10 +15,10 @@ Use this ID for the next todo you create:
 
 ## Active Items
 
-| ID | Title | Priority | Status |
-|---|---|---|---|
-| **TODO-005** | [Market Open Date Validation](TODO-005-market-open-date-validation.md) | High | Active |
-| **TODO-006** | [Session Friction Audit & System Improvements](TODO-006-session-friction-audit.md) | High | Active |
+| ID | Title | Priority | Status | Spec |
+|---|---|---|---|---|
+| **TODO-005** | [Market Open Date Validation](TODO-005-market-open-date-validation.md) | High | Active | [SPEC-025](../docs/_specs/SPEC-025-market-open-time-display.md) |
+| **TODO-006** | [Session Friction Audit & System Improvements](TODO-006-session-friction-audit.md) | High | Active | - |
 
 *Note: Previous TODO-005 (portfolio sync) was reclassified as [BUG-047](../bugs/BUG-047-portfolio-positions-sync.md).*
 

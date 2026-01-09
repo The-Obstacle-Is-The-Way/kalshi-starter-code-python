@@ -3,6 +3,7 @@
 **Priority**: High
 **Status**: Active
 **Created**: 2026-01-09
+**Spec**: [SPEC-025-market-open-time-display](../docs/_specs/SPEC-025-market-open-time-display.md)
 
 ## Problem Statement
 
