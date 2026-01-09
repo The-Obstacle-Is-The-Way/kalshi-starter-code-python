@@ -223,7 +223,21 @@ def from_dict(cls, data: dict[str, Any]) -> Thesis:
         )
 
     thesis = cls(
-        # ... existing required fields ...
+        id=data["id"],
+        title=data["title"],
+        market_tickers=data["market_tickers"],
+        your_probability=data["your_probability"],
+        market_probability=data["market_probability"],
+        confidence=data["confidence"],
+        bull_case=data["bull_case"],
+        bear_case=data["bear_case"],
+        key_assumptions=data.get("key_assumptions", []),
+        invalidation_criteria=data.get("invalidation_criteria", []),
+        status=ThesisStatus(data.get("status", "draft")),
+        created_at=datetime.fromisoformat(data["created_at"]),
+        resolved_at=(datetime.fromisoformat(data["resolved_at"]) if data.get("resolved_at") else None),
+        actual_outcome=data.get("actual_outcome"),
+        updates=data.get("updates", []),
     )
     thesis.evidence = evidence
     thesis.research_summary = data.get("research_summary")
@@ -805,6 +819,8 @@ def research_thesis_create(
     from kalshi_research.api import KalshiPublicClient
 
     async def _create() -> None:
+        import uuid
+
         market_tickers = [t.strip() for t in markets.split(",")]
         final_bull = bull_case
         final_bear = bear_case

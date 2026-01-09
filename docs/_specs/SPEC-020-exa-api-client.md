@@ -51,7 +51,7 @@ For interactive research in Claude Desktop/Code, users can additionally configur
 
 ### 2.1 Module Structure
 
-```
+```txt
 src/kalshi_research/
 ├── exa/
 │   ├── __init__.py
@@ -611,6 +611,7 @@ from kalshi_research.exa.models import (
     FindSimilarResponse,
     ResearchRequest,
     ResearchTask,
+    ResearchStatus,
     SearchRequest,
     SearchResponse,
     SummaryOptions,

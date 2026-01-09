@@ -138,7 +138,7 @@ uv run kalshi agent event INXD-26JAN --output report.md
 
 ### 3.1 Module Structure
 
-```
+```txt
 src/kalshi_research/
 ├── agent/
 │   ├── __init__.py
@@ -558,51 +558,159 @@ class ResearchAgent:
         )
 
     def _extract_key_findings(self, sources: list[object]) -> list[str]:
-        """Extract key findings from sources."""
-        findings = []
-        seen = set()
+        """
+        Extract key findings from sources.
 
-        for source in sources[:20]:  # Limit to top sources
+        NOTE: This is heuristic-heavy specification code. In a future phase, replace this with:
+        - LLM-based clustering/summarization, or
+        - an embeddings-based dedupe + top-k selection.
+        """
+        import difflib
+        import re
+
+        def normalize(text: str) -> str:
+            cleaned = re.sub(r"[^\w\s]", "", text.lower())
+            return re.sub(r"\s+", " ", cleaned).strip()
+
+        def is_near_duplicate(candidate: str, existing: list[str]) -> bool:
+            for item in existing:
+                if difflib.SequenceMatcher(None, candidate, item).ratio() >= 0.92:
+                    return True
+            return False
+
+        findings: list[str] = []
+        seen_normalized: list[str] = []
+
+        for source in sources[:20]:
+            highlight = None
             if hasattr(source, "highlights") and source.highlights:
                 highlight = source.highlights[0]
-                # Deduplicate similar findings
-                key = highlight[:50].lower()
-                if key not in seen:
-                    findings.append(highlight[:200])
-                    seen.add(key)
 
-        return findings[:5]
+            if not isinstance(highlight, str) or not highlight.strip():
+                continue
+
+            normalized = normalize(highlight)
+            if not normalized:
+                continue
+
+            if is_near_duplicate(normalized, seen_normalized):
+                continue
+
+            findings.append(highlight.strip()[:200])
+            seen_normalized.append(normalized)
+
+            if len(findings) >= 5:
+                break
+
+        return findings
 
     def _generate_cases(
         self,
         sources: list[object],
         deep_content: str,
     ) -> tuple[str, str]:
-        """Generate bull and bear cases from research."""
-        bull_points = []
-        bear_points = []
+        """
+        Generate bull and bear cases from research.
 
-        # Extract from source highlights
-        for source in sources:
-            if not hasattr(source, "highlights") or not source.highlights:
+        NOTE: Heuristic implementation. Prefer LLM-structured extraction in a future phase.
+        """
+        import re
+
+        bull_points: list[str] = []
+        bear_points: list[str] = []
+
+        bullish_terms = {
+            "surge",
+            "rally",
+            "gain",
+            "rise",
+            "bullish",
+            "positive",
+            "success",
+            "record",
+            "outperform",
+            "beat",
+            "growth",
+            "strong",
+            "tailwind",
+            "approval",
+            "adoption",
+            "breakthrough",
+        }
+        bearish_terms = {
+            "fall",
+            "drop",
+            "crash",
+            "decline",
+            "bearish",
+            "negative",
+            "fail",
+            "weak",
+            "headwind",
+            "risk",
+            "lawsuit",
+            "ban",
+            "delay",
+            "rejection",
+            "slowdown",
+            "uncertainty",
+        }
+
+        def normalize(text: str) -> str:
+            cleaned = re.sub(r"[^\w\s]", " ", text.lower())
+            return re.sub(r"\s+", " ", cleaned).strip()
+
+        def score(text: str, lexicon: set[str]) -> int:
+            return sum(1 for term in lexicon if term in text)
+
+        for source in sources[:50]:
+            highlight = None
+            if hasattr(source, "highlights") and source.highlights:
+                highlight = source.highlights[0]
+
+            if not isinstance(highlight, str) or not highlight.strip():
                 continue
 
-            text = source.highlights[0].lower()
+            text = normalize(highlight)
+            bull_score = score(text, bullish_terms)
+            bear_score = score(text, bearish_terms)
 
-            # Simple classification
-            if any(w in text for w in ["surge", "rally", "gain", "rise", "bullish", "positive", "success"]):
-                bull_points.append(source.highlights[0][:150])
-            elif any(w in text for w in ["fall", "drop", "crash", "decline", "bearish", "negative", "fail"]):
-                bear_points.append(source.highlights[0][:150])
+            if bull_score - bear_score >= 2:
+                bull_points.append(highlight.strip()[:150])
+            elif bear_score - bull_score >= 2:
+                bear_points.append(highlight.strip()[:150])
 
-        # Parse deep content if available
-        if deep_content:
-            if "bull case" in deep_content.lower():
-                # Try to extract bull case section
-                pass  # Would need more sophisticated parsing
+            if len(bull_points) >= 5 and len(bear_points) >= 5:
+                break
 
-        bull_case = "\n• ".join(bull_points[:3]) if bull_points else "Positive momentum indicators"
-        bear_case = "\n• ".join(bear_points[:3]) if bear_points else "Risk factors to consider"
+        def extract_section(body: str, headers: list[str]) -> str | None:
+            lowered = body.lower()
+            for header in headers:
+                idx = lowered.find(header)
+                if idx == -1:
+                    continue
+                tail = body[idx + len(header) :]
+                tail = tail.lstrip(" :\n\t-•")
+                return tail.strip()
+            return None
+
+        if deep_content.strip():
+            bull_section = extract_section(
+                deep_content,
+                headers=["bull case", "case for yes", "pros", "upside"],
+            )
+            bear_section = extract_section(
+                deep_content,
+                headers=["bear case", "case for no", "cons", "downside", "risks"],
+            )
+
+            if bull_section:
+                bull_points.append(bull_section[:300])
+            if bear_section:
+                bear_points.append(bear_section[:300])
+
+        bull_case = "\n• ".join(bull_points[:3]) if bull_points else "Positive indicators identified"
+        bear_case = "\n• ".join(bear_points[:3]) if bear_points else "Key risk factors identified"
 
         return f"• {bull_case}", f"• {bear_case}"
 
@@ -611,39 +719,68 @@ class ResearchAgent:
         summary: str,
         deep_content: str,
     ) -> float | None:
-        """Estimate probability from research content."""
-        # Look for explicit probability mentions
+        """
+        Estimate probability from research content.
+
+        NOTE: Heuristic implementation. Replace with a calibrated model / LLM in a future phase.
+        """
+        # Look for explicit probability mentions (prefer explicit numbers over sentiment heuristics).
         import re
 
         combined = (summary + " " + deep_content).lower()
 
-        # Pattern: "X% chance", "X percent probability", etc.
-        patterns = [
-            r"(\d{1,2})%?\s*(?:chance|probability|likelihood)",
-            r"(?:chance|probability|likelihood)\s*(?:of\s*)?(\d{1,2})%?",
-            r"(\d{1,2})\s*(?:out of|in)\s*10",
+        patterns: list[tuple[str, str]] = [
+            # Percent formats
+            ("percent", r"(\d{1,3})\s*%\s*(?:chance|probability|likelihood)?"),
+            ("percent", r"(\d{1,3})\s*(?:percent|per\s*cent)\s*(?:chance|probability|likelihood)?"),
+            # Out-of-10 formats (7/10, 7 out of 10, 7 in 10)
+            ("out_of_10", r"(\d+(?:\.\d+)?)\s*/\s*10"),
+            ("out_of_10", r"(\d+(?:\.\d+)?)\s*(?:out\s+of|in)\s*10"),
+            # Decimal formats with probability context
+            ("decimal", r"(?:chance|probability|likelihood)\D{0,20}(0\.\d{1,3})"),
+            ("decimal", r"(0\.\d{1,3})\D{0,20}(?:chance|probability|likelihood)"),
         ]
 
-        for pattern in patterns:
+        for kind, pattern in patterns:
             match = re.search(pattern, combined)
             if match:
-                prob = int(match.group(1))
-                if prob <= 10:  # "7 out of 10" format
-                    prob *= 10
-                return prob / 100.0
+                raw = match.group(1)
+                try:
+                    value = float(raw)
+                except ValueError:
+                    continue
 
-        # Sentiment-based estimation
-        positive_words = sum(1 for w in ["likely", "probable", "expected", "will", "should", "bullish"]
-                             if w in combined)
-        negative_words = sum(1 for w in ["unlikely", "doubtful", "uncertain", "bearish", "risks"]
-                             if w in combined)
+                if kind == "percent":
+                    if 0 <= value <= 100:
+                        return value / 100.0
+                    continue
 
-        if positive_words > negative_words + 2:
-            return 0.65
-        elif negative_words > positive_words + 2:
-            return 0.35
-        else:
-            return 0.50
+                if kind == "out_of_10":
+                    # Allow 0-10 scale and normalize to 0-1.
+                    if 0 <= value <= 10:
+                        return value / 10.0
+                    continue
+
+                if kind == "decimal":
+                    if 0.0 <= value <= 1.0:
+                        return value
+                    continue
+
+        # Sentiment-based fallback (very rough; treat as last resort).
+        positive_words = sum(
+            1
+            for w in ["likely", "probable", "expected", "tailwind", "bullish", "strong", "support"]
+            if w in combined
+        )
+        negative_words = sum(
+            1
+            for w in ["unlikely", "doubtful", "uncertain", "headwind", "bearish", "risk", "concern"]
+            if w in combined
+        )
+
+        score = positive_words - negative_words
+        score = max(min(score, 6), -6)
+        return 0.50 + (score * 0.05)
 
     def _extract_expert_opinions(
         self,
@@ -1058,7 +1195,7 @@ class TestResearchAgent:
 
 ## 7. CLI Summary
 
-```
+```txt
 kalshi agent
 ├── research      # Deep research on a market
 ├── compare       # Compare related markets (future)
