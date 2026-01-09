@@ -3,18 +3,22 @@
 **Source:** [docs.exa.ai](https://docs.exa.ai)
 **Python SDK:** `pip install exa_py` or `uv add exa_py`
 **Last Verified:** 2026-01-08
+**MCP Server:** `npx exa-mcp-server` or hosted at `https://mcp.exa.ai/mcp`
 
 ---
 
 ## Overview
 
-Exa is "a search engine made for AIs" - optimized for RAG, agentic workflows, and structured data extraction. Core capabilities:
+Exa is "a search engine made for AIs" - optimized for RAG, agentic workflows, and structured data extraction. Unlike traditional search engines (optimized for human clicks), Exa is optimized for machine consumption.
 
-- **Search**: Neural/embeddings-based web search
-- **Contents**: Clean, parsed HTML/text from URLs
+**Core Capabilities:**
+
+- **Search**: Neural/embeddings-based web search with 4 modes (auto, neural, fast, deep)
+- **Contents**: Clean, parsed Markdown/text from URLs with live crawling
 - **Find Similar**: Discover semantically related pages
 - **Answer**: LLM-generated answers with citations
-- **Research**: Async deep research with structured output
+- **Research**: Async deep research with structured output (agentic)
+- **MCP Server**: Native integration with Claude and other MCP-compatible agents
 
 ---
 
@@ -40,12 +44,23 @@ Authorization: Bearer YOUR_EXA_API_KEY
 
 Intelligently find webpages using embeddings-based search.
 
+### Search Types
+
+| Type | Latency | Description |
+|------|---------|-------------|
+| `auto` | ~1s | **Default.** Intelligently combines neural and keyword methods |
+| `neural` | ~1s | Pure embeddings-based semantic search |
+| `fast` | <0.5s | Streamlined search optimized for speed |
+| `deep` | ~3.5s | **Agentic.** Multi-pass with query expansion and highest quality |
+
+**When to use `deep`:** Complex research queries where quality matters more than speed. The endpoint agentically searches, processes, and searches again until it finds the highest quality information.
+
 ### Request Body
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `query` | string | Required | The search query |
-| `type` | enum | `"auto"` | `neural`, `fast`, `auto`, `deep` |
+| `type` | enum | `"auto"` | `auto`, `neural`, `fast`, `deep` |
 | `numResults` | integer | 10 | Max 100 results |
 | `includeDomains` | string[] | - | Filter to specific domains (max 1200) |
 | `excludeDomains` | string[] | - | Exclude domains (max 1200) |
@@ -120,7 +135,16 @@ const results = await exa.searchAndContents('Latest research in LLMs', { text: t
 
 **POST** `/contents`
 
-Obtain clean, parsed content from URLs with automatic live crawling fallback.
+Obtain clean, parsed content from URLs with automatic live crawling fallback. Returns Markdown by default.
+
+### Livecrawl Options
+
+| Option | Description |
+|--------|-------------|
+| `never` | Disable live crawling (use cache only) |
+| `fallback` | Livecrawl only when cache is empty |
+| `preferred` | **Recommended.** Try livecrawl first, fall back to cache if crawling fails |
+| `always` | Always live-crawl (not recommended without consulting Exa) |
 
 ### Request Body
 
@@ -370,20 +394,132 @@ for r in results.results:
 
 ## Pricing (as of 2026)
 
-| Operation | Cost |
-|-----------|------|
-| Neural Search (1-25 results) | $0.005 |
-| Neural Search (26-100 results) | $0.025 |
-| Deep Search (1-25 results) | $0.015 |
-| Content Text (per page) | $0.001 |
-| Content Highlight (per page) | $0.001 |
-| Content Summary (per page) | $0.001 |
+**Free Tier:** $10 in credits (no credit card required)
+
+### Search Pricing (per 1,000 requests)
+
+| Search Type | 1-25 results | 26-100 results |
+|-------------|--------------|----------------|
+| Fast/Auto/Neural | $5 | $25 |
+| Deep | $15 | - |
+
+### Contents Pricing (per 1,000 pages)
+
+| Content Type | Cost |
+|--------------|------|
+| Text | $1 |
+| Highlights | $1 |
+| Summary | $1 |
+
+### Answer Pricing
+
+| Operation | Cost per 1,000 |
+|-----------|----------------|
+| Answer with citations | $5 |
+
+### Research API Pricing (Variable)
+
+Research API uses consumption-based billing. You're only charged for tasks that complete successfully.
+
+| Component | exa-research | exa-research-pro |
+|-----------|--------------|------------------|
+| Agent searches (per 1k) | $5 | $5 |
+| Agent page reads (per 1k pages*) | $5 | $10 |
+| Reasoning tokens (per 1M) | $5 | $5 |
+
+*Page = 1,000 tokens of webpage content
+
+**Typical task cost:** $0.10-$0.50 depending on complexity (20-40 second completion)
 
 ---
 
-## Tool Use with Claude
+## MCP Server (Model Context Protocol)
 
-Exa can be used as a tool with Claude for agentic research workflows:
+Exa provides an official MCP server for native integration with Claude Desktop, Claude Code, Cursor, and other MCP-compatible agents. This eliminates the need to write custom tool wrappers.
+
+### Installation Options
+
+**Option 1: NPX (Local)**
+```bash
+npx exa-mcp-server
+```
+
+**Option 2: Hosted Server**
+```
+https://mcp.exa.ai/mcp
+```
+
+### Claude Desktop Configuration
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "command": "npx",
+      "args": ["-y", "exa-mcp-server"],
+      "env": {
+        "EXA_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Claude Code / Cursor Configuration (HTTP)
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp"
+    }
+  }
+}
+```
+
+### Available MCP Tools
+
+By default, only `web_search_exa` and `get_code_context_exa` are enabled. Enable additional tools via args:
+
+| Tool | Description |
+|------|-------------|
+| `web_search_exa` | Real-time web search with content extraction |
+| `get_code_context_exa` | Code snippets/docs from GitHub, StackOverflow |
+| `deep_search_exa` | Agentic search with query expansion and summaries |
+| `crawling_exa` | Extract content from specific URLs |
+| `company_research_exa` | Comprehensive company/business research |
+| `linkedin_search_exa` | LinkedIn people/company search |
+| `deep_researcher_start` | Start async research task |
+| `deep_researcher_check` | Poll for research results |
+
+**Enable all tools:**
+```json
+"args": ["-y", "exa-mcp-server", "tools=web_search_exa,deep_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"]
+```
+
+**Selective tools via hosted URL:**
+```
+https://mcp.exa.ai/mcp?tools=web_search_exa,deep_search_exa
+```
+
+### When to Use MCP vs Direct SDK
+
+| Use Case | Recommendation |
+|----------|----------------|
+| Interactive research with Claude | MCP Server |
+| Jupyter notebooks | Python SDK |
+| Production pipelines | Python SDK (typed, testable) |
+| Quick prototyping | MCP Server |
+| Custom structured output | Python SDK with `outputSchema` |
+
+---
+
+## Tool Use with Claude (Manual)
+
+For custom tool definitions (when MCP is unavailable or you need fine-grained control):
 
 ```python
 import anthropic
@@ -426,7 +562,92 @@ def execute_tool(tool_name, tool_input):
 
 ---
 
+## Integration Tips for Kalshi Research
+
+### Event Resolution
+
+When checking if a market resolved, use `category="news"` and date filters:
+
+```python
+# Find resolution sources for a market expiring this week
+results = exa.search_and_contents(
+    "Federal Reserve interest rate decision January 2026",
+    type="deep",  # Quality matters for resolution
+    category="news",
+    start_published_date="2026-01-06T00:00:00Z",
+    include_domains=["federalreserve.gov", "reuters.com", "bloomberg.com"],
+    text=True
+)
+```
+
+### Thesis Research
+
+For creating trading theses, use the Research API with structured output:
+
+```python
+task = exa.research.create_task(
+    instructions="""
+    Analyze the likelihood of [EVENT] occurring by [DATE].
+
+    Research:
+    1. Historical precedent
+    2. Current indicators
+    3. Expert opinions
+    4. Contrarian arguments
+
+    Provide a probability estimate with confidence interval.
+    """,
+    model="exa-research",
+    output_schema={
+        "type": "object",
+        "properties": {
+            "probability": {"type": "number"},
+            "confidence_low": {"type": "number"},
+            "confidence_high": {"type": "number"},
+            "bull_case": {"type": "string"},
+            "bear_case": {"type": "string"},
+            "key_sources": {"type": "array", "items": {"type": "string"}}
+        }
+    }
+)
+```
+
+### News Monitoring
+
+For sentiment analysis and news tracking:
+
+```python
+# Find recent news about tracked markets
+results = exa.search_and_contents(
+    "Bitcoin ETF SEC approval 2026",
+    type="auto",
+    category="news",
+    start_published_date="2026-01-01T00:00:00Z",
+    num_results=20,
+    text=True,
+    highlights={"num_sentences": 3, "highlights_per_url": 2}
+)
+```
+
+### Domain Filtering for Resolution Sources
+
+When a Kalshi market specifies a "Resolution Source", use `include_domains`:
+
+```python
+# Market resolves based on BLS data
+results = exa.search_and_contents(
+    "unemployment rate January 2026",
+    include_domains=["bls.gov"],
+    livecrawl="preferred",  # Get fresh data
+    text=True
+)
+```
+
+---
+
 ## See Also
 
 - [Kalshi API Reference](kalshi-api-reference.md) - Kalshi prediction market API
 - [Architecture](../architecture/overview.md) - How our codebase integrates external APIs
+- [Exa MCP Server (GitHub)](https://github.com/exa-labs/exa-mcp-server) - Official MCP server
+- [Exa Pricing](https://exa.ai/pricing) - Current pricing details
