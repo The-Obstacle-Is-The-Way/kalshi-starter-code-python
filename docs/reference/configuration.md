@@ -25,6 +25,10 @@ This is intended for local development and running authenticated commands withou
 - `KALSHI_ENVIRONMENT` — `demo` or `prod` (default: `prod`)
   - Precedence: `kalshi --env/-e ...` overrides `KALSHI_ENVIRONMENT`.
   - Invalid values cause the CLI to exit with an error (no silent fallback).
+- `KALSHI_RATE_TIER` — `basic`, `advanced`, `premier`, or `prime` (default: `basic`)
+  - Only affects **authenticated** API calls (portfolio commands).
+  - Precedence: `kalshi portfolio ... --rate-tier ...` overrides `KALSHI_RATE_TIER`.
+  - Invalid values cause the CLI to exit with an error (no silent fallback).
 
 ### Tests only
 
@@ -40,4 +44,7 @@ KALSHI_KEY_ID=your_key_id_here
 KALSHI_PRIVATE_KEY_PATH=/absolute/path/to/kalshi-private-key.pem
 # OR:
 # KALSHI_PRIVATE_KEY_B64=base64_encoded_private_key_material
+
+# Optional: authenticated write rate-limits (only matters for `kalshi portfolio ...`)
+KALSHI_RATE_TIER=basic  # basic|advanced|premier|prime
 ```

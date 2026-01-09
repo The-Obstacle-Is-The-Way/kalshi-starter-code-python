@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+
+site_name: Kalshi Research Platform
+repo_url: https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python
+site_url: https://the-obstacle-is-the-way.github.io/kalshi-starter-code-python/
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+# Exclude historical docs from the build (they are preserved in-repo under docs/_archive/).
+exclude_docs: |
+  _archive/**
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+    - navigation.tracking
+    - navigation.sections
+    - navigation.footer
+    - navigation.instant
+
+plugins:
+  - search
+
+# Validate links/anchors (pair with `mkdocs build --strict` in CI).
+validation:
+  omitted_files: warn
+  not_found: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+
+nav:
+  - Home: index.md
+  - Tutorials:
+      - Quickstart: tutorials/quickstart.md
+  - How-to:
+      - Usage: how-to/usage.md
+      - Testing: how-to/testing.md
+  - Reference:
+      - CLI: reference/cli-reference.md
+      - Configuration: reference/configuration.md
+      - Python API: reference/python-api.md
+      - Kalshi API (Vendor): kalshi-docs/official-api-reference.md
+  - Explanation:
+      - Architecture: explanation/architecture.md
+      - CLI Architecture: explanation/cli-architecture.md
+      - Data Pipeline: explanation/data-pipeline.md
+  - Internal:
+      - Specs Index: _specs/README.md
+      - Bug Tracker: _bugs/README.md
+      - Todo Index: _todo/README.md
+      - Technical Debt: _debt/technical-debt.md
+      - Code Audit Checklist: _debt/code-audit-checklist.md
+      - Ralph Wiggum Protocol: ralph-wiggum/protocol.md
+      - Ralph Wiggum Prompt: ralph-wiggum/prompt.md
+      - Ralph Wiggum Progress: ralph-wiggum/progress.md

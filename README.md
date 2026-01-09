@@ -67,6 +67,9 @@ See `kalshi --help` for all commands.
 - [docs/reference/cli-reference.md](docs/reference/cli-reference.md) - CLI index
 - [docs/_specs/](docs/_specs/) - Internal technical specs
 
+Build the docs site locally with MkDocs Material:
+- `uv run mkdocs serve`
+
 ## Development
 
 ```bash

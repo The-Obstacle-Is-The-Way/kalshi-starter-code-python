@@ -15,7 +15,8 @@ Use this ID for the next specification you create:
 
 ## Archive (Implemented)
 
-Completed specifications are stored in [`../_archive/specs/`](../_archive/specs/).
+Completed specifications are stored in
+[`docs/_archive/specs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/specs/).
 
 | ID | Title | Status |
 |---|---|---|

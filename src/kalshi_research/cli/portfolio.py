@@ -51,6 +51,19 @@ def _require_auth_env(*, purpose: str) -> tuple[str, str | None, str | None]:
     return key_id, private_key_path, private_key_b64
 
 
+def _resolve_rate_tier_override(rate_tier: str | None) -> str:
+    from kalshi_research.api.rate_limiter import RateTier
+
+    raw = rate_tier or os.getenv("KALSHI_RATE_TIER") or RateTier.BASIC.value
+    normalized = raw.strip().lower()
+    try:
+        return RateTier(normalized).value
+    except ValueError:
+        console.print(f"[red]Error:[/red] Invalid rate tier '{raw}'.")
+        console.print("[dim]Expected one of: basic, advanced, premier, prime.[/dim]")
+        raise typer.Exit(1) from None
+
+
 @app.command("sync")
 def portfolio_sync(
     db_path: Annotated[
@@ -60,6 +73,17 @@ def portfolio_sync(
     environment: Annotated[
         str | None,
         typer.Option("--env", help="Override global environment (demo or prod)."),
+    ] = None,
+    rate_tier: Annotated[
+        str | None,
+        typer.Option(
+            "--rate-tier",
+            help=(
+                "API rate limit tier (basic/advanced/premier/prime). "
+                "Defaults to KALSHI_RATE_TIER or basic."
+            ),
+            show_default=False,
+        ),
     ] = None,
     skip_mark_prices: Annotated[
         bool,
@@ -80,6 +104,7 @@ def portfolio_sync(
 
     environment_override = _validate_environment_override(environment)
     key_id, private_key_path, private_key_b64 = _require_auth_env(purpose="Portfolio sync")
+    rate_tier_override = _resolve_rate_tier_override(rate_tier)
 
     async def _sync() -> None:
         try:
@@ -89,6 +114,7 @@ def portfolio_sync(
                     private_key_path=private_key_path,
                     private_key_b64=private_key_b64,
                     environment=environment_override,
+                    rate_tier=rate_tier_override,
                 ) as client,
                 DatabaseManager(db_path) as db,
             ):
@@ -293,6 +319,17 @@ def portfolio_balance(
         str | None,
         typer.Option("--env", help="Override global environment (demo or prod)."),
     ] = None,
+    rate_tier: Annotated[
+        str | None,
+        typer.Option(
+            "--rate-tier",
+            help=(
+                "API rate limit tier (basic/advanced/premier/prime). "
+                "Defaults to KALSHI_RATE_TIER or basic."
+            ),
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """View account balance."""
     from kalshi_research.api import KalshiClient
@@ -300,6 +337,7 @@ def portfolio_balance(
 
     environment_override = _validate_environment_override(environment)
     key_id, private_key_path, private_key_b64 = _require_auth_env(purpose="Balance")
+    rate_tier_override = _resolve_rate_tier_override(rate_tier)
 
     async def _balance() -> None:
         balance: dict[str, Any] | None = None
@@ -309,6 +347,7 @@ def portfolio_balance(
                 private_key_path=private_key_path,
                 private_key_b64=private_key_b64,
                 environment=environment_override,
+                rate_tier=rate_tier_override,
             ) as client:
                 try:
                     balance = await client.get_balance()
