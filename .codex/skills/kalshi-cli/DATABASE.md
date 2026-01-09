@@ -4,6 +4,32 @@ SQLite database schema and common queries. The database is the authoritative sou
 
 ---
 
+## IMPORTANT: Schema Overview
+
+The database separates **static metadata** from **live pricing data**:
+
+| Table | Contains | Updates |
+|-------|----------|---------|
+| `markets` | Static info: ticker, title, open_time, close_time, status | On `data sync-markets` |
+| `price_snapshots` | Live data: yes_bid, yes_ask, volume_24h, liquidity | On `data snapshot` or `data collect` |
+
+**Common mistake**: Trying to query `yes_bid` or `volume_24h` from `markets` table - these columns don't exist there!
+
+```sql
+-- WRONG: markets table doesn't have price columns
+SELECT ticker, yes_bid FROM markets;  -- Error!
+
+-- RIGHT: Join with price_snapshots for current prices
+SELECT m.ticker, m.title, p.yes_bid, p.yes_ask
+FROM markets m
+JOIN price_snapshots p ON m.ticker = p.ticker
+WHERE p.snapshot_time = (
+  SELECT MAX(snapshot_time) FROM price_snapshots p2 WHERE p2.ticker = p.ticker
+);
+```
+
+---
+
 ## Connection
 
 ```bash
@@ -319,11 +345,28 @@ GROUP BY ticker
 ORDER BY range DESC
 LIMIT 10;
 
--- Latest prices for all markets
-SELECT DISTINCT ON (ticker)
-  ticker, yes_bid, yes_ask, volume_24h, snapshot_time
-FROM price_snapshots
-ORDER BY ticker, snapshot_time DESC;
+-- Latest prices for all markets (SQLite version - no DISTINCT ON)
+SELECT p.ticker, p.yes_bid, p.yes_ask, p.volume_24h, p.snapshot_time
+FROM price_snapshots p
+INNER JOIN (
+  SELECT ticker, MAX(snapshot_time) as max_time
+  FROM price_snapshots
+  GROUP BY ticker
+) latest ON p.ticker = latest.ticker AND p.snapshot_time = latest.max_time;
+```
+
+### Get Market with Current Price (Common Pattern)
+
+```sql
+-- Market details + latest price in one query
+SELECT
+  m.ticker, m.title, m.status, m.open_time, m.close_time,
+  p.yes_bid, p.yes_ask, p.volume_24h
+FROM markets m
+LEFT JOIN price_snapshots p ON m.ticker = p.ticker
+WHERE m.ticker = 'KXSB-26-DEN'
+ORDER BY p.snapshot_time DESC
+LIMIT 1;
 ```
 
 ### Settlement Analysis

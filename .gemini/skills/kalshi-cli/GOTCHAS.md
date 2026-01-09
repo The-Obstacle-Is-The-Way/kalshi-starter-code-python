@@ -4,6 +4,58 @@ Things that can trip you up when using the Kalshi Research Platform.
 
 ---
 
+## CRITICAL: Research Workflow Gotchas
+
+### Market Open Time Matters (CATASTROPHIC if ignored)
+
+**ALWAYS check `open_time` before researching time-sensitive markets.**
+
+A market asking "Will X happen before Y?" only counts events AFTER the market opened. If you research an event that happened BEFORE the market opened, your recommendation will be WRONG.
+
+**Example of catastrophic failure**:
+- Market: "Will a new Stranger Things episode release before Jan 1, 2027?"
+- Research found: S5 released Nov-Dec 2025
+- AI concluded: "Easy YES, it already released"
+- **MISSED**: Market opened Jan 5, 2026 - AFTER S5 finished
+- The market asks about NEW content, not S5
+- User lost money on flawed recommendation
+
+**How to avoid**:
+```bash
+# ALWAYS check open_time FIRST
+uv run kalshi market get TICKER
+# Look for "Open Time" in output
+
+# If open_time is recent (e.g., last few weeks), ask:
+# "Did the researched event happen AFTER this date?"
+```
+
+### Price Is Information (Don't Ignore It)
+
+If market price suggests 10-15% probability but your research says "obvious YES", **STOP AND INVESTIGATE**.
+
+Market participants are usually not dumb. If the price seems too easy:
+1. You're missing something (like market timing)
+2. There's ambiguity in the resolution criteria
+3. The market knows something your research doesn't
+
+**Rule**: If research says "easy money" but price says "unlikely", dig deeper.
+
+### Check Portfolio Before Recommending
+
+**ALWAYS check what user already owns before recommending new plays.**
+
+```bash
+# Before recommending, exclude owned positions
+uv run kalshi portfolio history -n 50
+# or
+sqlite3 data/kalshi.db "SELECT DISTINCT ticker FROM trades"
+```
+
+When user asks for "new opportunities", they mean positions they DON'T already own.
+
+---
+
 ## CLI Pitfalls
 
 ### NO Search Option Exists
@@ -28,6 +80,30 @@ KXFEDCHAIRNOM-29-KW   # Actual
 ```
 
 Always get full tickers from database before using them.
+
+### Ticker Discovery Is Hard
+
+Kalshi tickers follow **no consistent naming pattern**. Don't guess tickers - you'll get 404s.
+
+```bash
+# WRONG - guessing tickers
+uv run kalshi market get CONTROLS-2026      # 404
+uv run kalshi market get KXCONTROLS-2026    # 404
+uv run kalshi market get KXCONTROLS-26      # 404
+
+# RIGHT - find actual ticker
+# Option 1: Check database (if synced)
+sqlite3 data/kalshi.db "SELECT ticker FROM markets WHERE title LIKE '%Senate%control%'"
+
+# Option 2: Use Kalshi website to find exact ticker
+# Option 3: Sync markets first, then search database
+uv run kalshi data sync-markets
+```
+
+**Common ticker patterns** (but not guaranteed):
+- `KXFED-26JAN` - Fed-related, with date
+- `CONTROLS-2026-D` - Political control, with party suffix
+- `KXSB-26-DEN` - Super Bowl, with team code
 
 ### uv run Prefix Required
 
@@ -75,6 +151,19 @@ Markets with `yes_bid=0` and `yes_ask=100` are effectively unpriced placeholders
 SELECT * FROM price_snapshots
 WHERE NOT (yes_bid = 0 AND yes_ask = 100)
   AND NOT (yes_bid = 0 AND yes_ask = 0);
+```
+
+### Negative Liquidity from API (BUG-048)
+
+Kalshi API sometimes returns negative liquidity values (e.g., `-170750`). Our Pydantic model validates `liquidity >= 0` and will crash.
+
+**Workaround**: Use `--max-pages` to limit pagination when scanning:
+```bash
+# This may crash without --max-pages
+uv run kalshi scan opportunities --filter close-race
+
+# This is safer
+uv run kalshi scan opportunities --filter close-race --max-pages 5
 ```
 
 ### FIFO Cost Basis Calculation

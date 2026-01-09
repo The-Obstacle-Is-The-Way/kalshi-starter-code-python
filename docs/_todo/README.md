@@ -4,12 +4,12 @@ This directory contains todo/task tracking files for ongoing work.
 
 ## Current Status
 
-**No active items.** All tracked tasks have been completed.
+**2 active items.**
 
 ## Next ID Tracker
 
 Use this ID for the next todo you create:
-**TODO-005**
+**TODO-007**
 
 ---
 
@@ -17,9 +17,10 @@ Use this ID for the next todo you create:
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-| *(none)* | - | - | - |
+| **TODO-005** | [Market Open Date Validation](TODO-005-market-open-date-validation.md) | High | Active |
+| **TODO-006** | [Session Friction Audit & System Improvements](TODO-006-session-friction-audit.md) | High | Active |
 
-*Note: TODO-005 was reclassified as [BUG-047](../bugs/BUG-047-portfolio-positions-sync.md).*
+*Note: Previous TODO-005 (portfolio sync) was reclassified as [BUG-047](../bugs/BUG-047-portfolio-positions-sync.md).*
 
 ---
 

@@ -4,6 +4,100 @@ Step-by-step guides for common tasks.
 
 ---
 
+## CRITICAL: Research Workflow (Follow This Order!)
+
+When researching markets for recommendations, follow this exact order to avoid catastrophic errors:
+
+### Step 1: Check User's Portfolio First
+
+```bash
+# What does user already own?
+uv run kalshi portfolio history -n 50
+# or
+sqlite3 data/kalshi.db "SELECT DISTINCT ticker, side FROM trades"
+```
+
+**Exclude these tickers from new recommendations.**
+
+### Step 2: Get Market Details INCLUDING Open Time
+
+```bash
+uv run kalshi market get TICKER
+```
+
+**Look for**:
+- `open_time` - When trading started
+- `close_time` - When market expires
+- Current price (yes_bid/yes_ask)
+
+### Step 3: Temporal Validation (CRITICAL)
+
+Ask yourself:
+- When did the market open?
+- Is the event I'm researching AFTER the open time?
+- If market opened recently, events before that DON'T count
+
+**Example**: Market opened Jan 5, 2026. An event from Dec 2025 does NOT satisfy "Will X happen before Y?" because the event predates the market.
+
+### Step 4: Run Exa Research
+
+```bash
+# Only research events AFTER market open_time
+uv run kalshi research context TICKER
+# or
+uv run kalshi research topic "your research question"
+```
+
+### Step 5: Cross-Validate Price vs Research
+
+If your research says "obvious YES" but price is 10-15%:
+1. **STOP** - something is wrong
+2. Re-check market timing
+3. Re-read market rules carefully
+4. Check for ambiguity in resolution criteria
+
+**Rule**: If research and price disagree, investigate. Don't assume the market is wrong.
+
+### Step 6: Make Recommendation
+
+Only after all validation passes, make your recommendation with:
+- Confidence level
+- Key risks
+- What could invalidate the thesis
+
+---
+
+## Ticker Discovery Workflow
+
+Kalshi tickers are unpredictable. Don't guess.
+
+### Option 1: Search Database (if synced)
+
+```bash
+# Sync markets first (if not done recently)
+uv run kalshi data sync-markets
+
+# Search by keyword
+sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE title LIKE '%keyword%' AND status = 'active'"
+
+# Search by partial ticker
+sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE ticker LIKE 'KXFED%'"
+```
+
+### Option 2: Use Kalshi Website
+
+1. Go to kalshi.com
+2. Find the market you want
+3. The ticker is in the URL: `kalshi.com/markets/.../TICKER-HERE`
+
+### Option 3: List Markets by Event
+
+```bash
+uv run kalshi market list --event EVENT_TICKER --limit 50
+```
+
+---
+
 ## Initial Setup
 
 ### First-Time Database Setup
