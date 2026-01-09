@@ -4,7 +4,7 @@
 **Status:** 🟢 Fixed (2026-01-07)
 **Found:** 2026-01-07
 **Spec:** SPEC-005-alerts-notifications.md, SPEC-010-cli-completeness.md
-**Checklist Ref:** CODE_AUDIT_CHECKLIST.md Section 11 (Incomplete Implementations)
+**Checklist Ref:** code-audit-checklist.md Section 11 (Incomplete Implementations)
 
 ---
 

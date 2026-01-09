@@ -15,7 +15,10 @@ Use this ID for the next bug report you create:
 ---
 
 ## 🗄️ Archive (Resolved)
-All resolved bug reports are stored in [`../_archive/bugs/`](../_archive/bugs/).
+All resolved bug reports are stored in
+[`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
+
+Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
 
 | ID | Title | Status |
 |---|---|---|

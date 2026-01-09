@@ -1,9 +1,11 @@
 # Makefile - Kalshi Research Platform
 # Modern Python DevX (2026)
 
-.PHONY: help install dev test lint format check ci clean docs db
+.PHONY: all help install dev test lint format check ci clean docs docs-serve docs-build db
 
 # Default target
+all: help
+
 help:
 	@echo "Kalshi Research Platform - Development Commands"
 	@echo ""
@@ -38,6 +40,8 @@ help:
 	@echo ""
 	@echo "Documentation:"
 	@echo "  make docs        View documentation"
+	@echo "  make docs-serve  Serve docs site (MkDocs)"
+	@echo "  make docs-build  Build docs site (strict)"
 
 # =============================================================================
 # Setup
@@ -153,9 +157,16 @@ clean-all: clean
 docs:
 	@echo "Documentation available:"
 	@echo "  README.md          - Project overview"
-	@echo "  docs/QUICKSTART.md - Quick start guide"
-	@echo "  docs/USAGE.md      - Usage examples"
-	@echo "  docs/CLI_REFERENCE.md - CLI command reference"
+	@echo "  docs/index.md                - Docs index"
+	@echo "  docs/tutorials/quickstart.md - Quick start guide"
+	@echo "  docs/how-to/usage.md         - Usage examples"
+	@echo "  docs/reference/cli-reference.md - CLI command reference"
+
+docs-serve:
+	uv run mkdocs serve
+
+docs-build:
+	uv run mkdocs build --strict
 
 # =============================================================================
 # Release

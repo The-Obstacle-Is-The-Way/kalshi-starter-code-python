@@ -5,7 +5,7 @@
 **Found:** 2026-01-07
 **Fixed:** 2026-01-07
 **Spec:** SPEC-010-cli-completeness.md
-**Checklist Ref:** CODE_AUDIT_CHECKLIST.md Section 1 (Silent Failures), Section 15 (Silent Fallbacks)
+**Checklist Ref:** code-audit-checklist.md Section 1 (Silent Failures), Section 15 (Silent Fallbacks)
 
 ---
 

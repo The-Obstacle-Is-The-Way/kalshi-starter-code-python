@@ -9,6 +9,25 @@ SSOT is always:
 
 If you haven’t installed the `kalshi` entrypoint globally, use `uv run kalshi ...`.
 
+## Command map (implementation)
+
+This is the “where to find it in code” map for CLI commands:
+
+```text
+kalshi
+├─ data       -> src/kalshi_research/cli/data.py
+├─ market     -> src/kalshi_research/cli/market.py
+├─ scan       -> src/kalshi_research/cli/scan.py
+├─ alerts     -> src/kalshi_research/cli/alerts.py
+├─ analysis   -> src/kalshi_research/cli/analysis.py
+├─ research   -> src/kalshi_research/cli/research.py
+└─ portfolio  -> src/kalshi_research/cli/portfolio.py
+```
+
+Notes:
+- Global `--env/-e` lives in `src/kalshi_research/cli/__init__.py`.
+- `python -m kalshi_research.cli ...` is enabled by `src/kalshi_research/cli/__main__.py` (required for daemon mode).
+
 ## Top-level
 
 - Global option: `--env/-e` (defaults to `KALSHI_ENVIRONMENT` or `prod`; invalid values exit with an error)

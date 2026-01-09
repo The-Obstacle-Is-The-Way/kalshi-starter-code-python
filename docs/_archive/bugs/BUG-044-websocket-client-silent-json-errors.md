@@ -3,7 +3,7 @@
 **Priority:** P2 (Observability + debugging)
 **Status:** 🟢 Fixed (2026-01-08)
 **Found:** 2026-01-08
-**Checklist Ref:** `CODE_AUDIT_CHECKLIST.md` Section 1 (Silent failures)
+**Checklist Ref:** `code-audit-checklist.md` Section 1 (Silent failures)
 
 ---
 

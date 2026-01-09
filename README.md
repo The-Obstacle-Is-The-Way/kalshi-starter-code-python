@@ -61,11 +61,14 @@ See `kalshi --help` for all commands.
 
 ## Documentation
 
-- [docs/README.md](docs/README.md) - Diataxis docs index
-- [docs/QUICKSTART.md](docs/QUICKSTART.md) - Tutorial quickstart
-- [docs/USAGE.md](docs/USAGE.md) - How-to workflows
-- [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) - CLI index
+- [docs/index.md](docs/index.md) - Docs index (Diataxis)
+- [docs/tutorials/quickstart.md](docs/tutorials/quickstart.md) - Tutorial quickstart
+- [docs/how-to/usage.md](docs/how-to/usage.md) - How-to workflows
+- [docs/reference/cli-reference.md](docs/reference/cli-reference.md) - CLI index
 - [docs/_specs/](docs/_specs/) - Internal technical specs
+
+Build the docs site locally with MkDocs Material:
+- `uv run mkdocs serve`
 
 ## Development
 
@@ -82,4 +85,4 @@ uv run mypy src/
 
 ## License
 
-MIT
+Apache-2.0 (see `LICENSE`)

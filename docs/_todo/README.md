@@ -21,7 +21,10 @@ None.
 
 ## Archive (Completed)
 
-Completed todo items are stored in [`../_archive/todo/`](../_archive/todo/).
+Completed todo items are stored in
+[`docs/_archive/todo/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/todo/).
+
+Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
 
 | ID | Title | Status |
 |---|---|---|

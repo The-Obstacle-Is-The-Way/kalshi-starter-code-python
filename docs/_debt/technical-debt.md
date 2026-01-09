@@ -1,42 +1,18 @@
 # Technical Debt Register
 
-**Last Audit:** 2026-01-08
+**Last Audit:** 2026-01-09
 
 ---
 
 ## Outstanding Debt
 
-### 1. `KALSHI_RATE_TIER` env variable not wired
-
-**Priority:** Low
-**Status:** Incomplete feature from SPEC-015
-**Ref:** `docs/_archive/specs/SPEC-015-rate-limit-tier-management.md`
-
-The `RateLimiter` class exists and `KalshiClient` accepts a `rate_tier` parameter, but:
-- No `KALSHI_RATE_TIER` environment variable is read
-- No `--rate-tier` CLI option exists
-- Users must pass `rate_tier=` programmatically
-
-**Current behavior:** Defaults to `RateTier.BASIC` (20 read, 10 write per second).
-
-**Impact:** Low — most users are on basic tier anyway. Advanced/Premier/Prime users would need to modify code to get higher limits.
-
-**Fix when needed:**
-```python
-# In cli/__init__.py or portfolio.py
-rate_tier = os.getenv("KALSHI_RATE_TIER", "basic")
-```
-
-```bash
-# .env.example addition
-KALSHI_RATE_TIER=basic  # Options: basic, advanced, premier, prime
-```
+None.
 
 ---
 
 ## Deferred (Low Priority)
 
-### 2. No `interfaces/` or `ports/` package
+### 1. No `interfaces/` or `ports/` package
 
 **Priority:** Low
 **Status:** Acceptable for research platform
@@ -60,6 +36,7 @@ src/kalshi_research/
 
 | Item | Resolution |
 |------|------------|
+| `KALSHI_RATE_TIER` and `--rate-tier` not wired | Wired env + CLI option into authenticated client construction (portfolio commands) |
 | Path constants scattered across CLI | Centralized in `paths.py` |
 | Mixed logging (stdlib vs structlog) | Standardized on structlog |
 | Legacy sync client in codebase | Removed (BUG-045) |

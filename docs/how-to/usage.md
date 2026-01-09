@@ -218,11 +218,11 @@ uv run kalshi portfolio suggest-links --db data/kalshi.db
 - **“Pagination truncated …” warning:** you set `--max-pages` and hit the safety cap. Increase it or remove it for
   full iteration.
 - **“Database not found …”:** run `kalshi data init --db ...` first, or pass the correct `--db`.
-- **Auth errors:** confirm your `.env` values; see `docs/CONFIGURATION.md`.
+- **Auth errors:** confirm your `.env` values; see `docs/reference/configuration.md`.
 
 ## See also
 
-- `docs/CLI_REFERENCE.md`
-- `docs/PYTHON_API.md`
-- `docs/TESTING.md`
-- `docs/ARCHITECTURE.md`
+- `docs/reference/cli-reference.md`
+- `docs/reference/python-api.md`
+- `docs/how-to/testing.md`
+- `docs/explanation/architecture.md`

@@ -5,7 +5,7 @@
 **Estimated Complexity:** Low
 **Dependencies:** SPEC-002 (API Client)
 **Official Docs:** [Demo Environment](https://docs.kalshi.com/getting_started/demo_env)
-**Local SSOT:** [OFFICIAL-API-REFERENCE.md](../kalshi/OFFICIAL-API-REFERENCE.md)
+**Local SSOT:** [official-api-reference.md](../../kalshi-docs/official-api-reference.md)
 
 ---
 
@@ -259,4 +259,4 @@ jobs:
 
 - **Demo environment docs:** https://docs.kalshi.com/getting_started/demo_env
 - **Demo portal:** https://demo.kalshi.co
-- **Local SSOT:** [OFFICIAL-API-REFERENCE.md](../kalshi/OFFICIAL-API-REFERENCE.md)
+- **Local SSOT:** [official-api-reference.md](../../kalshi-docs/official-api-reference.md)

@@ -77,7 +77,7 @@ uv run pytest -m "not integration and not slow"  # fast local suite (CI-like)
 
 - **ALWAYS run `uv run pre-commit run --all-files` before committing**
 - Use atomic commits; follow the repo's common pattern: `[BUG-###] Fix: ...`, `[SPEC-###] Implement: ...`, `[FEATURE] Add: ...`, `[QUALITY-###] Fix: ...`.
-- PRs should include: what changed, how it was tested (commands run), and any user-facing doc updates (often `docs/USAGE.md` / `docs/QUICKSTART.md`).
+- PRs should include: what changed, how it was tested (commands run), and any user-facing doc updates (often `docs/how-to/usage.md` / `docs/tutorials/quickstart.md`).
 - Before review, ensure local checks match CI: `ruff`, `mypy`, and `pytest` are green.
 
 ## Security & Configuration Tips

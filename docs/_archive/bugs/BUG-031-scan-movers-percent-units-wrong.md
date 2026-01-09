@@ -5,7 +5,7 @@
 **Found:** 2026-01-07
 **Fixed:** 2026-01-07
 **Spec:** SPEC-010-cli-completeness.md, SPEC-003-data-layer-storage.md
-**Checklist Ref:** CODE_AUDIT_CHECKLIST.md Section 17 (Floating Point)
+**Checklist Ref:** code-audit-checklist.md Section 17 (Floating Point)
 
 ---
 

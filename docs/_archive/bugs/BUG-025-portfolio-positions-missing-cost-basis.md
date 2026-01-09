@@ -5,7 +5,7 @@
 **Found:** 2026-01-07
 **Fixed:** 2026-01-07
 **Spec:** SPEC-013-portfolio-sync-implementation.md
-**Checklist Ref:** CODE_AUDIT_CHECKLIST.md Section 11 (Incomplete Implementations)
+**Checklist Ref:** code-audit-checklist.md Section 11 (Incomplete Implementations)
 
 ---
 

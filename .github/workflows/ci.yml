@@ -30,6 +30,8 @@ jobs:
         run: uv run ruff format --check .
       - name: Run mypy
         run: uv run mypy src/
+      - name: Build docs (MkDocs)
+        run: uv run mkdocs build --strict
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -55,8 +57,11 @@ jobs:
             --cov-report=xml \
             --cov-report=term-missing \
             -m "not integration and not slow"
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage (Codecov)
+        uses: codecov/codecov-action@v5
+        if: matrix.python-version == '3.11'
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           files: ./coverage.xml
           fail_ci_if_error: false

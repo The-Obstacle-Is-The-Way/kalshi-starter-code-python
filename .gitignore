@@ -28,6 +28,9 @@ ENV/
 # uv
 .uv/
 
+# MkDocs
+site/
+
 # Testing
 .coverage
 .pytest_cache/
