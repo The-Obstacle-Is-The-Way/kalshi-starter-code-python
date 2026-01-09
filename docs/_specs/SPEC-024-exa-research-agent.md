@@ -390,7 +390,7 @@ class ResearchAgent:
         plan.steps.append(ResearchStep(
             phase=ResearchPhase.SYNTHESIS,
             description="Generate executive summary",
-            query=f"What is the probability that {market.title} Provide a balanced analysis.",
+            query=f"What is the probability that {market.title}? Provide a balanced analysis.",
             action="answer",
             params={"text": True},
         ))
