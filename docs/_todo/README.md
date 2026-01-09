@@ -4,12 +4,12 @@ This directory contains todo/task tracking files for ongoing work.
 
 ## Current Status
 
-**0 active items.** All tasks from Ralph Wiggum cleanup completed.
+**1 active item, 3 deferred/blocked items.**
 
 ## Next ID Tracker
 
 Use this ID for the next todo you create:
-**TODO-010**
+**TODO-011**
 
 ---
 
@@ -17,7 +17,19 @@ Use this ID for the next todo you create:
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| *None* | All TODOs completed | - | - |
+| **TODO-010** | [Liquidity Analysis](TODO-010-liquidity-analysis.md) | High | Active |
+
+---
+
+## Deferred / Blocked Items (00X Series)
+
+These items are either blocked by external factors or explicitly deferred for the future.
+
+| ID | Title | Status | Blocking Condition |
+|----|-------|--------|-------------------|
+| **TODO-00A** | [API Verification Post-Deadline](TODO-00A-api-verification-post-deadline.md) | BLOCKED | Until Jan 15, 2026 |
+| **TODO-00B** | [TradeExecutor Phase 2](TODO-00B-trade-executor-phase2.md) | DEFERRED | Until agent trading needed |
+| **TODO-00C** | [Exa Research Agent](TODO-00C-exa-research-agent.md) | DEFERRED | Complex, MCP alternative exists |
 
 ---
 
@@ -48,12 +60,8 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 ---
 
-## Pending Future Work (Deferred Items)
+## ID Naming Convention
 
-These items were explicitly scoped as "future work" during the cleanup:
-
-| Source | Item | Notes |
-|--------|------|-------|
-| TODO-007 | `create_order` validation raises `MarketClosedError` | Optional - fail-fast for trading |
-| TODO-008 | `TradeExecutor` with budget limits | Phase 2 - full agent trading harness |
-| TODO-009 | Verify against live API after Jan 15 | Blocked until API deadline passes |
+- **TODO-XXX** (001-999): Regular actionable items
+- **TODO-00X** (00A-00Z): Blocked or deferred items (placeholders)
+  - When unblocked, create a proper TODO-XXX and archive the placeholder

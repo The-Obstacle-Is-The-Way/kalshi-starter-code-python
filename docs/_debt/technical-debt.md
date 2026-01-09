@@ -1,17 +1,14 @@
 # Technical Debt Register
 
-**Last Audit:** 2026-01-09
+**Last Audit:** 2026-01-09 (Ralph Wiggum Cleanup)
 
 ---
 
 ## Outstanding Debt
 
-| ID | Description |
-|----|-------------|
-| `Settlement.expiration_time` proxy | `Settlement` model uses `expiration_time` as `settled_at`. Inaccurate for early/late settlements. |
-| [DEBT-001](DEBT-001-api-client-typing.md) | Inconsistent API Client return types (raw dicts vs Pydantic models). |
-| [DEBT-002](DEBT-002-magic-numbers-analysis.md) | Hardcoded magic numbers in analysis/scanner logic. (Phase 1 comments in progress) |
-| [DEBT-003](DEBT-003-loose-db-transactions.md) | Inconsistent database transaction boundaries (manual commit vs context manager). |
+| ID | Description | Priority |
+|----|-------------|----------|
+| `Settlement.expiration_time` proxy | `Settlement` model uses `expiration_time` as `settled_at`. Inaccurate for early/late settlements. | Low |
 
 ---
 
@@ -35,9 +32,26 @@ src/kalshi_research/
 │   └── notifier.py      # Protocol/ABC for alerts
 ```
 
+### 2. DEBT-002 Phase 2-3 (Strategy Configuration)
+
+**Priority:** Low
+**Status:** Deferred
+
+Phase 1 (comments) completed. Phases 2-3 would extract strategy defaults to `AnalysisConfig` and inject into `MarketScanner`/`EdgeDetector`. Low priority as current defaults work well.
+
 ---
 
-## Resolved
+## Resolved (Ralph Wiggum Cleanup - 2026-01-09)
+
+| Item | Resolution |
+|------|------------|
+| [DEBT-003](../_archive/debt/DEBT-003-loose-db-transactions.md) | Added `session.begin()` transaction boundaries across 7 files |
+| [DEBT-002 Phase 1](../_archive/debt/DEBT-002-magic-numbers-analysis.md) | Added explanatory comments for platform constants (200.0, 1000, 1-99) |
+| [DEBT-001](../_archive/debt/DEBT-001-api-client-typing.md) | Created Pydantic models for all portfolio methods |
+
+---
+
+## Previously Resolved
 
 | Item | Resolution |
 |------|------------|
@@ -69,7 +83,7 @@ src/kalshi_research/
 
 | File | Lines | Status |
 |------|-------|--------|
-| `api/client.py` | 711 | Acceptable |
+| `api/client.py` | ~750 | Acceptable |
 | `analysis/correlation.py` | 394 | Acceptable |
 | `portfolio/syncer.py` | 355 | Acceptable |
 | `data/fetcher.py` | 344 | Acceptable |

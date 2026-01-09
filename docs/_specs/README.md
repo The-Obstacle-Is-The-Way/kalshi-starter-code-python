@@ -4,12 +4,12 @@ This directory contains **active** design specifications for current work (plann
 
 ## Current Status
 
-**2 active specifications** (both planned, pending implementation).
+**2 active specifications.**
 
 ## Next ID Tracker
 
 Use this ID for the next specification you create:
-**SPEC-026**
+**SPEC-027**
 
 ---
 
@@ -17,18 +17,40 @@ Use this ID for the next specification you create:
 
 | ID | Title | Priority | Status | Dependencies |
 |---|---|---|---|---|
-| **SPEC-024** | [Exa Research Agent](SPEC-024-exa-research-agent.md) | P2 | 📋 Planned | SPEC-020, SPEC-021, SPEC-023 |
-| **SPEC-025** | [Market Open Time Display](SPEC-025-market-open-time-display.md) | P1 | 📋 Planned | None |
+| **SPEC-024** | [Exa Research Agent](SPEC-024-exa-research-agent.md) | P2 | 📋 Planned (Future) | SPEC-020-023 |
+| **SPEC-026** | [Liquidity Analysis](SPEC-026-liquidity-analysis.md) | P1 | 📋 Planned (TODO-010) | None |
 
 ### SPEC-024: Exa Research Agent
 
-Autonomous research agent that coordinates Exa searches, news collection, and thesis tracking. Depends on the now-implemented Exa integration (SPEC-020 through SPEC-023).
+**Status**: Planned (Future) - See [TODO-00C](../_todo/TODO-00C-exa-research-agent.md)
+
+Autonomous research agent that coordinates Exa searches, news collection, and thesis tracking. This is a complex feature (~1200 lines of spec) that depends on the implemented Exa integration (SPEC-020 through SPEC-023).
+
+**Recommendation**: Defer until there's a clear need for automated research vs interactive MCP-based research.
+
+### SPEC-026: Liquidity Analysis
+
+**Status**: Active - See [TODO-010](../_todo/TODO-010-liquidity-analysis.md)
+
+Comprehensive liquidity analysis framework for Kalshi markets. Addresses the deprecated `liquidity` field by providing:
+- Weighted orderbook depth scoring
+- Slippage estimation (walk-the-book)
+- Composite liquidity score (0-100)
+- Max safe order size calculation
+
+**Recommendation**: Implement now. High value for trading quality.
+
+---
+
+## Recently Implemented
 
 ### SPEC-025: Market Open Time Display
 
-**High Priority** - Add `open_time` and `created_time` to `market get` CLI output. This is a critical fix to prevent temporal validation errors in research workflows (see TODO-005).
+**Status**: ✅ Implemented (2026-01-09) via TODO-005
 
-Related to: A catastrophic research failure where a recommendation was made based on events that occurred BEFORE the market opened.
+Added `open_time` and `created_time` display to `market get` CLI command. Implemented TemporalValidator for research workflows.
+
+**Note**: Should be moved to archive.
 
 ---
 
@@ -41,6 +63,7 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 | ID | Title | Status |
 |---|---|---|
+| **SPEC-025** | Market Open Time Display | ✅ Implemented (2026-01-09) |
 | **SPEC-023** | Exa-Thesis Integration | ✅ Implemented (2026-01-09) |
 | **SPEC-022** | Exa News & Sentiment Pipeline | ✅ Implemented (2026-01-09) |
 | **SPEC-021** | Exa-Powered Market Research | ✅ Implemented (2026-01-09) |
