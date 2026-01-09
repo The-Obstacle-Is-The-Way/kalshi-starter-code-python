@@ -1,6 +1,7 @@
 # Exa API Reference (2026)
 
 **Source:** [docs.exa.ai](https://docs.exa.ai)
+**OpenAPI Spec:** [exa-openapi-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-openapi-spec.yaml)
 **Python SDK:** `pip install exa_py` or `uv add exa_py`
 **Last Verified:** 2026-01-08
 **MCP Server:** `npx exa-mcp-server` or hosted at `https://mcp.exa.ai/mcp`
@@ -46,12 +47,12 @@ Intelligently find webpages using embeddings-based search.
 
 ### Search Types
 
-| Type | Latency | Description |
-|------|---------|-------------|
-| `auto` | ~1s | **Default.** Intelligently combines neural and keyword methods |
-| `neural` | ~1s | Pure embeddings-based semantic search |
-| `fast` | <0.5s | Streamlined search optimized for speed |
-| `deep` | ~3.5s | **Agentic.** Multi-pass with query expansion and highest quality |
+| Type | Description |
+|------|-------------|
+| `auto` | **Default.** Intelligently selects the best method |
+| `neural` | Embeddings-based semantic search |
+| `fast` | Streamlined search optimized for speed |
+| `deep` | Multi-pass with query expansion for highest quality |
 
 **When to use `deep`:** Complex research queries where quality matters more than speed. The endpoint agentically searches, processes, and searches again until it finds the highest quality information.
 
@@ -70,7 +71,7 @@ Intelligently find webpages using embeddings-based search.
 | `startCrawlDate` | ISO 8601 | - | Filter by crawl date |
 | `endCrawlDate` | ISO 8601 | - | Filter by crawl date |
 | `includeText` | string[] | - | Must contain (1 string, 5 words max) |
-| `excludeText` | string[] | - | Must not contain |
+| `excludeText` | string[] | - | Must not contain (1 string, 5 words max; checks first 1,000 words) |
 | `category` | enum | - | See category table below |
 | `userLocation` | string | - | Two-letter ISO country code |
 | `moderation` | boolean | false | Filter unsafe content |
@@ -105,6 +106,7 @@ Intelligently find webpages using embeddings-based search.
       "url": "string",
       "publishedDate": "string|null",
       "author": "string|null",
+      "score": 0.0,
       "image": "string|null",
       "favicon": "string|null",
       "text": "string",
@@ -117,8 +119,30 @@ Intelligently find webpages using embeddings-based search.
   "searchType": "string",
   "costDollars": {
     "total": 0.005,
-    "breakdown": [{"type": "neuralSearch", "cost": 0.005}],
-    "perRequestPrices": {"neuralSearch_1_25_results": 0.005}
+    "breakDown": [
+      {
+        "search": 0.005,
+        "contents": 0.0,
+        "breakdown": {
+          "neuralSearch": 0.005,
+          "deepSearch": 0.0,
+          "contentText": 0.0,
+          "contentHighlight": 0.0,
+          "contentSummary": 0.0
+        }
+      }
+    ],
+    "perRequestPrices": {
+      "neuralSearch_1_25_results": 0.005,
+      "neuralSearch_26_100_results": 0.025,
+      "deepSearch_1_25_results": 0.015,
+      "deepSearch_26_100_results": 0.075
+    },
+    "perPagePrices": {
+      "contentText": 0.001,
+      "contentHighlight": 0.001,
+      "contentSummary": 0.001
+    }
   }
 }
 ```
@@ -199,6 +223,7 @@ Obtain clean, parsed content from URLs with automatic live crawling fallback. Re
       "url": "string",
       "publishedDate": "string|null",
       "author": "string|null",
+      "score": 0.0,
       "image": "string|null",
       "favicon": "string|null",
       "text": "string",
@@ -213,11 +238,21 @@ Obtain clean, parsed content from URLs with automatic live crawling fallback. Re
     {
       "id": "string",
       "status": "success|error",
-      "error": { "tag": "CRAWL_NOT_FOUND|CRAWL_TIMEOUT|SOURCE_NOT_AVAILABLE" }
+      "error": {
+        "tag": "CRAWL_NOT_FOUND|CRAWL_TIMEOUT|CRAWL_LIVECRAWL_TIMEOUT|SOURCE_NOT_AVAILABLE|CRAWL_UNKNOWN_ERROR",
+        "httpStatusCode": 404
+      }
     }
   ],
   "context": "string (combined content for RAG, if requested)",
-  "costDollars": { "total": 0.001 }
+  "costDollars": {
+    "total": 0.001,
+    "perPagePrices": {
+      "contentText": 0.001,
+      "contentHighlight": 0.001,
+      "contentSummary": 0.001
+    }
+  }
 }
 ```
 
@@ -254,11 +289,39 @@ Find semantically related pages to a given URL. Supports the same filtering opti
 | `endPublishedDate` | ISO 8601 | Filter by publish date |
 | `startCrawlDate` | ISO 8601 | Filter by crawl date |
 | `endCrawlDate` | ISO 8601 | Filter by crawl date |
-| `includeText` | string[] | Must contain these strings |
-| `excludeText` | string[] | Must not contain these strings |
+| `includeText` | string[] | Must contain (1 string, 5 words max) |
+| `excludeText` | string[] | Must not contain (1 string, 5 words max; checks first 1,000 words) |
 | `context` | boolean/object | Return combined context string for RAG |
 | `moderation` | boolean | Enable content moderation |
 | `contents` | object | Configure text/highlights/summary retrieval |
+
+### Response
+
+```json
+{
+  "requestId": "string",
+  "results": [
+    {
+      "id": "string",
+      "title": "string",
+      "url": "string",
+      "publishedDate": "string|null",
+      "author": "string|null",
+      "score": 0.0,
+      "image": "string|null",
+      "favicon": "string|null",
+      "text": "string",
+      "summary": "string",
+      "highlights": ["string"],
+      "highlightScores": [0.0]
+    }
+  ],
+  "context": "string (combined content for RAG, if requested)",
+  "costDollars": {
+    "total": 0.005
+  }
+}
+```
 
 ### Code Examples
 
@@ -308,8 +371,19 @@ Generate LLM-powered answers with citations from web search.
   ],
   "costDollars": {
     "total": 0.005,
-    "breakdown": [{"type": "answer", "cost": 0.005}],
-    "perRequestPrices": {"answer": 0.005}
+    "breakDown": [
+      {
+        "search": 0.005,
+        "contents": 0.0,
+        "breakdown": {
+          "neuralSearch": 0.005,
+          "deepSearch": 0.0,
+          "contentText": 0.0,
+          "contentHighlight": 0.0,
+          "contentSummary": 0.0
+        }
+      }
+    ]
   }
 }
 ```
@@ -344,7 +418,7 @@ Async deep research with structured output support.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `instructions` | string | Required. Research guidelines (max 4096 chars) |
-| `model` | enum | `exa-research-fast`, `exa-research`, `exa-research-pro` |
+| `model` | enum | `exa-research`, `exa-research-pro` (default: `exa-research`) |
 | `outputSchema` | object | JSON Schema for structured output |
 
 ### Response (201 Created)
@@ -353,7 +427,7 @@ Async deep research with structured output support.
 {
   "researchId": "string",
   "status": "pending|running|completed|canceled|failed",
-  "createdAt": 1234567890,
+  "createdAt": 1234567890123,
   "model": "exa-research",
   "instructions": "string"
 }
@@ -368,7 +442,12 @@ When completed:
     "content": "string - research results",
     "parsed": {} // if outputSchema provided
   },
-  "costDollars": { "total": 0.10 }
+  "costDollars": {
+    "total": 0.10,
+    "numSearches": 6,
+    "numPages": 20,
+    "reasoningTokens": 1000
+  }
 }
 ```
 
@@ -381,13 +460,13 @@ from exa_py import Exa
 exa = Exa('YOUR_EXA_API_KEY')
 
 # Create research task
-task = exa.research.create_task(
+research = exa.research.create(
     instructions="Summarize latest AI safety research",
     model="exa-research"
 )
 
 # Poll for results
-result = exa.research.get_task(task.research_id)
+result = exa.research.poll_until_finished(research.research_id)
 ```
 
 ---
@@ -437,8 +516,10 @@ for r in results.results:
 | `find_similar_and_contents(url, **kwargs)` | Find similar with contents |
 | `answer(query, **kwargs)` | Get LLM answer with citations |
 | `stream_answer(query, **kwargs)` | Streaming answer (yields chunks) |
-| `research.create_task(instructions, **kwargs)` | Start async research |
-| `research.get_task(research_id)` | Get research results |
+| `research.create(instructions=..., **kwargs)` | Start async research |
+| `research.get(research_id, **kwargs)` | Get research results |
+| `research.list(cursor=..., limit=...)` | List research tasks |
+| `research.poll_until_finished(research_id, **kwargs)` | Poll for completion |
 
 > **Note:** Structured summaries using `summary={"schema": {...}}` return JSON strings that require parsing.
 
@@ -446,14 +527,14 @@ for r in results.results:
 
 ## Pricing (as of 2026)
 
-**Free Tier:** $10 in credits (no credit card required)
+See [Exa Pricing](https://exa.ai/pricing) for current free credits and plan limits.
 
 ### Search Pricing (per 1,000 requests)
 
 | Search Type | 1-25 results | 26-100 results |
 |-------------|--------------|----------------|
 | Fast/Auto/Neural | $5 | $25 |
-| Deep | $15 | - |
+| Deep | $15 | $75 |
 
 ### Contents Pricing (per 1,000 pages)
 
@@ -465,9 +546,7 @@ for r in results.results:
 
 ### Answer Pricing
 
-| Operation | Cost per 1,000 |
-|-----------|----------------|
-| Answer with citations | $5 |
+The Answer endpoint returns `costDollars` in the response. Use `costDollars.total` as the source of truth.
 
 ### Research API Pricing (Variable)
 
@@ -540,7 +619,6 @@ By default, only `web_search_exa` and `get_code_context_exa` are enabled. Enable
 |------|-------------|
 | `web_search_exa` | Real-time web search with content extraction |
 | `get_code_context_exa` | Code snippets/docs from GitHub, StackOverflow |
-| `deep_search_exa` | Agentic search with query expansion and summaries |
 | `crawling_exa` | Extract content from specific URLs |
 | `company_research_exa` | Comprehensive company/business research |
 | `linkedin_search_exa` | LinkedIn people/company search |
@@ -549,12 +627,12 @@ By default, only `web_search_exa` and `get_code_context_exa` are enabled. Enable
 
 **Enable all tools:**
 ```json
-"args": ["-y", "exa-mcp-server", "tools=web_search_exa,deep_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"]
+"args": ["-y", "exa-mcp-server", "tools=web_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"]
 ```
 
 **Selective tools via hosted URL:**
 ```
-https://mcp.exa.ai/mcp?tools=web_search_exa,deep_search_exa
+https://mcp.exa.ai/mcp?tools=web_search_exa,company_research_exa
 ```
 
 ### When to Use MCP vs Direct SDK
@@ -637,7 +715,7 @@ results = exa.search_and_contents(
 For creating trading theses, use the Research API with structured output:
 
 ```python
-task = exa.research.create_task(
+research = exa.research.create(
     instructions="""
     Analyze the likelihood of [EVENT] occurring by [DATE].
 

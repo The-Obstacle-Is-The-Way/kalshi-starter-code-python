@@ -84,7 +84,7 @@ Only these count against **write** limits:
 
 | Parameter | Description |
 |-----------|-------------|
-| `limit` | Page size (most endpoints; default: 100; endpoint-specific max) |
+| `limit` | Page size (endpoint-specific default; commonly 100; endpoint-specific max) |
 | `page_size` | Page size for `GET /structured_targets` (default: 100; max: 2000) |
 | `cursor` | Pass from previous response to get next page |
 
