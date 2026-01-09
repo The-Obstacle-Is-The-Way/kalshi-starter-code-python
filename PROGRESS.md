@@ -33,7 +33,7 @@
 
 ## Phase 5: Session Friction (TODO-006)
 
-- [ ] **TODO-006**: Implement remaining code fixes from friction audit
+- [x] **TODO-006**: Implement remaining code fixes from friction audit
 
 ## Phase 6: Verification
 
