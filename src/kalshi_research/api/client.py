@@ -599,6 +599,7 @@ class KalshiClient(KalshiPublicClient):
         price: int,
         client_order_id: str | None = None,
         expiration_ts: int | None = None,
+        dry_run: bool = False,
     ) -> OrderResponse:
         """
         Create a new limit order.
@@ -611,6 +612,7 @@ class KalshiClient(KalshiPublicClient):
             price: Limit price in CENTS (1-99)
             client_order_id: Optional unique ID (generated if not provided)
             expiration_ts: Optional Unix timestamp for expiration
+            dry_run: If True, validate and log order but do not execute
 
         Returns:
             OrderResponse with order_id and status
@@ -635,6 +637,23 @@ class KalshiClient(KalshiPublicClient):
         }
         if expiration_ts:
             payload["expiration_ts"] = expiration_ts
+
+        # Handle dry run mode
+        if dry_run:
+            logger.info(
+                "DRY RUN: create_order - order validated but not executed",
+                ticker=ticker,
+                side=side if isinstance(side, str) else side.value,
+                action=action if isinstance(action, str) else action.value,
+                count=count,
+                price=price,
+                client_order_id=client_order_id,
+                expiration_ts=expiration_ts,
+            )
+            return OrderResponse(
+                order_id=f"dry-run-{client_order_id}",
+                order_status="simulated",
+            )
 
         # Acquire rate limit for WRITE
         await self._rate_limiter.acquire("POST", "/portfolio/orders")

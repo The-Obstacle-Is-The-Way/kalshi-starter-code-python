@@ -91,3 +91,26 @@ class TestTrading:
         args, kwargs = mock_client._client.post.call_args
         assert args[0] == "/portfolio/orders/oid-123/amend"
         assert kwargs["json"] == {"order_id": "oid-123", "yes_price": 55}
+
+    @pytest.mark.asyncio
+    async def test_create_order_dry_run(self, mock_client):
+        """Verify dry_run mode does not execute order."""
+        response = await mock_client.create_order(
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            count=10,
+            price=50,
+            client_order_id="cid-dry",
+            dry_run=True,
+        )
+
+        # Verify no HTTP request was made
+        mock_client._client.post.assert_not_called()
+
+        # Verify no rate limit was acquired
+        mock_client._rate_limiter.acquire.assert_not_called()
+
+        # Verify simulated response
+        assert response.order_id == "dry-run-cid-dry"
+        assert response.order_status == "simulated"
