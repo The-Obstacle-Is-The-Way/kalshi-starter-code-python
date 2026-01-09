@@ -62,13 +62,18 @@ See `kalshi --help` for all commands.
 ## Documentation
 
 - [docs/index.md](docs/index.md) - Docs index (Diataxis)
-- [docs/tutorials/quickstart.md](docs/tutorials/quickstart.md) - Tutorial quickstart
-- [docs/how-to/usage.md](docs/how-to/usage.md) - How-to workflows
-- [docs/reference/cli-reference.md](docs/reference/cli-reference.md) - CLI index
+- [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md) - Quickstart
+- [docs/getting-started/usage.md](docs/getting-started/usage.md) - Usage workflows
+- [docs/developer/cli-reference.md](docs/developer/cli-reference.md) - CLI index (SSOT map)
 - [docs/_specs/](docs/_specs/) - Internal technical specs
 
 Build the docs site locally with MkDocs Material:
 - `uv run mkdocs serve`
+
+## Agent Skills
+
+- Codex CLI skills live in `.codex/skills/` (restart Codex after changes).
+- Claude Code skills live in `.claude/skills/`.
 
 ## Development
 
