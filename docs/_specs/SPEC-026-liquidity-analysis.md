@@ -1,7 +1,7 @@
 # SPEC-026: Liquidity Analysis for Kalshi Markets
 
 **Priority**: High (Trading Quality)
-**Status**: Draft
+**Status**: Approved
 **Created**: 2026-01-09
 **Context**: Kalshi deprecated the `liquidity` field (Jan 15, 2026). We must calculate our own.
 
@@ -615,6 +615,24 @@ def suggest_execution_timing(
         reasoning="Kalshi liquidity peaks during US market hours (9am-5pm ET)"
     )
 ```
+
+## Rate Limit & Performance Strategy
+
+**CRITICAL:** Liquidity analysis requires fetching full orderbooks (`GET /markets/{ticker}/orderbook`). This endpoint is expensive and rate-limited.
+
+1.  **Caching Policy:**
+    *   Do NOT fetch orderbook for every single trade check if trading frequently.
+    *   Cache orderbook analysis for 5-15 seconds for active markets.
+    *   Use `lru_cache` for `liquidity_score` calculations if input objects are immutable.
+
+2.  **Depth Limiting:**
+    *   Always request `depth=25` (or similar) instead of full book (`depth=0`) unless deep analysis is required.
+    *   This reduces payload size and parsing time.
+
+3.  **High-Frequency Mode (WebSocket):**
+    *   For agents trading >10 times/minute, **WebSocket is mandatory**.
+    *   Subscribe to `orderbook_delta` and maintain a local orderbook replica.
+    *   Run analysis against the local replica (0 API cost).
 
 ---
 
