@@ -20,11 +20,11 @@
 
 - [x] **TODO-009**: Migrate from cent fields to dollar fields → `api/models/market.py`
 
-## Phase 4: Research Quality (INCOMPLETE - Reopened)
+## Phase 4: Research Quality ✅
 
 - [x] **TODO-005a**: Display `open_time`/`created_time` in `market get` → `cli/market.py`
 - [x] **TODO-005b**: Add temporal validation to research workflow → `research/thesis.py`
-- [ ] **TODO-005c**: Add market timing warnings to GOTCHAS.md → `.claude/skills/`
+- [x] **TODO-005c**: Add market timing warnings to GOTCHAS.md → `.claude/skills/`
 - [x] **BUG-047**: Investigate portfolio sync discrepancy → `portfolio/syncer.py`
 
 ## Phase 5: Technical Debt ✅

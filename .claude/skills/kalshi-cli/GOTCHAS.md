@@ -6,36 +6,39 @@ Things that can trip you up when using the Kalshi Research Platform.
 
 ## CRITICAL: Research Workflow Gotchas
 
-### Market Open Time Matters (CATASTROPHIC if ignored)
+### Market Timing Trap
 
-**ALWAYS check `open_time` before researching time-sensitive markets.**
+**Problem**: Markets asking "Will X happen before Y?" only count events AFTER market opens.
 
-A market asking "Will X happen before Y?" only counts events AFTER the market opened. If you research an event that happened BEFORE the market opened, your recommendation will be WRONG.
+**Example**: Stranger Things S5 released Dec 2025, but market asking about "new episode" opened Jan 2026. S5 doesn't count - market is asking about S6 or beyond.
 
-**Example of catastrophic failure**:
+**Prevention**:
+1. Always run `kalshi market get <ticker>` first
+2. Check `Open Time` before researching
+3. If researched event predates open_time, it DOES NOT COUNT
+4. Be suspicious if price seems "too good" (11-14% for "sure thing" = red flag)
+
+**Full Example of Catastrophic Failure**:
 - Market: "Will a new Stranger Things episode release before Jan 1, 2027?"
+- Ticker: `KXMEDIARELEASEST-27JAN01`
 - Research found: S5 released Nov-Dec 2025
 - AI concluded: "Easy YES, it already released"
 - **MISSED**: Market opened Jan 5, 2026 - AFTER S5 finished
-- The market asks about NEW content, not S5
-- User lost money on flawed recommendation
+- The market asks about NEW content (S6), not S5
+- User bought 36 shares at 13¢ based on flawed recommendation
+- **Lesson**: Always check `open_time` FIRST before researching
 
-**How to avoid**:
+**How to check open_time**:
 ```bash
-# ALWAYS check open_time FIRST
-# NOTE: `market get` does not currently display open_time (SPEC-025 is planned).
+# The `market get` command now displays open_time (as of TODO-005a)
+uv run kalshi market get KXMEDIARELEASEST-27JAN01
 
-# Ensure market metadata is current
-uv run kalshi data sync-markets
+# Output includes:
+# Open Time: 2026-01-05 20:00:00 UTC
+# Created: 2026-01-05 17:50:26 UTC
+# Close Time: 2027-01-01 04:59:00 UTC
 
-# Fetch current prices/volume
-uv run kalshi market get TICKER
-
-# Get timing fields from SQLite
-sqlite3 data/kalshi.db "SELECT open_time, created_at, close_time FROM markets WHERE ticker = 'TICKER'"
-
-# If open_time is recent (e.g., last few weeks), ask:
-# "Did the researched event happen AFTER this date?"
+# If open_time is recent, verify researched events occurred AFTER this date
 ```
 
 ### Price Is Information (Don't Ignore It)
