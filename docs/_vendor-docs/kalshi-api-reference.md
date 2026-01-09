@@ -302,10 +302,16 @@ For institutional traders and high-frequency operations:
 
 ### Market response field removals (release Jan 15, 2026)
 
+> **⚠️ IMMINENT:** These fields are being removed in 6 days (Jan 15, 2026).
+
 Cent-denominated fields being removed from **Market** responses:
 - `response_price_units`, `notional_value`, `yes_bid`, `yes_ask`, `no_bid`, `no_ask`, `last_price`,
   `previous_yes_bid`, `previous_yes_ask`, `previous_price`, `liquidity` → Use `*_dollars` equivalents.
 - `tick_size` → Use `price_level_structure` and `price_ranges`.
+
+**Known edge case:** The `liquidity` field can return **negative values** (e.g., `-170750`) in some markets.
+This is likely a calculation artifact or sentinel value. Since the field is deprecated, treat negative
+values as `None`/unknown rather than crashing on validation.
 
 ### Market response field removals (release Jan 8, 2026)
 

@@ -65,11 +65,25 @@ class TestMarketModel:
             )
             assert market.status == expected_enum
 
-    def test_market_accepts_negative_liquidity(self, make_market: Any) -> None:
-        """Liquidity can be negative in API responses (observed in production)."""
+    def test_market_negative_liquidity_becomes_none(self, make_market: Any) -> None:
+        """Negative liquidity values are converted to None (deprecated field)."""
         data = make_market(liquidity=-170750)
         market = Market.model_validate(data)
-        assert market.liquidity == -170750
+        # Validator converts negative to None (field deprecated Jan 15, 2026)
+        assert market.liquidity is None
+
+    def test_market_liquidity_optional(self, make_market: Any) -> None:
+        """Liquidity field is optional (deprecated, may be absent)."""
+        data = make_market()
+        data.pop("liquidity", None)  # Remove liquidity field
+        market = Market.model_validate(data)
+        assert market.liquidity is None
+
+    def test_market_positive_liquidity_preserved(self, make_market: Any) -> None:
+        """Positive liquidity values are preserved until field removal."""
+        data = make_market(liquidity=50000)
+        market = Market.model_validate(data)
+        assert market.liquidity == 50000
 
     def test_market_immutability(self, make_market: Any) -> None:
         """Market model is frozen (immutable)."""

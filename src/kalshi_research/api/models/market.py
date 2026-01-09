@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+logger = logging.getLogger(__name__)
 
 
 class MarketStatus(str, Enum):
@@ -70,5 +73,27 @@ class Market(BaseModel):
     close_time: datetime
     expiration_time: datetime
 
-    # Liquidity (can be negative in API responses)
-    liquidity: int = Field(..., description="Dollar liquidity in cents")
+    # Liquidity (DEPRECATED: removed Jan 15, 2026 - use dollar fields)
+    liquidity: int | None = Field(
+        default=None,
+        description="DEPRECATED: Use dollar-denominated fields. Removed Jan 15, 2026.",
+    )
+
+    @field_validator("liquidity", mode="before")
+    @classmethod
+    def handle_deprecated_liquidity(cls, v: int | None) -> int | None:
+        """Handle deprecated liquidity field gracefully.
+
+        The liquidity field is deprecated as of Jan 15, 2026 per Kalshi API changelog.
+        Negative values are observed in production and treated as None.
+        """
+        if v is None:
+            return None
+        if v < 0:
+            logger.warning(
+                "Received negative liquidity value: %s. "
+                "Treating as None. Field deprecated Jan 15, 2026.",
+                v,
+            )
+            return None
+        return v

@@ -7,7 +7,7 @@
 
 ## Phase 1: Critical Bug Fixes
 
-- [ ] **BUG-048**: Fix negative liquidity validation (REOPENED - see updated doc) → `api/models/market.py`
+- [x] **BUG-048**: Fix negative liquidity validation (REOPENED - see updated doc) → `api/models/market.py`
 - [x] **BUG-050**: Add logging to silent exception → `cli/alerts.py:117`
 
 ## Phase 2: Safety-Critical Fixes
