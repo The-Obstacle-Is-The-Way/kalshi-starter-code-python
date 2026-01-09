@@ -18,6 +18,8 @@ Use this ID for the next specification you create:
 Completed specifications are stored in
 [`docs/_archive/specs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/specs/).
 
+Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
 | ID | Title | Status |
 |---|---|---|
 | **SPEC-018** | CLI Refactoring | ✅ Implemented |
