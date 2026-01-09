@@ -35,7 +35,7 @@ Connect Exa research directly into the thesis creation and management workflow. 
 ```bash
 # Create thesis with automatic research
 uv run kalshi research thesis create "Bitcoin exceeds 100k" \
-    --market KXBTC-26JAN-T100000 \
+    --markets KXBTC-26JAN-T100000 \
     --your-prob 0.65 \
     --with-research
 
@@ -366,7 +366,7 @@ class ThesisResearcher:
                         published_date=result.published_date,
                         snippet=snippet,
                         supports=classification,
-                        relevance_score=0.8,  # Could refine this
+                        relevance_score=result.score if result.score is not None else 0.8,
                     )
 
                     if classification == "bull":
@@ -394,7 +394,7 @@ class ThesisResearcher:
             )
             summary = answer_response.answer
             if answer_response.cost_dollars:
-                total_cost += answer_response.cost_dollars.get("total", 0)
+                total_cost += answer_response.cost_dollars.total
         except Exception:
             summary = "Research summary unavailable."
 
@@ -781,38 +781,43 @@ def research_thesis_create(
             console.print("[dim]🔍 Researching thesis...[/dim]\n")
 
             try:
-                async with KalshiPublicClient() as kalshi:
-                    market = await kalshi.get_market(market_tickers[0])
+                from kalshi_research.api.exceptions import KalshiAPIError
 
-                if not market:
+                try:
+                    async with KalshiPublicClient() as kalshi:
+                        market = await kalshi.get_market(market_tickers[0])
+                except KalshiAPIError:
                     console.print(f"[yellow]Market not found: {market_tickers[0]}[/yellow]")
-                else:
-                    async with ExaClient.from_env() as exa:
-                        researcher = ThesisResearcher(exa)
-                        direction = "yes" if your_prob > 0.5 else "no"
-                        research_data = await researcher.research_for_thesis(market, direction)
+                    raise typer.Exit(1) from None
 
-                        console.print(f"[green]📰 Found {len(research_data.bull_evidence) + len(research_data.bear_evidence)} relevant sources[/green]\n")
+                async with ExaClient.from_env() as exa:
+                    researcher = ThesisResearcher(exa)
+                    direction = "yes" if your_prob > 0.5 else "no"
+                    research_data = await researcher.research_for_thesis(market, direction)
 
-                        if research_data.suggested_bull_case != bull_case:
-                            console.print("[bold cyan]Suggested Bull Case:[/bold cyan]")
-                            console.print(research_data.suggested_bull_case)
-                            console.print()
+                    console.print(
+                        f"[green]📰 Found {len(research_data.bull_evidence) + len(research_data.bear_evidence)} relevant sources[/green]\n"
+                    )
 
-                        if research_data.suggested_bear_case != bear_case:
-                            console.print("[bold cyan]Suggested Bear Case:[/bold cyan]")
-                            console.print(research_data.suggested_bear_case)
-                            console.print()
+                    if research_data.suggested_bull_case != bull_case:
+                        console.print("[bold cyan]Suggested Bull Case:[/bold cyan]")
+                        console.print(research_data.suggested_bull_case)
+                        console.print()
 
-                        # Ask user to accept suggestions
-                        if typer.confirm("Accept these suggestions?", default=True):
-                            final_bull = research_data.suggested_bull_case
-                            final_bear = research_data.suggested_bear_case
+                    if research_data.suggested_bear_case != bear_case:
+                        console.print("[bold cyan]Suggested Bear Case:[/bold cyan]")
+                        console.print(research_data.suggested_bear_case)
+                        console.print()
 
-                        evidence = research_data.bull_evidence + research_data.bear_evidence
-                        research_summary = research_data.summary
+                    # Ask user to accept suggestions
+                    if typer.confirm("Accept these suggestions?", default=True):
+                        final_bull = research_data.suggested_bull_case
+                        final_bear = research_data.suggested_bear_case
 
-                        console.print(f"[dim]Research cost: ${research_data.exa_cost_dollars:.4f}[/dim]")
+                    evidence = research_data.bull_evidence + research_data.bear_evidence
+                    research_summary = research_data.summary
+
+                    console.print(f"[dim]Research cost: ${research_data.exa_cost_dollars:.4f}[/dim]")
 
             except ValueError as e:
                 console.print(f"[yellow]Research skipped: {e}[/yellow]")

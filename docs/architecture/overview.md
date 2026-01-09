@@ -48,7 +48,7 @@ kalshi (src/kalshi_research/cli/__init__.py)
 └─ portfolio  (src/kalshi_research/cli/portfolio.py)
 ```
 
-See `docs/explanation/cli-architecture.md` for details (including daemon spawning for alerts).
+See `docs/architecture/cli.md` for details (including daemon spawning for alerts).
 
 ## Storage & Persistence
 
@@ -71,7 +71,7 @@ Tables are split across modules but share a single SQLAlchemy `Base`:
 `DatabaseManager` imports `kalshi_research.portfolio.models` to ensure those tables are registered in
 `Base.metadata` (so `create_tables()` creates everything).
 
-See `docs/explanation/data-pipeline.md` for the fetch/snapshot/export flow.
+See `docs/architecture/data-pipeline.md` for the fetch/snapshot/export flow.
 
 ## Testing Strategy
 
@@ -79,4 +79,4 @@ See `docs/explanation/data-pipeline.md` for the fetch/snapshot/export flow.
 - **Integration tests** (`tests/integration/`): DB migrations/repositories + CLI smoke/integration coverage.
 - **E2E tests** (`tests/e2e/`): end-to-end pipelines with mocked HTTP + real SQLite.
 
-See `docs/how-to/testing.md` for commands and live-test gating.
+See `docs/developer/testing.md` for commands and live-test gating.

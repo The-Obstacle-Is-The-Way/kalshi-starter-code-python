@@ -9,31 +9,31 @@ This repo follows a Diataxis-style layout:
 
 ## Start Here
 
-- `docs/tutorials/quickstart.md` — get a working local pipeline in minutes.
-- `docs/reference/cli-reference.md` — command index (SSOT = `kalshi --help`).
-- `docs/reference/configuration.md` — environments, `.env`, credentials, and live-test toggles.
+- `docs/getting-started/quickstart.md` — get a working local pipeline in minutes.
+- `docs/developer/cli-reference.md` — command index (SSOT = `kalshi --help`).
+- `docs/developer/configuration.md` — environments, `.env`, credentials, and live-test toggles.
 
 ## Tutorials
 
-- `docs/tutorials/quickstart.md`
+- `docs/getting-started/quickstart.md`
 
 ## How-to
 
-- `docs/how-to/usage.md` — workflows (data pipeline, scanning, alerts, portfolio, analysis, research).
-- `docs/how-to/testing.md` — run unit/integration/e2e; live API gates; coverage.
+- `docs/getting-started/usage.md` — workflows (data pipeline, scanning, alerts, portfolio, analysis, research).
+- `docs/developer/testing.md` — run unit/integration/e2e; live API gates; coverage.
 
 ## Reference
 
-- `docs/reference/cli-reference.md`
-- `docs/reference/configuration.md`
-- `docs/reference/python-api.md`
-- `docs/kalshi-docs/official-api-reference.md` — upstream Kalshi API reference (vendor docs).
+- `docs/developer/cli-reference.md`
+- `docs/developer/configuration.md`
+- `docs/developer/python-api.md`
+- `docs/_vendor-docs/kalshi-api-reference.md` — upstream Kalshi API reference (vendor docs).
 
 ## Explanation
 
-- `docs/explanation/architecture.md` — how the pieces fit together (module map + diagrams).
-- `docs/explanation/data-pipeline.md` — DB schema + fetch/snapshot/export flow.
-- `docs/explanation/cli-architecture.md` — Typer app wiring + daemon spawning.
+- `docs/architecture/overview.md` — how the pieces fit together (module map + diagrams).
+- `docs/architecture/data-pipeline.md` — DB schema + fetch/snapshot/export flow.
+- `docs/architecture/cli.md` — Typer app wiring + daemon spawning.
 
 ## Internal Specs & Bug Tracker
 

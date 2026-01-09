@@ -13,7 +13,7 @@ class MarketStatus(str, Enum):
     """Market status as returned in API responses.
 
     Note: Filter params use different values (MarketFilterStatus).
-    See: docs/kalshi-docs/official-api-reference.md
+    See: docs/_vendor-docs/kalshi-api-reference.md
     """
 
     INITIALIZED = "initialized"  # New markets not yet open

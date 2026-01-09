@@ -101,6 +101,6 @@ uv run kalshi portfolio positions
 
 ## Next
 
-- `docs/how-to/usage.md` for task-based workflows
-- `docs/reference/cli-reference.md` for the command index
-- `docs/explanation/architecture.md` for system structure
+- `docs/getting-started/usage.md` for task-based workflows
+- `docs/developer/cli-reference.md` for the command index
+- `docs/architecture/overview.md` for system structure

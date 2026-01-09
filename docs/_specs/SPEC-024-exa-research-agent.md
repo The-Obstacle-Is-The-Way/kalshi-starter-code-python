@@ -32,7 +32,7 @@ Build an autonomous research agent that orchestrates multiple Exa operations to 
 
 For **interactive research sessions** in Claude Desktop/Code, users can use the [Exa MCP server](https://github.com/exa-labs/exa-mcp-server) directly. The MCP server provides:
 - `deep_researcher_start` / `deep_researcher_check` tools for async research
-- `web_search_exa` and `deep_search_exa` for interactive queries
+- `web_search_exa` and `crawling_exa` for interactive queries and URL extraction
 
 **This agent spec complements MCP** by providing:
 1. Reproducible, auditable research pipelines via CLI
@@ -420,7 +420,7 @@ class ResearchAgent:
                     "citations": response.citations,
                 }
                 if response.cost_dollars:
-                    step.cost = response.cost_dollars.get("total", 0)
+                    step.cost = response.cost_dollars.total
 
             elif step.action == "research":
                 task = await self.exa.create_research_task(**step.params)
@@ -430,7 +430,7 @@ class ResearchAgent:
                 )
                 step.result = completed.output
                 if completed.cost_dollars:
-                    step.cost = completed.cost_dollars.get("total", 0)
+                    step.cost = completed.cost_dollars.total
 
             step.completed = True
             self._total_cost += step.cost

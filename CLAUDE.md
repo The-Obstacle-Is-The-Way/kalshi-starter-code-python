@@ -108,7 +108,7 @@ src/kalshi_research/
 │   ├── thesis.py        # Thesis tracking
 │   ├── backtest.py      # ThesisBacktester
 │   └── notebook_utils.py # Jupyter helpers
-├── portfolio/     # Portfolio tracking (read-only)
+├── portfolio/     # Portfolio tracking (no order placement)
 │   ├── models.py        # Position, Trade models
 │   ├── pnl.py           # P&L calculator
 │   └── syncer.py        # Sync from Kalshi API
@@ -119,7 +119,9 @@ src/kalshi_research/
 
 **API Clients**: Use async context managers. `KalshiPublicClient` for research (no auth), `KalshiClient` for portfolio sync (requires API key).
 
-**Repository Pattern**: All DB access goes through repositories in `data/repositories/`. Never use raw SQL or direct session queries elsewhere.
+**Repository Pattern**: Prefer repositories in `data/repositories/` for shared persistence logic. For
+small, one-off queries in CLI commands, direct `select()` usage is acceptable when it avoids unnecessary abstraction,
+but don’t duplicate repository behavior in multiple places.
 
 **Pydantic Models**: API models in `api/models/` are frozen (`model_config = ConfigDict(frozen=True)`). Don't mutate them.
 
@@ -131,13 +133,13 @@ src/kalshi_research/
 
 ```
 kalshi
-├── data        # init, sync-markets, collect, export, stats
+├── data        # init, sync-markets, sync-settlements, snapshot, collect, export, stats
 ├── market      # get, list, orderbook
 ├── scan        # opportunities, arbitrage, movers
 ├── alerts      # list, add, remove, monitor
 ├── analysis    # calibration, correlation, metrics
 ├── research    # thesis (create/list/show/resolve), backtest
-└── portfolio   # sync, positions, pnl, balance, history
+└── portfolio   # sync, positions, pnl, balance, history, link, suggest-links
 ```
 
 ## Test Organization

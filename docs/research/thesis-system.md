@@ -146,7 +146,7 @@ uv run kalshi research thesis resolve <ID_PREFIX> --outcome yes
 
 ## Integration with Backtesting
 
-Resolved theses feed into the backtesting system (see `docs/explanation/backtesting.md`), which calculates:
+Resolved theses feed into the backtesting system (see `docs/research/backtesting.md`), which calculates:
 
 - What your P&L would have been
 - Your win rate

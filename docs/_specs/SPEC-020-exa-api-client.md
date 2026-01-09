@@ -58,8 +58,9 @@ src/kalshi_research/
 │   ├── client.py           # ExaClient (async, typed)
 │   ├── models/
 │   │   ├── __init__.py
+│   │   ├── common.py       # Shared types (ContentsRequest, CostDollars, etc.)
 │   │   ├── search.py       # SearchRequest, SearchResult, SearchResponse
-│   │   ├── contents.py     # ContentsRequest, ContentResult, ContentsResponse
+│   │   ├── contents.py     # GetContentsRequest, ContentResult, ContentsResponse
 │   │   ├── similar.py      # FindSimilarRequest, FindSimilarResponse
 │   │   ├── answer.py       # AnswerRequest, AnswerResponse, Citation
 │   │   └── research.py     # ResearchTask, ResearchStatus, ResearchOutput
@@ -80,7 +81,6 @@ tests/
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import cached_property
 import os
 
 
@@ -122,15 +122,151 @@ class ExaConfig:
 ### 2.3 Pydantic Models
 
 ```python
+# src/kalshi_research/exa/models/common.py
+from __future__ import annotations
+
+from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class LivecrawlOption(str, Enum):
+    """Exa livecrawl behavior."""
+
+    NEVER = "never"
+    FALLBACK = "fallback"
+    PREFERRED = "preferred"
+    ALWAYS = "always"
+
+
+class TextContentsOptions(BaseModel):
+    """Options for extracting full page text."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    max_characters: int | None = Field(default=None, alias="maxCharacters")
+    include_html_tags: bool | None = Field(default=None, alias="includeHtmlTags")
+
+
+class HighlightsOptions(BaseModel):
+    """Options for extracting highlight snippets."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    query: str | None = None
+    num_sentences: int | None = Field(default=None, alias="numSentences")
+    highlights_per_url: int | None = Field(default=None, alias="highlightsPerUrl")
+
+
+class SummaryOptions(BaseModel):
+    """Options for generating an LLM summary (optionally structured)."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    query: str | None = None
+    schema: dict[str, Any] | None = None
+
+
+class ContextOptions(BaseModel):
+    """Options for generating combined context strings (RAG)."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    max_characters: int | None = Field(default=None, alias="maxCharacters")
+
+
+class ExtrasOptions(BaseModel):
+    """Options for extracting extra metadata (links, images, etc.)."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    links: int | None = None
+    image_links: int | None = Field(default=None, alias="imageLinks")
+
+
+class ContentsRequest(BaseModel):
+    """Shared contents options used by /search, /findSimilar, and /contents."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    text: bool | TextContentsOptions | None = None
+    highlights: bool | HighlightsOptions | None = None
+    summary: bool | SummaryOptions | None = None
+    context: bool | ContextOptions | None = None
+    livecrawl: LivecrawlOption | None = None
+    livecrawl_timeout: int | None = Field(default=None, alias="livecrawlTimeout")
+    subpages: int | None = None
+    subpage_target: str | list[str] | None = Field(default=None, alias="subpageTarget")
+    extras: ExtrasOptions | None = None
+
+
+class CostBreakdownDetails(BaseModel):
+    """Fine-grained cost breakdown (when present)."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    neural_search: float | None = Field(default=None, alias="neuralSearch")
+    deep_search: float | None = Field(default=None, alias="deepSearch")
+    content_text: float | None = Field(default=None, alias="contentText")
+    content_highlight: float | None = Field(default=None, alias="contentHighlight")
+    content_summary: float | None = Field(default=None, alias="contentSummary")
+
+
+class CostBreakDownItem(BaseModel):
+    """High-level cost breakdown entry (when present)."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    search: float | None = None
+    contents: float | None = None
+    breakdown: CostBreakdownDetails | None = None
+
+
+class PerRequestPrices(BaseModel):
+    """Standard prices per request tier (when present)."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    neural_search_1_25_results: float | None = Field(default=None, alias="neuralSearch_1_25_results")
+    neural_search_26_100_results: float | None = Field(default=None, alias="neuralSearch_26_100_results")
+    neural_search_100_plus_results: float | None = Field(default=None, alias="neuralSearch_100_plus_results")
+    deep_search_1_25_results: float | None = Field(default=None, alias="deepSearch_1_25_results")
+    deep_search_26_100_results: float | None = Field(default=None, alias="deepSearch_26_100_results")
+
+
+class PerPagePrices(BaseModel):
+    """Standard prices per page (when present)."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    content_text: float | None = Field(default=None, alias="contentText")
+    content_highlight: float | None = Field(default=None, alias="contentHighlight")
+    content_summary: float | None = Field(default=None, alias="contentSummary")
+
+
+class CostDollars(BaseModel):
+    """Cost information from Exa API."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    total: float
+    break_down: list[CostBreakDownItem] | None = Field(default=None, alias="breakDown")
+    per_request_prices: PerRequestPrices | None = Field(default=None, alias="perRequestPrices")
+    per_page_prices: PerPagePrices | None = Field(default=None, alias="perPagePrices")
+```
+
+```python
 # src/kalshi_research/exa/models/search.py
 from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from kalshi_research.exa.models.common import ContentsRequest, CostDollars
 
 class SearchType(str, Enum):
     """Exa search type."""
@@ -156,37 +292,41 @@ class SearchCategory(str, Enum):
 class SearchRequest(BaseModel):
     """Request body for /search endpoint."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     query: str
-    type: SearchType = SearchType.AUTO
+    search_type: SearchType = Field(default=SearchType.AUTO, alias="type")
     additional_queries: list[str] | None = Field(default=None, alias="additionalQueries")  # Deep search only
     num_results: int = Field(default=10, ge=1, le=100, alias="numResults")
     include_domains: list[str] | None = Field(default=None, alias="includeDomains")
     exclude_domains: list[str] | None = Field(default=None, alias="excludeDomains")
+    start_crawl_date: datetime | None = Field(default=None, alias="startCrawlDate")
+    end_crawl_date: datetime | None = Field(default=None, alias="endCrawlDate")
     start_published_date: datetime | None = Field(default=None, alias="startPublishedDate")
     end_published_date: datetime | None = Field(default=None, alias="endPublishedDate")
+    user_location: str | None = Field(default=None, alias="userLocation")
+    moderation: bool | None = None
     include_text: list[str] | None = Field(default=None, alias="includeText")
     exclude_text: list[str] | None = Field(default=None, alias="excludeText")
     category: SearchCategory | None = None
 
-    # Content retrieval options (inline with search)
-    text: bool | dict[str, int] = False
-    highlights: bool | dict[str, int] = False
-    summary: bool | dict[str, str] = False
-    context: bool | dict[str, int] = False  # RAG-optimized combined content
+    # NOTE: Exa canonical request shape uses `contents={...}` (OpenAPI).
+    # The official SDK accepts top-level shortcuts (text=..., highlights=..., etc.)
+    # and nests them under `contents` before sending the request.
+    contents: ContentsRequest | None = None
 
 
 class SearchResult(BaseModel):
     """Individual search result."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     id: str
     url: str
     title: str
     published_date: datetime | None = Field(default=None, alias="publishedDate")
     author: str | None = None
+    score: float | None = None
     image: str | None = None
     favicon: str | None = None
 
@@ -195,20 +335,14 @@ class SearchResult(BaseModel):
     summary: str | None = None
     highlights: list[str] | None = None
     highlight_scores: list[float] | None = Field(default=None, alias="highlightScores")
-
-
-class CostDollars(BaseModel):
-    """Cost information from Exa API."""
-
-    model_config = ConfigDict(frozen=True)
-
-    total: float
+    subpages: list[SearchResult] | None = None
+    extras: dict[str, Any] | None = None
 
 
 class SearchResponse(BaseModel):
     """Response from /search endpoint."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     request_id: str = Field(alias="requestId")
     results: list[SearchResult]
@@ -218,29 +352,98 @@ class SearchResponse(BaseModel):
 ```
 
 ```python
+# src/kalshi_research/exa/models/contents.py
+from __future__ import annotations
+
+from enum import Enum
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from kalshi_research.exa.models.common import ContentsRequest, CostDollars
+from kalshi_research.exa.models.search import SearchResult
+
+
+class ContentsErrorTag(str, Enum):
+    """Error tags returned in ContentsResponse.statuses[].error.tag."""
+
+    CRAWL_NOT_FOUND = "CRAWL_NOT_FOUND"
+    CRAWL_TIMEOUT = "CRAWL_TIMEOUT"
+    CRAWL_LIVECRAWL_TIMEOUT = "CRAWL_LIVECRAWL_TIMEOUT"
+    SOURCE_NOT_AVAILABLE = "SOURCE_NOT_AVAILABLE"
+    CRAWL_UNKNOWN_ERROR = "CRAWL_UNKNOWN_ERROR"
+
+
+class ContentsError(BaseModel):
+    """Error details (only when status is 'error')."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    tag: ContentsErrorTag
+    http_status_code: int | None = Field(default=None, alias="httpStatusCode")
+
+
+class ContentsStatus(BaseModel):
+    """Per-URL status object in /contents responses."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    id: str
+    status: Literal["success", "error"]
+    error: ContentsError | None = None
+
+
+class GetContentsRequest(ContentsRequest):
+    """Request body for /contents endpoint (urls/ids + content options)."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    urls: list[str]
+    ids: list[str] | None = None  # Deprecated (backwards compatibility)
+
+
+class ContentsResponse(BaseModel):
+    """Response from /contents endpoint."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    request_id: str = Field(alias="requestId")
+    results: list[SearchResult]
+    statuses: list[ContentsStatus]
+    context: str | None = None
+    cost_dollars: CostDollars | None = Field(default=None, alias="costDollars")
+```
+
+```python
 # src/kalshi_research/exa/models/answer.py
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
+
+from kalshi_research.exa.models.common import CostDollars
 
 
 class Citation(BaseModel):
     """Citation from Answer endpoint."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     id: str
     url: str
     title: str
     author: str | None = None
-    published_date: str | None = Field(default=None, alias="publishedDate")
+    published_date: datetime | None = Field(default=None, alias="publishedDate")
     text: str | None = None
+    image: str | None = None
+    favicon: str | None = None
 
 
 class AnswerRequest(BaseModel):
     """Request body for /answer endpoint."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     query: str
     stream: bool = False
@@ -250,11 +453,11 @@ class AnswerRequest(BaseModel):
 class AnswerResponse(BaseModel):
     """Response from /answer endpoint."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     answer: str
     citations: list[Citation]
-    cost_dollars: dict[str, float] | None = Field(default=None, alias="costDollars")
+    cost_dollars: CostDollars | None = Field(default=None, alias="costDollars")
 ```
 
 ```python
@@ -269,9 +472,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class ResearchModel(str, Enum):
     """Exa research model tiers."""
-    FAST = "exa-research-fast"
     STANDARD = "exa-research"
     PRO = "exa-research-pro"
+
+    # NOTE: The official Exa Python SDK currently references `exa-research-fast`, but it is not
+    # listed in Exa's published OpenAPI schema. Treat it as experimental/undocumented if used.
 
 
 class ResearchStatus(str, Enum):
@@ -286,7 +491,7 @@ class ResearchStatus(str, Enum):
 class ResearchRequest(BaseModel):
     """Request body for /research/v1 endpoint."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     instructions: str = Field(max_length=4096)
     model: ResearchModel = ResearchModel.STANDARD
@@ -296,24 +501,36 @@ class ResearchRequest(BaseModel):
 class ResearchOutput(BaseModel):
     """Output from completed research task."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     content: str
     parsed: dict[str, Any] | None = None  # Present if outputSchema was provided
 
 
+class ResearchCostDollars(BaseModel):
+    """Cost information for research tasks (completed responses only)."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    total: float
+    num_searches: float = Field(alias="numSearches")
+    num_pages: float = Field(alias="numPages")
+    reasoning_tokens: float = Field(alias="reasoningTokens")
+
+
 class ResearchTask(BaseModel):
     """Research task response."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
 
     research_id: str = Field(alias="researchId")
     status: ResearchStatus
     created_at: int = Field(alias="createdAt")
-    model: str
+    model: str | None = None
     instructions: str
     output: ResearchOutput | None = None
-    cost_dollars: dict[str, float] | None = Field(default=None, alias="costDollars")
+    cost_dollars: ResearchCostDollars | None = Field(default=None, alias="costDollars")
+    error: str | None = None
 ```
 
 ### 2.4 Client Implementation
@@ -323,7 +540,8 @@ class ResearchTask(BaseModel):
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, AsyncIterator
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, AsyncIterator
 
 import httpx
 import structlog
@@ -338,6 +556,7 @@ from kalshi_research.exa.models import (
     AnswerRequest,
     AnswerResponse,
     ContentsRequest,
+    GetContentsRequest,
     ContentsResponse,
     FindSimilarRequest,
     FindSimilarResponse,
@@ -430,8 +649,8 @@ class ExaClient:
         self,
         method: str,
         path: str,
-        json: dict | None = None,
-    ) -> dict:
+        json: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Make an API request with retry logic."""
         last_exception: Exception | None = None
 
@@ -485,6 +704,12 @@ class ExaClient:
         search_type: str = "auto",
         additional_queries: list[str] | None = None,  # Deep search only
         num_results: int = 10,
+        start_published_date: datetime | None = None,
+        end_published_date: datetime | None = None,
+        start_crawl_date: datetime | None = None,
+        end_crawl_date: datetime | None = None,
+        user_location: str | None = None,
+        moderation: bool | None = None,
         text: bool = False,
         highlights: bool = False,
         summary: bool = False,
@@ -501,6 +726,12 @@ class ExaClient:
             search_type: Search type (auto, neural, fast, deep)
             additional_queries: Extra query variations (deep search only)
             num_results: Number of results (1-100)
+            start_published_date: Only return results after this publish date (ISO 8601)
+            end_published_date: Only return results before this publish date (ISO 8601)
+            start_crawl_date: Only return results after this crawl date (ISO 8601)
+            end_crawl_date: Only return results before this crawl date (ISO 8601)
+            user_location: Two-letter ISO country code (e.g., "US")
+            moderation: Filter unsafe content (default false if omitted)
             text: Include full page text in results
             highlights: Include relevant snippets
             summary: Include LLM-generated summaries
@@ -522,15 +753,28 @@ class ExaClient:
             ...     num_results=20,
             ... )
         """
+        contents = ContentsRequest(
+            text=text,
+            highlights={} if highlights else None,
+            summary={} if summary else None,
+            context=context,
+        )
+
         request = SearchRequest(
             query=query,
-            numResults=num_results,
-            text=text,
-            highlights=highlights,
-            summary=summary,
-            includeDomains=include_domains,
-            excludeDomains=exclude_domains,
+            search_type=search_type,
+            additional_queries=additional_queries,
+            num_results=num_results,
+            start_published_date=start_published_date,
+            end_published_date=end_published_date,
+            start_crawl_date=start_crawl_date,
+            end_crawl_date=end_crawl_date,
+            user_location=user_location,
+            moderation=moderation,
+            include_domains=include_domains,
+            exclude_domains=exclude_domains,
             category=category,
+            contents=contents,
         )
 
         data = await self._request(
@@ -589,11 +833,11 @@ class ExaClient:
         Returns:
             ContentsResponse with results and status per URL
         """
-        request = ContentsRequest(
+        request = GetContentsRequest(
             urls=urls,
             text=text,
-            highlights=highlights,
-            summary=summary,
+            highlights={} if highlights else None,
+            summary={} if summary else None,
             livecrawl=livecrawl,
         )
 
@@ -631,12 +875,13 @@ class ExaClient:
         Returns:
             FindSimilarResponse with similar pages
         """
+        contents = ContentsRequest(text=True) if text else None
         request = FindSimilarRequest(
             url=url,
-            numResults=num_results,
-            text=text,
-            includeDomains=include_domains,
-            excludeDomains=exclude_domains,
+            num_results=num_results,
+            include_domains=include_domains,
+            exclude_domains=exclude_domains,
+            contents=contents,
         )
 
         data = await self._request(
@@ -695,14 +940,15 @@ class ExaClient:
         instructions: str,
         *,
         model: str = "exa-research",
-        output_schema: dict | None = None,
+        output_schema: dict[str, Any] | None = None,
     ) -> ResearchTask:
         """
         Create an async research task.
 
         Args:
             instructions: Research instructions (max 4096 chars)
-            model: Research model (exa-research-fast, exa-research, exa-research-pro)
+            model: Research model (`exa-research`, `exa-research-pro`). Note: `exa-research-fast` appears in the
+                official SDK but is not listed in Exa's OpenAPI schema; treat as experimental/undocumented.
             output_schema: Optional JSON schema for structured output
 
         Returns:
@@ -711,7 +957,7 @@ class ExaClient:
         request = ResearchRequest(
             instructions=instructions,
             model=model,
-            outputSchema=output_schema,
+            output_schema=output_schema,
         )
 
         data = await self._request(
@@ -932,6 +1178,7 @@ class TestExaClientLifecycle:
 class TestExaSearch:
     """Test search endpoint."""
 
+    @pytest.mark.asyncio
     @respx.mock
     async def test_search_basic(self, exa_config: ExaConfig) -> None:
         """Basic search returns parsed results."""
@@ -947,6 +1194,7 @@ class TestExaSearch:
         assert response.results[0].title == "Test Article"
         assert response.results[0].url == "https://example.com/article"
 
+    @pytest.mark.asyncio
     @respx.mock
     async def test_search_with_options(self, exa_config: ExaConfig) -> None:
         """Search respects all options."""
@@ -969,7 +1217,7 @@ class TestExaSearch:
         body = json.loads(request_body)
         assert body["query"] == "test query"
         assert body["numResults"] == 20
-        assert body["text"] is True
+        assert body["contents"]["text"] is True
         assert body["includeDomains"] == ["example.com"]
         assert body["category"] == "news"
 
@@ -977,6 +1225,7 @@ class TestExaSearch:
 class TestExaAnswer:
     """Test answer endpoint."""
 
+    @pytest.mark.asyncio
     @respx.mock
     async def test_answer_returns_citations(self, exa_config: ExaConfig) -> None:
         """Answer endpoint returns answer with citations."""
@@ -1001,6 +1250,7 @@ class TestExaAnswer:
 class TestExaErrorHandling:
     """Test error handling and retries."""
 
+    @pytest.mark.asyncio
     @respx.mock
     async def test_auth_error_raises(self, exa_config: ExaConfig) -> None:
         """401 response raises ExaAuthError."""
@@ -1010,6 +1260,7 @@ class TestExaErrorHandling:
             with pytest.raises(ExaAuthError, match="Invalid API key"):
                 await client.search("test")
 
+    @pytest.mark.asyncio
     @respx.mock
     async def test_rate_limit_raises(self, exa_config: ExaConfig) -> None:
         """429 response raises ExaRateLimitError."""
@@ -1022,6 +1273,7 @@ class TestExaErrorHandling:
             with pytest.raises(ExaRateLimitError):
                 await client.search("test")
 
+    @pytest.mark.asyncio
     @respx.mock
     async def test_retries_on_network_error(self, exa_config: ExaConfig) -> None:
         """Client retries on network errors."""
@@ -1072,17 +1324,17 @@ class TestSearchModels:
         req = SearchRequest(query="test")
 
         assert req.query == "test"
-        assert req.type == SearchType.AUTO
+        assert req.search_type == SearchType.AUTO
         assert req.num_results == 10
-        assert req.text is False
+        assert req.contents is None
 
     def test_search_request_validation(self) -> None:
         """SearchRequest validates num_results bounds."""
         with pytest.raises(ValidationError):
-            SearchRequest(query="test", numResults=0)
+            SearchRequest(query="test", num_results=0)
 
         with pytest.raises(ValidationError):
-            SearchRequest(query="test", numResults=101)
+            SearchRequest(query="test", num_results=101)
 
     def test_search_response_parsing(self) -> None:
         """SearchResponse parses from API JSON."""

@@ -225,9 +225,8 @@ class MarketContextResearcher:
         relevance_boost: float = 0.0,
     ) -> ResearchSource:
         """Convert Exa SearchResult to ResearchSource."""
-        # Base relevance from position (Exa returns in relevance order)
-        # We don't have explicit scores, so estimate from position
-        base_relevance = 0.9  # Exa results are highly relevant
+        # Prefer Exa's explicit similarity score when present (0..1). Fall back to a conservative default.
+        base_relevance = result.score if result.score is not None else 0.9
 
         # Extract first highlight or truncate text
         highlight = None
@@ -447,7 +446,7 @@ class TopicResearcher:
                     research.summary_citations.append(source)
 
                 if answer_response.cost_dollars:
-                    total_cost += answer_response.cost_dollars.get("total", 0)
+                    total_cost += answer_response.cost_dollars.total
 
             except Exception as e:
                 logger.warning("Answer generation failed", error=str(e), topic=topic)
@@ -677,13 +676,15 @@ def research_context(
     from kalshi_research.research.context import MarketContextResearcher
 
     async def _research() -> None:
-        # Get market details
-        async with KalshiPublicClient() as kalshi:
-            market = await kalshi.get_market(ticker)
+        from kalshi_research.api.exceptions import KalshiAPIError
 
-        if not market:
+        # Get market details
+        try:
+            async with KalshiPublicClient() as kalshi:
+                market = await kalshi.get_market(ticker)
+        except KalshiAPIError:
             console.print(f"[red]Error:[/red] Market not found: {ticker}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         # Research with Exa
         try:
@@ -846,6 +847,7 @@ class TestMarketContextResearcher:
         assert len(queries) >= 1
         assert "Bitcoin" in queries[0] or "100,000" in queries[0]
 
+    @pytest.mark.asyncio
     async def test_research_market_aggregates_results(self) -> None:
         """Research aggregates news, papers, and related coverage."""
         mock_exa = AsyncMock()
@@ -878,6 +880,7 @@ class TestMarketContextResearcher:
 class TestTopicResearcher:
     """Test topic research."""
 
+    @pytest.mark.asyncio
     async def test_research_topic_with_summary(self) -> None:
         """Topic research includes summary from Exa Answer."""
         mock_exa = AsyncMock()
@@ -886,7 +889,7 @@ class TestTopicResearcher:
             citations=[
                 MagicMock(url="https://cite.com", title="Citation", text="Text"),
             ],
-            cost_dollars={"total": 0.01},
+            cost_dollars=MagicMock(total=0.01),
         ))
         mock_exa.search_and_contents = AsyncMock(return_value=MagicMock(
             results=[],
@@ -927,6 +930,7 @@ from kalshi_research.research.topic import TopicResearcher
 class TestExaResearchIntegration:
     """Integration tests with real Exa API."""
 
+    @pytest.mark.asyncio
     async def test_topic_research_real(self) -> None:
         """Test topic research with real API."""
         async with ExaClient.from_env() as exa:

@@ -38,7 +38,7 @@ Build a continuous news monitoring and sentiment analysis pipeline. Automaticall
 uv run kalshi news track KXBTC-26JAN-T100000
 
 # Track an entire event
-uv run kalshi news track --event INXD-26JAN
+uv run kalshi news track INXD-26JAN --event
 
 # List tracked items
 uv run kalshi news list-tracked
@@ -88,7 +88,7 @@ uv run kalshi news sentiment KXBTC-26JAN-T100000
 
 ```bash
 # Alert when sentiment shifts
-uv run kalshi alerts add sentiment KXBTC-26JAN-T100000 --shift 0.20
+uv run kalshi alerts add sentiment KXBTC-26JAN-T100000 --above 0.20
 
 # This triggers when 7-day rolling sentiment changes by ±0.20
 ```
@@ -112,7 +112,7 @@ src/kalshi_research/
 │   └── repositories/
 │       └── news.py         # NewsRepository
 ├── alerts/
-│   └── conditions.py       # Add: SentimentShiftCondition
+│   └── conditions.py       # Add: ConditionType.SENTIMENT_SHIFT
 └── cli/
     └── news.py             # CLI commands
 ```
@@ -131,8 +131,8 @@ class TrackedItem(Base):
     ticker: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     item_type: Mapped[str] = mapped_column(String(20))  # "market" or "event"
     search_queries: Mapped[str] = mapped_column(Text)  # JSON array of queries
-    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
-    last_collected_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    last_collected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
 
 
@@ -146,8 +146,8 @@ class NewsArticle(Base):
     url_hash: Mapped[str] = mapped_column(String(64), index=True)  # For dedup
     title: Mapped[str] = mapped_column(String(500))
     source_domain: Mapped[str] = mapped_column(String(200))
-    published_at: Mapped[datetime | None] = mapped_column(nullable=True)
-    collected_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     # Content
     text_snippet: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -166,7 +166,12 @@ class NewsArticleMarket(Base):
     __tablename__ = "news_article_markets"
 
     article_id: Mapped[int] = mapped_column(ForeignKey("news_articles.id"), primary_key=True)
-    ticker: Mapped[str] = mapped_column(String(100), primary_key=True, index=True)
+    ticker: Mapped[str] = mapped_column(
+        String(100),
+        ForeignKey("markets.ticker"),
+        primary_key=True,
+        index=True,
+    )
 
 
 class NewsSentiment(Base):
@@ -176,7 +181,7 @@ class NewsSentiment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     article_id: Mapped[int] = mapped_column(ForeignKey("news_articles.id"), index=True)
-    analyzed_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
+    analyzed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     # Sentiment scores
     score: Mapped[float] = mapped_column()  # -1.0 to +1.0
@@ -859,7 +864,7 @@ def news_track(
 
     Examples:
         kalshi news track KXBTC-26JAN-T100000
-        kalshi news track --event INXD-26JAN
+        kalshi news track INXD-26JAN --event
         kalshi news track TRUMP-WIN --queries "Trump election,2024 presidential race"
     """
     from kalshi_research.api import KalshiPublicClient
@@ -873,13 +878,19 @@ def news_track(
                 search_queries = [q.strip() for q in queries.split(",")]
             else:
                 # Auto-generate from market/event title
-                async with KalshiPublicClient() as kalshi:
-                    if event:
-                        ev = await kalshi.get_event(ticker)
-                        title = ev.title if ev else ticker
-                    else:
-                        market = await kalshi.get_market(ticker)
-                        title = market.title if market else ticker
+                from kalshi_research.api.exceptions import KalshiAPIError
+
+                try:
+                    async with KalshiPublicClient() as kalshi:
+                        if event:
+                            ev = await kalshi.get_event(ticker)
+                            title = ev.title
+                        else:
+                            market = await kalshi.get_market(ticker)
+                            title = market.title
+                except KalshiAPIError:
+                    console.print(f"[red]Error:[/red] Ticker not found: {ticker}")
+                    raise typer.Exit(1) from None
 
                 search_queries = [title.replace("?", ""), f"{title.replace('?', '')} news"]
 

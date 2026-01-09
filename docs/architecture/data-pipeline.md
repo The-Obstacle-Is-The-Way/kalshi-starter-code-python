@@ -65,4 +65,4 @@ Exports are generated from the SQLite database and written under `data/exports/`
 - Parquet: `events.parquet`, `markets.parquet`, `settlements.parquet`, plus partitioned `price_snapshots/`
 - CSV: `events.csv`, `markets.csv`, `settlements.csv`, `price_snapshots.csv`
 
-The CLI entrypoint for exports is `kalshi data export` (see `docs/reference/cli-reference.md`).
+The CLI entrypoint for exports is `kalshi data export` (see `docs/developer/cli-reference.md`).
