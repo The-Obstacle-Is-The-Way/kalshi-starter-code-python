@@ -90,33 +90,24 @@ main (protected, production)
 
 If you don't use a `dev` branch, use `ralph-wiggum-loop` directly off `main` and merge via PR.
 
-### Step 1.5: File Placement (Clean Root Pattern)
+### Step 1.5: File Placement (Permanent Root Pattern)
 
-**Storage vs Runtime locations:**
+**File locations:**
 
-To keep your project root clean, store Ralph files in a subdirectory:
+State files live permanently in root for simplicity:
 ```
-docs/ralph-wiggum/
-├── protocol.md   # This file (reference, stays here)
-├── prompt.md     # Template (move to root when running)
-└── progress.md   # State file (move to root when running)
-```
-
-**Before running the loop**, move the active files to root:
-```bash
-git checkout ralph-wiggum-loop
-cp docs/ralph-wiggum/prompt.md ./PROMPT.md
-cp docs/ralph-wiggum/progress.md ./PROGRESS.md
+/                           # Project root
+├── PROGRESS.md             # State file (permanent)
+├── PROMPT.md               # Loop prompt (permanent)
+└── docs/_ralph-wiggum/
+    └── protocol.md         # This file (reference doc)
 ```
 
-**After the loop completes**, move them back:
-```bash
-mv PROMPT.md docs/ralph-wiggum/prompt.md
-mv PROGRESS.md docs/ralph-wiggum/progress.md
-git add -A && git commit -m "chore: Archive ralph-wiggum state files"
-```
-
-This keeps your main/dev branches clean while preserving the files for future use.
+**Why permanent root?**
+- Moving files back and forth is unnecessary friction
+- State files need to be read by every iteration
+- `.gitignore` can exclude them from certain branches if needed
+- No copy/move commands to remember
 
 ### Step 2: Create State File (PROGRESS.md)
 
@@ -640,14 +631,14 @@ git rebase --continue
 
 ```bash
 # 1. Create sandbox branch
-git checkout main && git pull
-git checkout -b ralph-wiggum-loop
+git checkout dev && git pull
+git checkout -b ralph-wiggum-cleanup
 
-# 2. Move state files to root (if stored in docs/ralph-wiggum/)
-cp docs/ralph-wiggum/prompt.md ./PROMPT.md
-cp docs/ralph-wiggum/progress.md ./PROGRESS.md
+# 2. Ensure PROGRESS.md and PROMPT.md exist in root
+# (They should already be there - permanent location)
+ls PROGRESS.md PROMPT.md
 
-# 3. Create spec docs for each task (docs/_specs/, docs/_bugs/)
+# 3. Ensure spec docs exist for each task (docs/_bugs/, docs/_debt/, docs/_todo/)
 
 # 4. Start tmux
 tmux new -s ralph
@@ -664,19 +655,14 @@ MAX=50; for i in $(seq 1 $MAX); do
   sleep 2
 done
 
-# 6. Monitor in another pane
+# 6. Monitor in another pane (optional)
 watch -n 5 'git log --oneline -10'
 
 # 7. Audit when done
-git log main..ralph-wiggum-loop --oneline
-git diff main..ralph-wiggum-loop --stat
+git log dev..ralph-wiggum-cleanup --oneline
+git diff dev..ralph-wiggum-cleanup --stat
 
-# 8. Archive state files back
-mv PROMPT.md docs/ralph-wiggum/prompt.md
-mv PROGRESS.md docs/ralph-wiggum/progress.md
-git add -A && git commit -m "chore: Archive ralph-wiggum state"
-
-# 9. Merge if good
-git checkout main && git merge ralph-wiggum-loop
+# 8. Merge if good (after review)
+git checkout dev && git merge ralph-wiggum-cleanup
 # Or open PR for review
 ```

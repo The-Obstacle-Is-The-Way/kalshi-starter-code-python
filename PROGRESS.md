@@ -1,0 +1,44 @@
+# Kalshi Research Platform - Progress Tracker
+
+**Last Updated:** 2026-01-09
+**Purpose:** State file for Ralph Wiggum loop - fixes bugs, debt, and TODOs
+
+---
+
+## Phase 1: Critical Bug Fixes
+
+- [ ] **BUG-048**: Fix negative liquidity validation → `api/models/market.py`
+- [ ] **BUG-050**: Add logging to silent exception → `cli/alerts.py:117`
+
+## Phase 2: Safety-Critical Fixes
+
+- [ ] **BUG-049**: Add rate limiter to read operations → `api/client.py`
+- [ ] **TODO-007**: Implement `MarketStatusVerifier` → `analysis/scanner.py`
+- [ ] **TODO-008**: Add `dry_run` parameter to `create_order` → `api/client.py`
+
+## Phase 3: Research Quality
+
+- [ ] **TODO-005**: Add `open_time`/`created_time` to `market get` → `cli/market.py`
+- [ ] **BUG-047**: Investigate portfolio sync discrepancy → `portfolio/syncer.py`
+
+## Phase 4: Technical Debt
+
+- [ ] **DEBT-002**: Complete Phase 1 magic number comments → `api/client.py`
+- [ ] **DEBT-003**: Add `session.begin()` transaction boundaries → `data/repositories/`
+- [ ] **DEBT-001**: Create Pydantic models for portfolio methods → `api/models/portfolio.py`
+
+## Phase 5: Session Friction (TODO-006)
+
+- [ ] **TODO-006**: Implement remaining code fixes from friction audit
+
+## Phase 6: Verification
+
+- [ ] **FINAL-001**: All quality gates pass (ruff, mypy, pytest)
+- [ ] **FINAL-002**: Pre-commit hooks run successfully
+
+---
+
+## Completion Criteria
+
+When ALL boxes are checked AND all quality gates pass, the cleanup is complete.
+The loop operator verifies completion by checking this file's state (all `[x]`).
