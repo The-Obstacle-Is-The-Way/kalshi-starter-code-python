@@ -215,4 +215,4 @@ With small samples, use fewer bins (5 instead of 10) to get enough data per bin.
 
 - [Thesis System](thesis-system.md) - Track your predictions
 - [Backtesting](backtesting.md) - Simulate P&L
-- [Usage: Analysis](../how-to/usage.md#analysis-db-backed) - CLI commands
+- [Usage: Analysis](../getting-started/usage.md#analysis-db-backed) - CLI commands

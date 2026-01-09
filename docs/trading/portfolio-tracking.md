@@ -291,7 +291,7 @@ Portfolio data is stored locally in your SQLite database. Nothing is sent to ext
 
 ## See Also
 
-- [Thesis System](thesis-system.md) - Track predictions
-- [Backtesting](backtesting.md) - Simulate P&L on theses
-- [Configuration](../reference/configuration.md) - API credentials setup
-- [Usage: Portfolio](../how-to/usage.md#portfolio-authenticated) - CLI commands
+- [Thesis System](../research/thesis-system.md) - Track predictions
+- [Backtesting](../research/backtesting.md) - Simulate P&L on theses
+- [Configuration](../developer/configuration.md) - API credentials setup
+- [Usage: Portfolio](../getting-started/usage.md#portfolio-authenticated) - CLI commands

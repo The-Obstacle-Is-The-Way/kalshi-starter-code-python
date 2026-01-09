@@ -43,27 +43,29 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Tutorials:
-      - Quickstart: tutorials/quickstart.md
-  - How-to:
-      - Usage: how-to/usage.md
-      - Testing: how-to/testing.md
-  - Reference:
-      - CLI: reference/cli-reference.md
-      - Configuration: reference/configuration.md
-      - Python API: reference/python-api.md
-      - Kalshi API (Vendor): _vendor-docs/kalshi-api-reference.md
-      - Exa API (Vendor): _vendor-docs/exa-api-reference.md
-  - Explanation:
-      - Architecture: explanation/architecture.md
-      - CLI Architecture: explanation/cli-architecture.md
-      - Data Pipeline: explanation/data-pipeline.md
-      - Thesis System: explanation/thesis-system.md
-      - Backtesting: explanation/backtesting.md
-      - Calibration Analysis: explanation/calibration-analysis.md
-      - Alerts System: explanation/alerts-system.md
-      - Market Scanner: explanation/scanner.md
-      - Portfolio Tracking: explanation/portfolio-tracking.md
+  - Getting Started:
+      - Quickstart: getting-started/quickstart.md
+      - Usage Guide: getting-started/usage.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - CLI Design: architecture/cli.md
+      - Data Pipeline: architecture/data-pipeline.md
+  - Research:
+      - Thesis System: research/thesis-system.md
+      - Backtesting: research/backtesting.md
+      - Calibration Analysis: research/calibration-analysis.md
+  - Trading:
+      - Portfolio Tracking: trading/portfolio-tracking.md
+      - Alerts System: trading/alerts-system.md
+      - Market Scanner: trading/scanner.md
+  - Developer:
+      - Configuration: developer/configuration.md
+      - Python API: developer/python-api.md
+      - CLI Reference: developer/cli-reference.md
+      - Testing: developer/testing.md
+  - Vendor APIs:
+      - Kalshi API: _vendor-docs/kalshi-api-reference.md
+      - Exa API: _vendor-docs/exa-api-reference.md
   - Internal:
       - Specs Index: _specs/README.md
       - Bug Tracker: _bugs/README.md

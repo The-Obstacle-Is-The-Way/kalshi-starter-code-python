@@ -429,4 +429,4 @@ def execute_tool(tool_name, tool_input):
 ## See Also
 
 - [Kalshi API Reference](kalshi-api-reference.md) - Kalshi prediction market API
-- [Architecture](../explanation/architecture.md) - How our codebase integrates external APIs
+- [Architecture](../architecture/overview.md) - How our codebase integrates external APIs

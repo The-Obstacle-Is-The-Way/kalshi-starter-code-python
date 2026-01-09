@@ -257,5 +257,5 @@ uv run kalshi data snapshot
 ## See Also
 
 - [Alerts System](alerts-system.md) - Get notified when conditions are met
-- [Usage: Scanning](../how-to/usage.md#scanning) - CLI commands
-- [Data Pipeline](data-pipeline.md) - How snapshots work
+- [Usage: Scanning](../getting-started/usage.md#scanning) - CLI commands
+- [Data Pipeline](../architecture/data-pipeline.md) - How snapshots work

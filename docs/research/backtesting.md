@@ -200,4 +200,4 @@ Backtest Results (thesis-abc123):
 
 - [Thesis System](thesis-system.md) - How predictions are tracked
 - [Calibration Analysis](calibration-analysis.md) - Deeper accuracy metrics
-- [Usage: Research](../how-to/usage.md#research) - CLI commands
+- [Usage: Research](../getting-started/usage.md#research) - CLI commands

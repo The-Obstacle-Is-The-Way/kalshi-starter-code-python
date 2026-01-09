@@ -163,4 +163,4 @@ Resolved theses feed into the backtesting system (see `docs/explanation/backtest
 
 - [Backtesting](backtesting.md) - Simulate P&L from resolved theses
 - [Calibration Analysis](calibration-analysis.md) - Measure prediction accuracy
-- [Usage: Research](../how-to/usage.md#research) - CLI commands
+- [Usage: Research](../getting-started/usage.md#research) - CLI commands

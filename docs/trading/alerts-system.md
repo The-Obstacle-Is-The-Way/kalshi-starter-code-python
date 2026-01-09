@@ -268,4 +268,4 @@ if condition.condition_type == ConditionType.VOLUME_ABOVE:
 ## See Also
 
 - [Scanner](scanner.md) - Find opportunities proactively
-- [Usage: Alerts](../how-to/usage.md#alerts) - CLI commands
+- [Usage: Alerts](../getting-started/usage.md#alerts) - CLI commands
