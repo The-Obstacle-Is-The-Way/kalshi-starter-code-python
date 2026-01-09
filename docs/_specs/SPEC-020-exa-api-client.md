@@ -764,7 +764,7 @@ class ExaClient:
         exclude_text: list[str] | None = None,
         text: bool = False,
         highlights: bool = False,
-        summary: bool = False,
+        summary: bool | SummaryOptions | None = False,
         context: bool = False,  # RAG-optimized combined content
         include_domains: list[str] | None = None,
         exclude_domains: list[str] | None = None,
@@ -788,7 +788,7 @@ class ExaClient:
             exclude_text: Exclude results that contain these phrases (currently 1 phrase supported by Exa)
             text: Include full page text in results
             highlights: Include relevant snippets
-            summary: Include LLM-generated summaries
+            summary: Include LLM-generated summaries, or configure them with SummaryOptions
             context: Return combined context string for RAG (often better than highlights)
             include_domains: Only search these domains
             exclude_domains: Exclude these domains
@@ -811,10 +811,17 @@ class ExaClient:
         if text or highlights or summary or context:
             # OpenAPI documents `highlights`/`summary` as objects; the official SDK also accepts booleans.
             # Normalize booleans to empty option objects for predictable serialization.
+            summary_option = (
+                summary
+                if isinstance(summary, SummaryOptions)
+                else SummaryOptions()
+                if summary
+                else None
+            )
             contents = ContentsRequest(
                 text=True if text else None,
                 highlights=HighlightsOptions() if highlights else None,
-                summary=SummaryOptions() if summary else None,
+                summary=summary_option,
                 context=True if context else None,
             )
 
@@ -877,7 +884,7 @@ class ExaClient:
         *,
         text: bool = True,
         highlights: bool = False,
-        summary: bool = False,
+        summary: bool | SummaryOptions | None = False,
         livecrawl: str = "fallback",
     ) -> ContentsResponse:
         """
@@ -887,7 +894,7 @@ class ExaClient:
             urls: List of URLs to fetch
             text: Include full page text
             highlights: Extract relevant snippets
-            summary: Generate LLM summaries
+            summary: Generate LLM summaries, or configure them with SummaryOptions
             livecrawl: When to crawl live (never, fallback, preferred, always)
 
         Returns:
@@ -897,7 +904,13 @@ class ExaClient:
             urls=urls,
             text=True if text else None,
             highlights=HighlightsOptions() if highlights else None,
-            summary=SummaryOptions() if summary else None,
+            summary=(
+                summary
+                if isinstance(summary, SummaryOptions)
+                else SummaryOptions()
+                if summary
+                else None
+            ),
             livecrawl=livecrawl,
         )
 

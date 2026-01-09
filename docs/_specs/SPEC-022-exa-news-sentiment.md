@@ -99,7 +99,7 @@ uv run kalshi alerts add sentiment KXBTC-26JAN-T100000 --above 0.20
 
 ### 3.1 Module Structure
 
-```
+```txt
 src/kalshi_research/
 ├── news/
 │   ├── __init__.py
@@ -1194,7 +1194,7 @@ class TestNewsCollector:
 
 ## 7. CLI Summary
 
-```
+```txt
 kalshi news
 ├── track           # Start tracking a market/event
 ├── untrack         # Stop tracking
