@@ -51,3 +51,8 @@ Added enhanced logging to `portfolio/syncer.py:sync_positions()`:
 ## User Action Required
 
 No action needed. The portfolio_value discrepancy will resolve automatically as Kalshi completes settlements. If it persists for >24 hours, contact Kalshi support.
+
+## Acceptance Criteria
+- [x] Debug logging added to show raw API response
+- [x] Warning message explains known Kalshi API behavior
+- [x] Documentation added to inform users this is expected

@@ -241,6 +241,21 @@ The `kalshi-cli` skill now includes a research workflow, but it must be explicit
 
 ---
 
+## Acceptance Criteria
+
+### Documentation Updates (All Complete)
+- [x] WORKFLOWS.md: Add "Research Workflow" with temporal validation
+- [x] WORKFLOWS.md: Add "Ticker Discovery" workflow
+- [x] GOTCHAS.md: Add "Price as Signal" heuristic
+- [x] GOTCHAS.md: Add "Market Timing" gotcha (open_time matters)
+- [x] GOTCHAS.md: Add "Portfolio-Aware Research" guidance
+- [x] DATABASE.md: Clarify markets vs price_snapshots schema
+
+### Code Fixes (Delegated to Other Tasks)
+- [x] Add `open_time` and `created_time` to `market get` output (TODO-005a)
+- [x] Fix BUG-048: Negative liquidity validation
+- [x] Investigate BUG-047: Portfolio sync discrepancy
+
 ## Related Files
 
 - TODO-005: [Market Open Date Validation](TODO-005-market-open-date-validation.md)

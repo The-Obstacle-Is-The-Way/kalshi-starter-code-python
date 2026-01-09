@@ -29,3 +29,9 @@ The `KalshiClient` enforces proactive rate limiting for **write** operations (or
 1. Inject the `RateLimiter` into `KalshiPublicClient` as well (currently only in `KalshiClient`).
 2. Call `await self._rate_limiter.acquire("GET", path)` in both `_get` and `_auth_get`.
 3. Ensure the `RateLimiter` distinguishes between Public API limits and Authenticated API limits if they differ (Kalshi docs specify different tiers).
+
+## Acceptance Criteria
+- [x] `RateLimiter` injected into both `KalshiPublicClient` and `KalshiClient`
+- [x] `_get()` method calls `acquire()` before making requests
+- [x] `_auth_get()` method calls `acquire()` before making requests
+- [x] Tests verify rate limiting is applied to read operations
