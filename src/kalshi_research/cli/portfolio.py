@@ -340,7 +340,11 @@ def portfolio_balance(
     rate_tier_override = _resolve_rate_tier_override(rate_tier)
 
     async def _balance() -> None:
-        balance: dict[str, Any] | None = None
+        from kalshi_research.api.models.portfolio import (  # noqa: TC001
+            PortfolioBalance,
+        )
+
+        balance: PortfolioBalance | None = None
         try:
             async with KalshiClient(
                 key_id=key_id,
@@ -365,7 +369,9 @@ def portfolio_balance(
         table = Table(title="Account Balance")
         table.add_column("Field", style="cyan")
         table.add_column("Value", style="green")
-        for k, v in sorted(balance.items()):
+        # Convert Pydantic model to dict for display
+        balance_dict = balance.model_dump()
+        for k, v in sorted(balance_dict.items()):
             table.add_row(str(k), str(v))
         console.print(table)
 

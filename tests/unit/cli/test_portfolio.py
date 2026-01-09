@@ -45,10 +45,14 @@ def test_portfolio_balance_invalid_private_key_b64_exits_cleanly() -> None:
 
 @patch("kalshi_research.api.KalshiClient")
 def test_portfolio_balance_loads_dotenv(mock_client_cls: MagicMock) -> None:
+    from kalshi_research.api.models.portfolio import PortfolioBalance
+
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client
     mock_client.__aexit__.return_value = None
-    mock_client.get_balance = AsyncMock(return_value={"available": 123})
+    mock_client.get_balance = AsyncMock(
+        return_value=PortfolioBalance(balance=123, portfolio_value=456)
+    )
     mock_client_cls.return_value = mock_client
 
     with runner.isolated_filesystem():

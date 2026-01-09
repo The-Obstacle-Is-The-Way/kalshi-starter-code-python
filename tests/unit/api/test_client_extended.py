@@ -28,41 +28,45 @@ class TestKalshiClientAuthenticated:
     async def test_get_balance(self, mock_auth):
         """Test getting account balance."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/balance").mock(
-            return_value=Response(200, json={"balance": 10000})
+            return_value=Response(200, json={"balance": 10000, "portfolio_value": 15000})
         )
 
         async with KalshiClient(key_id="test", private_key_path="test.pem") as client:
             balance = await client.get_balance()
 
-        assert balance["balance"] == 10000
+        assert balance.balance == 10000
+        assert balance.portfolio_value == 15000
 
     @pytest.mark.asyncio
     @respx.mock
     async def test_get_positions(self, mock_auth):
         """Test getting positions."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/positions").mock(
-            return_value=Response(200, json={"positions": [{"ticker": "TEST", "count": 10}]})
+            return_value=Response(200, json={"positions": [{"ticker": "TEST", "position": 10}]})
         )
 
         async with KalshiClient(key_id="test", private_key_path="test.pem") as client:
             positions = await client.get_positions()
 
         assert len(positions) == 1
-        assert positions[0]["ticker"] == "TEST"
+        assert positions[0].ticker == "TEST"
+        assert positions[0].position == 10
 
     @pytest.mark.asyncio
     @respx.mock
     async def test_get_orders(self, mock_auth):
         """Test getting orders."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/orders").mock(
-            return_value=Response(200, json={"orders": [{"order_id": "123"}]})
+            return_value=Response(
+                200, json={"orders": [{"order_id": "123", "ticker": "TEST", "status": "resting"}]}
+            )
         )
 
         async with KalshiClient(key_id="test", private_key_path="test.pem") as client:
-            orders = await client.get_orders()
+            result = await client.get_orders()
 
-        assert len(orders) == 1
-        assert orders[0]["order_id"] == "123"
+        assert len(result.orders) == 1
+        assert result.orders[0].order_id == "123"
 
     @pytest.mark.asyncio
     @respx.mock

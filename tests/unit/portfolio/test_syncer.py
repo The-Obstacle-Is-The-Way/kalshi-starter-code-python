@@ -56,10 +56,12 @@ async def test_sync_positions_with_no_api_positions_returns_zero() -> None:
 
 @pytest.mark.asyncio
 async def test_sync_positions_updates_existing_and_creates_new_positions() -> None:
+    from kalshi_research.api.models.portfolio import PortfolioPosition
+
     client = AsyncMock()
     client.get_positions.return_value = [
-        {"ticker": "TICK1", "position": 3, "realized_pnl": 123},
-        {"ticker": "TICK2", "position": -2, "realized_pnl": 0},
+        PortfolioPosition(ticker="TICK1", position=3, realized_pnl=123),
+        PortfolioPosition(ticker="TICK2", position=-2, realized_pnl=0),
     ]
 
     now = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
@@ -147,8 +149,10 @@ async def test_sync_positions_marks_missing_positions_closed() -> None:
 
 @pytest.mark.asyncio
 async def test_sync_trades_with_no_api_fills_returns_zero() -> None:
+    from kalshi_research.api.models.portfolio import FillPage
+
     client = AsyncMock()
-    client.get_fills.return_value = {"fills": []}
+    client.get_fills.return_value = FillPage(fills=[], cursor=None)
 
     empty_result = MagicMock()
     empty_result.scalars.return_value.all.return_value = []
@@ -172,32 +176,34 @@ async def test_sync_trades_with_no_api_fills_returns_zero() -> None:
 
 @pytest.mark.asyncio
 async def test_sync_trades_paginates_and_skips_existing_trade_ids() -> None:
+    from kalshi_research.api.models.portfolio import Fill, FillPage
+
     client = AsyncMock()
     client.get_fills.side_effect = [
-        {
-            "fills": [
-                {
-                    "trade_id": "t1",
-                    "ticker": "TICK",
-                    "yes_price": 45,
-                    "count": 2,
-                    "created_time": "2025-01-01T00:00:00Z",
-                }
+        FillPage(
+            fills=[
+                Fill(
+                    trade_id="t1",
+                    ticker="TICK",
+                    yes_price=45,
+                    count=2,
+                    created_time="2025-01-01T00:00:00Z",
+                )
             ],
-            "cursor": "next",
-        },
-        {
-            "fills": [
-                {
-                    "trade_id": "t2",
-                    "ticker": "TICK",
-                    "yes_price": 46,
-                    "count": 1,
-                    "created_time": "2025-01-01T00:01:00Z",
-                }
+            cursor="next",
+        ),
+        FillPage(
+            fills=[
+                Fill(
+                    trade_id="t2",
+                    ticker="TICK",
+                    yes_price=46,
+                    count=1,
+                    created_time="2025-01-01T00:01:00Z",
+                )
             ],
-            "cursor": None,
-        },
+            cursor=None,
+        ),
     ]
 
     existing_ids_result = MagicMock()
@@ -223,22 +229,24 @@ async def test_sync_trades_paginates_and_skips_existing_trade_ids() -> None:
 
 @pytest.mark.asyncio
 async def test_sync_trades_uses_no_price_for_no_side() -> None:
+    from kalshi_research.api.models.portfolio import Fill, FillPage
+
     client = AsyncMock()
-    client.get_fills.return_value = {
-        "fills": [
-            {
-                "trade_id": "t1",
-                "ticker": "TICK",
-                "side": "no",
-                "action": "buy",
-                "yes_price": 60,
-                "no_price": 40,
-                "count": 2,
-                "created_time": "2025-01-01T00:00:00Z",
-            }
+    client.get_fills.return_value = FillPage(
+        fills=[
+            Fill(
+                trade_id="t1",
+                ticker="TICK",
+                side="no",
+                action="buy",
+                yes_price=60,
+                no_price=40,
+                count=2,
+                created_time="2025-01-01T00:00:00Z",
+            )
         ],
-        "cursor": None,
-    }
+        cursor=None,
+    )
 
     existing_ids_result = MagicMock()
     existing_ids_result.scalars.return_value.all.return_value = []

@@ -22,6 +22,13 @@ from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market, MarketFilterStatus
 from kalshi_research.api.models.order import OrderAction, OrderResponse, OrderSide
 from kalshi_research.api.models.orderbook import Orderbook
+from kalshi_research.api.models.portfolio import (
+    CancelOrderResponse,
+    FillPage,
+    OrderPage,
+    PortfolioBalance,
+    PortfolioPosition,
+)
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.api.rate_limiter import RateLimiter, RateTier
 
@@ -535,21 +542,22 @@ class KalshiClient(KalshiPublicClient):
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 
-    async def get_balance(self) -> dict[str, Any]:
+    async def get_balance(self) -> PortfolioBalance:
         """Get account balance."""
-        return await self._auth_get("/portfolio/balance")
+        data = await self._auth_get("/portfolio/balance")
+        return PortfolioBalance.model_validate(data)
 
-    async def get_positions(self) -> list[dict[str, Any]]:
+    async def get_positions(self) -> list[PortfolioPosition]:
         """Get current positions."""
         data = await self._auth_get("/portfolio/positions")
-        positions: list[dict[str, Any]] = data.get("positions", [])
-        return positions
+        positions_raw: list[dict[str, Any]] = data.get("positions", [])
+        return [PortfolioPosition.model_validate(pos) for pos in positions_raw]
 
     async def get_orders(
         self,
         ticker: str | None = None,
         status: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> OrderPage:
         """Get order history."""
         params: dict[str, Any] = {}
         if ticker:
@@ -557,8 +565,7 @@ class KalshiClient(KalshiPublicClient):
         if status:
             params["status"] = status
         data = await self._auth_get("/portfolio/orders", params or None)
-        orders: list[dict[str, Any]] = data.get("orders", [])
-        return orders
+        return OrderPage.model_validate(data)
 
     async def get_fills(
         self,
@@ -567,7 +574,7 @@ class KalshiClient(KalshiPublicClient):
         max_ts: int | None = None,
         limit: int = 100,
         cursor: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> FillPage:
         """
         Fetch matched trades (fills) from the portfolio.
 
@@ -588,7 +595,8 @@ class KalshiClient(KalshiPublicClient):
         if cursor:
             params["cursor"] = cursor
 
-        return await self._auth_get("/portfolio/fills", params)
+        data = await self._auth_get("/portfolio/fills", params)
+        return FillPage.model_validate(data)
 
     # ==================== Trading ====================
 
@@ -691,7 +699,7 @@ class KalshiClient(KalshiPublicClient):
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 
-    async def cancel_order(self, order_id: str) -> dict[str, Any]:
+    async def cancel_order(self, order_id: str) -> CancelOrderResponse:
         """Cancel an existing order."""
         path = f"/portfolio/orders/{order_id}"
         full_path = self.API_PATH + path
@@ -720,8 +728,8 @@ class KalshiClient(KalshiPublicClient):
                 if response.status_code >= 400:
                     raise KalshiAPIError(response.status_code, response.text)
 
-                result: dict[str, Any] = response.json()
-                return result
+                data = response.json()
+                return CancelOrderResponse.model_validate(data)
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 

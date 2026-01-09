@@ -584,7 +584,8 @@ class TestKalshiClientRateLimiting:
             # Mock the internal HTTP client and rate limiter
             client._client = AsyncMock()
             client._client.get.return_value = MagicMock(
-                status_code=200, json=lambda: {"balance": 1000}
+                status_code=200,
+                json=lambda: {"balance": 1000, "portfolio_value": 2000},
             )
             client._rate_limiter = AsyncMock()
             client._auth = mock_auth_instance

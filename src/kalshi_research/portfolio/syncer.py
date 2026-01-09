@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import structlog
 from sqlalchemy import select
@@ -127,11 +127,10 @@ class PortfolioSyncer:
             seen_tickers = set()
 
             for pos_data in api_positions:
-                # API returns position dictionaries with keys like:
-                # ticker, position, market_exposure, realized_pnl, fees_paid.
-                ticker = pos_data["ticker"]
-                quantity = abs(int(pos_data["position"]))
-                side = "yes" if pos_data["position"] > 0 else "no"
+                # API returns PortfolioPosition Pydantic models
+                ticker = pos_data.ticker
+                quantity = abs(int(pos_data.position))
+                side = "yes" if pos_data.position > 0 else "no"
                 seen_tickers.add(ticker)
 
                 # Compute cost basis from trades using FIFO
@@ -149,7 +148,7 @@ class PortfolioSyncer:
                     existing.quantity = quantity
                     existing.side = side
                     existing.avg_price_cents = avg_price_cents
-                    existing.realized_pnl_cents = int(pos_data.get("realized_pnl", 0))
+                    existing.realized_pnl_cents = pos_data.realized_pnl or 0
                     existing.last_synced = now
                 else:
                     # Create new
@@ -159,7 +158,7 @@ class PortfolioSyncer:
                         quantity=quantity,
                         avg_price_cents=avg_price_cents,
                         current_price_cents=None,  # Updated by update_mark_prices()
-                        realized_pnl_cents=int(pos_data.get("realized_pnl", 0)),
+                        realized_pnl_cents=pos_data.realized_pnl or 0,
                         opened_at=now,  # Approximation for new sync
                         last_synced=now,
                     )
@@ -188,21 +187,22 @@ class PortfolioSyncer:
         Returns:
             Number of trades synced
         """
+        from kalshi_research.api.models.portfolio import Fill  # noqa: PLC0415, TC001
+
         logger.info("Syncing trades")
         min_ts = int(since.timestamp()) if since else None
 
         # Paginate through fills
-        fills: list[dict[str, Any]] = []
+        fills: list[Fill] = []
         cursor = None
 
         while True:
             response = await self.client.get_fills(min_ts=min_ts, limit=100, cursor=cursor)
-            page_fills = response.get("fills", [])
-            if not page_fills:
+            if not response.fills:
                 break
 
-            fills.extend(page_fills)
-            cursor = response.get("cursor")
+            fills.extend(response.fills)
+            cursor = response.cursor
             if not cursor:
                 break
 
@@ -216,14 +216,13 @@ class PortfolioSyncer:
             existing_ids = set(existing_ids_result.scalars().all())
 
             for fill in fills:
-                # Fill dictionaries contain keys like:
-                # trade_id, ticker, yes_price, no_price, count, action, side, created_time.
-                trade_id = fill["trade_id"]
+                # Fill is now a Pydantic model with typed fields
+                trade_id = fill.trade_id
                 if trade_id in existing_ids:
                     continue
 
-                executed_at = datetime.fromisoformat(fill["created_time"].replace("Z", "+00:00"))
-                side_raw = str(fill.get("side", "yes")).lower()
+                executed_at = datetime.fromisoformat(fill.created_time.replace("Z", "+00:00"))
+                side_raw = (fill.side or "yes").lower()
                 if side_raw not in {"yes", "no"}:
                     logger.warning(
                         "Unknown fill side; skipping",
@@ -232,7 +231,7 @@ class PortfolioSyncer:
                     )
                     continue
 
-                action_raw = str(fill.get("action", "buy")).lower()
+                action_raw = (fill.action or "buy").lower()
                 if action_raw not in {"buy", "sell"}:
                     logger.warning(
                         "Unknown fill action; skipping",
@@ -241,17 +240,17 @@ class PortfolioSyncer:
                     )
                     continue
 
-                yes_price = int(fill["yes_price"])
+                yes_price = fill.yes_price
                 if side_raw == "yes":
                     price = yes_price
                 else:
-                    no_price = fill.get("no_price")
-                    price = int(no_price) if no_price is not None else 100 - yes_price
-                quantity = int(fill["count"])
+                    no_price = fill.no_price
+                    price = no_price if no_price is not None else 100 - yes_price
+                quantity = fill.count
 
                 trade = Trade(
                     kalshi_trade_id=trade_id,
-                    ticker=fill["ticker"],
+                    ticker=fill.ticker,
                     side=side_raw,
                     action=action_raw,
                     quantity=quantity,

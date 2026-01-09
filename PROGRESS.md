@@ -29,7 +29,7 @@
 
 - [x] **DEBT-002**: Complete Phase 1 magic number comments → `api/client.py`
 - [x] **DEBT-003**: Add `session.begin()` transaction boundaries → `data/repositories/`
-- [ ] **DEBT-001**: Create Pydantic models for portfolio methods → `api/models/portfolio.py`
+- [x] **DEBT-001**: Create Pydantic models for portfolio methods → `api/models/portfolio.py`
 
 ## Phase 5: Session Friction (TODO-006)
 
