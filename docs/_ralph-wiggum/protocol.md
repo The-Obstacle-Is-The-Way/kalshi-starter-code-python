@@ -176,10 +176,35 @@ cat docs/_bugs/README.md
 1. Find the **FIRST** unchecked `[ ]` item in PROGRESS.md
 2. Complete that ONE item fully
 3. Check off the item: `[ ]` → `[x]`
-4. **ATOMIC COMMIT** (see format below)
-5. Exit
+4. **RUN QUALITY GATES** (all must pass)
+5. **ATOMIC COMMIT** (see format below)
+6. **VERIFY** no unstaged changes remain
+7. Exit
 
 **DO NOT** attempt multiple tasks. One task per iteration.
+**DO NOT** exit without committing.
+**DO NOT** exit with unstaged changes.
+
+## Before Exit Checklist (MANDATORY)
+
+\`\`\`bash
+# 1. Run ALL quality gates
+uv run ruff check .           # Fix any issues
+uv run ruff format .          # Auto-format
+uv run mypy src/              # Fix type errors
+uv run pytest tests/unit -v   # All tests pass
+
+# 2. Stage ALL changes
+git add -A
+
+# 3. Verify nothing unstaged
+git status  # Should show all staged or clean
+
+# 4. Commit
+git commit -m "[TASK-ID] Brief description"
+\`\`\`
+
+**If ANY step fails:** Fix it before exiting. Never exit with failing gates or unstaged changes.
 
 ## Atomic Commit Format
 

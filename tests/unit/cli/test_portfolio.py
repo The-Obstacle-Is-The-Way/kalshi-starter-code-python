@@ -84,6 +84,11 @@ def test_portfolio_link_success(mock_db_cls: MagicMock) -> None:
     mock_session.__aexit__.return_value = AsyncMock()
     mock_session.execute = AsyncMock(return_value=mock_result)
     mock_session.commit = AsyncMock()
+    # Mock session.begin() - use MagicMock (not AsyncMock) that returns async context manager
+    begin_cm = AsyncMock()
+    begin_cm.__aenter__.return_value = None
+    begin_cm.__aexit__.return_value = None
+    mock_session.begin = MagicMock(return_value=begin_cm)
 
     mock_session_factory = MagicMock()
     mock_session_factory.return_value = mock_session
@@ -110,6 +115,11 @@ def test_portfolio_link_position_not_found(mock_db_cls: MagicMock) -> None:
     mock_session.__aenter__.return_value = mock_session
     mock_session.__aexit__.return_value = AsyncMock()
     mock_session.execute = AsyncMock(return_value=mock_result)
+    # Mock session.begin() - use MagicMock (not AsyncMock) that returns async context manager
+    begin_cm = AsyncMock()
+    begin_cm.__aenter__.return_value = None
+    begin_cm.__aexit__.return_value = None
+    mock_session.begin = MagicMock(return_value=begin_cm)
 
     mock_session_factory = MagicMock()
     mock_session_factory.return_value = mock_session

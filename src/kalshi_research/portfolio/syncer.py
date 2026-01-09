@@ -118,7 +118,7 @@ class PortfolioSyncer:
         synced_count = 0
         now = datetime.now(UTC)
 
-        async with self.db.session_factory() as session:
+        async with self.db.session_factory() as session, session.begin():
             # Get existing open positions to handle closures
             result = await session.execute(
                 select(Position).where(Position.quantity > 0, Position.closed_at.is_(None))
@@ -175,8 +175,6 @@ class PortfolioSyncer:
                     pos.last_synced = now
                     logger.info("Marked position as closed", ticker=ticker)
 
-            await session.commit()
-
         logger.info("Synced positions", count=synced_count)
         return synced_count
 
@@ -211,7 +209,7 @@ class PortfolioSyncer:
         synced_count = 0
         now = datetime.now(UTC)
 
-        async with self.db.session_factory() as session:
+        async with self.db.session_factory() as session, session.begin():
             # Check for existing trades to avoid duplicates
             # Using kalshi_trade_id for idempotency
             existing_ids_result = await session.execute(select(Trade.kalshi_trade_id))
@@ -266,11 +264,9 @@ class PortfolioSyncer:
                 session.add(trade)
                 synced_count += 1
 
-                # Check 1000 item flush
+                # Flush in batches to avoid memory issues (still within transaction)
                 if synced_count % 1000 == 0:
-                    await session.commit()
-
-            await session.commit()
+                    await session.flush()
 
         logger.info("Synced new trades", count=synced_count)
         return synced_count
@@ -306,7 +302,7 @@ class PortfolioSyncer:
         logger.info("Updating mark prices")
         updated_count = 0
 
-        async with self.db.session_factory() as session:
+        async with self.db.session_factory() as session, session.begin():
             # Get all open positions
             result = await session.execute(
                 select(Position).where(Position.quantity > 0, Position.closed_at.is_(None))
@@ -363,8 +359,6 @@ class PortfolioSyncer:
                         error=str(e),
                     )
                     continue
-
-            await session.commit()
 
         logger.info("Updated mark prices", count=updated_count)
         return updated_count

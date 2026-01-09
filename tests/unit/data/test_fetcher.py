@@ -9,11 +9,34 @@ from kalshi_research.data.fetcher import DataFetcher
 
 @pytest.fixture
 def mock_db():
+    """Create a mock DatabaseManager with proper async session handling.
+
+    The mock needs to support:
+        async with self._db.session_factory() as session, session.begin():
+            ...
+
+    This means:
+    1. session_factory() returns an async context manager
+    2. The context manager's __aenter__ returns the session
+    3. session.begin() returns an async context manager
+    """
     db = MagicMock()
     session = AsyncMock()
-    session.__aenter__.return_value = session
-    session.__aexit__.return_value = None
-    db.session_factory.return_value = session
+
+    # session.begin() returns an async context manager
+    begin_cm = AsyncMock()
+    begin_cm.__aenter__.return_value = None
+    begin_cm.__aexit__.return_value = None
+    session.begin = MagicMock(return_value=begin_cm)
+
+    # Create an async context manager that yields the session
+    session_cm = AsyncMock()
+    session_cm.__aenter__.return_value = session
+    session_cm.__aexit__.return_value = None
+
+    # session_factory() should return the async context manager
+    db.session_factory = MagicMock(return_value=session_cm)
+
     return db
 
 
@@ -171,8 +194,7 @@ async def test_take_snapshot(data_fetcher, mock_client, mock_db):
         assert count == 1
         repo.add.assert_called_once()
         mock_client.get_all_markets.assert_called_once_with(status="open", max_pages=5)
-        # The fetcher calls session.commit(), not repo.commit()
-        mock_db.session_factory.return_value.commit.assert_called()
+        # With session.begin() pattern, commits are automatic on context exit
 
 
 @pytest.mark.asyncio

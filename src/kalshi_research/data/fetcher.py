@@ -182,7 +182,7 @@ class DataFetcher:
         logger.info("Starting market sync", status=status)
         count = 0
 
-        async with self._db.session_factory() as session:
+        async with self._db.session_factory() as session, session.begin():
             market_repo = MarketRepository(session)
             event_repo = EventRepository(session)
 
@@ -202,12 +202,10 @@ class DataFetcher:
                 await market_repo.upsert(db_market)
                 count += 1
 
-                # Commit in batches to avoid long transactions
+                # Flush in batches to avoid memory issues (still within transaction)
                 if count % 100 == 0:
-                    await session.commit()
+                    await session.flush()
                     logger.info("Synced markets so far", count=count)
-
-            await session.commit()
 
         logger.info("Synced total markets", count=count)
         return count
@@ -229,7 +227,7 @@ class DataFetcher:
         count = 0
         skipped = 0
 
-        async with self._db.session_factory() as session:
+        async with self._db.session_factory() as session, session.begin():
             settlement_repo = SettlementRepository(session)
             market_repo = MarketRepository(session)
             event_repo = EventRepository(session)
@@ -258,12 +256,10 @@ class DataFetcher:
                 await settlement_repo.upsert(settlement)
                 count += 1
 
-                # Commit in batches to avoid long transactions
+                # Flush in batches to avoid memory issues (still within transaction)
                 if count % 100 == 0:
-                    await session.commit()
+                    await session.flush()
                     logger.info("Synced settlements so far", count=count)
-
-            await session.commit()
 
         logger.info("Synced total settlements", count=count, skipped=skipped)
         return count
@@ -289,7 +285,7 @@ class DataFetcher:
         logger.info("Taking price snapshot", snapshot_time=snapshot_time.isoformat())
         count = 0
 
-        async with self._db.session_factory() as session:
+        async with self._db.session_factory() as session, session.begin():
             price_repo = PriceRepository(session)
             market_repo = MarketRepository(session)
             event_repo = EventRepository(session)
@@ -315,12 +311,10 @@ class DataFetcher:
                 await price_repo.add(snapshot)
                 count += 1
 
-                # Commit in batches
+                # Flush in batches to avoid memory issues (still within transaction)
                 if count % 100 == 0:
-                    await session.commit()
+                    await session.flush()
                     logger.debug("Took snapshots so far", count=count)
-
-            await session.commit()
 
         logger.info("Took price snapshots", count=count)
         return count

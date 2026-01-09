@@ -92,66 +92,64 @@ class NewsCollector:
             for result in response.results:
                 url_hash = self._url_hash(result.url)
                 async with self._db.session_factory() as session:
-                    existing = (
-                        await session.execute(
-                            select(NewsArticle.id).where(NewsArticle.url_hash == url_hash)
-                        )
-                    ).scalar_one_or_none()
-                    if existing is not None:
-                        continue
-
-                    article = NewsArticle(
-                        url=result.url,
-                        url_hash=url_hash,
-                        title=result.title,
-                        source_domain=self._extract_domain(result.url),
-                        published_at=result.published_date,
-                        text_snippet=(result.highlights[0] if result.highlights else None),
-                        full_text=result.text,
-                        exa_request_id=response.request_id,
-                    )
-                    session.add(article)
                     try:
-                        await session.flush()
-                    except IntegrityError:
-                        await session.rollback()
-                        continue
+                        async with session.begin():
+                            existing = (
+                                await session.execute(
+                                    select(NewsArticle.id).where(NewsArticle.url_hash == url_hash)
+                                )
+                            ).scalar_one_or_none()
+                            if existing is not None:
+                                continue
 
-                    if tracked.item_type == "event":
-                        session.add(
-                            NewsArticleEvent(article_id=article.id, event_ticker=tracked.ticker)
-                        )
-                    else:
-                        session.add(NewsArticleMarket(article_id=article.id, ticker=tracked.ticker))
-
-                    if self._sentiment and result.text:
-                        sentiment = self._sentiment.analyze(result.text, result.title)
-                        session.add(
-                            NewsSentiment(
-                                article_id=article.id,
-                                score=sentiment.score,
-                                label=sentiment.label,
-                                confidence=sentiment.confidence,
-                                method=sentiment.method,
-                                keywords_matched=json.dumps(sentiment.keywords_matched),
+                            article = NewsArticle(
+                                url=result.url,
+                                url_hash=url_hash,
+                                title=result.title,
+                                source_domain=self._extract_domain(result.url),
+                                published_at=result.published_date,
+                                text_snippet=(result.highlights[0] if result.highlights else None),
+                                full_text=result.text,
+                                exa_request_id=response.request_id,
                             )
-                        )
+                            session.add(article)
+                            await session.flush()
 
-                    try:
-                        await session.commit()
+                            if tracked.item_type == "event":
+                                session.add(
+                                    NewsArticleEvent(
+                                        article_id=article.id, event_ticker=tracked.ticker
+                                    )
+                                )
+                            else:
+                                session.add(
+                                    NewsArticleMarket(article_id=article.id, ticker=tracked.ticker)
+                                )
+
+                            if self._sentiment and result.text:
+                                sentiment = self._sentiment.analyze(result.text, result.title)
+                                session.add(
+                                    NewsSentiment(
+                                        article_id=article.id,
+                                        score=sentiment.score,
+                                        label=sentiment.label,
+                                        confidence=sentiment.confidence,
+                                        method=sentiment.method,
+                                        keywords_matched=json.dumps(sentiment.keywords_matched),
+                                    )
+                                )
+
+                            new_articles += 1
                     except IntegrityError:
-                        await session.rollback()
+                        # Duplicate article (race condition) - skip and continue
                         continue
 
-                    new_articles += 1
-
-        async with self._db.session_factory() as session:
+        async with self._db.session_factory() as session, session.begin():
             await session.execute(
                 update(TrackedItem)
                 .where(TrackedItem.id == tracked.id)
                 .values(last_collected_at=datetime.now(UTC))
             )
-            await session.commit()
 
         logger.info("Collected news", ticker=tracked.ticker, new_articles=new_articles)
         return new_articles

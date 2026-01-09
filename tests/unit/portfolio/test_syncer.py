@@ -15,6 +15,14 @@ from kalshi_research.portfolio.syncer import (
 )
 
 
+def _mock_session_begin(session: MagicMock) -> None:
+    """Add session.begin() mock that returns an async context manager."""
+    begin_cm = AsyncMock()
+    begin_cm.__aenter__.return_value = None
+    begin_cm.__aexit__.return_value = None
+    session.begin.return_value = begin_cm
+
+
 @pytest.mark.asyncio
 async def test_sync_positions_with_no_api_positions_returns_zero() -> None:
     client = AsyncMock()
@@ -26,6 +34,12 @@ async def test_sync_positions_with_no_api_positions_returns_zero() -> None:
     session.execute = AsyncMock(return_value=empty_result)
     session.commit = AsyncMock()
 
+    # Mock session.begin() context manager
+    begin_cm = AsyncMock()
+    begin_cm.__aenter__.return_value = None
+    begin_cm.__aexit__.return_value = None
+    session.begin.return_value = begin_cm
+
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session
     session_cm.__aexit__.return_value = None
@@ -36,7 +50,8 @@ async def test_sync_positions_with_no_api_positions_returns_zero() -> None:
     syncer = PortfolioSyncer(client=client, db=db)
 
     assert await syncer.sync_positions() == 0
-    session.commit.assert_awaited_once()
+    # With session.begin(), commit is automatic - just verify begin was called
+    session.begin.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -70,6 +85,7 @@ async def test_sync_positions_updates_existing_and_creates_new_positions() -> No
     # First call is positions, subsequent calls are trades
     session.execute = AsyncMock(side_effect=[positions_result, trades_result, trades_result])
     session.commit = AsyncMock()
+    _mock_session_begin(session)
 
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session
@@ -87,7 +103,7 @@ async def test_sync_positions_updates_existing_and_creates_new_positions() -> No
     # avg_price_cents should be 0 since no trades exist
     assert existing.avg_price_cents == 0
     session.add.assert_called_once()
-    session.commit.assert_awaited_once()
+    session.begin.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -112,6 +128,7 @@ async def test_sync_positions_marks_missing_positions_closed() -> None:
     session = MagicMock()
     session.execute = AsyncMock(return_value=result)
     session.commit = AsyncMock()
+    _mock_session_begin(session)
 
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session
@@ -125,7 +142,7 @@ async def test_sync_positions_marks_missing_positions_closed() -> None:
     assert await syncer.sync_positions() == 0
     assert existing.quantity == 0
     assert existing.closed_at is not None
-    session.commit.assert_awaited_once()
+    session.begin.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -138,6 +155,7 @@ async def test_sync_trades_with_no_api_fills_returns_zero() -> None:
     session = MagicMock()
     session.execute = AsyncMock(return_value=empty_result)
     session.commit = AsyncMock()
+    _mock_session_begin(session)
 
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session
@@ -149,7 +167,7 @@ async def test_sync_trades_with_no_api_fills_returns_zero() -> None:
     syncer = PortfolioSyncer(client=client, db=db)
 
     assert await syncer.sync_trades() == 0
-    session.commit.assert_awaited_once()
+    session.begin.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -187,6 +205,7 @@ async def test_sync_trades_paginates_and_skips_existing_trade_ids() -> None:
     session = MagicMock()
     session.execute = AsyncMock(return_value=existing_ids_result)
     session.commit = AsyncMock()
+    _mock_session_begin(session)
 
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session
@@ -199,7 +218,7 @@ async def test_sync_trades_paginates_and_skips_existing_trade_ids() -> None:
 
     assert await syncer.sync_trades() == 1
     session.add.assert_called_once()
-    session.commit.assert_awaited()
+    session.begin.assert_called_once()
 
 
 @pytest.mark.asyncio

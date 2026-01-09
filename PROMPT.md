@@ -81,6 +81,42 @@ If ANY check fails, fix it before proceeding.
 6. **Commit before exit**
 7. **Exit when done**
 
+## BEFORE EXIT CHECKLIST (MANDATORY)
+
+**You MUST complete ALL of these steps before exiting:**
+
+```bash
+# 1. Run ALL quality gates
+uv run ruff check .           # Fix any issues
+uv run ruff format .          # Auto-format
+uv run mypy src/              # Fix type errors
+uv run pytest tests/unit -v   # All tests pass
+
+# 2. Stage ALL changes (including test files!)
+git add -A
+
+# 3. Verify nothing is unstaged
+git status  # Should show "nothing to commit" or all staged
+
+# 4. Commit with proper message
+git commit -m "$(cat <<'EOF'
+[TASK-ID] Brief description
+
+- What was implemented/fixed
+- Tests added/updated
+- Quality gates passed
+EOF
+)"
+```
+
+**⚠️ CRITICAL:** Do NOT exit if:
+
+- `git status` shows unstaged changes
+- Any quality gate failed
+- You haven't committed
+
+**If quality gates fail:** Fix them, re-run all gates, then commit.
+
 ## File Locations
 
 - Bugs: `docs/_bugs/BUG-*.md`

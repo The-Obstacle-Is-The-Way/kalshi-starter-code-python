@@ -19,11 +19,39 @@ Kalshi prediction markets have unique liquidity characteristics that differ sign
 
 ## Problem Statement
 
-The Kalshi API deprecated its `liquidity` field, stating developers should calculate their own metrics from raw orderbook data. Without proper liquidity analysis, we risk:
+**Deprecation Clarification:**
+- `liquidity` (integer, cents) → **REMOVED** Jan 15, 2026
+- `liquidity_dollars` (string, dollars) → **REMAINS** as the replacement
+
+The new `liquidity_dollars` field represents "current offer value" - a simple sum that doesn't capture depth distribution, slippage, or execution quality. Without proper liquidity analysis, we risk:
 
 1. **Slippage eating edge** - Entering a position costs more than expected
 2. **Trapped positions** - Can't exit without massive price impact
 3. **False opportunities** - Detected "edge" is illusory due to thin book
+
+---
+
+## Kalshi's `liquidity_dollars` vs Our Metrics
+
+> **Note:** `liquidity_dollars` is the **surviving replacement** for the deprecated `liquidity` field.
+> It remains available in the API after Jan 15, 2026.
+
+**What Kalshi provides:**
+- `liquidity_dollars` - "Current offer value" in dollar format (e.g., `"1250.00"`)
+- Simple aggregate of all resting orders (NOT being deprecated - this is the new standard)
+
+**Limitations of Kalshi's metric:**
+- No depth weighting (distant orders count same as BBO)
+- No slippage estimation for specific order sizes
+- No imbalance detection (YES vs NO side)
+- Single number doesn't inform position sizing
+
+**What our custom metrics provide:**
+- **Weighted Depth Score** - Distance-weighted contracts (BBO matters more)
+- **Slippage Estimator** - Walk-the-book simulation for any order size
+- **Max Safe Size** - Largest order within slippage tolerance
+- **Imbalance Detection** - Which side has more depth
+- **Composite Score** - Actionable 0-100 grade with warnings
 
 ---
 
@@ -90,17 +118,69 @@ From [Phemex Prediction Markets Guide](https://phemex.com/academy/what-are-predi
 - YES bid at X cents = NO ask at (100-X) cents
 - Fees: Volume rewards up to $0.005/contract for trades $0.03-$0.97
 
-### Orderbook Structure
+### Orderbook API Endpoint
+
+**REST Endpoint:** `GET /markets/{ticker}/orderbook`
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `depth` | integer | 0 | Depth levels to retrieve (0 = all, 1-100 for specific depth) |
+
+**Response Structure:**
 ```json
 {
-  "yes": [[price_cents, quantity], ...],  // YES bids only
-  "no": [[price_cents, quantity], ...]    // NO bids only
+  "orderbook": {
+    "yes": [[price_cents, quantity], ...],
+    "no": [[price_cents, quantity], ...],
+    "yes_dollars": [["0.4700", quantity], ...],
+    "no_dollars": [["0.5300", quantity], ...]
+  }
 }
 ```
 
 **Key insight**: No explicit asks. YES ask is implied by NO bid.
 - Best YES ask = 100 - Best NO bid
 - Spread = 100 - best_yes_bid - best_no_bid
+- Levels sorted best-to-worst price (highest bid first)
+- Use `depth` parameter to limit API response size for performance
+
+### WebSocket Real-Time Orderbook (Optional Enhancement)
+
+For active trading scenarios requiring real-time liquidity monitoring, use the `orderbook_delta` WebSocket channel:
+
+**Subscription:**
+```json
+{
+  "id": 2,
+  "cmd": "subscribe",
+  "params": {
+    "channels": ["orderbook_delta"],
+    "market_tickers": ["KXBTC-26JAN15-T100000"]
+  }
+}
+```
+
+**Message Flow:**
+1. **Initial Snapshot** (`orderbook_snapshot`) - Full orderbook state
+2. **Incremental Deltas** (`orderbook_delta`) - Price/quantity changes
+
+**Delta Message:**
+```json
+{
+  "type": "orderbook_delta",
+  "sid": 2,
+  "seq": 3,
+  "msg": {
+    "market_ticker": "KXBTC-26JAN15-T100000",
+    "price": 47,
+    "price_dollars": "0.470",
+    "delta": -50,
+    "side": "yes"
+  }
+}
+```
+
+**Implementation Note:** Track `seq` numbers to detect gaps. If gap detected, re-subscribe to get fresh snapshot. See `docs/_vendor-docs/kalshi-api-reference.md` for full WebSocket protocol details.
 
 ### How Liquidity Differs from Traditional Markets
 
@@ -790,6 +870,14 @@ async def test_real_orderbook_analysis():
 
 ## References
 
+### Official Kalshi API Documentation
+
+- [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook) - REST endpoint, `depth` parameter
+- [Get Market](https://docs.kalshi.com/api-reference/market/get-market) - `liquidity_dollars`, `open_interest`, `volume_24h`
+- [Orderbook Updates WebSocket](https://docs.kalshi.com/websockets/orderbook-updates) - Real-time `orderbook_delta` channel
+- [API Changelog](https://docs.kalshi.com/changelog) - Field deprecations, breaking changes
+- [The Orderbook (Help Center)](https://help.kalshi.com/markets/markets-101/the-orderbook) - Binary market mechanics
+
 ### Academic & Industry Research
 
 - [The Economics of the Kalshi Prediction Market (UCD 2025)](https://www.ucd.ie/economics/t4media/WP2025_19.pdf) - Favorite-longshot bias, volume statistics
@@ -808,6 +896,7 @@ async def test_real_orderbook_analysis():
 - `src/kalshi_research/api/models/orderbook.py` - Current orderbook model
 - `src/kalshi_research/analysis/edge.py` - Edge detection (uses spread)
 - `src/kalshi_research/analysis/scanner.py` - Market scanner
+- `docs/_vendor-docs/kalshi-api-reference.md` - Our vendor docs mirror
 
 ---
 
@@ -815,10 +904,13 @@ async def test_real_orderbook_analysis():
 
 | Question | Resolution |
 |----------|------------|
-| Orderbook refresh frequency? | On-demand for now; consider WebSocket for active trading |
+| Orderbook refresh frequency? | On-demand via REST; WebSocket `orderbook_delta` available for real-time |
 | Historical liquidity tracking? | Phase 4 - store snapshots in database |
 | Cross-market liquidity? | Future enhancement for event-level analysis |
 | Dynamic position sizing? | Implemented via `max_safe_order_size()` |
+| What does Kalshi's `liquidity_dollars` represent? | "Current offer value" - simple aggregate (REMAINS in API, replaces deprecated `liquidity`) |
+| API depth limiting? | Use `depth` parameter (0-100) on REST endpoint for performance |
+| Real-time updates? | WebSocket `orderbook_delta` channel with snapshot + incremental deltas |
 
 ---
 

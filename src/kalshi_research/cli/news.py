@@ -59,7 +59,7 @@ async def _upsert_event_and_market(
     from kalshi_research.data.models import Event as EventRow
     from kalshi_research.data.models import Market as MarketRow
 
-    async with db.session_factory() as session:
+    async with db.session_factory() as session, session.begin():
         await session.merge(
             EventRow(
                 ticker=event_obj.event_ticker,
@@ -87,7 +87,6 @@ async def _upsert_event_and_market(
                     subcategory=None,
                 )
             )
-        await session.commit()
 
 
 async def _news_track_async(

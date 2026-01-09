@@ -33,7 +33,7 @@ class NewsTracker:
         if not normalized_queries:
             raise ValueError("search_queries cannot be empty")
 
-        async with self._db.session_factory() as session:
+        async with self._db.session_factory() as session, session.begin():
             existing = (
                 await session.execute(select(TrackedItem).where(TrackedItem.ticker == ticker))
             ).scalar_one_or_none()
@@ -45,26 +45,25 @@ class NewsTracker:
                     is_active=True,
                 )
                 session.add(tracked)
-                await session.commit()
+                await session.flush()
                 await session.refresh(tracked)
                 return tracked
 
             existing.item_type = item_type
             existing.search_queries = json.dumps(normalized_queries)
             existing.is_active = True
-            await session.commit()
+            await session.flush()
             await session.refresh(existing)
             return existing
 
     async def untrack(self, ticker: str) -> bool:
-        async with self._db.session_factory() as session:
+        async with self._db.session_factory() as session, session.begin():
             tracked = (
                 await session.execute(select(TrackedItem).where(TrackedItem.ticker == ticker))
             ).scalar_one_or_none()
             if tracked is None:
                 return False
             tracked.is_active = False
-            await session.commit()
             return True
 
     async def list_tracked(self, *, active_only: bool = True) -> list[TrackedItem]:
