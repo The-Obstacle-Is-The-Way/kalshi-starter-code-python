@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import os
+import runpy
+import sys
 from unittest.mock import patch
 
+import pytest
 from typer.testing import CliRunner
 
 from kalshi_research.cli import app
@@ -50,3 +53,12 @@ def test_invalid_global_env_exits_with_error() -> None:
 
     assert result.exit_code == 1
     assert "Invalid environment" in result.stdout
+
+
+def test_module_entrypoint_executes() -> None:
+    with (
+        patch.object(sys, "argv", ["kalshi"]),
+        pytest.raises(SystemExit) as exc,
+    ):
+        runpy.run_module("kalshi_research.cli.__main__", run_name="__main__")
+    assert exc.value.code == 2
