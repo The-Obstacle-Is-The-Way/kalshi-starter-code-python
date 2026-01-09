@@ -97,7 +97,7 @@ def test_alerts_remove_not_found() -> None:
     assert "not found" in result.stdout.lower()
 
 
-def test_alerts_list_invalid_json_exits_with_error(tmp_path) -> None:
+def test_alerts_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
     alerts_file = tmp_path / "alerts.json"
     alerts_file.write_text("{not json", encoding="utf-8")
 

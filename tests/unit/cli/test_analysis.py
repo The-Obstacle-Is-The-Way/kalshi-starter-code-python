@@ -105,5 +105,6 @@ def test_analysis_metrics(mock_db_cls: MagicMock) -> None:
     assert result.exit_code == 0
     assert "TEST-TICKER" in result.stdout
 
-    spread_row = next(line for line in result.stdout.splitlines() if "Spread" in line)
-    assert "2¢" in spread_row
+    spread_lines = [line for line in result.stdout.splitlines() if "Spread" in line]
+    assert len(spread_lines) == 1, f"Expected exactly one 'Spread' line, got {len(spread_lines)}"
+    assert "2¢" in spread_lines[0]

@@ -11,7 +11,7 @@ from kalshi_research.cli import app
 runner = CliRunner()
 
 
-def test_thesis_list_invalid_json_exits_with_error(tmp_path) -> None:
+def test_thesis_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
     thesis_file = tmp_path / "theses.json"
     thesis_file.write_text("{not json", encoding="utf-8")
 
