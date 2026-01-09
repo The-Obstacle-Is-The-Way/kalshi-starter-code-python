@@ -6,7 +6,10 @@
 
 ## Outstanding Debt
 
-None.
+| `Settlement.expiration_time` proxy | `Settlement` model uses `expiration_time` as `settled_at`. Inaccurate for early/late settlements. |
+| [DEBT-001](DEBT-001-api-client-typing.md) | Inconsistent API Client return types (raw dicts vs Pydantic models). |
+| [DEBT-002](DEBT-002-magic-numbers-analysis.md) | Hardcoded magic numbers in analysis/scanner logic. |
+| [DEBT-003](DEBT-003-loose-db-transactions.md) | Inconsistent database transaction boundaries (manual commit vs context manager). |
 
 ---
 
