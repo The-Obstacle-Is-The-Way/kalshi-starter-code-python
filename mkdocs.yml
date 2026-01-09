@@ -11,6 +11,11 @@ docs_dir: docs
 exclude_docs: |
   _archive/**
 
+# Keep tracker detail pages in the build but hide them from nav.
+not_in_nav: |
+  _bugs/BUG-*.md
+  _todo/TODO-*.md
+
 theme:
   name: material
   features:
@@ -69,11 +74,8 @@ nav:
   - Internal:
       - Specs:
           - Index: _specs/README.md
-          - SPEC-020: _specs/SPEC-020-exa-api-client.md
-          - SPEC-021: _specs/SPEC-021-exa-market-research.md
-          - SPEC-022: _specs/SPEC-022-exa-news-sentiment.md
-          - SPEC-023: _specs/SPEC-023-exa-thesis-integration.md
           - SPEC-024: _specs/SPEC-024-exa-research-agent.md
+          - SPEC-025: _specs/SPEC-025-market-open-time-display.md
       - Bug Tracker: _bugs/README.md
       - Todo Index: _todo/README.md
       - Debt Overview: _debt/README.md

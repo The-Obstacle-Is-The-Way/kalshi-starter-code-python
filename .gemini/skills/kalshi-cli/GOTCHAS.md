@@ -23,8 +23,16 @@ A market asking "Will X happen before Y?" only counts events AFTER the market op
 **How to avoid**:
 ```bash
 # ALWAYS check open_time FIRST
+# NOTE: `market get` does not currently display open_time (SPEC-025 is planned).
+
+# Ensure market metadata is current
+uv run kalshi data sync-markets
+
+# Fetch current prices/volume
 uv run kalshi market get TICKER
-# Look for "Open Time" in output
+
+# Get timing fields from SQLite
+sqlite3 data/kalshi.db "SELECT open_time, created_at, close_time FROM markets WHERE ticker = 'TICKER'"
 
 # If open_time is recent (e.g., last few weeks), ask:
 # "Did the researched event happen AFTER this date?"
@@ -100,10 +108,22 @@ sqlite3 data/kalshi.db "SELECT ticker FROM markets WHERE title LIKE '%Senate%con
 uv run kalshi data sync-markets
 ```
 
-**Common ticker patterns** (but not guaranteed):
-- `KXFED-26JAN` - Fed-related, with date
-- `CONTROLS-2026-D` - Political control, with party suffix
-- `KXSB-26-DEN` - Super Bowl, with team code
+If `market get` 404s for something you found on kalshi.com, it may be an **event** slug, not a single market ticker. Use `market list --event EVENT_TICKER` to find real market tickers.
+
+Avoid relying on “ticker patterns” — they are not stable.
+
+### market list Status Filter Confusion (open vs active)
+
+- `kalshi market list --status` expects filter values like `open` (see `kalshi market list --help`).
+- The API/DB `Market.status` uses lifecycle values like `active`.
+- `uv run kalshi market list --status active` returns a 400 (`invalid status filter`) and currently prints a full traceback.
+
+**Workaround**:
+```bash
+uv run kalshi market list --status open --limit 20
+# For local search, use DB status values:
+sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE status = 'active' LIMIT 20"
+```
 
 ### uv run Prefix Required
 

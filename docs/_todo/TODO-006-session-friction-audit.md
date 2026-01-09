@@ -30,8 +30,8 @@ This document captures all friction points encountered during a research session
 
 **Required Fixes**:
 - [ ] Add `open_time` and `created_time` to `market get` CLI output
-- [ ] Research workflow must check market open time BEFORE researching
-- [ ] Add skill guidance: "If market price seems too easy, verify timing"
+- [x] Research workflow must check market open time BEFORE researching (documented workflow)
+- [x] Add skill guidance: "If market price seems too easy, verify timing"
 
 ---
 
@@ -73,8 +73,8 @@ This document captures all friction points encountered during a research session
 - But database only has tickers that were already synced
 
 **Required Fixes**:
-- [ ] Add to WORKFLOWS.md: "Ticker Discovery" workflow
-- [ ] Add to GOTCHAS.md: "Tickers are not predictable - use Kalshi website or sync first"
+- [x] Add to WORKFLOWS.md: "Ticker Discovery" workflow
+- [x] Add to GOTCHAS.md: "Tickers are not predictable - use Kalshi website or sync first"
 - [ ] Consider adding web scraper or API search to CLI
 
 ### Issue 2.2: Scan Commands Missing Data
@@ -96,12 +96,17 @@ This document captures all friction points encountered during a research session
 ### Issue 2.3: Market List Status Filter Bug
 
 **What Happened**:
-- `market list --status active` returned giant error traceback
-- Had to use database directly
+- `market list --status active` returned a giant error traceback
+- Root error is a 400 from Kalshi: `"details":"invalid status filter"`
 
-**Investigation Needed**:
-- [ ] Verify if this is a real bug or user error
-- [ ] If bug, document in _bugs/
+**Conclusion**: User error + confusing ergonomics.
+
+- `market list --status` expects exchange filter values like `open` (see `kalshi market list --help`).
+- The API `Market.status` (and our DB `markets.status`) uses lifecycle values like `active`.
+- Passing `active` is invalid and currently produces an unhelpful full traceback.
+
+**Follow-up** (documentation only for now):
+- [ ] Add a GOTCHAS.md note: `open` vs `active` and why `active` 400s
 
 ---
 
@@ -116,12 +121,12 @@ This document captures all friction points encountered during a research session
 **Root Cause**:
 1. Markets table only has static metadata
 2. Price/volume data is in `price_snapshots` table
-3. Skill's DATABASE.md doesn't clearly explain this separation
+3. This separation must be explicit in docs to prevent incorrect SQL
 
 **Required Fixes**:
-- [ ] Update DATABASE.md: Explain markets vs price_snapshots distinction
-- [ ] Add query examples for "get current prices for markets"
-- [ ] Document join pattern: markets JOIN price_snapshots
+- [x] Update DATABASE.md: Explain markets vs price_snapshots distinction
+- [x] Add query examples for "get current prices for markets"
+- [x] Document join pattern: markets JOIN price_snapshots
 
 ---
 
@@ -136,7 +141,7 @@ This document captures all friction points encountered during a research session
 
 **Workaround**: Use `--max-pages` to limit pagination
 
-**Status**: Documented in [BUG-048](../bugs/BUG-048-negative-liquidity-validation.md)
+**Status**: Documented in [BUG-048](../_bugs/BUG-048-negative-liquidity-validation.md)
 
 ### BUG-047: Portfolio Positions Sync (Already Documented)
 
@@ -145,27 +150,18 @@ This document captures all friction points encountered during a research session
 - `portfolio balance` shows $87.37 portfolio value
 - 9 trades successfully synced
 
-**Status**: Documented in [BUG-047](../bugs/BUG-047-portfolio-positions-sync.md)
+**Status**: Documented in [BUG-047](../_bugs/BUG-047-portfolio-positions-sync.md)
 
 ---
 
 ## CATEGORY 5: Skill Documentation Gaps
 
-### Gap 5.1: No "Research Workflow" in WORKFLOWS.md
+### Gap 5.1: Research Workflow Must Match CLI Reality
 
-The skill has CLI commands but lacks an end-to-end research workflow:
+The `kalshi-cli` skill now includes a research workflow, but it must be explicit about the current limitation:
 
-**Missing Workflow**:
-```
-1. Check portfolio first (what do I already own?)
-2. Identify market of interest
-3. Fetch market details INCLUDING open_time
-4. Validate timing: Is the event AFTER market opened?
-5. Run Exa research ONLY for events after open_time
-6. Cross-validate: Does price make sense given research?
-7. If price seems too easy, investigate why
-8. Make recommendation
-```
+- `market get` does **not** show `open_time` yet (SPEC-025 is planned).
+- Workaround: query `open_time` from SQLite (`markets.open_time`) after `data sync-markets`.
 
 ### Gap 5.2: No "Portfolio-Aware Research" Guidance
 
@@ -209,12 +205,12 @@ The skill has CLI commands but lacks an end-to-end research workflow:
 
 ### Immediate (Fix Skill Docs)
 
-1. [ ] Update WORKFLOWS.md: Add "Research Workflow" with temporal validation
-2. [ ] Update WORKFLOWS.md: Add "Ticker Discovery" workflow
-3. [ ] Update GOTCHAS.md: Add "Price as Signal" heuristic
-4. [ ] Update GOTCHAS.md: Add "Market Timing" gotcha (open_time matters)
-5. [ ] Update GOTCHAS.md: Add "Portfolio-Aware Research" guidance
-6. [ ] Update DATABASE.md: Clarify markets vs price_snapshots schema
+1. [x] Update WORKFLOWS.md: Add "Research Workflow" with temporal validation
+2. [x] Update WORKFLOWS.md: Add "Ticker Discovery" workflow
+3. [x] Update GOTCHAS.md: Add "Price as Signal" heuristic
+4. [x] Update GOTCHAS.md: Add "Market Timing" gotcha (open_time matters)
+5. [x] Update GOTCHAS.md: Add "Portfolio-Aware Research" guidance
+6. [x] Update DATABASE.md: Clarify markets vs price_snapshots schema
 
 ### Code Fixes (TODO-005)
 
@@ -248,8 +244,8 @@ The skill has CLI commands but lacks an end-to-end research workflow:
 ## Related Files
 
 - TODO-005: [Market Open Date Validation](TODO-005-market-open-date-validation.md)
-- BUG-047: [Portfolio Positions Sync](../bugs/BUG-047-portfolio-positions-sync.md)
-- BUG-048: [Negative Liquidity Validation](../bugs/BUG-048-negative-liquidity-validation.md)
+- BUG-047: [Portfolio Positions Sync](../_bugs/BUG-047-portfolio-positions-sync.md)
+- BUG-048: [Negative Liquidity Validation](../_bugs/BUG-048-negative-liquidity-validation.md)
 - SKILL.md: `.claude/skills/kalshi-cli/SKILL.md`
 - WORKFLOWS.md: `.claude/skills/kalshi-cli/WORKFLOWS.md`
 - GOTCHAS.md: `.claude/skills/kalshi-cli/GOTCHAS.md`

@@ -143,7 +143,7 @@ When CLI options are insufficient, query SQLite directly:
 
 ```bash
 # Find markets by keyword (since no --search exists)
-sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE title LIKE '%keyword%' AND status = 'open'"
+sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE title LIKE '%keyword%' AND status = 'active'"
 
 # Get full ticker from partial match
 sqlite3 data/kalshi.db "SELECT ticker FROM markets WHERE ticker LIKE 'KXFED%'"

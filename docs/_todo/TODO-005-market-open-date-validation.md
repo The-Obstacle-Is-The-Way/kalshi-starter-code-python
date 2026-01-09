@@ -3,7 +3,7 @@
 **Priority**: High
 **Status**: Active
 **Created**: 2026-01-09
-**Spec**: [SPEC-025-market-open-time-display](../docs/_specs/SPEC-025-market-open-time-display.md)
+**Spec**: [SPEC-025: Market Open Time Display](../_specs/SPEC-025-market-open-time-display.md)
 
 ## Problem Statement
 
@@ -86,13 +86,7 @@ Add documentation noting that market timing matters:
 - Current: 12-14¢
 - Potential loss if NO: ~$4.68
 
-**BUT** - Research shows:
-- **"Stranger Things: Tales From '85"** - animated spinoff announced for 2026
-- **Documentary** - "One Last Adventure" launches Jan 12, 2026
-
-The animated spinoff COULD satisfy the market condition if it releases before Jan 1, 2027.
-
-**Recommendation**: HOLD for now. The spinoff might save this bet. Monitor for release date announcements.
+**Note**: The purpose of this TODO is the *engineering* failure (missing market timing validation), not market advice. Any content/release-date claims should be treated as unverified unless linked to primary sources.
 
 ## Lessons Learned
 

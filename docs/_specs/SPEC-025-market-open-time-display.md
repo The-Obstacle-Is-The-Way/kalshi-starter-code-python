@@ -271,6 +271,7 @@ This seemingly small change has **high research impact**:
 
 ## 7. Related Documents
 
-- [TODO-005: Market Open Date Validation](../docs/_todo/TODO-005-market-open-date-validation.md)
-- [GOTCHAS.md: Market Open Time Matters](.claude/skills/kalshi-cli/GOTCHAS.md)
-- [WORKFLOWS.md: Research Workflow](.claude/skills/kalshi-cli/WORKFLOWS.md)
+- [TODO-005: Market Open Date Validation](../_todo/TODO-005-market-open-date-validation.md)
+- Skill references (dev branch):
+  - `kalshi-cli` gotchas: https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/blob/dev/.codex/skills/kalshi-cli/GOTCHAS.md
+  - `kalshi-cli` workflows: https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/blob/dev/.codex/skills/kalshi-cli/WORKFLOWS.md

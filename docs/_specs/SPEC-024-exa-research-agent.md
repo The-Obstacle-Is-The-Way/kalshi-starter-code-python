@@ -1209,8 +1209,9 @@ kalshi agent
 
 ## 8. See Also
 
-- [SPEC-020: Exa API Client](SPEC-020-exa-api-client.md)
-- [SPEC-021: Exa Market Research](SPEC-021-exa-market-research.md)
-- [SPEC-023: Exa-Thesis Integration](SPEC-023-exa-thesis-integration.md)
+- Implemented (archived) specs:
+  - SPEC-020: https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/blob/dev/docs/_archive/specs/SPEC-020-exa-api-client.md
+  - SPEC-021: https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/blob/dev/docs/_archive/specs/SPEC-021-exa-market-research.md
+  - SPEC-023: https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/blob/dev/docs/_archive/specs/SPEC-023-exa-thesis-integration.md
 - [Exa API Reference](../_vendor-docs/exa-api-reference.md) - Includes MCP server setup
 - [Exa MCP Server (GitHub)](https://github.com/exa-labs/exa-mcp-server) - For interactive research

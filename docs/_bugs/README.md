@@ -11,7 +11,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-# **BUG-049**
+**BUG-049**
 
 ---
 

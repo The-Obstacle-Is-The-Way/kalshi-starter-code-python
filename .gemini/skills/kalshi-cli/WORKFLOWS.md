@@ -25,10 +25,18 @@ sqlite3 data/kalshi.db "SELECT DISTINCT ticker, side FROM trades"
 uv run kalshi market get TICKER
 ```
 
-**Look for**:
-- `open_time` - When trading started
-- `close_time` - When market expires
-- Current price (yes_bid/yes_ask)
+**Important**: `market get` does **not** currently display `open_time` / `created_time` (see SPEC-025).
+
+**Workaround (use SQLite)**:
+```bash
+# Ensure market metadata is current
+uv run kalshi data sync-markets
+
+# DB columns: open_time, created_at, close_time
+sqlite3 data/kalshi.db "SELECT open_time, created_at, close_time FROM markets WHERE ticker = 'TICKER'"
+```
+
+Use `market get` for current prices/volume and `markets.open_time` for timing validation.
 
 ### Step 3: Temporal Validation (CRITICAL)
 
@@ -88,7 +96,10 @@ sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE ticker LIKE 'KXF
 
 1. Go to kalshi.com
 2. Find the market you want
-3. The ticker is in the URL: `kalshi.com/markets/.../TICKER-HERE`
+3. The ticker is often in the URL: `kalshi.com/markets/.../TICKER-HERE`
+4. If `market get` returns 404, the URL may be an **event** page (not a single market ticker):
+   - Use the event ticker from the page (or from `market get` output on a related market)
+   - Run `uv run kalshi market list --event EVENT_TICKER --limit 50` and pick a real market ticker
 
 ### Option 3: List Markets by Event
 
