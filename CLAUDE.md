@@ -78,6 +78,13 @@ uv run kalshi scan opportunities --filter close-race
 - **NO `--no-verify` commits** - Always run pre-commit hooks
 - **NO manual git commits** - Use `uv run pre-commit run` first
 
+### Database Safety (Do Not Destroy State)
+
+- Never delete `data/kalshi.db` to “fix” corruption. Diagnose and recover instead:
+  - `sqlite3 data/kalshi.db "PRAGMA integrity_check;"`
+  - `sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`
+- `data/exa_cache/` is safe to delete; the SQLite DB is not.
+
 ## Architecture
 
 ### Layer Structure

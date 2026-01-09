@@ -84,3 +84,9 @@ uv run pytest -m "not integration and not slow"  # fast local suite (CI-like)
 
 - Copy `.env.example` → `.env`; never commit `.env`, API keys, or private key material.
 - Public endpoints work without creds; portfolio features/integration tests require `KALSHI_KEY_ID` plus a key (`KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`).
+
+## Database Safety (Do Not Destroy State)
+
+- **Never delete** `data/kalshi.db` to “fix” issues (e.g. `database disk image is malformed`).
+- Diagnose first (`sqlite3 data/kalshi.db "PRAGMA integrity_check;"`) and recover when needed (`sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`).
+- `data/exa_cache/` is disposable cache; the SQLite DB is not.

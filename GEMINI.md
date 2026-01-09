@@ -146,6 +146,13 @@ This will automatically check:
 - Mypy type checking
 - Unit tests
 
+### Database Safety (Do Not Destroy State)
+
+- Never delete `data/kalshi.db` to “fix” corruption. Diagnose and recover instead:
+  - `sqlite3 data/kalshi.db "PRAGMA integrity_check;"`
+  - `sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`
+- `data/exa_cache/` is safe to delete; the SQLite DB is not.
+
 ### Directory Structure
 *   `src/kalshi_research/`: Main source code.
     *   `api/`: Kalshi API client and models.
