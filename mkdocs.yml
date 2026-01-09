@@ -52,7 +52,8 @@ nav:
       - CLI: reference/cli-reference.md
       - Configuration: reference/configuration.md
       - Python API: reference/python-api.md
-      - Kalshi API (Vendor): kalshi-docs/official-api-reference.md
+      - Kalshi API (Vendor): _vendor-docs/kalshi-api-reference.md
+      - Exa API (Vendor): _vendor-docs/exa-api-reference.md
   - Explanation:
       - Architecture: explanation/architecture.md
       - CLI Architecture: explanation/cli-architecture.md
