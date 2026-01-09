@@ -61,6 +61,7 @@ Intelligently find webpages using embeddings-based search.
 |-----------|------|---------|-------------|
 | `query` | string | Required | The search query |
 | `type` | enum | `"auto"` | `auto`, `neural`, `fast`, `deep` |
+| `additionalQueries` | string[] | - | Extra query variations (**deep search only**) |
 | `numResults` | integer | 10 | Max 100 results |
 | `includeDomains` | string[] | - | Filter to specific domains (max 1200) |
 | `excludeDomains` | string[] | - | Exclude domains (max 1200) |
@@ -70,10 +71,27 @@ Intelligently find webpages using embeddings-based search.
 | `endCrawlDate` | ISO 8601 | - | Filter by crawl date |
 | `includeText` | string[] | - | Must contain (1 string, 5 words max) |
 | `excludeText` | string[] | - | Must not contain |
-| `category` | enum | - | `research paper`, `news`, `pdf`, `github`, `company`, `people` |
+| `category` | enum | - | See category table below |
 | `userLocation` | string | - | Two-letter ISO country code |
 | `moderation` | boolean | false | Filter unsafe content |
+| `context` | boolean/object | - | Return combined context string for RAG |
 | `contents` | object | - | Control text/highlights/summary retrieval |
+
+### Categories
+
+| Category | Description |
+|----------|-------------|
+| `news` | News articles |
+| `research paper` | Academic papers |
+| `pdf` | PDF documents |
+| `github` | GitHub repositories |
+| `tweet` | Twitter/X posts |
+| `personal site` | Personal websites/blogs |
+| `financial report` | Financial documents |
+| `company` | Company profiles (restricted filters) |
+| `people` | People profiles (restricted filters) |
+
+> **Warning:** `company` and `people` categories have limited filter support. The following parameters are **NOT supported** and will return 400 errors: `startPublishedDate`, `endPublishedDate`, `startCrawlDate`, `endCrawlDate`, `includeText`, `excludeText`, `excludeDomains`. For `people`, `includeDomains` only accepts LinkedIn domains.
 
 ### Response
 
@@ -82,23 +100,30 @@ Intelligently find webpages using embeddings-based search.
   "requestId": "string",
   "results": [
     {
+      "id": "string",
       "title": "string",
       "url": "string",
       "publishedDate": "string|null",
       "author": "string|null",
-      "id": "string",
-      "image": "string",
-      "favicon": "string",
+      "image": "string|null",
+      "favicon": "string|null",
       "text": "string",
       "summary": "string",
       "highlights": ["string"],
       "highlightScores": [0.0]
     }
   ],
-  "searchType": "neural|deep",
-  "costDollars": { "total": 0.005 }
+  "context": "string (combined content for RAG, if requested)",
+  "searchType": "string",
+  "costDollars": {
+    "total": 0.005,
+    "breakdown": [{"type": "neuralSearch", "cost": 0.005}],
+    "perRequestPrices": {"neuralSearch_1_25_results": 0.005}
+  }
 }
 ```
+
+> **Note:** `searchType` indicates which search method was used. For `type="auto"`, this shows the actual method selected (e.g., "neural" or "deep").
 
 ### Code Examples
 
@@ -151,13 +176,16 @@ Obtain clean, parsed content from URLs with automatic live crawling fallback. Re
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `urls` | string[] | Required. URLs to crawl |
+| `ids` | string[] | **Deprecated.** Use `urls` instead |
 | `text` | boolean/object | Full page text. Object: `{maxCharacters, includeHtmlTags}` |
-| `highlights` | object | Extract snippets: `{numSentences, highlightsPerUrl, query}` |
-| `summary` | object | LLM summaries: `{query, schema}` |
+| `highlights` | object | Extract snippets: `{query, numSentences, highlightsPerUrl}` |
+| `summary` | object | LLM summaries: `{query, schema}` for structured output |
 | `livecrawl` | enum | `never`, `fallback`, `preferred`, `always` |
 | `livecrawlTimeout` | integer | Milliseconds (default 10000) |
 | `subpages` | integer | Number of subpages to crawl |
 | `subpageTarget` | string/string[] | Keywords for subpage filtering |
+| `extras` | object | Additional data: `{links: N, imageLinks: N}` |
+| `context` | boolean/object | Return combined context string for RAG |
 
 ### Response
 
@@ -166,13 +194,19 @@ Obtain clean, parsed content from URLs with automatic live crawling fallback. Re
   "requestId": "string",
   "results": [
     {
+      "id": "string",
       "title": "string",
       "url": "string",
       "publishedDate": "string|null",
       "author": "string|null",
+      "image": "string|null",
+      "favicon": "string|null",
       "text": "string",
       "highlights": ["string"],
-      "summary": "string"
+      "highlightScores": [0.0],
+      "summary": "string",
+      "subpages": [],
+      "extras": {"links": [], "imageLinks": []}
     }
   ],
   "statuses": [
@@ -181,7 +215,9 @@ Obtain clean, parsed content from URLs with automatic live crawling fallback. Re
       "status": "success|error",
       "error": { "tag": "CRAWL_NOT_FOUND|CRAWL_TIMEOUT|SOURCE_NOT_AVAILABLE" }
     }
-  ]
+  ],
+  "context": "string (combined content for RAG, if requested)",
+  "costDollars": { "total": 0.001 }
 }
 ```
 
@@ -204,18 +240,25 @@ results = exa.get_contents(
 
 **POST** `/findSimilar`
 
-Find semantically related pages to a given URL.
+Find semantically related pages to a given URL. Supports the same filtering options as Search.
 
 ### Request Body
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `url` | string | Required. Source URL |
+| `url` | string | Required. Source URL to find similar pages for |
 | `numResults` | integer | Max 100, default 10 |
-| `includeDomains` | string[] | Limit to domains |
-| `excludeDomains` | string[] | Exclude domains |
-| `startPublishedDate` | ISO 8601 | Filter by date |
-| `endPublishedDate` | ISO 8601 | Filter by date |
+| `includeDomains` | string[] | Limit to domains (max 1200) |
+| `excludeDomains` | string[] | Exclude domains (max 1200) |
+| `startPublishedDate` | ISO 8601 | Filter by publish date |
+| `endPublishedDate` | ISO 8601 | Filter by publish date |
+| `startCrawlDate` | ISO 8601 | Filter by crawl date |
+| `endCrawlDate` | ISO 8601 | Filter by crawl date |
+| `includeText` | string[] | Must contain these strings |
+| `excludeText` | string[] | Must not contain these strings |
+| `context` | boolean/object | Return combined context string for RAG |
+| `moderation` | boolean | Enable content moderation |
+| `contents` | object | Configure text/highlights/summary retrieval |
 
 ### Code Examples
 
@@ -258,10 +301,16 @@ Generate LLM-powered answers with citations from web search.
       "title": "string",
       "author": "string|null",
       "publishedDate": "string|null",
+      "image": "string|null",
+      "favicon": "string|null",
       "text": "string"
     }
   ],
-  "costDollars": { "total": 0.005 }
+  "costDollars": {
+    "total": 0.005,
+    "breakdown": [{"type": "answer", "cost": 0.005}],
+    "perRequestPrices": {"answer": 0.005}
+  }
 }
 ```
 
@@ -387,8 +436,11 @@ for r in results.results:
 | `find_similar(url, **kwargs)` | Find similar pages |
 | `find_similar_and_contents(url, **kwargs)` | Find similar with contents |
 | `answer(query, **kwargs)` | Get LLM answer with citations |
+| `stream_answer(query, **kwargs)` | Streaming answer (yields chunks) |
 | `research.create_task(instructions, **kwargs)` | Start async research |
 | `research.get_task(research_id)` | Get research results |
+
+> **Note:** Structured summaries using `summary={"schema": {...}}` return JSON strings that require parsing.
 
 ---
 

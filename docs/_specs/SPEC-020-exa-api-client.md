@@ -146,8 +146,11 @@ class SearchCategory(str, Enum):
     NEWS = "news"
     PDF = "pdf"
     GITHUB = "github"
-    COMPANY = "company"
-    PEOPLE = "people"
+    TWEET = "tweet"
+    PERSONAL_SITE = "personal site"
+    FINANCIAL_REPORT = "financial report"
+    COMPANY = "company"  # Note: Limited filter support
+    PEOPLE = "people"    # Note: Limited filter support, includeDomains=LinkedIn only
 
 
 class SearchRequest(BaseModel):
@@ -157,6 +160,7 @@ class SearchRequest(BaseModel):
 
     query: str
     type: SearchType = SearchType.AUTO
+    additional_queries: list[str] | None = Field(default=None, alias="additionalQueries")  # Deep search only
     num_results: int = Field(default=10, ge=1, le=100, alias="numResults")
     include_domains: list[str] | None = Field(default=None, alias="includeDomains")
     exclude_domains: list[str] | None = Field(default=None, alias="excludeDomains")
@@ -170,6 +174,7 @@ class SearchRequest(BaseModel):
     text: bool | dict[str, int] = False
     highlights: bool | dict[str, int] = False
     summary: bool | dict[str, str] = False
+    context: bool | dict[str, int] = False  # RAG-optimized combined content
 
 
 class SearchResult(BaseModel):
@@ -208,6 +213,7 @@ class SearchResponse(BaseModel):
     request_id: str = Field(alias="requestId")
     results: list[SearchResult]
     search_type: str = Field(alias="searchType")
+    context: str | None = None  # Combined content for RAG (if context=True in request)
     cost_dollars: CostDollars | None = Field(default=None, alias="costDollars")
 ```
 
@@ -476,10 +482,13 @@ class ExaClient:
         self,
         query: str,
         *,
+        search_type: str = "auto",
+        additional_queries: list[str] | None = None,  # Deep search only
         num_results: int = 10,
         text: bool = False,
         highlights: bool = False,
         summary: bool = False,
+        context: bool = False,  # RAG-optimized combined content
         include_domains: list[str] | None = None,
         exclude_domains: list[str] | None = None,
         category: str | None = None,
@@ -489,13 +498,16 @@ class ExaClient:
 
         Args:
             query: Search query
+            search_type: Search type (auto, neural, fast, deep)
+            additional_queries: Extra query variations (deep search only)
             num_results: Number of results (1-100)
             text: Include full page text in results
             highlights: Include relevant snippets
             summary: Include LLM-generated summaries
+            context: Return combined context string for RAG (often better than highlights)
             include_domains: Only search these domains
             exclude_domains: Exclude these domains
-            category: Filter by category (news, research paper, etc.)
+            category: Filter by category (news, research paper, tweet, etc.)
 
         Returns:
             SearchResponse with results
@@ -503,7 +515,9 @@ class ExaClient:
         Example:
             >>> results = await exa.search(
             ...     "prediction market regulation",
-            ...     text=True,
+            ...     search_type="deep",
+            ...     additional_queries=["prediction market law", "betting regulation"],
+            ...     context=True,
             ...     category="news",
             ...     num_results=20,
             ... )
