@@ -57,12 +57,18 @@ nav:
       - Architecture: explanation/architecture.md
       - CLI Architecture: explanation/cli-architecture.md
       - Data Pipeline: explanation/data-pipeline.md
+      - Thesis System: explanation/thesis-system.md
+      - Backtesting: explanation/backtesting.md
+      - Calibration Analysis: explanation/calibration-analysis.md
+      - Alerts System: explanation/alerts-system.md
+      - Market Scanner: explanation/scanner.md
+      - Portfolio Tracking: explanation/portfolio-tracking.md
   - Internal:
       - Specs Index: _specs/README.md
       - Bug Tracker: _bugs/README.md
       - Todo Index: _todo/README.md
       - Technical Debt: _debt/technical-debt.md
       - Code Audit Checklist: _debt/code-audit-checklist.md
-      - Ralph Wiggum Protocol: ralph-wiggum/protocol.md
-      - Ralph Wiggum Prompt: ralph-wiggum/prompt.md
-      - Ralph Wiggum Progress: ralph-wiggum/progress.md
+      - Ralph Wiggum Protocol: _ralph-wiggum/protocol.md
+      - Ralph Wiggum Prompt: _ralph-wiggum/prompt.md
+      - Ralph Wiggum Progress: _ralph-wiggum/progress.md
