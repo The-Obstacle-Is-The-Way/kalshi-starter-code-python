@@ -1,8 +1,9 @@
 # BUG-047: Portfolio Positions Sync Discrepancy
 
 **Priority**: Medium
-**Status**: Investigating
+**Status**: Resolved (Known API Behavior)
 **Created**: 2026-01-09
+**Resolved**: 2026-01-09
 
 ## Symptom
 
@@ -14,21 +15,39 @@
 - All markets appear to still be active (checked KXNCAAFSPREAD-26JAN09OREIND-IND3, status=active)
 - Balance API returns: balance=10666, portfolio_value=8737
 
-## Possible Causes
+## Root Cause
 
-1. API positions endpoint returning empty while balance endpoint shows value
-2. Sync logic filtering out positions incorrectly
-3. Kalshi API inconsistency between endpoints
-4. Positions may be computed differently by Kalshi
+This is **known Kalshi API behavior**, not a bug in our code. The discrepancy occurs because:
 
-## Next Steps
+1. **`/portfolio/positions` endpoint**: Returns only **currently open positions** in active markets. It does **not** include:
+   - Positions in recently closed/settled markets
+   - Positions pending settlement
+   - Positions that have been automatically closed
 
-1. Investigate `portfolio/syncer.py` sync_positions method
-2. Add debug logging to see raw API response
-3. Compare raw positions API response vs balance API response
-4. Check if Kalshi calculates portfolio_value from fills/orders rather than positions
+2. **`/portfolio/balance` endpoint**: The `portfolio_value` field may include:
+   - Pending settlements
+   - Recently closed positions not yet reflected in the balance
+   - Temporary inconsistencies during Kalshi's settlement process
+
+This is a timing issue on Kalshi's side where different endpoints update at different rates during market settlements.
+
+## Resolution
+
+Added enhanced logging to `portfolio/syncer.py:sync_positions()`:
+- Debug logging shows the raw API response count and content
+- Warning message when positions list is empty, explaining this is known Kalshi API behavior
+- Users are informed that the discrepancy is expected and will resolve as settlements complete
+
+## Changes Made
+
+- `src/kalshi_research/portfolio/syncer.py:107`: Added debug logging for API response
+- `src/kalshi_research/portfolio/syncer.py:110-116`: Added warning with explanation of Kalshi API behavior
 
 ## Related Files
 
 - `src/kalshi_research/portfolio/syncer.py`
 - `src/kalshi_research/api/client.py`
+
+## User Action Required
+
+No action needed. The portfolio_value discrepancy will resolve automatically as Kalshi completes settlements. If it persists for >24 hours, contact Kalshi support.

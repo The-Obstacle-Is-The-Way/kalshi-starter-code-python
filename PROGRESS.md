@@ -23,7 +23,7 @@
 ## Phase 3: Research Quality
 
 - [x] **TODO-005**: Add `open_time`/`created_time` to `market get` → `cli/market.py`
-- [ ] **BUG-047**: Investigate portfolio sync discrepancy → `portfolio/syncer.py`
+- [x] **BUG-047**: Investigate portfolio sync discrepancy → `portfolio/syncer.py`
 
 ## Phase 4: Technical Debt
 

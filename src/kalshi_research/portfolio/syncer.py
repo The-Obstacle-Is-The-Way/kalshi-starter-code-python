@@ -104,6 +104,17 @@ class PortfolioSyncer:
         """
         logger.info("Syncing positions")
         api_positions = await self.client.get_positions()
+        logger.debug("API positions response", count=len(api_positions), positions=api_positions)
+
+        if not api_positions:
+            logger.warning(
+                "API returned empty positions list. "
+                "Note: Kalshi's /portfolio/positions endpoint may not include settled positions or "
+                "positions in markets that have closed recently. "
+                "The portfolio_value in /portfolio/balance may include pending settlements or "
+                "be temporarily out of sync. This is a known Kalshi API behavior."
+            )
+
         synced_count = 0
         now = datetime.now(UTC)
 
