@@ -16,7 +16,13 @@ from httpx import Response
 
 from kalshi_research.exa.client import ExaClient
 from kalshi_research.exa.config import ExaConfig
-from kalshi_research.exa.exceptions import ExaAuthError
+from kalshi_research.exa.exceptions import ExaAPIError, ExaAuthError, ExaRateLimitError
+from kalshi_research.exa.models.common import (
+    ContextOptions,
+    HighlightsOptions,
+    SummaryOptions,
+    TextContentsOptions,
+)
 
 
 def _client() -> ExaClient:
@@ -61,7 +67,7 @@ async def test_search_sends_contents_object_when_requested() -> None:
     )
 
     async with _client() as exa:
-        await exa.search("hello", text=True, highlights=True, summary=True)
+        await exa.search("hello", text=True, highlights=True, summary=True, context=True)
 
     assert route.call_count == 1
     body = json.loads(route.calls[0].request.content.decode("utf-8"))
@@ -69,6 +75,7 @@ async def test_search_sends_contents_object_when_requested() -> None:
     assert body["contents"]["text"] is True
     assert body["contents"]["highlights"] == {}
     assert body["contents"]["summary"] == {}
+    assert body["contents"]["context"] is True
 
 
 @pytest.mark.asyncio
@@ -200,6 +207,48 @@ async def test_answer_success() -> None:
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_search_accepts_option_objects() -> None:
+    route = respx.post("https://api.exa.ai/search").mock(
+        return_value=Response(200, json={"requestId": "req_opt", "results": []})
+    )
+
+    async with _client() as exa:
+        await exa.search(
+            "hello",
+            text=TextContentsOptions(max_characters=100),
+            highlights=HighlightsOptions(query="q"),
+            summary=SummaryOptions(query="s"),
+            context=ContextOptions(max_characters=50),
+        )
+
+    assert route.call_count == 1
+    body = json.loads(route.calls[0].request.content.decode("utf-8"))
+    assert body["contents"]["text"]["maxCharacters"] == 100
+    assert body["contents"]["highlights"]["query"] == "q"
+    assert body["contents"]["summary"]["query"] == "s"
+    assert body["contents"]["context"]["maxCharacters"] == 50
+
+
+@pytest.mark.asyncio
+async def test_client_property_raises_when_not_open() -> None:
+    client = _client()
+    with pytest.raises(RuntimeError):
+        _ = client.client
+
+
+@pytest.mark.asyncio
+async def test_open_and_close_are_idempotent() -> None:
+    client = _client()
+
+    await client.open()
+    await client.open()
+
+    await client.close()
+    await client.close()
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_create_research_task_posts_payload() -> None:
     route = respx.post("https://api.exa.ai/research/v1").mock(
         return_value=Response(
@@ -279,3 +328,39 @@ async def test_wait_for_research_times_out() -> None:
         async with _client() as exa:
             with pytest.raises(TimeoutError):
                 await exa.wait_for_research("r2", poll_interval=0.0, timeout=1.0)
+
+
+def test_parse_retry_after_supports_http_date() -> None:
+    retry_after = "Wed, 21 Oct 2015 07:28:00 GMT"
+    response = Response(429, headers={"retry-after": retry_after})
+    assert _client()._parse_retry_after(response) == 0
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_rate_limit_exhaustion_raises_rate_limit_error() -> None:
+    route = respx.post("https://api.exa.ai/search")
+    route.side_effect = [
+        Response(429, headers={"retry-after": "1"}, text="rate limited"),
+        Response(429, headers={"retry-after": "1"}, text="rate limited"),
+    ]
+
+    with patch("asyncio.sleep", new=AsyncMock()) as mock_sleep:
+        async with ExaClient(ExaConfig(api_key="test-key", max_retries=2)) as exa:
+            with pytest.raises(ExaRateLimitError):
+                await exa.search("hello")
+
+    assert route.call_count == 2
+    assert mock_sleep.await_count >= 1
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_request_rejects_invalid_json() -> None:
+    respx.post("https://api.exa.ai/search").mock(
+        return_value=Response(200, text="{not-json", headers={"Content-Type": "application/json"})
+    )
+
+    async with _client() as exa:
+        with pytest.raises(ExaAPIError):
+            await exa.search("hello")
