@@ -18,7 +18,7 @@
 
 ## Phase 2.5: URGENT - API Deprecation (Deadline: Jan 15, 2026)
 
-- [ ] **TODO-009**: Migrate from cent fields to dollar fields → `api/models/market.py` ⚠️ **6 DAYS**
+- [x] **TODO-009**: Migrate from cent fields to dollar fields → `api/models/market.py` ⚠️ **6 DAYS**
 
 ## Phase 3: Research Quality
 
