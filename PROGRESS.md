@@ -14,7 +14,7 @@
 
 - [x] **BUG-049**: Add rate limiter to read operations → `api/client.py`
 - [x] **TODO-007**: Implement `MarketStatusVerifier` → `analysis/scanner.py`
-- [ ] **TODO-008**: Add `dry_run` parameter to `create_order` → `api/client.py`
+- [x] **TODO-008**: Add `dry_run` parameter to `create_order` → `api/client.py`
 
 ## Phase 3: Research Quality
 
