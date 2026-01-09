@@ -17,7 +17,8 @@ src/kalshi_research/cli/
 ├── alerts.py
 ├── analysis.py
 ├── research.py
-└── portfolio.py
+├── portfolio.py
+└── news.py
 ```
 
 ## Global config (`--env` + `.env`)

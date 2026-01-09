@@ -1,6 +1,6 @@
 # SPEC-021: Exa-Powered Market Research
 
-**Status:** 📋 Planned
+**Status:** ✅ Implemented (2026-01-09)
 **Priority:** P1 (Core research enhancement)
 **Estimated Complexity:** Medium
 **Dependencies:** SPEC-020
@@ -951,31 +951,31 @@ class TestExaResearchIntegration:
 
 ### Phase 1: Core Research Classes
 
-- [ ] Create `src/kalshi_research/research/context.py`
-- [ ] Implement `ResearchSource` and `MarketResearch` dataclasses
-- [ ] Implement `MarketContextResearcher` with query generation
-- [ ] Write unit tests for query generation
+- [x] Create `src/kalshi_research/research/context.py`
+- [x] Implement `ResearchSource` and `MarketResearch` dataclasses
+- [x] Implement `MarketContextResearcher` with query generation
+- [x] Write unit tests for query generation
 
 ### Phase 2: Topic Research
 
-- [ ] Create `src/kalshi_research/research/topic.py`
-- [ ] Implement `TopicResearch` dataclass
-- [ ] Implement `TopicResearcher` with answer integration
-- [ ] Write unit tests
+- [x] Create `src/kalshi_research/research/topic.py`
+- [x] Implement `TopicResearch` dataclass
+- [x] Implement `TopicResearcher` with answer integration
+- [x] Write unit tests
 
 ### Phase 3: Caching
 
-- [ ] Create `src/kalshi_research/exa/cache.py`
-- [ ] Implement file-based cache with TTL
-- [ ] Integrate cache into researchers (optional layer)
-- [ ] Write cache tests
+- [x] Create `src/kalshi_research/exa/cache.py`
+- [x] Implement file-based cache with TTL
+- [x] Integrate cache into researchers (optional layer)
+- [x] Write cache tests
 
 ### Phase 4: CLI Commands
 
-- [ ] Add `research context` command
-- [ ] Add `research topic` command
-- [ ] Add JSON output option
-- [ ] Manual CLI testing
+- [x] Add `research context` command
+- [x] Add `research topic` command
+- [x] Add JSON output option
+- [x] Manual CLI testing
 
 ---
 

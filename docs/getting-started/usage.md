@@ -111,6 +111,7 @@ uv run kalshi alerts add price <TICKER> --above 0.60
 uv run kalshi alerts add price <TICKER> --below 0.40
 uv run kalshi alerts add volume <TICKER> --above 10000
 uv run kalshi alerts add spread <TICKER> --above 5
+uv run kalshi alerts add sentiment <TICKER> --above 0.20
 uv run kalshi alerts remove <ALERT_ID_PREFIX>
 ```
 
@@ -164,11 +165,35 @@ uv run kalshi research thesis show <THESIS_ID_PREFIX>
 uv run kalshi research thesis resolve <THESIS_ID_PREFIX> --outcome yes
 ```
 
+### Exa-powered research (optional)
+
+Set `EXA_API_KEY` in your environment or `.env` to use these commands:
+
+```bash
+uv run kalshi research context <TICKER> --max-news 5 --max-papers 3 --days 30
+uv run kalshi research topic "Fed rate cuts 2026" --json
+uv run kalshi research thesis create "My thesis title" ... --with-research
+uv run kalshi research thesis check-invalidation <THESIS_ID_PREFIX> --hours 48
+uv run kalshi research thesis suggest --category crypto
+```
+
 Backtesting runs on resolved theses using settlement data in the database:
 
 ```bash
 uv run kalshi data sync-settlements --db data/kalshi.db
 uv run kalshi research backtest --start 2024-01-01 --end 2024-12-31 --db data/kalshi.db
+```
+
+---
+
+## News & sentiment (Exa-powered, DB-backed)
+
+News and sentiment data is stored in SQLite (default: `data/kalshi.db`).
+
+```bash
+uv run kalshi news track <TICKER>
+uv run kalshi news collect
+uv run kalshi news sentiment <TICKER> --days 7
 ```
 
 ---

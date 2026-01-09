@@ -1,6 +1,6 @@
 # SPEC-023: Exa-Thesis Integration
 
-**Status:** 📋 Planned
+**Status:** ✅ Implemented (2026-01-09)
 **Priority:** P1 (Core workflow enhancement)
 **Estimated Complexity:** Medium
 **Dependencies:** SPEC-020, SPEC-021
@@ -1110,31 +1110,31 @@ class TestInvalidationDetector:
 
 ### Phase 1: Enhanced Thesis Model
 
-- [ ] Add `ThesisEvidence` dataclass
-- [ ] Update `Thesis` with evidence field
-- [ ] Update serialization/deserialization
-- [ ] Write model tests
+- [x] Add `ThesisEvidence` dataclass
+- [x] Update `Thesis` with evidence field
+- [x] Update serialization/deserialization
+- [x] Write model tests
 
 ### Phase 2: Thesis Researcher
 
-- [ ] Implement `ThesisResearcher`
-- [ ] Implement evidence classification
-- [ ] Implement case summary generation
-- [ ] Write researcher tests
+- [x] Implement `ThesisResearcher`
+- [x] Implement evidence classification
+- [x] Implement case summary generation
+- [x] Write researcher tests
 
 ### Phase 3: Invalidation Detector
 
-- [ ] Implement `InvalidationDetector`
-- [ ] Implement signal analysis
-- [ ] Implement recommendation generation
-- [ ] Write detector tests
+- [x] Implement `InvalidationDetector`
+- [x] Implement signal analysis
+- [x] Implement recommendation generation
+- [x] Write detector tests
 
 ### Phase 4: CLI Integration
 
-- [ ] Add `--with-research` to thesis create
-- [ ] Implement `thesis check-invalidation` command
-- [ ] Implement `thesis suggest` command
-- [ ] Manual CLI testing
+- [x] Add `--with-research` to thesis create
+- [x] Implement `thesis check-invalidation` command
+- [x] Implement `thesis suggest` command
+- [x] Manual CLI testing
 
 ---
 

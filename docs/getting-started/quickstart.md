@@ -99,6 +99,21 @@ uv run kalshi portfolio sync --skip-mark-prices
 uv run kalshi portfolio positions
 ```
 
+## 9) Enable Exa-powered research + news (optional)
+
+Copy `.env.example` (or add to your existing `.env`) and set:
+
+- `EXA_API_KEY`
+
+Then you can run Exa-powered commands like:
+
+```bash
+uv run kalshi research context <TICKER> --max-news 5 --max-papers 3
+uv run kalshi news track <TICKER>
+uv run kalshi news collect
+uv run kalshi news sentiment <TICKER> --days 7
+```
+
 ## Next
 
 - `docs/getting-started/usage.md` for task-based workflows

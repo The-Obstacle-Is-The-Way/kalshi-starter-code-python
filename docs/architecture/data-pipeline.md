@@ -38,6 +38,11 @@ Portfolio tables (optional/authenticated):
 
 - `positions`, `trades` (`src/kalshi_research/portfolio/models.py`)
 
+News/sentiment tables (optional, Exa-powered):
+
+- `tracked_items`, `news_articles`, `news_article_markets`, `news_article_events`, `news_sentiments`
+  (`src/kalshi_research/data/models.py`)
+
 ## Snapshots (why movers/correlation work)
 
 Snapshots are point-in-time rows in `price_snapshots`. A single snapshot is enough for “latest metrics”; multiple

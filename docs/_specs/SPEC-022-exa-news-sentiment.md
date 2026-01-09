@@ -1,6 +1,6 @@
 # SPEC-022: Exa News & Sentiment Pipeline
 
-**Status:** 📋 Planned
+**Status:** ✅ Implemented (2026-01-09)
 **Priority:** P2 (Enhanced analysis)
 **Estimated Complexity:** High
 **Dependencies:** SPEC-020, SPEC-003
@@ -1151,33 +1151,33 @@ class TestNewsCollector:
 
 ### Phase 1: Database Schema
 
-- [ ] Add `TrackedItem`, `NewsArticle`, `NewsArticleMarket`, `NewsSentiment` to models.py
-- [ ] Create Alembic migration
-- [ ] Write model tests
+- [x] Add `TrackedItem`, `NewsArticle`, `NewsArticleMarket`, `NewsArticleEvent`, `NewsSentiment` to models.py
+- [x] Create Alembic migration
+- [x] Write model tests
 
 ### Phase 2: Sentiment Analyzer
 
-- [ ] Implement `SentimentAnalyzer` with keyword lists
-- [ ] Write comprehensive sentiment tests
-- [ ] Tune keyword lists for financial context
+- [x] Implement `SentimentAnalyzer` with keyword lists
+- [x] Write comprehensive sentiment tests
+- [x] Tune keyword lists for financial context
 
 ### Phase 3: News Collector
 
-- [ ] Implement `NewsCollector`
-- [ ] Implement `SentimentAggregator`
-- [ ] Write collector tests with mocked Exa
+- [x] Implement `NewsCollector`
+- [x] Implement `SentimentAggregator`
+- [x] Write collector tests with mocked Exa
 
 ### Phase 4: CLI
 
-- [ ] Implement `news track` command
-- [ ] Implement `news collect` command
-- [ ] Implement `news sentiment` command
-- [ ] Add `news list-tracked` and `news untrack`
+- [x] Implement `news track` command
+- [x] Implement `news collect` command
+- [x] Implement `news sentiment` command
+- [x] Add `news list-tracked` and `news untrack`
 
 ### Phase 5: Alerts Integration
 
-- [ ] Add `SentimentShiftCondition` to alerts system
-- [ ] Test sentiment-based alerts
+- [x] Add sentiment-shift support to alerts system (`ConditionType.SENTIMENT_SHIFT`)
+- [x] Test sentiment-based alerts
 
 ---
 

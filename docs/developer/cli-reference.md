@@ -21,7 +21,8 @@ kalshi
 ├─ alerts     -> src/kalshi_research/cli/alerts.py
 ├─ analysis   -> src/kalshi_research/cli/analysis.py
 ├─ research   -> src/kalshi_research/cli/research.py
-└─ portfolio  -> src/kalshi_research/cli/portfolio.py
+├─ portfolio  -> src/kalshi_research/cli/portfolio.py
+└─ news       -> src/kalshi_research/cli/news.py
 ```
 
 Notes:
@@ -39,6 +40,7 @@ Notes:
 - `kalshi analysis ...`
 - `kalshi research ...`
 - `kalshi portfolio ...`
+- `kalshi news ...`
 
 ## Common patterns
 
@@ -72,8 +74,9 @@ Notes:
 ## `kalshi alerts`
 
 - `kalshi alerts list`
-- `kalshi alerts add <price|volume|spread> <TICKER> --above FLOAT`
+- `kalshi alerts add <price|volume|spread|sentiment> <TICKER> --above FLOAT`
   - price-only: `--below FLOAT` is supported
+  - sentiment-only: `--below` is rejected (only absolute shifts are supported)
 - `kalshi alerts remove <ALERT_ID_PREFIX>`
 - `kalshi alerts monitor [--once] [--interval SEC] [--max-pages N] [--daemon]`
   - `--daemon` starts a detached background process and writes logs to `data/alert_monitor.log`.
@@ -89,12 +92,27 @@ Alerts are stored locally at `data/alerts.json`.
 ## `kalshi research`
 
 - `kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH] [--thesis THESIS_ID_PREFIX]`
+- `kalshi research context <TICKER> [--max-news N] [--max-papers N] [--days N] [--json]`
+- `kalshi research topic <TOPIC> [--no-summary] [--json]`
 - `kalshi research thesis create <TITLE> --markets T1,T2 --your-prob P --market-prob P --confidence P [--bull TEXT] [--bear TEXT]`
+  - optional: `--with-research` (requires `EXA_API_KEY`)
 - `kalshi research thesis list`
 - `kalshi research thesis show <THESIS_ID_PREFIX>`
 - `kalshi research thesis resolve <THESIS_ID_PREFIX> --outcome yes|no|void`
+- `kalshi research thesis check-invalidation <THESIS_ID_PREFIX> [--hours N]`
+- `kalshi research thesis suggest [--category TEXT]`
 
 Theses are stored locally at `data/theses.json`.
+
+## `kalshi news` (Exa-powered, DB-backed)
+
+News data is stored in SQLite (default: `data/kalshi.db`).
+
+- `kalshi news track <TICKER> [--event] [--queries Q1,Q2,...] [--db PATH]`
+- `kalshi news untrack <TICKER> [--event] [--db PATH]`
+- `kalshi news list-tracked [--db PATH]`
+- `kalshi news collect [--ticker TICKER] [--lookback-days N] [--max-per-query N] [--db PATH]`
+- `kalshi news sentiment <TICKER> [--event] [--days N] [--db PATH]`
 
 ## `kalshi portfolio` (authenticated)
 

@@ -1,6 +1,6 @@
 # SPEC-020: Exa API Client Foundation
 
-**Status:** 📋 Planned
+**Status:** ✅ Implemented (2026-01-09)
 **Priority:** P1 (Enables all Exa integrations)
 **Estimated Complexity:** Medium
 **Dependencies:** SPEC-001, SPEC-002
@@ -1462,37 +1462,37 @@ class TestSearchModels:
 
 ### Phase 1: Foundation (Test-First)
 
-- [ ] Create `src/kalshi_research/exa/` package structure
-- [ ] Write test fixtures in `tests/unit/exa/conftest.py`
-- [ ] Write model tests (`test_models.py`)
-- [ ] Implement Pydantic models (search, contents, answer, research)
-- [ ] Run tests, verify models pass
+- [x] Create `src/kalshi_research/exa/` package structure
+- [x] Write test fixtures in `tests/unit/exa/conftest.py`
+- [x] Write model tests (`test_models.py`)
+- [x] Implement Pydantic models (search, contents, answer, research)
+- [x] Run tests, verify models pass
 
 ### Phase 2: Client Core
 
-- [ ] Write client lifecycle tests
-- [ ] Implement `ExaConfig` and `ExaClient` skeleton
-- [ ] Write search endpoint tests
-- [ ] Implement `search()` method
-- [ ] Write answer endpoint tests
-- [ ] Implement `answer()` method
+- [x] Write client lifecycle tests
+- [x] Implement `ExaConfig` and `ExaClient` skeleton
+- [x] Write search endpoint tests
+- [x] Implement `search()` method
+- [x] Write answer endpoint tests
+- [x] Implement `answer()` method
 
 ### Phase 3: Full API Coverage
 
-- [ ] Write contents endpoint tests
-- [ ] Implement `get_contents()` method
-- [ ] Write find_similar endpoint tests
-- [ ] Implement `find_similar()` method
-- [ ] Write research endpoint tests
-- [ ] Implement `create_research_task()`, `get_research_task()`, `wait_for_research()`
+- [x] Write contents endpoint tests
+- [x] Implement `get_contents()` method
+- [x] Write find_similar endpoint tests
+- [x] Implement `find_similar()` method
+- [x] Write research endpoint tests
+- [x] Implement `create_research_task()`, `get_research_task()`, `wait_for_research()`
 
 ### Phase 4: Error Handling & Polish
 
-- [ ] Write error handling tests (auth, rate limit, retries)
-- [ ] Implement retry logic with exponential backoff
-- [ ] Add structured logging throughout
-- [ ] Update `pyproject.toml` with `exa_py` as optional dependency
-- [ ] Add Exa config to `.env.example`
+- [x] Write error handling tests (auth, rate limit, retries)
+- [x] Implement retry logic with increasing backoff (linear)
+- [x] Add structured logging throughout
+- [x] Document Exa config (no extra dependencies beyond `httpx`/`pydantic`)
+- [x] Add Exa config to `.env.example`
 
 ---
 
@@ -1519,12 +1519,7 @@ EXA_API_KEY=your-exa-api-key
 
 ### pyproject.toml additions
 
-```toml
-[project.optional-dependencies]
-research = [
-    "exa_py>=1.0.0",  # Official SDK (optional, we use direct httpx)
-]
-```
+No additional dependencies are required for this integration; we use `httpx` + `pydantic` (already in core deps).
 
 ---
 

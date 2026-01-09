@@ -55,6 +55,14 @@ export KALSHI_PRIVATE_KEY_PATH="/path/to/your/private_key.pem"
 export KALSHI_PRIVATE_KEY_B64="<base64-encoded-private-key>"
 ```
 
+## Exa live tests (disabled by default)
+
+Some integration tests use the real Exa API (skipped automatically unless `EXA_API_KEY` is set):
+
+```bash
+EXA_API_KEY="your-exa-api-key" uv run pytest tests/integration/test_exa_research.py -q
+```
+
 ## Coverage
 
 ```bash

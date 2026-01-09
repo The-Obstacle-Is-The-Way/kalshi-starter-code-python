@@ -17,6 +17,7 @@ Research tools for Kalshi prediction market analysis.
 - **Alerts** - Local alert conditions + monitoring loop
 - **Portfolio (authenticated)** - Sync trades/positions and compute FIFO cost basis + P&L
 - **Thesis tracking** - Create/list/show/resolve theses (local JSON)
+- **Exa (optional)** - Market context research, thesis evidence/invalidation, news tracking + sentiment
 - **Notebooks** - Jupyter templates for exploration
 
 Notes:
@@ -53,6 +54,9 @@ uv run kalshi market get TICKER-NAME
 
 # Start continuous data collection
 uv run kalshi data collect --interval 15
+
+# (Optional) Exa-powered research
+# EXA_API_KEY=... uv run kalshi research context TICKER-NAME --max-news 5 --max-papers 3
 ```
 
 ## CLI Reference

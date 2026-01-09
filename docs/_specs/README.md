@@ -1,10 +1,10 @@
 # Specifications Index
 
-This directory contains **active** design specifications for pending features.
+This directory contains **active** design specifications for current work (planned or implemented).
 
 ## Current Status
 
-**5 active specifications** for Exa API integration.
+**5 active specifications** for Exa API integration (**4 implemented**, **1 planned**).
 
 ## Next ID Tracker
 
@@ -19,24 +19,24 @@ These specs define a comprehensive Exa API integration following TDD principles 
 
 | ID | Title | Priority | Status | Dependencies |
 |---|---|---|---|---|
-| **SPEC-020** | [Exa API Client Foundation](SPEC-020-exa-api-client.md) | P1 | 📋 Planned | SPEC-001, SPEC-002 |
-| **SPEC-021** | [Exa-Powered Market Research](SPEC-021-exa-market-research.md) | P1 | 📋 Planned | SPEC-020 |
-| **SPEC-022** | [Exa News & Sentiment Pipeline](SPEC-022-exa-news-sentiment.md) | P2 | 📋 Planned | SPEC-020, SPEC-003 |
-| **SPEC-023** | [Exa-Thesis Integration](SPEC-023-exa-thesis-integration.md) | P1 | 📋 Planned | SPEC-020, SPEC-021 |
+| **SPEC-020** | [Exa API Client Foundation](SPEC-020-exa-api-client.md) | P1 | ✅ Implemented | SPEC-001, SPEC-002 |
+| **SPEC-021** | [Exa-Powered Market Research](SPEC-021-exa-market-research.md) | P1 | ✅ Implemented | SPEC-020 |
+| **SPEC-022** | [Exa News & Sentiment Pipeline](SPEC-022-exa-news-sentiment.md) | P2 | ✅ Implemented | SPEC-020, SPEC-003 |
+| **SPEC-023** | [Exa-Thesis Integration](SPEC-023-exa-thesis-integration.md) | P1 | ✅ Implemented | SPEC-020, SPEC-021 |
 | **SPEC-024** | [Exa Research Agent](SPEC-024-exa-research-agent.md) | P2 | 📋 Planned | SPEC-020, SPEC-021, SPEC-023 |
 
 ### Implementation Order
 
 **Phase 1: Foundation**
-1. SPEC-020: Build the Exa API client (async, typed, tested)
+1. SPEC-020: Build the Exa API client (async, typed, tested) ✅
 
 **Phase 2: Core Research**
-2. SPEC-021: Market context research CLI
-3. SPEC-023: Thesis research integration
+2. SPEC-021: Market context research CLI ✅
+3. SPEC-023: Thesis research integration ✅
 
 **Phase 3: Advanced Features**
-4. SPEC-022: News collection & sentiment pipeline
-5. SPEC-024: Autonomous research agent
+4. SPEC-022: News collection & sentiment pipeline ✅
+5. SPEC-024: Autonomous research agent (planned)
 
 ### Estimated Total Effort
 

@@ -30,6 +30,16 @@ This is intended for local development and running authenticated commands withou
   - Precedence: `kalshi portfolio ... --rate-tier ...` overrides `KALSHI_RATE_TIER`.
   - Invalid values cause the CLI to exit with an error (no silent fallback).
 
+### Exa (optional)
+
+Exa powers research/news commands and some integration tests.
+
+- `EXA_API_KEY` — enables Exa-powered features (required for `kalshi research context|topic`, `kalshi news ...`, etc.)
+- `EXA_BASE_URL` — override base URL (default: `https://api.exa.ai`)
+- `EXA_TIMEOUT` — request timeout in seconds (default: `30`)
+- `EXA_MAX_RETRIES` — max retries for transient errors (default: `3`)
+- `EXA_RETRY_DELAY` — base retry delay in seconds (default: `1`)
+
 ### Tests only
 
 - `KALSHI_RUN_LIVE_API=1` — enables live API integration tests in `tests/integration/`.
@@ -47,4 +57,7 @@ KALSHI_PRIVATE_KEY_PATH=/absolute/path/to/kalshi-private-key.pem
 
 # Optional: authenticated write rate-limits (only matters for `kalshi portfolio ...`)
 KALSHI_RATE_TIER=basic  # basic|advanced|premier|prime
+
+# Optional: Exa-powered research + news
+EXA_API_KEY=your-exa-api-key
 ```

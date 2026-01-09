@@ -14,6 +14,8 @@ The core package lives under `src/kalshi_research/`:
 - `alerts/` — alert conditions, monitor loop, notifiers
 - `portfolio/` — authenticated sync into DB + FIFO P&L
 - `research/` — thesis tracking (local JSON) + backtesting (DB + settlements)
+- `exa/` — typed async Exa client + cache (optional, enables AI-powered research/news)
+- `news/` — news tracking + sentiment pipeline (Exa-powered, DB-backed)
 
 ## “One Run” Mental Model
 
@@ -45,7 +47,8 @@ kalshi (src/kalshi_research/cli/__init__.py)
 ├─ alerts     (src/kalshi_research/cli/alerts.py)
 ├─ analysis   (src/kalshi_research/cli/analysis.py)
 ├─ research   (src/kalshi_research/cli/research.py)
-└─ portfolio  (src/kalshi_research/cli/portfolio.py)
+├─ portfolio  (src/kalshi_research/cli/portfolio.py)
+└─ news       (src/kalshi_research/cli/news.py)
 ```
 
 See `docs/architecture/cli.md` for details (including daemon spawning for alerts).
@@ -65,6 +68,8 @@ Tables are split across modules but share a single SQLAlchemy `Base`:
 
 - Market data tables: `src/kalshi_research/data/models.py`
   - `events`, `markets`, `price_snapshots`, `settlements`
+- News/sentiment tables: `src/kalshi_research/data/models.py`
+  - `tracked_items`, `news_articles`, `news_article_markets`, `news_article_events`, `news_sentiments`
 - Portfolio tables: `src/kalshi_research/portfolio/models.py`
   - `positions`, `trades`
 
