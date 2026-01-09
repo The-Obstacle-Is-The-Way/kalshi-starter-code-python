@@ -163,6 +163,21 @@ async def test_find_similar_sends_contents_object_when_enabled() -> None:
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_find_similar_omits_contents_when_all_options_disabled() -> None:
+    route = respx.post("https://api.exa.ai/findSimilar").mock(
+        return_value=Response(200, json={"requestId": "req_similar_2", "results": []})
+    )
+
+    async with _client() as exa:
+        await exa.find_similar("https://example.com/a", num_results=1)
+
+    assert route.call_count == 1
+    body = json.loads(route.calls[0].request.content.decode("utf-8"))
+    assert "contents" not in body
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_answer_success() -> None:
     respx.post("https://api.exa.ai/answer").mock(
         return_value=Response(
@@ -181,6 +196,36 @@ async def test_answer_success() -> None:
     assert resp.answer == "42"
     assert resp.cost_dollars is not None
     assert resp.cost_dollars.total == 0.01
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_create_research_task_posts_payload() -> None:
+    route = respx.post("https://api.exa.ai/research/v1").mock(
+        return_value=Response(
+            200,
+            json={
+                "researchId": "r1",
+                "status": "completed",
+                "createdAt": 1,
+                "instructions": "Do the thing",
+                "output": {"content": "done"},
+            },
+        )
+    )
+
+    async with _client() as exa:
+        task = await exa.create_research_task(
+            instructions="Do the thing",
+            output_schema={"type": "object"},
+        )
+
+    assert task.research_id == "r1"
+    assert task.output is not None
+    assert route.call_count == 1
+    body = json.loads(route.calls[0].request.content.decode("utf-8"))
+    assert body["instructions"] == "Do the thing"
+    assert body["outputSchema"] == {"type": "object"}
 
 
 @pytest.mark.asyncio
@@ -218,3 +263,19 @@ async def test_wait_for_research_polls_until_terminal_status() -> None:
     assert task.output.content == "done"
     assert route.call_count == 2
     assert mock_sleep.await_count >= 1
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_wait_for_research_times_out() -> None:
+    respx.get("https://api.exa.ai/research/v1/r2").mock(
+        return_value=Response(
+            200,
+            json={"researchId": "r2", "status": "pending", "createdAt": 1, "instructions": "x"},
+        )
+    )
+
+    with patch("kalshi_research.exa.client.time.monotonic", side_effect=[0.0, 2.0]):
+        async with _client() as exa:
+            with pytest.raises(TimeoutError):
+                await exa.wait_for_research("r2", poll_interval=0.0, timeout=1.0)
