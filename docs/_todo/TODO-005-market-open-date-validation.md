@@ -121,5 +121,5 @@ opened Jan 2026. S5 doesn't count - market is asking about S6 or beyond.
 ## Acceptance Criteria
 
 - [x] `market get` displays `open_time` and `created_time` (commit: d7a9694)
-- [ ] Research workflow includes temporal validation
+- [x] Research workflow includes temporal validation (TemporalValidator in thesis.py with tests)
 - [ ] Documentation updated with market timing warnings in GOTCHAS.md

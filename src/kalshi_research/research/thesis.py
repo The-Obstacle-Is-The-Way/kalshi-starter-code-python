@@ -9,11 +9,14 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
 from kalshi_research.paths import DEFAULT_THESES_PATH
+
+if TYPE_CHECKING:
+    from kalshi_research.api.models.market import Market
 
 logger = structlog.get_logger()
 
@@ -25,6 +28,52 @@ class ThesisStatus(str, Enum):
     ACTIVE = "active"
     RESOLVED = "resolved"
     ABANDONED = "abandoned"
+
+
+@dataclass(frozen=True)
+class TemporalValidationResult:
+    """Result of temporal validation for research events."""
+
+    valid: bool
+    warning: str | None = None
+
+
+class TemporalValidator:
+    """
+    Validates that researched events occurred after market opened.
+
+    Prevents the "Market Timing Trap" where research identifies events
+    that occurred before the market opened, which don't count for the
+    market's resolution.
+
+    Example:
+        Stranger Things S5 released Dec 31, 2025.
+        Market asking "Will new episode release before Jan 1, 2027?"
+        opened Jan 5, 2026.
+        -> S5 doesn't count! Market is asking about S6 or beyond.
+    """
+
+    def validate(self, market: Market, event_date: datetime) -> TemporalValidationResult:
+        """
+        Check if researched event occurred after market opened.
+
+        Args:
+            market: The market being researched
+            event_date: Date when the researched event occurred
+
+        Returns:
+            TemporalValidationResult with valid=False if event predates market
+        """
+        if event_date < market.open_time:
+            return TemporalValidationResult(
+                valid=False,
+                warning=(
+                    f"Event ({event_date.strftime('%Y-%m-%d %H:%M:%S %Z')}) "
+                    f"predates market open ({market.open_time.strftime('%Y-%m-%d %H:%M:%S %Z')}). "
+                    "This event likely does NOT count for this market."
+                ),
+            )
+        return TemporalValidationResult(valid=True)
 
 
 @dataclass(frozen=True)

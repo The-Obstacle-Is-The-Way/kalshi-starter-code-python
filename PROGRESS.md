@@ -23,7 +23,7 @@
 ## Phase 4: Research Quality (INCOMPLETE - Reopened)
 
 - [x] **TODO-005a**: Display `open_time`/`created_time` in `market get` → `cli/market.py`
-- [ ] **TODO-005b**: Add temporal validation to research workflow → `research/thesis.py`
+- [x] **TODO-005b**: Add temporal validation to research workflow → `research/thesis.py`
 - [ ] **TODO-005c**: Add market timing warnings to GOTCHAS.md → `.claude/skills/`
 - [x] **BUG-047**: Investigate portfolio sync discrepancy → `portfolio/syncer.py`
 
