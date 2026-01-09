@@ -91,7 +91,7 @@ class AlertMonitor:
             if market is None:
                 continue
 
-            mid_prob = (market.yes_bid + market.yes_ask) / 200.0
+            mid_prob = market.midpoint / 100.0
             current_mid_probs[condition.ticker] = mid_prob
             alert = self._check_condition(
                 condition,
@@ -147,7 +147,7 @@ class AlertMonitor:
                     triggered = crossed_up or crossed_down
 
             case ConditionType.SPREAD_ABOVE:
-                spread = market.yes_ask - market.yes_bid
+                spread = market.spread
                 current_value = float(spread)
                 triggered = current_value > condition.threshold
 
@@ -178,8 +178,8 @@ class AlertMonitor:
                 market_data={
                     "ticker": market.ticker,
                     "title": market.title,
-                    "yes_bid": market.yes_bid,
-                    "yes_ask": market.yes_ask,
+                    "yes_bid": market.yes_bid_cents,
+                    "yes_ask": market.yes_ask_cents,
                     "volume": market.volume,
                 },
             )

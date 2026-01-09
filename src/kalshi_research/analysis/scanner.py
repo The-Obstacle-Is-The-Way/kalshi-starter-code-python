@@ -182,12 +182,12 @@ class MarketScanner:
 
         for m in tradeable_markets:
             # SKIP: Unpriced markets (0/0 or 0/100 placeholder quotes)
-            if m.yes_bid == 0 and m.yes_ask == 0:
+            if m.yes_bid_cents == 0 and m.yes_ask_cents == 0:
                 continue  # No quotes at all
-            if m.yes_bid == 0 and m.yes_ask == 100:
+            if m.yes_bid_cents == 0 and m.yes_ask_cents == 100:
                 continue  # Placeholder: no real price discovery
 
-            spread = m.yes_ask - m.yes_bid
+            spread = m.spread
 
             # SKIP: Illiquid markets
             if spread > max_spread:
@@ -199,7 +199,7 @@ class MarketScanner:
             # 200.0 = (bid + ask) / 2 for midpoint, then / 100 to convert cents to probability.
             # This is NOT a magic number - it's standard binary market math.
             # See: docs/_vendor-docs/kalshi-api-reference.md (Binary market math)
-            prob = (m.yes_bid + m.yes_ask) / 200.0
+            prob = m.midpoint / 100.0
 
             # Check if in close race range
             if self.close_race_range[0] <= prob <= self.close_race_range[1]:
@@ -250,8 +250,8 @@ class MarketScanner:
         for m in tradeable_markets:
             if m.volume_24h >= self.high_volume_threshold:
                 # Midpoint probability: see scan_close_races for derivation of 200.0
-                prob = (m.yes_bid + m.yes_ask) / 200.0
-                spread = m.yes_ask - m.yes_bid
+                prob = m.midpoint / 100.0
+                spread = m.spread
 
                 # Score by volume (log scale)
                 score = min(math.log10(m.volume_24h + 1) / 6, 1.0)
@@ -297,10 +297,10 @@ class MarketScanner:
         results: list[ScanResult] = []
 
         for m in tradeable_markets:
-            spread = m.yes_ask - m.yes_bid
+            spread = m.spread
 
             if spread >= self.wide_spread_threshold:
-                prob = (m.yes_bid + m.yes_ask) / 200.0
+                prob = m.midpoint / 100.0
 
                 # Score by spread (capped at 20c)
                 score = min(spread / 20, 1.0)
@@ -350,8 +350,8 @@ class MarketScanner:
 
         for m in tradeable_markets:
             if m.close_time <= cutoff:
-                prob = (m.yes_bid + m.yes_ask) / 200.0
-                spread = m.yes_ask - m.yes_bid
+                prob = m.midpoint / 100.0
+                spread = m.spread
 
                 time_left = m.close_time - datetime.now(UTC)
                 hours_left = time_left.total_seconds() / 3600

@@ -313,13 +313,13 @@ class PortfolioSyncer:
 
                     # Compute mark price as midpoint (in cents)
                     # Handle unpriced markets (0/0 or 0/100) - skip update
-                    if market.yes_bid == 0 and market.yes_ask == 0:
+                    if market.yes_bid_cents == 0 and market.yes_ask_cents == 0:
                         logger.warning(
                             "Market has no quotes; skipping mark price update",
                             ticker=pos.ticker,
                         )
                         continue
-                    if market.yes_bid == 0 and market.yes_ask == 100:
+                    if market.yes_bid_cents == 0 and market.yes_ask_cents == 100:
                         logger.warning(
                             "Market has placeholder quotes; skipping mark price update",
                             ticker=pos.ticker,
@@ -328,10 +328,10 @@ class PortfolioSyncer:
 
                     # Mark price = midpoint of bid/ask
                     if pos.side == "yes":
-                        mark_price = (market.yes_bid + market.yes_ask) // 2
+                        mark_price = int(market.midpoint)
                     else:
                         # For NO positions, use NO side midpoint
-                        mark_price = (market.no_bid + market.no_ask) // 2
+                        mark_price = (market.no_bid_cents + market.no_ask_cents) // 2
 
                     pos.current_price_cents = mark_price
 

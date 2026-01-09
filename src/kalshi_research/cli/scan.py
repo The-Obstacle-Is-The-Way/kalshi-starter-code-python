@@ -233,10 +233,9 @@ def scan_arbitrage(  # noqa: PLR0915
                     opportunity_type="inverse_sum",
                     expected_relationship="Sum to ~100%",
                     actual_values={
-                        m1.ticker: (m1.yes_bid + m1.yes_ask) / 2.0 / 100.0,
-                        m2.ticker: (m2.yes_bid + m2.yes_ask) / 2.0 / 100.0,
-                        "sum": (m1.yes_bid + m1.yes_ask) / 2.0 / 100.0
-                        + (m2.yes_bid + m2.yes_ask) / 2.0 / 100.0,
+                        m1.ticker: m1.midpoint / 100.0,
+                        m2.ticker: m2.midpoint / 100.0,
+                        "sum": m1.midpoint / 100.0 + m2.midpoint / 100.0,
                     },
                     divergence=abs(deviation),
                     confidence=0.95,

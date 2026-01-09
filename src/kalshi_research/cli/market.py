@@ -36,8 +36,8 @@ def market_get(
         table.add_row("Title", market.title)
         table.add_row("Event", market.event_ticker)
         table.add_row("Status", market.status.value)
-        table.add_row("Yes Bid/Ask", f"{market.yes_bid}¢ / {market.yes_ask}¢")
-        table.add_row("No Bid/Ask", f"{market.no_bid}¢ / {market.no_ask}¢")
+        table.add_row("Yes Bid/Ask", f"{market.yes_bid_cents}¢ / {market.yes_ask_cents}¢")
+        table.add_row("No Bid/Ask", f"{market.no_bid_cents}¢ / {market.no_ask_cents}¢")
         table.add_row("Volume (24h)", f"{market.volume_24h:,}")
         table.add_row("Open Interest", f"{market.open_interest:,}")
         table.add_row("Open Time", market.open_time.isoformat())
@@ -136,7 +136,7 @@ def market_list(
                 m.ticker[:30],
                 m.title[:40] + ("..." if len(m.title) > 40 else ""),
                 m.status.value,
-                f"{m.yes_bid}¢",
+                f"{m.yes_bid_cents}¢",
                 f"{m.volume_24h:,}",
             )
 

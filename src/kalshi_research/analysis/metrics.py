@@ -75,11 +75,11 @@ class MarketMetrics:
         Returns:
             SpreadStats with current and historical spread info
         """
-        current_spread = market.yes_ask - market.yes_bid
-        midpoint = (market.yes_ask + market.yes_bid) / 2.0
+        current_spread = market.spread
+        midpoint = market.midpoint
 
         if snapshots and len(snapshots) > 0:
-            spreads = [s.yes_ask - s.yes_bid for s in snapshots]
+            spreads = [s.spread for s in snapshots]
             avg_spread = float(np.mean(spreads))
             min_spread = min(spreads)
             max_spread = max(spreads)
@@ -126,7 +126,7 @@ class MarketMetrics:
         sorted_snaps = sorted(snapshots, key=lambda s: s.snapshot_time)
 
         # Compute returns using midpoint as "yes_price"
-        prices = np.array([(s.yes_bid + s.yes_ask) / 200.0 for s in sorted_snaps], dtype=float)
+        prices = np.array([s.midpoint / 100.0 for s in sorted_snaps], dtype=float)
         prev_prices = prices[:-1]
         diffs = np.diff(prices)
 
@@ -235,7 +235,7 @@ class MarketMetrics:
             if date_key not in by_date:
                 by_date[date_key] = []
             # Use midpoint as price
-            price = (snap.yes_bid + snap.yes_ask) / 200.0
+            price = snap.midpoint / 100.0
             by_date[date_key].append(price)
 
         # Compute daily close-to-close returns

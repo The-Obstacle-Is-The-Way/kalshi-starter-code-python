@@ -415,10 +415,11 @@ async def test_update_mark_prices_computes_unrealized_pnl() -> None:
 
     # Mock market data: yes_bid=48, yes_ask=52 -> midpoint=50
     market = MagicMock()
-    market.yes_bid = 48
-    market.yes_ask = 52
-    market.no_bid = 48
-    market.no_ask = 52
+    market.yes_bid_cents = 48
+    market.yes_ask_cents = 52
+    market.no_bid_cents = 48
+    market.no_ask_cents = 52
+    market.midpoint = 50.0
 
     public_client = AsyncMock()
     public_client.get_market = AsyncMock(return_value=market)
@@ -466,8 +467,8 @@ async def test_update_mark_prices_skips_unpriced_markets() -> None:
 
     # Mock unpriced market: 0/0
     market = MagicMock()
-    market.yes_bid = 0
-    market.yes_ask = 0
+    market.yes_bid_cents = 0
+    market.yes_ask_cents = 0
 
     public_client = AsyncMock()
     public_client.get_market = AsyncMock(return_value=market)

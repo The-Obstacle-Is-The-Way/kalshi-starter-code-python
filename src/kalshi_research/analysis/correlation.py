@@ -36,7 +36,7 @@ def _is_priced(market: Market) -> bool:
     Returns:
         True if market has meaningful quotes
     """
-    return market.yes_bid not in {0, 100} and market.yes_ask not in {0, 100}
+    return market.yes_bid_cents not in {0, 100} and market.yes_ask_cents not in {0, 100}
 
 
 class CorrelationType(str, Enum):
@@ -285,8 +285,8 @@ class CorrelationAnalyzer:
             if len(event_markets) == 2:
                 m1, m2 = event_markets
                 # Use midpoint of bid/ask as price
-                price1 = (m1.yes_bid + m1.yes_ask) / 2.0 / 100.0
-                price2 = (m2.yes_bid + m2.yes_ask) / 2.0 / 100.0
+                price1 = m1.midpoint / 100.0
+                price2 = m2.midpoint / 100.0
                 prob_sum = price1 + price2
 
                 if abs(prob_sum - 1.0) > tolerance:
@@ -314,9 +314,7 @@ class CorrelationAnalyzer:
         """
         opportunities: list[ArbitrageOpportunity] = []
         # Use midpoint of bid/ask as price
-        market_prices = {
-            m.ticker: (m.yes_bid + m.yes_ask) / 2.0 / 100.0 for m in markets if _is_priced(m)
-        }
+        market_prices = {m.ticker: m.midpoint / 100.0 for m in markets if _is_priced(m)}
 
         for pair in correlated_pairs:
             if pair.ticker_a not in market_prices:

@@ -106,15 +106,19 @@ class DataFetcher:
     def _api_market_to_snapshot(
         self, api_market: APIMarket, snapshot_time: datetime
     ) -> PriceSnapshot:
-        """Convert API market to price snapshot."""
+        """Convert API market to price snapshot.
+
+        Uses computed properties that prefer new dollar fields over legacy cent fields.
+        Database continues to store cents for backwards compatibility.
+        """
         return PriceSnapshot(
             ticker=api_market.ticker,
             snapshot_time=snapshot_time,
-            yes_bid=api_market.yes_bid,
-            yes_ask=api_market.yes_ask,
-            no_bid=api_market.no_bid,
-            no_ask=api_market.no_ask,
-            last_price=api_market.last_price,
+            yes_bid=api_market.yes_bid_cents,
+            yes_ask=api_market.yes_ask_cents,
+            no_bid=api_market.no_bid_cents,
+            no_ask=api_market.no_ask_cents,
+            last_price=api_market.last_price_cents,
             volume=api_market.volume,
             volume_24h=api_market.volume_24h,
             open_interest=api_market.open_interest,
