@@ -43,7 +43,7 @@ These specs define a comprehensive Exa API integration following TDD principles 
 - **Lines of Code**: ~3,000-4,000 (src + tests)
 - **New Modules**: `src/kalshi_research/exa/`, `src/kalshi_research/agent/`, `src/kalshi_research/news/`
 - **New CLI Commands**: ~15 new commands across `research`, `news`, `agent` groups
-- **Database Tables**: 4 new tables (news tracking)
+- **Database Tables**: 5 new tables (news + sentiment tracking)
 
 ---
 
