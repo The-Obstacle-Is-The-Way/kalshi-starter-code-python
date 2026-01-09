@@ -11,6 +11,11 @@ docs_dir: docs
 exclude_docs: |
   _archive/**
 
+# Keep tracker detail pages in the build but hide them from nav.
+not_in_nav: |
+  _bugs/BUG-*.md
+  _todo/TODO-*.md
+
 theme:
   name: material
   features:
@@ -43,26 +48,39 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Tutorials:
-      - Quickstart: tutorials/quickstart.md
-  - How-to:
-      - Usage: how-to/usage.md
-      - Testing: how-to/testing.md
-  - Reference:
-      - CLI: reference/cli-reference.md
-      - Configuration: reference/configuration.md
-      - Python API: reference/python-api.md
-      - Kalshi API (Vendor): kalshi-docs/official-api-reference.md
-  - Explanation:
-      - Architecture: explanation/architecture.md
-      - CLI Architecture: explanation/cli-architecture.md
-      - Data Pipeline: explanation/data-pipeline.md
+  - Getting Started:
+      - Quickstart: getting-started/quickstart.md
+      - Usage Guide: getting-started/usage.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - CLI Design: architecture/cli.md
+      - Data Pipeline: architecture/data-pipeline.md
+  - Research:
+      - Thesis System: research/thesis-system.md
+      - Backtesting: research/backtesting.md
+      - Calibration Analysis: research/calibration-analysis.md
+  - Trading:
+      - Portfolio Tracking: trading/portfolio-tracking.md
+      - Alerts System: trading/alerts-system.md
+      - Market Scanner: trading/scanner.md
+  - Developer:
+      - Configuration: developer/configuration.md
+      - Python API: developer/python-api.md
+      - CLI Reference: developer/cli-reference.md
+      - Testing: developer/testing.md
+  - Vendor APIs:
+      - Kalshi API: _vendor-docs/kalshi-api-reference.md
+      - Exa API: _vendor-docs/exa-api-reference.md
   - Internal:
-      - Specs Index: _specs/README.md
+      - Specs:
+          - Index: _specs/README.md
+          - SPEC-024: _specs/SPEC-024-exa-research-agent.md
+          - SPEC-025: _specs/SPEC-025-market-open-time-display.md
       - Bug Tracker: _bugs/README.md
       - Todo Index: _todo/README.md
+      - Debt Overview: _debt/README.md
       - Technical Debt: _debt/technical-debt.md
       - Code Audit Checklist: _debt/code-audit-checklist.md
-      - Ralph Wiggum Protocol: ralph-wiggum/protocol.md
-      - Ralph Wiggum Prompt: ralph-wiggum/prompt.md
-      - Ralph Wiggum Progress: ralph-wiggum/progress.md
+      - Ralph Wiggum Protocol: _ralph-wiggum/protocol.md
+      - Ralph Wiggum Prompt: _ralph-wiggum/prompt.md
+      - Ralph Wiggum Progress: _ralph-wiggum/progress.md

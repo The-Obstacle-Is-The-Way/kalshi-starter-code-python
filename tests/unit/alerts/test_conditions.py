@@ -164,6 +164,7 @@ class TestConditionType:
         assert ConditionType.SPREAD_ABOVE.value == "spread_above"
         assert ConditionType.VOLUME_ABOVE.value == "volume_above"
         assert ConditionType.EDGE_DETECTED.value == "edge_detected"
+        assert ConditionType.SENTIMENT_SHIFT.value == "sentiment_shift"
 
 
 class TestAlertStatus:

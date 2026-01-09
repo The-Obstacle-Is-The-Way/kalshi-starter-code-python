@@ -34,6 +34,12 @@ async def test_create_tables_includes_all_models(tmp_path) -> None:
         # Portfolio tables (share same Base)
         assert "positions" in table_names
         assert "trades" in table_names
+        # News/sentiment tables
+        assert "tracked_items" in table_names
+        assert "news_articles" in table_names
+        assert "news_article_markets" in table_names
+        assert "news_article_events" in table_names
+        assert "news_sentiments" in table_names
     finally:
         await db.close()
 

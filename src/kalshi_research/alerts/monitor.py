@@ -63,6 +63,8 @@ class AlertMonitor:
     async def check_conditions(
         self,
         markets: list[Market],
+        *,
+        sentiment_shift_by_ticker: dict[str, float] | None = None,
     ) -> list[Alert]:
         """
         Check all conditions against current market data.
@@ -76,6 +78,7 @@ class AlertMonitor:
         new_alerts: list[Alert] = []
         market_lookup = {m.ticker: m for m in markets}
         current_mid_probs: dict[str, float] = {}
+        shift_lookup = sentiment_shift_by_ticker or {}
 
         for condition in list(self._conditions.values()):
             # Skip expired conditions
@@ -95,6 +98,7 @@ class AlertMonitor:
                 market,
                 mid_prob=mid_prob,
                 prev_mid_prob=self._last_mid_probs.get(condition.ticker),
+                sentiment_shift=shift_lookup.get(condition.ticker),
             )
             if alert:
                 new_alerts.append(alert)
@@ -117,6 +121,7 @@ class AlertMonitor:
         *,
         mid_prob: float,
         prev_mid_prob: float | None,
+        sentiment_shift: float | None,
     ) -> Alert | None:
         """Check a single condition against market data."""
         triggered = False
@@ -155,6 +160,13 @@ class AlertMonitor:
                 if prev_mid_prob is not None and condition.threshold > 0:
                     current_value = abs(mid_prob - prev_mid_prob)
                     triggered = current_value >= condition.threshold
+
+            case ConditionType.SENTIMENT_SHIFT:
+                # Trigger on absolute change in rolling sentiment.
+                # `sentiment_shift` is expected to be a delta (e.g., last 7d avg - previous 7d avg).
+                if sentiment_shift is not None and condition.threshold > 0:
+                    current_value = sentiment_shift
+                    triggered = abs(sentiment_shift) >= condition.threshold
 
         if triggered:
             return Alert(

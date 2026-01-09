@@ -1,15 +1,34 @@
 # Specifications Index
 
-This directory contains **active** design specifications for pending features.
+This directory contains **active** design specifications for current work (planned or implemented).
 
 ## Current Status
 
-**No active specifications.** All 19 specs have been implemented.
+**2 active specifications** (both planned, pending implementation).
 
 ## Next ID Tracker
 
 Use this ID for the next specification you create:
-**SPEC-020**
+**SPEC-026**
+
+---
+
+## Active Specifications
+
+| ID | Title | Priority | Status | Dependencies |
+|---|---|---|---|---|
+| **SPEC-024** | [Exa Research Agent](SPEC-024-exa-research-agent.md) | P2 | 📋 Planned | SPEC-020, SPEC-021, SPEC-023 |
+| **SPEC-025** | [Market Open Time Display](SPEC-025-market-open-time-display.md) | P1 | 📋 Planned | None |
+
+### SPEC-024: Exa Research Agent
+
+Autonomous research agent that coordinates Exa searches, news collection, and thesis tracking. Depends on the now-implemented Exa integration (SPEC-020 through SPEC-023).
+
+### SPEC-025: Market Open Time Display
+
+**High Priority** - Add `open_time` and `created_time` to `market get` CLI output. This is a critical fix to prevent temporal validation errors in research workflows (see TODO-005).
+
+Related to: A catastrophic research failure where a recommendation was made based on events that occurred BEFORE the market opened.
 
 ---
 
@@ -22,8 +41,12 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 | ID | Title | Status |
 |---|---|---|
-| **SPEC-018** | CLI Refactoring | ✅ Implemented |
+| **SPEC-023** | Exa-Thesis Integration | ✅ Implemented (2026-01-09) |
+| **SPEC-022** | Exa News & Sentiment Pipeline | ✅ Implemented (2026-01-09) |
+| **SPEC-021** | Exa-Powered Market Research | ✅ Implemented (2026-01-09) |
+| **SPEC-020** | Exa API Client Foundation | ✅ Implemented (2026-01-09) |
 | **SPEC-019** | CLI Test Suite Refactor | ✅ Implemented |
+| **SPEC-018** | CLI Refactoring | ✅ Implemented |
 | **SPEC-017** | Alert Monitor Daemon Mode | ✅ Implemented |
 | **SPEC-016** | Demo Environment Testing | ✅ Implemented |
 | **SPEC-015** | Rate Limit Tier Management | ✅ Implemented |

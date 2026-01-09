@@ -28,18 +28,54 @@ def test_alembic_upgrade_downgrade_roundtrip(tmp_path) -> None:
 
     command.upgrade(cfg, "head")
     tables_after_upgrade = _tables(db_path)
-    for table in ("events", "markets", "price_snapshots", "settlements", "positions", "trades"):
+    for table in (
+        "events",
+        "markets",
+        "price_snapshots",
+        "settlements",
+        "positions",
+        "trades",
+        "tracked_items",
+        "news_articles",
+        "news_article_markets",
+        "news_article_events",
+        "news_sentiments",
+    ):
         assert table in tables_after_upgrade
     assert app_logger.disabled is False
 
     command.downgrade(cfg, "base")
     tables_after_downgrade = _tables(db_path)
-    for table in ("events", "markets", "price_snapshots", "settlements", "positions", "trades"):
+    for table in (
+        "events",
+        "markets",
+        "price_snapshots",
+        "settlements",
+        "positions",
+        "trades",
+        "tracked_items",
+        "news_articles",
+        "news_article_markets",
+        "news_article_events",
+        "news_sentiments",
+    ):
         assert table not in tables_after_downgrade
     assert app_logger.disabled is False
 
     command.upgrade(cfg, "head")
     tables_after_reupgrade = _tables(db_path)
-    for table in ("events", "markets", "price_snapshots", "settlements", "positions", "trades"):
+    for table in (
+        "events",
+        "markets",
+        "price_snapshots",
+        "settlements",
+        "positions",
+        "trades",
+        "tracked_items",
+        "news_articles",
+        "news_article_markets",
+        "news_article_events",
+        "news_sentiments",
+    ):
         assert table in tables_after_reupgrade
     assert app_logger.disabled is False

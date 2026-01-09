@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Agent Skills
+
+This repository includes Agent Skills for enhanced CLI navigation and documentation auditing:
+
+| Skill | Location | Purpose |
+|-------|----------|---------|
+| `kalshi-cli` | `.claude/skills/kalshi-cli/` | CLI commands, database queries, workflows, gotchas |
+| `kalshi-doc-audit` | `.claude/skills/kalshi-doc-audit/` | Documentation auditing against SSOT |
+
+Skills are also mirrored to `.codex/skills/` and `.gemini/skills/` for other agents.
+
 ## CRITICAL: Commit Safety Protocol
 
 **NEVER commit code without running quality gates first.** A previous incident introduced syntax corruption (`时不时` instead of `import`) that broke the entire codebase. This was caused by committing without pre-commit hooks installed.
@@ -78,6 +89,14 @@ uv run kalshi scan opportunities --filter close-race
 - **NO `--no-verify` commits** - Always run pre-commit hooks
 - **NO manual git commits** - Use `uv run pre-commit run` first
 
+### Database Safety (Do Not Destroy State)
+
+- **NEVER delete `data/kalshi.db`** to "fix" corruption. Diagnose and recover instead:
+  - `sqlite3 data/kalshi.db "PRAGMA integrity_check;"`
+  - `sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`
+- `data/exa_cache/` is safe to delete; the SQLite DB is not.
+- See `.claude/skills/kalshi-cli/GOTCHAS.md` for the full "Critical Anti-Patterns" section.
+
 ## Architecture
 
 ### Layer Structure
@@ -94,6 +113,8 @@ src/kalshi_research/
 │   ├── repositories/  # Repository pattern (markets, events, prices)
 │   ├── fetcher.py     # DataFetcher (coordinates API → DB)
 │   └── export.py      # DuckDB/Parquet export
+├── exa/           # Exa API client for research
+├── news/          # News collection and sentiment analysis
 ├── analysis/      # Research analytics
 │   ├── calibration.py   # Brier scores, calibration curves
 │   ├── edge.py          # Edge detection (thesis, spread, volume)
@@ -108,7 +129,7 @@ src/kalshi_research/
 │   ├── thesis.py        # Thesis tracking
 │   ├── backtest.py      # ThesisBacktester
 │   └── notebook_utils.py # Jupyter helpers
-├── portfolio/     # Portfolio tracking (read-only)
+├── portfolio/     # Portfolio tracking (no order placement)
 │   ├── models.py        # Position, Trade models
 │   ├── pnl.py           # P&L calculator
 │   └── syncer.py        # Sync from Kalshi API
@@ -119,7 +140,9 @@ src/kalshi_research/
 
 **API Clients**: Use async context managers. `KalshiPublicClient` for research (no auth), `KalshiClient` for portfolio sync (requires API key).
 
-**Repository Pattern**: All DB access goes through repositories in `data/repositories/`. Never use raw SQL or direct session queries elsewhere.
+**Repository Pattern**: Prefer repositories in `data/repositories/` for shared persistence logic. For
+small, one-off queries in CLI commands, direct `select()` usage is acceptable when it avoids unnecessary abstraction,
+but don't duplicate repository behavior in multiple places.
 
 **Pydantic Models**: API models in `api/models/` are frozen (`model_config = ConfigDict(frozen=True)`). Don't mutate them.
 
@@ -131,13 +154,14 @@ src/kalshi_research/
 
 ```
 kalshi
-├── data        # init, sync-markets, collect, export, stats
+├── data        # init, sync-markets, sync-settlements, snapshot, collect, export, stats
 ├── market      # get, list, orderbook
 ├── scan        # opportunities, arbitrage, movers
 ├── alerts      # list, add, remove, monitor
 ├── analysis    # calibration, correlation, metrics
-├── research    # thesis (create/list/show/resolve), backtest
-└── portfolio   # sync, positions, pnl, balance, history
+├── research    # thesis (create/list/show/resolve), backtest, context, topic
+├── news        # track, untrack, list-tracked, collect, sentiment
+└── portfolio   # sync, positions, pnl, balance, history, link, suggest-links
 ```
 
 ## Test Organization
@@ -145,3 +169,11 @@ kalshi
 Tests mirror source structure: `tests/unit/api/`, `tests/unit/data/`, etc. Integration tests requiring API keys go in `tests/integration/`.
 
 Fixtures in `conftest.py` provide `make_market`, `make_orderbook`, `make_trade` factories that return dicts matching API response structure.
+
+## Documentation Tracking
+
+When you find drift, bugs, or technical debt, record them in the appropriate tracker:
+
+- Active bugs: `docs/_bugs/README.md`
+- Active tasks: `docs/_todo/README.md`
+- Technical debt: `docs/_debt/README.md`

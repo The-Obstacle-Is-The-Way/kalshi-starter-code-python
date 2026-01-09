@@ -15,6 +15,7 @@ class ConditionType(str, Enum):
     SPREAD_ABOVE = "spread_above"
     VOLUME_ABOVE = "volume_above"
     EDGE_DETECTED = "edge_detected"
+    SENTIMENT_SHIFT = "sentiment_shift"
 
 
 class AlertStatus(str, Enum):

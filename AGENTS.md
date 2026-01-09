@@ -1,5 +1,21 @@
 # Repository Guidelines
 
+This file provides guidance to AI coding agents (Claude Code, OpenAI Codex, Gemini CLI, etc.) when working with this repository.
+
+## Agent Skills
+
+This repository includes Agent Skills for enhanced CLI navigation and documentation auditing:
+
+| Skill | Purpose |
+|-------|---------|
+| `kalshi-cli` | CLI commands, database queries, workflows, gotchas |
+| `kalshi-doc-audit` | Documentation auditing against SSOT |
+
+Skills are located in agent-specific directories (all identical content):
+- `.claude/skills/` - Claude Code
+- `.codex/skills/` - OpenAI Codex CLI
+- `.gemini/skills/` - Gemini CLI
+
 ## CRITICAL: Commit Safety Protocol
 
 **NEVER commit code without running quality gates first.** A previous incident introduced syntax corruption (`时不时` instead of `import`) that broke the entire codebase. This was caused by committing without pre-commit hooks installed.
@@ -40,6 +56,8 @@ git add . && git commit -m "Your message"
 - `src/kalshi_research/`: main package (src-layout)
   - `api/`: Kalshi HTTP clients + Pydantic models
   - `data/`: async SQLite/SQLAlchemy persistence, repositories, exports
+  - `exa/`: Exa API client for research
+  - `news/`: News collection and sentiment analysis
   - `analysis/`, `research/`, `alerts/`, `portfolio/`: domain modules
   - `cli/`: Typer CLI package entrypoint (`kalshi`)
 - `tests/`: `unit/` mirrors `src/`; `integration/` hits real API (needs creds)
@@ -84,3 +102,19 @@ uv run pytest -m "not integration and not slow"  # fast local suite (CI-like)
 
 - Copy `.env.example` → `.env`; never commit `.env`, API keys, or private key material.
 - Public endpoints work without creds; portfolio features/integration tests require `KALSHI_KEY_ID` plus a key (`KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`).
+- Exa-powered commands require `EXA_API_KEY`.
+
+## Database Safety (Do Not Destroy State)
+
+- **NEVER delete `data/kalshi.db`** to "fix" issues (e.g. `database disk image is malformed`).
+- Diagnose first (`sqlite3 data/kalshi.db "PRAGMA integrity_check;"`) and recover when needed (`sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`).
+- `data/exa_cache/` is disposable cache; the SQLite DB is not.
+- See the skills GOTCHAS.md for the full "Critical Anti-Patterns" section.
+
+## Documentation Tracking
+
+When you find drift, bugs, or technical debt, record them in the appropriate tracker:
+
+- Active bugs: `docs/_bugs/README.md`
+- Active tasks: `docs/_todo/README.md`
+- Technical debt: `docs/_debt/README.md`

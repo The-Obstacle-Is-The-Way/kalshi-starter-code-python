@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
@@ -9,6 +10,48 @@ from typer.testing import CliRunner
 from kalshi_research.cli import app
 
 runner = CliRunner()
+
+
+def test_research_context_help() -> None:
+    result = runner.invoke(app, ["research", "context", "--help"])
+    assert result.exit_code == 0
+    assert "Market ticker to research" in result.stdout
+
+
+def test_research_topic_help() -> None:
+    result = runner.invoke(app, ["research", "topic", "--help"])
+    assert result.exit_code == 0
+    assert "Topic or question to research" in result.stdout
+
+
+def test_research_context_missing_exa_key_exits_with_error(make_market) -> None:
+    from kalshi_research.api.models.market import Market
+
+    market = Market.model_validate(make_market(ticker="TEST-MARKET"))
+    exa_error = ValueError("EXA_API_KEY is required")
+
+    mock_kalshi = AsyncMock()
+    mock_kalshi.__aenter__.return_value = mock_kalshi
+    mock_kalshi.__aexit__.return_value = AsyncMock()
+    mock_kalshi.get_market = AsyncMock(return_value=market)
+
+    with (
+        patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi),
+        patch("kalshi_research.exa.ExaClient.from_env", side_effect=exa_error),
+    ):
+        result = runner.invoke(app, ["research", "context", "TEST-MARKET"])
+
+    assert result.exit_code == 1
+    assert "EXA_API_KEY" in result.stdout
+
+
+def test_research_topic_missing_exa_key_exits_with_error() -> None:
+    exa_error = ValueError("EXA_API_KEY is required")
+    with patch("kalshi_research.exa.ExaClient.from_env", side_effect=exa_error):
+        result = runner.invoke(app, ["research", "topic", "Test topic"])
+
+    assert result.exit_code == 1
+    assert "EXA_API_KEY" in result.stdout
 
 
 def test_thesis_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
@@ -48,6 +91,71 @@ def test_research_thesis_create() -> None:
         assert "Thesis created" in result.stdout
         stored = json.loads(thesis_file.read_text(encoding="utf-8"))
         assert len(stored["theses"]) == 1
+
+
+def test_research_thesis_create_with_research_accepts_suggestions() -> None:
+    from kalshi_research.research.thesis import ThesisEvidence
+    from kalshi_research.research.thesis_research import ResearchedThesisData
+
+    now = datetime.now(UTC)
+    research_data = ResearchedThesisData(
+        suggested_bull_case="Better bull",
+        suggested_bear_case="Better bear",
+        bull_evidence=[
+            ThesisEvidence(
+                url="https://example.com/bull",
+                title="Bull source",
+                source_domain="example.com",
+                published_date=now,
+                snippet="Bull snippet",
+                supports="bull",
+                relevance_score=0.9,
+                added_at=now,
+            )
+        ],
+        bear_evidence=[],
+        neutral_evidence=[],
+        summary="Research summary",
+        exa_cost_dollars=0.0123,
+    )
+
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        with (
+            patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file),
+            patch(
+                "kalshi_research.cli.research._gather_thesis_research_data",
+                new=AsyncMock(return_value=research_data),
+            ),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "research",
+                    "thesis",
+                    "create",
+                    "Test thesis",
+                    "--markets",
+                    "MKT1",
+                    "--your-prob",
+                    "0.7",
+                    "--market-prob",
+                    "0.5",
+                    "--confidence",
+                    "0.8",
+                    "--with-research",
+                    "--yes",
+                ],
+            )
+
+        assert result.exit_code == 0
+        assert "Research cost:" in result.stdout
+        stored = json.loads(thesis_file.read_text(encoding="utf-8"))
+        assert stored["theses"][0]["bull_case"] == "Better bull"
+        assert stored["theses"][0]["bear_case"] == "Better bear"
+        assert stored["theses"][0]["evidence"]
+        assert stored["theses"][0]["research_summary"] == "Research summary"
+        assert stored["theses"][0]["last_research_at"] is not None
 
 
 def test_research_thesis_list_empty() -> None:
@@ -143,6 +251,177 @@ def test_research_thesis_resolve() -> None:
 
     assert result.exit_code == 0
     assert "resolved" in result.stdout.lower()
+
+
+def test_research_thesis_check_invalidation_no_signals(tmp_path: Path) -> None:
+    from kalshi_research.research.invalidation import InvalidationReport
+
+    thesis_id = "thesis-12345678"
+    thesis_file = tmp_path / "theses.json"
+    thesis_file.write_text(
+        json.dumps(
+            {
+                "theses": [
+                    {
+                        "id": thesis_id,
+                        "title": "Test Thesis",
+                        "market_tickers": ["MKT1"],
+                        "your_probability": 0.7,
+                        "market_probability": 0.5,
+                        "confidence": 0.8,
+                        "bull_case": "Bull",
+                        "bear_case": "Bear",
+                        "key_assumptions": [],
+                        "invalidation_criteria": [],
+                        "status": "active",
+                        "created_at": datetime.now(UTC).isoformat(),
+                        "resolved_at": None,
+                        "actual_outcome": None,
+                        "updates": [],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    mock_exa = AsyncMock()
+    mock_exa.__aenter__.return_value = mock_exa
+    mock_exa.__aexit__.return_value = None
+
+    report = InvalidationReport(
+        thesis_id=thesis_id,
+        thesis_title="Test Thesis",
+        checked_at=datetime.now(UTC),
+        signals=[],
+        recommendation="Hold.",
+    )
+
+    detector_instance = AsyncMock()
+    detector_instance.check_thesis = AsyncMock(return_value=report)
+
+    with (
+        patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file),
+        patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa),
+        patch(
+            "kalshi_research.research.invalidation.InvalidationDetector",
+            return_value=detector_instance,
+        ),
+    ):
+        result = runner.invoke(app, ["research", "thesis", "check-invalidation", "thesis-1"])
+
+    assert result.exit_code == 0
+    assert "No invalidation signals found" in result.stdout
+
+
+def test_research_thesis_check_invalidation_with_signals(tmp_path: Path) -> None:
+    from kalshi_research.research.invalidation import (
+        InvalidationReport,
+        InvalidationSeverity,
+        InvalidationSignal,
+    )
+
+    thesis_id = "thesis-12345678"
+    thesis_file = tmp_path / "theses.json"
+    thesis_file.write_text(
+        json.dumps(
+            {
+                "theses": [
+                    {
+                        "id": thesis_id,
+                        "title": "Test Thesis",
+                        "market_tickers": ["MKT1"],
+                        "your_probability": 0.7,
+                        "market_probability": 0.5,
+                        "confidence": 0.8,
+                        "bull_case": "Bull",
+                        "bear_case": "Bear",
+                        "key_assumptions": [],
+                        "invalidation_criteria": [],
+                        "status": "active",
+                        "created_at": datetime.now(UTC).isoformat(),
+                        "resolved_at": None,
+                        "actual_outcome": None,
+                        "updates": [],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    mock_exa = AsyncMock()
+    mock_exa.__aenter__.return_value = mock_exa
+    mock_exa.__aexit__.return_value = None
+
+    report = InvalidationReport(
+        thesis_id=thesis_id,
+        thesis_title="Test Thesis",
+        checked_at=datetime.now(UTC),
+        signals=[
+            InvalidationSignal(
+                severity=InvalidationSeverity.HIGH,
+                title="Bad news",
+                url="https://example.com/bad",
+                source_domain="example.com",
+                published_at=datetime.now(UTC),
+                reason="Contradicts thesis",
+                snippet="Snippet",
+            )
+        ],
+        recommendation="Re-evaluate.",
+    )
+
+    detector_instance = AsyncMock()
+    detector_instance.check_thesis = AsyncMock(return_value=report)
+
+    with (
+        patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file),
+        patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa),
+        patch(
+            "kalshi_research.research.invalidation.InvalidationDetector",
+            return_value=detector_instance,
+        ),
+    ):
+        result = runner.invoke(app, ["research", "thesis", "check-invalidation", "thesis-1"])
+
+    assert result.exit_code == 0
+    assert "Potential Invalidation Signals" in result.stdout
+    assert "Bad news" in result.stdout
+
+
+def test_research_thesis_suggest_prints_suggestions() -> None:
+    from kalshi_research.research.thesis_research import ThesisSuggestion
+
+    mock_exa = AsyncMock()
+    mock_exa.__aenter__.return_value = mock_exa
+    mock_exa.__aexit__.return_value = None
+
+    suggester_instance = AsyncMock()
+    suggester_instance.suggest_theses = AsyncMock(
+        return_value=[
+            ThesisSuggestion(
+                source_title="Source",
+                source_url="https://example.com",
+                key_insight="Insight",
+                suggested_thesis="Suggested thesis",
+                confidence="medium",
+            )
+        ]
+    )
+
+    with (
+        patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa),
+        patch(
+            "kalshi_research.research.thesis_research.ThesisSuggester",
+            return_value=suggester_instance,
+        ),
+    ):
+        result = runner.invoke(app, ["research", "thesis", "suggest"])
+
+    assert result.exit_code == 0
+    assert "Thesis Suggestions" in result.stdout
+    assert "Suggested thesis" in result.stdout
 
 
 @patch("kalshi_research.data.DatabaseManager")
