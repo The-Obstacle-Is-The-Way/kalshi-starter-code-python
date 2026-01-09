@@ -4,12 +4,12 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**0 active debt items.** All tracked debt from Ralph Wiggum cleanup resolved.
+**0 active debt items.** (DEBT-004 elevated to SPEC-027; DEBT-002 closed as "Won't Fix")
 
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-004**
+**DEBT-005**
 
 ---
 
@@ -42,11 +42,11 @@ All resolved debt items are stored in
 
 ---
 
-## Remaining Debt (Low Priority)
+## Remaining Debt
 
-These are documented in `technical-debt.md` but not blocking:
+None. All debt items resolved or elevated to specs.
 
-| Category | Description | Priority |
-|----------|-------------|----------|
-| DEBT-002 Phase 2 | Extract strategy defaults to `AnalysisConfig` | Low |
-| DEBT-002 Phase 3 | Inject config into `MarketScanner`/`EdgeDetector` | Low |
+| Item | Resolution | Date |
+|------|------------|------|
+| DEBT-004 | Elevated to [SPEC-027](../_specs/SPEC-027-settlement-timestamp.md) | 2026-01-09 |
+| DEBT-002 Phase 2-3 | Closed as "Won't Fix" (see `technical-debt.md`) | 2026-01-09 |

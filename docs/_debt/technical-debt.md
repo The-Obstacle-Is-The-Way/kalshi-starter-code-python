@@ -6,15 +6,46 @@
 
 ## Outstanding Debt
 
-| ID | Description | Priority |
-|----|-------------|----------|
-| `Settlement.expiration_time` proxy | `Settlement` model uses `expiration_time` as `settled_at`. Inaccurate for early/late settlements. | Low |
+**None.** All debt items resolved or elevated to specs.
+
+| ID | Status | Resolution |
+|----|--------|------------|
+| DEBT-004 | Elevated to Spec | [SPEC-027](../_specs/SPEC-027-settlement-timestamp.md) |
+
+---
+
+## Won't Fix (Principled Closures)
+
+### DEBT-002 Phase 2-3 (Strategy Configuration) - CLOSED
+
+**Decision:** Won't Fix
+**Date:** 2026-01-09
+**Rationale:** First-principles analysis using Clean Code (Robert C. Martin) and SOLID principles.
+
+**Why this is NOT a problem:**
+1. Current defaults are **named parameters** (not magic numbers): `high_volume_threshold=10000`
+2. Current pattern uses **constructor injection** (proper Dependency Inversion)
+3. Values are **typed**, **documented**, and **injectable**
+4. CLI already provides override flags (`--min-volume`, `--max-spread`)
+5. Adding `AnalysisConfig` would be **premature abstraction** (YAGNI violation)
+
+**What Uncle Bob would say:** The code follows DIP - high-level modules (CLI) inject values into low-level modules (Scanner). This IS the pattern.
+
+**Re-open if:**
+- Adding config file (YAML/TOML) support for user customization
+- 10+ analysis classes need shared defaults
+- Runtime config reloading required
+
+**Sources:**
+- [Clean Code Principles - Uncle Bob](https://gist.github.com/wojteklu/73c6914cc446146b8b533c0988cf8d29)
+- [SOLID Principles - DigitalOcean](https://www.digitalocean.com/community/conceptual-articles/s-o-l-i-d-the-first-five-principles-of-object-oriented-design)
+- [Python DI Best Practices - ArjanCodes](https://arjancodes.com/blog/python-dependency-injection-best-practices/)
 
 ---
 
 ## Deferred (Low Priority)
 
-### 1. No `interfaces/` or `ports/` package
+### No `interfaces/` or `ports/` package
 
 **Priority:** Low
 **Status:** Acceptable for research platform
@@ -31,13 +62,6 @@ src/kalshi_research/
 │   ├── repository.py    # Protocol/ABC for data access
 │   └── notifier.py      # Protocol/ABC for alerts
 ```
-
-### 2. DEBT-002 Phase 2-3 (Strategy Configuration)
-
-**Priority:** Low
-**Status:** Deferred
-
-Phase 1 (comments) completed. Phases 2-3 would extract strategy defaults to `AnalysisConfig` and inject into `MarketScanner`/`EdgeDetector`. Low priority as current defaults work well.
 
 ---
 

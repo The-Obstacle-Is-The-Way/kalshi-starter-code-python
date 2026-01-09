@@ -16,6 +16,7 @@ This directory contains **active** design specifications - work happening NOW.
 | ID | Title | Priority | Status |
 |---|---|---|---|
 | **SPEC-026** | [Liquidity Analysis](SPEC-026-liquidity-analysis.md) | P1 | Ready to implement |
+| **SPEC-027** | [Settlement Timestamp](SPEC-027-settlement-timestamp.md) | P2 | Ready to implement |
 
 ### SPEC-026: Liquidity Analysis
 
@@ -34,12 +35,29 @@ Comprehensive liquidity analysis framework for Kalshi markets.
 
 **Estimated effort:** ~4-5 hours
 
+### SPEC-027: Settlement Timestamp
+
+Add support for `settlement_ts` field (added Dec 25, 2025). Currently using `expiration_time` as proxy.
+
+**Why now:**
+- API field exists but we don't consume it
+- Affects settlement timing accuracy
+- Quick win (~2-3 hours)
+- Also updates vendor docs and skills
+
+**Deliverables:**
+- Add `settlement_ts` to `Market` model
+- Update fetcher to prefer real timestamp
+- Update vendor docs and skills
+
+**Estimated effort:** ~2-3 hours
+
 ---
 
 ## Next ID Tracker
 
 Use this ID for the next specification:
-**SPEC-027**
+**SPEC-028**
 
 ---
 

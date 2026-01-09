@@ -153,6 +153,17 @@ Only these count against **write** limits:
 
 **Note:** Timestamp filters are mutually exclusive. Only one status filter allowed.
 
+### Market Response Settlement Fields (Dec 25, 2025+)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `settlement_ts` | datetime (RFC3339) | Actual settlement timestamp. **Only populated for settled markets.** |
+| `settlement_value` | int | Settlement value in cents for YES side |
+| `settlement_value_dollars` | string | Settlement value in dollars (e.g., `"1.00"`) |
+| `settlement_timer_seconds` | int | Duration before market settles after determination |
+
+> **Note:** `settlement_ts` is the **actual** settlement time. Prior to this field, `expiration_time` was used as a proxy, which was inaccurate for markets that settled early (event resolved before expiration) or late (disputes, delays).
+
 ### Market status gotcha (filter vs response)
 
 - Query filter (`GET /markets?status=...`): `unopened`, `open`, `paused`, `closed`, `settled`
