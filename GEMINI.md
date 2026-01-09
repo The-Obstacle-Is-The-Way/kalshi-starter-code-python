@@ -1,6 +1,17 @@
 # Kalshi Research Platform
 
-The **Kalshi Research Platform** is a Python-based toolset designed for analyzing prediction markets on Kalshi. It focuses on research, data collection, and thesis tracking rather than automated high-frequency trading.
+This file provides guidance to Gemini CLI and Gemini Code Assist when working with this repository.
+
+## Agent Skills
+
+This repository includes Agent Skills for enhanced CLI navigation and documentation auditing:
+
+| Skill | Location | Purpose |
+|-------|----------|---------|
+| `kalshi-cli` | `.gemini/skills/kalshi-cli/` | CLI commands, database queries, workflows, gotchas |
+| `kalshi-doc-audit` | `.gemini/skills/kalshi-doc-audit/` | Documentation auditing against SSOT |
+
+Skills are also mirrored to `.claude/skills/` and `.codex/skills/` for other agents.
 
 ## CRITICAL: Commit Safety Protocol
 
@@ -40,99 +51,112 @@ git add . && git commit -m "Your message"
 ## Project Overview
 
 This platform enables users to:
-*   **Collect and Store Data:** Sync markets, events, and price snapshots to a local SQLite database (with async support).
-*   **Analyze Markets:** Perform calibration analysis, detect edges, scan for arbitrage, and identify significant price movers.
-*   **Track Theses:** Create and track research theses, link them to positions, and resolve them to measure accuracy.
-*   **Monitor Portfolios:** View current positions, calculate P&L, and analyze trade history.
-*   **Alerting:** Set up alerts for price, volume, and spread conditions.
+* **Collect and Store Data:** Sync markets, events, and price snapshots to a local SQLite database (with async support).
+* **Analyze Markets:** Perform calibration analysis, detect edges, scan for arbitrage, and identify significant price movers.
+* **Track Theses:** Create and track research theses, link them to positions, and resolve them to measure accuracy.
+* **Monitor Portfolios:** View current positions, calculate P&L, and analyze trade history.
+* **Alerting:** Set up alerts for price, volume, and spread conditions.
+* **News & Research:** Collect news via Exa API, run sentiment analysis, research topics.
 
 ### Key Technologies
-*   **Language:** Python 3.11+
-*   **Package Manager:** `uv`
-*   **CLI Framework:** `typer`
-*   **Database:** `sqlalchemy` (async) + `aiosqlite`
-*   **Data Analysis:** `pandas`, `numpy`, `scipy`, `duckdb`
-*   **HTTP Client:** `httpx`
-*   **Validation:** `pydantic`
+* **Language:** Python 3.11+
+* **Package Manager:** `uv`
+* **CLI Framework:** `typer`
+* **Database:** `sqlalchemy` (async) + `aiosqlite`
+* **Data Analysis:** `pandas`, `numpy`, `scipy`, `duckdb`
+* **HTTP Client:** `httpx`
+* **Validation:** `pydantic`
 
 ## Building and Running
 
 ### Prerequisites
-*   Python 3.11 or higher
-*   `uv` (Universal Python Package Manager)
+* Python 3.11 or higher
+* `uv` (Universal Python Package Manager)
 
 ### Setup
-1.  **Install Dependencies:**
-    ```bash
-    uv sync --all-extras
-    ```
-2.  **Install Pre-commit Hooks (CRITICAL):**
-    ```bash
-    uv run pre-commit install
-    ```
-3.  **Initialize Database:**
-    ```bash
-    uv run kalshi data init
-    ```
+1. **Install Dependencies:**
+   ```bash
+   uv sync --all-extras
+   ```
+2. **Install Pre-commit Hooks (CRITICAL):**
+   ```bash
+   uv run pre-commit install
+   ```
+3. **Initialize Database:**
+   ```bash
+   uv run kalshi data init
+   ```
 
 ### CLI Usage
 The application is accessed via the `kalshi` command (run via `uv run`).
 
-*   **Main Help:**
-    ```bash
-    uv run kalshi --help
-    ```
+* **Main Help:**
+  ```bash
+  uv run kalshi --help
+  ```
 
-*   **Data Collection:**
-    ```bash
-    # Sync market definitions
-    uv run kalshi data sync-markets
+* **Data Collection:**
+  ```bash
+  # Sync market definitions
+  uv run kalshi data sync-markets
 
-    # Continuous collection (runs in loop)
-    uv run kalshi data collect --interval 15
-    ```
+  # Continuous collection (runs in loop)
+  uv run kalshi data collect --interval 15
+  ```
 
-*   **Market Scanning:**
-    ```bash
-    # Scan for opportunities (e.g., close races)
-    uv run kalshi scan opportunities --filter close-race
+* **Market Scanning:**
+  ```bash
+  # Scan for opportunities (e.g., close races)
+  uv run kalshi scan opportunities --filter close-race
 
-    # Find arbitrage opportunities
-    uv run kalshi scan arbitrage
-    ```
+  # Find arbitrage opportunities
+  uv run kalshi scan arbitrage
+  ```
 
-*   **Research & Theses:**
-    ```bash
-    # Create a new thesis
-    uv run kalshi research thesis create "Bitcoin > 100k" --markets KXBTC --your-prob 0.65 --market-prob 0.45
+* **Research & Theses:**
+  ```bash
+  # Create a new thesis
+  uv run kalshi research thesis create "Bitcoin > 100k" --markets KXBTC --your-prob 0.65 --market-prob 0.45
 
-    # List theses
-    uv run kalshi research thesis list
-    ```
+  # List theses
+  uv run kalshi research thesis list
 
-*   **Analysis:**
-    ```bash
-    # Analyze calibration (Brier scores)
-    uv run kalshi analysis calibration --days 30
-    ```
+  # Exa-powered research
+  uv run kalshi research topic "Will the Fed cut rates in 2026?"
+  ```
+
+* **News Monitoring:**
+  ```bash
+  # Track a market for news
+  uv run kalshi news track TICKER
+
+  # Collect news and sentiment
+  uv run kalshi news collect
+  ```
+
+* **Analysis:**
+  ```bash
+  # Analyze calibration (Brier scores)
+  uv run kalshi analysis calibration --days 30
+  ```
 
 ## Development Conventions
 
 ### Coding Standards
-*   **Strict Typing:** The project enforces strict type checking using `mypy`. All functions must have type hints.
-*   **Linting & Formatting:** `ruff` is used for both linting and formatting.
-*   **AsyncIO:** The codebase is primarily async. Database interactions and API calls should be awaited.
+* **Strict Typing:** The project enforces strict type checking using `mypy`. All functions must have type hints.
+* **Linting & Formatting:** `ruff` is used for both linting and formatting.
+* **AsyncIO:** The codebase is primarily async. Database interactions and API calls should be awaited.
 
 ### Testing
-*   **Framework:** `pytest`
-*   **Running Tests:**
-    ```bash
-    uv run pytest
-    ```
-*   **Coverage:**
-    ```bash
-    uv run pytest --cov=kalshi_research
-    ```
+* **Framework:** `pytest`
+* **Running Tests:**
+  ```bash
+  uv run pytest
+  ```
+* **Coverage:**
+  ```bash
+  uv run pytest --cov=kalshi_research
+  ```
 
 ### Quality Gates
 Before committing, **ALWAYS** run pre-commit:
@@ -148,20 +172,31 @@ This will automatically check:
 
 ### Database Safety (Do Not Destroy State)
 
-- Never delete `data/kalshi.db` to “fix” corruption. Diagnose and recover instead:
+- **NEVER delete `data/kalshi.db`** to "fix" corruption. Diagnose and recover instead:
   - `sqlite3 data/kalshi.db "PRAGMA integrity_check;"`
   - `sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`
 - `data/exa_cache/` is safe to delete; the SQLite DB is not.
+- See `.gemini/skills/kalshi-cli/GOTCHAS.md` for the full "Critical Anti-Patterns" section.
 
 ### Directory Structure
-*   `src/kalshi_research/`: Main source code.
-    *   `api/`: Kalshi API client and models.
-    *   `data/`: Database models, repositories, and fetchers.
-    *   `analysis/`: Logic for calibration, scanning, and edge detection.
-    *   `research/`: Thesis management.
-    *   `portfolio/`: Position and P&L tracking.
-    *   `alerts/`: Alert monitoring system.
-    *   `cli/`: Typer CLI application package entry point.
-*   `tests/`: Unit and integration tests.
-*   `docs/`: Documentation and specifications (`_specs`).
-*   `notebooks/`: Jupyter notebooks for exploratory analysis.
+* `src/kalshi_research/`: Main source code.
+  * `api/`: Kalshi API client and models.
+  * `data/`: Database models, repositories, and fetchers.
+  * `exa/`: Exa API client for research.
+  * `news/`: News collection and sentiment analysis.
+  * `analysis/`: Logic for calibration, scanning, and edge detection.
+  * `research/`: Thesis management.
+  * `portfolio/`: Position and P&L tracking.
+  * `alerts/`: Alert monitoring system.
+  * `cli/`: Typer CLI application package entry point.
+* `tests/`: Unit and integration tests.
+* `docs/`: Documentation and specifications (`_specs`).
+* `notebooks/`: Jupyter notebooks for exploratory analysis.
+
+## Documentation Tracking
+
+When you find drift, bugs, or technical debt, record them in the appropriate tracker:
+
+- Active bugs: `docs/_bugs/README.md`
+- Active tasks: `docs/_todo/README.md`
+- Technical debt: `docs/_debt/README.md`

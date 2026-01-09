@@ -12,8 +12,6 @@ This skill provides authoritative reference for CLI commands, database queries, 
 
 ```bash
 # Always run from repository root
-cd /Users/ray/Desktop/CLARITY-DIGITAL-TWIN/kalshi-starter-code-python
-
 # All commands use uv run prefix
 uv run kalshi --help
 ```
