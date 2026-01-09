@@ -44,7 +44,7 @@
 ## Phase 8: Final Verification
 
 - [x] **FINAL-001**: All quality gates pass (ruff, mypy, pytest)
-- [ ] **FINAL-002**: Pre-commit hooks run successfully
+- [x] **FINAL-002**: Pre-commit hooks run successfully
 - [ ] **FINAL-003**: All task doc acceptance criteria match PROGRESS.md state
 
 ---
