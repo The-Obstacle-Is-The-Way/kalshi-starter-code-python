@@ -16,9 +16,13 @@
 - [x] **TODO-007**: Implement `MarketStatusVerifier` → `analysis/scanner.py`
 - [x] **TODO-008**: Add `dry_run` parameter to `create_order` → `api/client.py`
 
+## Phase 2.5: URGENT - API Deprecation (Deadline: Jan 15, 2026)
+
+- [ ] **TODO-009**: Migrate from cent fields to dollar fields → `api/models/market.py` ⚠️ **6 DAYS**
+
 ## Phase 3: Research Quality
 
-- [ ] **TODO-005**: Add `open_time`/`created_time` to `market get` → `cli/market.py`
+- [x] **TODO-005**: Add `open_time`/`created_time` to `market get` → `cli/market.py`
 - [ ] **BUG-047**: Investigate portfolio sync discrepancy → `portfolio/syncer.py`
 
 ## Phase 4: Technical Debt

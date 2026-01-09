@@ -40,6 +40,9 @@ def market_get(
         table.add_row("No Bid/Ask", f"{market.no_bid}¢ / {market.no_ask}¢")
         table.add_row("Volume (24h)", f"{market.volume_24h:,}")
         table.add_row("Open Interest", f"{market.open_interest:,}")
+        table.add_row("Open Time", market.open_time.isoformat())
+        if market.created_time:
+            table.add_row("Created Time", market.created_time.isoformat())
         table.add_row("Close Time", market.close_time.isoformat())
 
         console.print(table)

@@ -1,9 +1,10 @@
 # BUG-048: Negative Liquidity Validation Error
 
 **Priority**: Medium
-**Status**: REOPENED - Previous fix was incorrect
+**Status**: ✅ CLOSED
 **Created**: 2026-01-09
 **Updated**: 2026-01-09
+**Closed**: 2026-01-09
 
 ## Symptom
 
@@ -97,12 +98,12 @@ Create TODO to migrate to `yes_bid_dollars`, `yes_ask_dollars` etc. before Jan 1
 
 ## Definition of Done
 
-- [ ] `liquidity` field is `int | None` (optional)
-- [ ] Validator logs warning on negative values, returns `None`
-- [ ] Any code using `liquidity` handles `None` case
-- [ ] Added deprecation comment referencing Jan 15, 2026 removal
-- [ ] Tests updated to verify negative → None behavior
-- [ ] All quality gates pass
+- [x] `liquidity` field is `int | None` (optional)
+- [x] Validator logs warning on negative values, returns `None`
+- [x] Any code using `liquidity` handles `None` case (SQLAlchemy model updated, migration created)
+- [x] Added deprecation comment referencing Jan 15, 2026 removal
+- [x] Tests updated to verify negative → None behavior
+- [x] All quality gates pass
 
 ## Related Files
 

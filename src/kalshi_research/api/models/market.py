@@ -69,6 +69,7 @@ class Market(BaseModel):
     open_interest: int = Field(..., ge=0, description="Open contracts")
 
     # Timestamps
+    created_time: datetime | None = Field(default=None, description="When the market was created")
     open_time: datetime
     close_time: datetime
     expiration_time: datetime

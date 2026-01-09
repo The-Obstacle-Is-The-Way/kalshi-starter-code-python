@@ -1,5 +1,8 @@
 # BUG-049: Asymmetrical Rate Limiting (Read vs. Write)
 
+**Status**: ✅ CLOSED
+**Fixed**: 2026-01-09
+
 ## Overview
 The `KalshiClient` enforces proactive rate limiting for **write** operations (orders, amendments) via `self._rate_limiter.acquire()`, but completely neglects **read** operations (market data, portfolio fetches).
 
