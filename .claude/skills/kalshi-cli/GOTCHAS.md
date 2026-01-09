@@ -263,6 +263,43 @@ When running inline Python, environment variables may not be accessible. Use CLI
 
 ---
 
+## Exa & News Gotchas
+
+### Missing `EXA_API_KEY`
+
+These commands require `EXA_API_KEY` (set in your environment or `.env`):
+
+- `kalshi research context ...`
+- `kalshi research topic ...`
+- `kalshi news collect ...`
+
+If it’s missing, the CLI exits with an error explaining how to set it.
+
+### `news track` Defaults to Two Queries
+
+If you don’t pass `--queries`, `news track` creates two queries:
+
+1. The item title (cleaned)
+2. The title + `" news"`
+
+That means `news collect` usually makes **two Exa /search calls per tracked item**.
+
+### Exa Cache Is Safe to Delete (DB Is Not)
+
+`data/exa_cache/` is only a cache for Exa topic research. Deleting it is safe (you’ll just lose cached results).
+
+Do **not** delete `data/kalshi.db` to “fix” issues; see **Critical Anti-Patterns** below.
+
+### Exa Calls Cost Money
+
+Exa responses include `costDollars` on some endpoints. Prefer:
+
+- smaller `--max-news`/`--max-papers` for `research context`
+- caching (topic research uses `data/exa_cache/`)
+- `--no-summary` for `research topic` when you only need sources
+
+---
+
 ## Correlation Analysis Gotchas
 
 ### Minimum Sample Size
@@ -279,7 +316,37 @@ uv run kalshi scan arbitrage --threshold 0.1 --tickers-limit 50
 
 ---
 
-## Common Error Messages
+## Critical Anti-Patterns
+
+### NEVER Delete the Database to "Fix" Issues
+
+If the database appears corrupted or you encounter errors like `database disk image is malformed`:
+
+**WRONG:**
+```bash
+rm data/kalshi.db  # DANGEROUS - destroys all data
+uv run kalshi data init
+```
+
+**RIGHT:**
+1. Diagnose the actual issue first
+2. Check for WAL file issues: `ls data/kalshi.db*`
+3. Try `sqlite3 data/kalshi.db "PRAGMA integrity_check;"`
+4. If corrupted, attempt recovery: `sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`
+5. Back up before any destructive action
+
+Deleting the database destroys:
+- All synced markets/events
+- All price snapshots (historical data)
+- All tracked news items
+- All sentiment analysis
+- All portfolio positions and trades
+
+This data may take hours to rebuild and some historical data is unrecoverable.
+
+---
+
+
 
 ### "not found" (404)
 

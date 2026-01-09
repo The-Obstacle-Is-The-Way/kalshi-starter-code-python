@@ -27,6 +27,11 @@ uv run kalshi --help
 | `KALSHI_PRIVATE_KEY_B64` | Portfolio commands | Alternative: Base64-encoded key |
 | `KALSHI_ENVIRONMENT` | All | `prod` or `demo` (default: prod) |
 | `KALSHI_RATE_TIER` | API calls | `basic`/`advanced`/`premier`/`prime` |
+| `EXA_API_KEY` | Exa-powered research/news | API key for Exa (`research context/topic`, `news collect`) |
+| `EXA_BASE_URL` | Exa-powered research/news | Override Exa base URL (default: https://api.exa.ai) |
+| `EXA_TIMEOUT` | Exa-powered research/news | Exa request timeout seconds (default: 30) |
+| `EXA_MAX_RETRIES` | Exa-powered research/news | Exa max retries (default: 3) |
+| `EXA_RETRY_DELAY` | Exa-powered research/news | Exa base retry delay seconds (default: 1) |
 
 ## File Locations
 
@@ -35,6 +40,7 @@ uv run kalshi --help
 | Database | `data/kalshi.db` (SQLite) |
 | Theses | `data/theses.json` |
 | Alerts | `data/alerts.json` |
+| Exa cache | `data/exa_cache/` |
 | Exports | `data/exports/` |
 | Alert log | `data/alert_monitor.log` |
 
@@ -79,11 +85,22 @@ uv run kalshi portfolio link TICKER --thesis ID  # Link to thesis
 
 ### research - Thesis Management
 ```bash
+uv run kalshi research context TICKER          # Exa: market context research
+uv run kalshi research topic "TOPIC"           # Exa: topic research / ideation
 uv run kalshi research thesis create "TITLE" -m TICKER --your-prob 0.7 --market-prob 0.5 --confidence 0.8
 uv run kalshi research thesis list
 uv run kalshi research thesis show ID [--with-positions]
 uv run kalshi research thesis resolve ID --outcome yes|no|void
 uv run kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD
+```
+
+### news - News Monitoring & Sentiment (Exa-Powered)
+```bash
+uv run kalshi news track TICKER [--event] [--queries "a, b"]   # Start tracking
+uv run kalshi news list-tracked [--all]                        # Show tracked items
+uv run kalshi news collect [--ticker TICKER]                   # Collect news + sentiment
+uv run kalshi news sentiment TICKER [--event] [--days 7]       # Sentiment summary
+uv run kalshi news untrack TICKER                              # Stop tracking
 ```
 
 ### alerts - Alert System
@@ -109,6 +126,7 @@ uv run kalshi analysis correlation [--min 0.5]
 2. **Use exact tickers** - CLI display truncates with `...`; get full tickers from database.
 3. **Always use `uv run kalshi`** prefix - commands require virtual environment.
 4. **Check `--help`** before assuming options exist.
+5. **`news track` defaults to 2 queries** (title + title + "news"), so `news collect` usually makes 2 Exa calls per tracked item.
 
 ---
 

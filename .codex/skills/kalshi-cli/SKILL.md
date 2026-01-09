@@ -32,6 +32,19 @@ Authenticated commands (e.g. `kalshi portfolio ...`) require:
 
 The CLI auto-loads `.env` from repo root.
 
+## Environment variables (Exa)
+
+Exa-powered commands require:
+
+- `EXA_API_KEY` (required)
+- Optional: `EXA_BASE_URL`, `EXA_TIMEOUT`, `EXA_MAX_RETRIES`, `EXA_RETRY_DELAY`
+
+Commands that need Exa:
+
+- `kalshi research context ...`
+- `kalshi research topic ...`
+- `kalshi news collect ...`
+
 ## Daemon mode note
 
 Background/daemon processes use `python -m kalshi_research.cli ...` (implemented by `src/kalshi_research/cli/__main__.py`).
@@ -39,5 +52,15 @@ Background/daemon processes use `python -m kalshi_research.cli ...` (implemented
 ## References (read these when stuck)
 
 - CLI index (SSOT map): `docs/developer/cli-reference.md`
-- Full CLI command reference: `.claude/skills/kalshi-cli/CLI-REFERENCE.md`
+- Full CLI command reference (all flags): `.claude/skills/kalshi-cli/CLI-REFERENCE.md`
 - Configuration/env vars: `docs/developer/configuration.md`
+
+## Project hygiene (underscore docs)
+
+When you find drift or missing coverage, record it in the appropriate tracker:
+
+- Active bugs: `docs/_bugs/README.md`
+- Active tasks: `docs/_todo/README.md`
+- Technical debt: `docs/_debt/technical-debt.md` (see `docs/_debt/README.md`)
+
+Never delete `data/kalshi.db` to “fix” corruption; diagnose/recover instead (see `.claude/skills/kalshi-cli/GOTCHAS.md`).

@@ -36,6 +36,8 @@ src/kalshi_research/
 
 | Item | Resolution |
 |------|------------|
+| Exa news collector datetime serialization (BUG-046) | Fixed Exa request serialization (`mode="json"`) and added unit/integration/e2e tests to cover the news pipeline |
+| CLI skills drift for Exa/news commands (TODO-003) | Updated `.claude/skills/kalshi-cli/` references (CLI-REFERENCE/WORKFLOWS/GOTCHAS/DATABASE) to include Exa + news commands and gotchas |
 | `KALSHI_RATE_TIER` and `--rate-tier` not wired | Wired env + CLI option into authenticated client construction (portfolio commands) |
 | Path constants scattered across CLI | Centralized in `paths.py` |
 | Mixed logging (stdlib vs structlog) | Standardized on structlog |

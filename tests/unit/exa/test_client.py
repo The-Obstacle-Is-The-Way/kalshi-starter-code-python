@@ -8,6 +8,7 @@ These tests use respx to mock HTTP requests. Everything else
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -93,6 +94,24 @@ async def test_search_and_contents_enables_text_and_highlights_by_default() -> N
     assert body["contents"]["text"] is True
     assert body["contents"]["highlights"] == {}
     assert "summary" not in body["contents"]
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_search_serializes_datetime_fields() -> None:
+    route = respx.post("https://api.exa.ai/search").mock(
+        return_value=Response(200, json={"requestId": "req_dt", "results": []})
+    )
+
+    start = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+
+    async with _client() as exa:
+        await exa.search("hello", start_published_date=start)
+
+    assert route.call_count == 1
+    body = json.loads(route.calls[0].request.content.decode("utf-8"))
+    assert isinstance(body["startPublishedDate"], str)
+    assert body["startPublishedDate"].startswith("2026-01-01T00:00:00")
 
 
 @pytest.mark.asyncio

@@ -98,6 +98,74 @@ uv run kalshi research backtest --start 2024-01-01 --end 2025-12-31
 
 ---
 
+## Exa-Powered Research
+
+Requires `EXA_API_KEY` (set in your environment or `.env`).
+
+### Market Context Research (Per Ticker)
+
+```bash
+# Research the market using Exa sources (news + papers)
+uv run kalshi research context KXFEDCHAIRNOM-29-KW --days 30 --max-news 10 --max-papers 5
+
+# JSON output for downstream tooling
+uv run kalshi research context KXFEDCHAIRNOM-29-KW --json
+```
+
+### Topic Research / Thesis Ideation
+
+```bash
+# Research a question or topic
+uv run kalshi research topic "Will the Fed cut rates in 2026?"
+
+# Skip summary generation (faster/cheaper)
+uv run kalshi research topic "Will the Fed cut rates in 2026?" --no-summary
+
+# JSON output
+uv run kalshi research topic "Will the Fed cut rates in 2026?" --json
+```
+
+---
+
+## News Monitoring & Sentiment
+
+Requires `EXA_API_KEY`.
+
+### Track → Collect → Sentiment
+
+```bash
+# 1. Track a market (defaults to 2 queries: title + "title news")
+uv run kalshi news track KXFEDCHAIRNOM-29-KW
+
+# Or track an event
+uv run kalshi news track KXFEDCHAIRNOM-29 --event
+
+# Or provide custom queries
+uv run kalshi news track KXFEDCHAIRNOM-29-KW --queries "Powell nominee, Fed chair nominee"
+
+# 2. Collect news + run sentiment
+uv run kalshi news collect
+
+# Collect only for one tracked item
+uv run kalshi news collect --ticker KXFEDCHAIRNOM-29-KW
+
+# 3. View sentiment summary
+uv run kalshi news sentiment KXFEDCHAIRNOM-29-KW --days 7
+```
+
+### Housekeeping
+
+```bash
+# List tracked items
+uv run kalshi news list-tracked
+uv run kalshi news list-tracked --all
+
+# Stop tracking
+uv run kalshi news untrack KXFEDCHAIRNOM-29-KW
+```
+
+---
+
 ## Finding Markets
 
 ### Search for Markets (No --search Exists!)

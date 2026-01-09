@@ -279,7 +279,7 @@ class ExaClient:
         data = await self._request(
             "POST",
             "/search",
-            json_body=request.model_dump(by_alias=True, exclude_none=True),
+            json_body=request.model_dump(by_alias=True, exclude_none=True, mode="json"),
         )
         return SearchResponse.model_validate(data)
 
@@ -342,7 +342,7 @@ class ExaClient:
         data = await self._request(
             "POST",
             "/contents",
-            json_body=request.model_dump(by_alias=True, exclude_none=True),
+            json_body=request.model_dump(by_alias=True, exclude_none=True, mode="json"),
         )
         return ContentsResponse.model_validate(data)
 
@@ -387,7 +387,7 @@ class ExaClient:
         data = await self._request(
             "POST",
             "/findSimilar",
-            json_body=request.model_dump(by_alias=True, exclude_none=True),
+            json_body=request.model_dump(by_alias=True, exclude_none=True, mode="json"),
         )
         return FindSimilarResponse.model_validate(data)
 
@@ -396,7 +396,7 @@ class ExaClient:
         data = await self._request(
             "POST",
             "/answer",
-            json_body=request.model_dump(by_alias=True, exclude_none=True),
+            json_body=request.model_dump(by_alias=True, exclude_none=True, mode="json"),
         )
         return AnswerResponse.model_validate(data)
 
@@ -415,7 +415,7 @@ class ExaClient:
         data = await self._request(
             "POST",
             "/research/v1",
-            json_body=request.model_dump(by_alias=True, exclude_none=True),
+            json_body=request.model_dump(by_alias=True, exclude_none=True, mode="json"),
         )
         return ResearchTask.model_validate(data)
 

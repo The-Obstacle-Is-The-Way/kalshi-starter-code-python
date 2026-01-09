@@ -76,6 +76,7 @@ nav:
           - SPEC-024: _specs/SPEC-024-exa-research-agent.md
       - Bug Tracker: _bugs/README.md
       - Todo Index: _todo/README.md
+      - Debt Overview: _debt/README.md
       - Technical Debt: _debt/technical-debt.md
       - Code Audit Checklist: _debt/code-audit-checklist.md
       - Ralph Wiggum Protocol: _ralph-wiggum/protocol.md

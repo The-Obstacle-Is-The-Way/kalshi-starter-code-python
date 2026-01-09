@@ -127,6 +127,65 @@ Synced trade history from Kalshi API.
 | `executed_at` | DATETIME | Execution timestamp |
 | `synced_at` | DATETIME | When synced to database |
 
+### tracked_items
+Markets/events being tracked for news collection.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER (PK) | Auto-increment ID |
+| `ticker` | VARCHAR(100) UNIQUE | Market or event ticker |
+| `item_type` | VARCHAR(20) | `market` or `event` |
+| `search_queries` | TEXT | JSON array of search queries |
+| `created_at` | DATETIME | When tracking was created |
+| `last_collected_at` | DATETIME | Last collection time |
+| `is_active` | BOOLEAN | Whether collection is enabled |
+
+### news_articles
+Collected articles returned by Exa.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER (PK) | Auto-increment ID |
+| `url` | VARCHAR(2000) UNIQUE | Canonical URL |
+| `url_hash` | VARCHAR(64) | SHA256 URL hash |
+| `title` | VARCHAR(500) | Article title |
+| `source_domain` | VARCHAR(200) | Domain (normalized) |
+| `published_at` | DATETIME | Published date (nullable) |
+| `collected_at` | DATETIME | Collected timestamp |
+| `text_snippet` | TEXT | Highlight/snippet |
+| `full_text` | TEXT | Full text (if requested) |
+| `exa_request_id` | VARCHAR(100) | Exa request identifier |
+
+### news_article_markets
+Many-to-many mapping from articles → markets.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `article_id` | INTEGER (FK) | Article ID |
+| `ticker` | VARCHAR(100) (FK) | Market ticker |
+
+### news_article_events
+Many-to-many mapping from articles → events.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `article_id` | INTEGER (FK) | Article ID |
+| `event_ticker` | VARCHAR(100) (FK) | Event ticker |
+
+### news_sentiments
+Sentiment analysis results for articles.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER (PK) | Auto-increment ID |
+| `article_id` | INTEGER (FK) | Article ID |
+| `analyzed_at` | DATETIME | Analysis timestamp |
+| `score` | FLOAT | Sentiment score (-1..+1) |
+| `label` | VARCHAR(20) | `positive`/`negative`/`neutral` |
+| `confidence` | FLOAT | 0..1 confidence |
+| `method` | VARCHAR(50) | Analysis method |
+| `keywords_matched` | TEXT | JSON list of matched keywords |
+
 ---
 
 ## Common Queries
@@ -190,6 +249,30 @@ SELECT
 FROM trades
 GROUP BY date(executed_at)
 ORDER BY trade_date DESC;
+```
+
+### News Tracking
+
+```sql
+-- List tracked items
+SELECT ticker, item_type, is_active, last_collected_at
+FROM tracked_items
+ORDER BY created_at DESC;
+
+-- Recent collected articles
+SELECT title, source_domain, published_at, collected_at
+FROM news_articles
+ORDER BY collected_at DESC
+LIMIT 20;
+
+-- Latest sentiment for a specific market
+SELECT a.title, s.score, s.label, a.source_domain, a.published_at
+FROM news_articles a
+JOIN news_article_markets m ON m.article_id = a.id
+JOIN news_sentiments s ON s.article_id = a.id
+WHERE m.ticker = 'MKT1'
+ORDER BY s.analyzed_at DESC
+LIMIT 20;
 ```
 
 ### Position Analysis
@@ -278,7 +361,10 @@ UNION ALL SELECT 'markets', COUNT(*) FROM markets
 UNION ALL SELECT 'price_snapshots', COUNT(*) FROM price_snapshots
 UNION ALL SELECT 'settlements', COUNT(*) FROM settlements
 UNION ALL SELECT 'positions', COUNT(*) FROM positions
-UNION ALL SELECT 'trades', COUNT(*) FROM trades;
+UNION ALL SELECT 'trades', COUNT(*) FROM trades
+UNION ALL SELECT 'tracked_items', COUNT(*) FROM tracked_items
+UNION ALL SELECT 'news_articles', COUNT(*) FROM news_articles
+UNION ALL SELECT 'news_sentiments', COUNT(*) FROM news_sentiments;
 
 -- Date range of data
 SELECT

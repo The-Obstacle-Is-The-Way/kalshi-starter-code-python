@@ -9,12 +9,14 @@ This directory contains todo/task tracking files for ongoing work.
 ## Next ID Tracker
 
 Use this ID for the next todo you create:
-**TODO-003**
+**TODO-005**
 
 ---
 
 ## Active Items
 
+| ID | Title | Priority | Status |
+|---|---|---|---|
 None.
 
 ---

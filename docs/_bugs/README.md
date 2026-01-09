@@ -10,7 +10,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-# **BUG-046**
+# **BUG-047**
 
 ---
 
@@ -22,6 +22,7 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-046** | Datetime Serialization in News Collector | ✅ Fixed |
 | **BUG-045** | Legacy Starter Code Compatibility Layer | ✅ Removed |
 | **INCIDENT-001** | Chinese Character Syntax Corruption | ✅ Resolved |
 | **BUG-044** | WebSocket client silent JSON errors | ✅ Fixed |

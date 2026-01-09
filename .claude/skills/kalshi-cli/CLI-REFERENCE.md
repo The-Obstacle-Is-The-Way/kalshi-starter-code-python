@@ -357,6 +357,112 @@ uv run kalshi research backtest --start DATE --end DATE [OPTIONS]
 
 ---
 
+### research context
+Research context for a specific market using Exa.
+
+```bash
+uv run kalshi research context TICKER [OPTIONS]
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `TICKER` | Required | Market ticker to research |
+| `--max-news` | `10` | Max news articles |
+| `--max-papers` | `5` | Max research papers |
+| `--days` | `30` | News recency in days |
+| `--json` | False | Output as JSON |
+
+Requires `EXA_API_KEY`.
+
+### research topic
+Research a topic for thesis ideation using Exa.
+
+```bash
+uv run kalshi research topic TOPIC [OPTIONS]
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `TOPIC` | Required | Topic or question to research |
+| `--no-summary` | False | Skip summary generation |
+| `--json` | False | Output as JSON |
+
+Requires `EXA_API_KEY`.
+
+---
+
+## news - News Monitoring & Sentiment
+
+### news track
+Start tracking news for a market or event.
+
+```bash
+uv run kalshi news track TICKER [OPTIONS]
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `TICKER` | Required | Market or event ticker |
+| `--event`, `-e` | False | Treat ticker as an event ticker |
+| `--queries`, `-q` | None | Comma-separated custom search queries |
+| `--db`, `-d` | `data/kalshi.db` | Path to database |
+
+### news untrack
+Stop tracking a market/event.
+
+```bash
+uv run kalshi news untrack TICKER [OPTIONS]
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `TICKER` | Required | Market or event ticker |
+| `--db`, `-d` | `data/kalshi.db` | Path to database |
+
+### news list-tracked
+List tracked markets/events.
+
+```bash
+uv run kalshi news list-tracked [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--all` | False | Include inactive tracked items |
+| `--db`, `-d` | `data/kalshi.db` | Path to database |
+
+### news collect
+Collect news for tracked items and run sentiment analysis.
+
+```bash
+uv run kalshi news collect [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--ticker` | None | Collect only for this tracked ticker |
+| `--lookback-days` | `7` | Days to look back |
+| `--max-per-query` | `25` | Max articles per query |
+| `--db`, `-d` | `data/kalshi.db` | Path to database |
+
+Requires `EXA_API_KEY`.
+
+### news sentiment
+Show a sentiment summary for a market/event.
+
+```bash
+uv run kalshi news sentiment TICKER [OPTIONS]
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `TICKER` | Required | Market (or event) ticker |
+| `--event`, `-e` | False | Treat as event ticker |
+| `--days` | `7` | Days to analyze |
+| `--db`, `-d` | `data/kalshi.db` | Path to database |
+
+---
+
 ## alerts - Alert Management
 
 ### alerts list

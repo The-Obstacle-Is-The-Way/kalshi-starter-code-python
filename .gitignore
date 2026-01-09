@@ -68,6 +68,7 @@ data/*.db-wal
 data/*.json
 data/*.log
 data/exports/
+data/exa_cache/
 
 # OS
 .DS_Store
