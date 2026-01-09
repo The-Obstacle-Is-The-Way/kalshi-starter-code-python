@@ -11,6 +11,83 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from kalshi_research.api.models.market import Market
 
+from kalshi_research.api.models.market import MarketStatus
+
+
+class MarketClosedError(Exception):
+    """Raised when attempting to operate on a closed market."""
+
+    pass
+
+
+class MarketStatusVerifier:
+    """
+    Centralized market timing and status verification.
+
+    Checks if markets are:
+    - Still open for trading (not closed)
+    - Active (not settled, finalized, etc.)
+    - Valid for current operations
+    """
+
+    def is_market_tradeable(self, market: Market) -> bool:
+        """
+        Check if a market is currently tradeable.
+
+        A market is tradeable if:
+        1. Status is 'active'
+        2. Current time < close_time
+
+        Args:
+            market: Market to check
+
+        Returns:
+            True if market is tradeable, False otherwise
+        """
+        now = datetime.now(UTC)
+
+        # Check status
+        if market.status != MarketStatus.ACTIVE:
+            return False
+
+        # Check timing - market must not be past close_time
+        return not now >= market.close_time
+
+    def verify_market_open(self, market: Market) -> None:
+        """
+        Verify market is open for trading, raise if not.
+
+        Args:
+            market: Market to verify
+
+        Raises:
+            MarketClosedError: If market is closed or not tradeable
+        """
+        if not self.is_market_tradeable(market):
+            now = datetime.now(UTC)
+            if market.status != MarketStatus.ACTIVE:
+                raise MarketClosedError(
+                    f"Market {market.ticker} has status {market.status.value}, "
+                    f"expected {MarketStatus.ACTIVE.value}"
+                )
+            if now >= market.close_time:
+                raise MarketClosedError(
+                    f"Market {market.ticker} closed at {market.close_time.isoformat()}, "
+                    f"current time is {now.isoformat()}"
+                )
+
+    def filter_tradeable_markets(self, markets: list[Market]) -> list[Market]:
+        """
+        Filter a list of markets to only tradeable ones.
+
+        Args:
+            markets: List of markets to filter
+
+        Returns:
+            List of tradeable markets
+        """
+        return [m for m in markets if self.is_market_tradeable(m)]
+
 
 class ScanFilter(str, Enum):
     """Types of market scans."""
@@ -61,6 +138,7 @@ class MarketScanner:
         close_race_range: tuple[float, float] = (0.40, 0.60),
         high_volume_threshold: int = 10000,
         wide_spread_threshold: int = 5,
+        verifier: MarketStatusVerifier | None = None,
     ) -> None:
         """
         Initialize the scanner.
@@ -69,10 +147,12 @@ class MarketScanner:
             close_race_range: Probability range for close races
             high_volume_threshold: 24h volume threshold
             wide_spread_threshold: Spread threshold in cents
+            verifier: Optional MarketStatusVerifier (creates default if None)
         """
         self.close_race_range = close_race_range
         self.high_volume_threshold = high_volume_threshold
         self.wide_spread_threshold = wide_spread_threshold
+        self.verifier = verifier or MarketStatusVerifier()
 
     def scan_close_races(
         self,
@@ -96,9 +176,11 @@ class MarketScanner:
         Returns:
             List of ScanResults sorted by closeness to 50%
         """
+        # Filter to only tradeable markets first
+        tradeable_markets = self.verifier.filter_tradeable_markets(markets)
         results: list[ScanResult] = []
 
-        for m in markets:
+        for m in tradeable_markets:
             # SKIP: Unpriced markets (0/0 or 0/100 placeholder quotes)
             if m.yes_bid == 0 and m.yes_ask == 0:
                 continue  # No quotes at all
@@ -161,9 +243,11 @@ class MarketScanner:
         Returns:
             List of ScanResults sorted by volume
         """
+        # Filter to only tradeable markets first
+        tradeable_markets = self.verifier.filter_tradeable_markets(markets)
         results: list[ScanResult] = []
 
-        for m in markets:
+        for m in tradeable_markets:
             if m.volume_24h >= self.high_volume_threshold:
                 # Midpoint probability: see scan_close_races for derivation of 200.0
                 prob = (m.yes_bid + m.yes_ask) / 200.0
@@ -208,9 +292,11 @@ class MarketScanner:
         Returns:
             List of ScanResults sorted by spread
         """
+        # Filter to only tradeable markets first
+        tradeable_markets = self.verifier.filter_tradeable_markets(markets)
         results: list[ScanResult] = []
 
-        for m in markets:
+        for m in tradeable_markets:
             spread = m.yes_ask - m.yes_bid
 
             if spread >= self.wide_spread_threshold:
@@ -257,10 +343,12 @@ class MarketScanner:
         Returns:
             List of ScanResults sorted by time to expiration
         """
+        # Filter to only tradeable markets first
+        tradeable_markets = self.verifier.filter_tradeable_markets(markets)
         results: list[ScanResult] = []
         cutoff = datetime.now(UTC) + timedelta(hours=hours)
 
-        for m in markets:
+        for m in tradeable_markets:
             if m.close_time <= cutoff:
                 prob = (m.yes_bid + m.yes_ask) / 200.0
                 spread = m.yes_ask - m.yes_bid
