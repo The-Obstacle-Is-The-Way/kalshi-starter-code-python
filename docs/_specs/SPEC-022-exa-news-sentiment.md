@@ -1209,4 +1209,4 @@ kalshi news
 
 - [SPEC-020: Exa API Client](SPEC-020-exa-api-client.md)
 - [SPEC-021: Exa Market Research](SPEC-021-exa-market-research.md)
-- [SPEC-005: Alerts System](../../../_archive/specs/SPEC-005-alerts-notifications.md)
+- [Alerts System (implemented)](../trading/alerts-system.md)

@@ -67,7 +67,13 @@ nav:
       - Kalshi API: _vendor-docs/kalshi-api-reference.md
       - Exa API: _vendor-docs/exa-api-reference.md
   - Internal:
-      - Specs Index: _specs/README.md
+      - Specs:
+          - Index: _specs/README.md
+          - SPEC-020: _specs/SPEC-020-exa-api-client.md
+          - SPEC-021: _specs/SPEC-021-exa-market-research.md
+          - SPEC-022: _specs/SPEC-022-exa-news-sentiment.md
+          - SPEC-023: _specs/SPEC-023-exa-thesis-integration.md
+          - SPEC-024: _specs/SPEC-024-exa-research-agent.md
       - Bug Tracker: _bugs/README.md
       - Todo Index: _todo/README.md
       - Technical Debt: _debt/technical-debt.md
