@@ -27,14 +27,14 @@ These specs define a comprehensive Exa API integration following TDD principles 
 
 ### Implementation Order
 
-**Phase 1: Foundation**
+#### Phase 1: Foundation
 1. SPEC-020: Build the Exa API client (async, typed, tested) ✅
 
-**Phase 2: Core Research**
+#### Phase 2: Core Research
 2. SPEC-021: Market context research CLI ✅
 3. SPEC-023: Thesis research integration ✅
 
-**Phase 3: Advanced Features**
+#### Phase 3: Advanced Features
 4. SPEC-022: News collection & sentiment pipeline ✅
 5. SPEC-024: Autonomous research agent (planned)
 

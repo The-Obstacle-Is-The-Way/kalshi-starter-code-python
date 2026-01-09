@@ -109,8 +109,8 @@ Theses are stored locally at `data/theses.json`.
 News data is stored in SQLite (default: `data/kalshi.db`).
 
 - `kalshi news track <TICKER> [--event] [--queries Q1,Q2,...] [--db PATH]`
-- `kalshi news untrack <TICKER> [--event] [--db PATH]`
-- `kalshi news list-tracked [--db PATH]`
+- `kalshi news untrack <TICKER> [--db PATH]`
+- `kalshi news list-tracked [--all] [--db PATH]`
 - `kalshi news collect [--ticker TICKER] [--lookback-days N] [--max-per-query N] [--db PATH]`
 - `kalshi news sentiment <TICKER> [--event] [--days N] [--db PATH]`
 
