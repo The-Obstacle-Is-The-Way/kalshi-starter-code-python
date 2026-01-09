@@ -7,10 +7,11 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 | ID | Title | Priority | Status |
 |---|---|---|---|
 | **BUG-047** | Portfolio sync shows 0 positions despite portfolio_value > 0 | Medium | Investigating |
+| **BUG-048** | Negative liquidity validation error crashes market scan | Medium | Active |
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-# **BUG-048**
+# **BUG-049**
 
 ---
 
