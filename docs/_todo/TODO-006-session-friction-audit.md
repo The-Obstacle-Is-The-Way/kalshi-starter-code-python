@@ -29,7 +29,7 @@ This document captures all friction points encountered during a research session
 **Related TODO**: [TODO-005](TODO-005-market-open-date-validation.md)
 
 **Required Fixes**:
-- [ ] Add `open_time` and `created_time` to `market get` CLI output
+- [x] Add `open_time` and `created_time` to `market get` CLI output (completed in TODO-005a)
 - [x] Research workflow must check market open time BEFORE researching (documented workflow)
 - [x] Add skill guidance: "If market price seems too easy, verify timing"
 
