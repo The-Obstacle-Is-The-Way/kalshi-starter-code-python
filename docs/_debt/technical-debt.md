@@ -6,7 +6,7 @@
 
 ## Outstanding Debt
 
-*(none)*
+None.
 
 ---
 

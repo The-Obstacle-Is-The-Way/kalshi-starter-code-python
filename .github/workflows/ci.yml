@@ -57,20 +57,14 @@ jobs:
             --cov-report=xml \
             --cov-report=term-missing \
             -m "not integration and not slow"
-      - name: Upload coverage (tokenless)
+      - name: Upload coverage (Codecov)
         uses: codecov/codecov-action@v5
-        if: matrix.python-version == '3.11' && secrets.CODECOV_TOKEN == ''
+        if: matrix.python-version == '3.11'
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
-
-      - name: Upload coverage (token)
-        uses: codecov/codecov-action@v5
-        if: matrix.python-version == '3.11' && secrets.CODECOV_TOKEN != ''
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   integration:
     name: Integration Tests

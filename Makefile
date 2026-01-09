@@ -1,9 +1,11 @@
 # Makefile - Kalshi Research Platform
 # Modern Python DevX (2026)
 
-.PHONY: help install dev test lint format check ci clean docs docs-serve docs-build db
+.PHONY: all help install dev test lint format check ci clean docs docs-serve docs-build db
 
 # Default target
+all: help
+
 help:
 	@echo "Kalshi Research Platform - Development Commands"
 	@echo ""
