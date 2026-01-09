@@ -27,7 +27,7 @@
 
 ## Phase 4: Technical Debt
 
-- [ ] **DEBT-002**: Complete Phase 1 magic number comments → `api/client.py`
+- [x] **DEBT-002**: Complete Phase 1 magic number comments → `api/client.py`
 - [ ] **DEBT-003**: Add `session.begin()` transaction boundaries → `data/repositories/`
 - [ ] **DEBT-001**: Create Pydantic models for portfolio methods → `api/models/portfolio.py`
 

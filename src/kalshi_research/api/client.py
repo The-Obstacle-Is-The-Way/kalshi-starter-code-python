@@ -152,6 +152,7 @@ class KalshiPublicClient:
         Filter: unopened, open, closed, settled
         Response: active, closed, determined, finalized
         """
+        # 1000 is Kalshi API max limit per page (see docs/_vendor-docs/kalshi-api-reference.md)
         params: dict[str, Any] = {"limit": min(limit, 1000)}
         if status:
             params["status"] = status.value if isinstance(status, MarketFilterStatus) else status
@@ -264,6 +265,7 @@ class KalshiPublicClient:
         max_ts: int | None = None,
     ) -> list[Trade]:
         """Fetch public trade history."""
+        # 1000 is Kalshi API max limit per page (see docs/_vendor-docs/kalshi-api-reference.md)
         params: dict[str, Any] = {"limit": min(limit, 1000)}
         if ticker:
             params["ticker"] = ticker
@@ -617,6 +619,8 @@ class KalshiClient(KalshiPublicClient):
         Returns:
             OrderResponse with order_id and status
         """
+        # 1-99 is Kalshi's valid trading range (0 and 100 are settled states)
+        # See docs/_vendor-docs/kalshi-api-reference.md (Binary market math)
         if price < 1 or price > 99:
             raise ValueError("Price must be between 1 and 99 cents")
 

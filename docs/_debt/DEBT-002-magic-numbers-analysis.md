@@ -60,12 +60,14 @@ The following were investigated and determined **NOT** to be debt. They are **Pl
 
 Add explanatory comments citing the Vendor Docs next to the "False Positives" to prevent future confusion.
 
-**Status**: Partially complete
+**Status**: Complete (2026-01-09)
 - [x] `scanner.py:116-120` - Comment added for 200.0 divisor (2026-01-09)
-- [ ] `scanner.py` - Other 200.0 occurrences (reference canonical comment)
-- [ ] `client.py:146` - Comment for 1000 page limit
-- [ ] `client.py:258` - Comment for 1000 page limit (trades)
-- [ ] `client.py:606-607` - Comment for 1-99 price validation
+- [x] `scanner.py:253` - Reference comment for midpoint conversion (2026-01-09)
+- [x] `scanner.py:305` - Reference comment for midpoint conversion (2026-01-09)
+- [x] `scanner.py:357` - Reference comment for midpoint conversion (2026-01-09)
+- [x] `client.py:155` - Comment for 1000 page limit (2026-01-09)
+- [x] `client.py:268` - Comment for 1000 page limit (trades) (2026-01-09)
+- [x] `client.py:622-623` - Comment for 1-99 price validation (2026-01-09)
 
 ### Phase 2: Configuration
 

@@ -249,7 +249,8 @@ class MarketScanner:
 
         for m in tradeable_markets:
             if m.volume_24h >= self.high_volume_threshold:
-                # Midpoint probability: see scan_close_races for derivation of 200.0
+                # Midpoint probability: convert cents to probability [0-1]
+                # See scan_close_races:199-201 for binary market math derivation
                 prob = m.midpoint / 100.0
                 spread = m.spread
 
@@ -300,6 +301,8 @@ class MarketScanner:
             spread = m.spread
 
             if spread >= self.wide_spread_threshold:
+                # Midpoint probability: convert cents to probability [0-1]
+                # See scan_close_races:199-201 for binary market math derivation
                 prob = m.midpoint / 100.0
 
                 # Score by spread (capped at 20c)
@@ -350,6 +353,8 @@ class MarketScanner:
 
         for m in tradeable_markets:
             if m.close_time <= cutoff:
+                # Midpoint probability: convert cents to probability [0-1]
+                # See scan_close_races:199-201 for binary market math derivation
                 prob = m.midpoint / 100.0
                 spread = m.spread
 
