@@ -85,4 +85,4 @@ uv run mypy src/
 
 ## License
 
-MIT
+Apache-2.0 (see `LICENSE`)
