@@ -196,7 +196,7 @@ def test_api_market_to_settlement_prefers_settlement_ts():
 
 This was originally tracked as DEBT-004 (technical debt), but it's actually a **feature gap**:
 
-1. The API provides `settlement_ts` (since Dec 25, 2025)
+1. The API provides `settlement_ts` (since Dec 19, 2025)
 2. Our model doesn't consume it
 3. Our docs don't mention it
 4. Users cannot access accurate settlement timing

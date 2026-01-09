@@ -37,7 +37,7 @@ Comprehensive liquidity analysis framework for Kalshi markets.
 
 ### SPEC-027: Settlement Timestamp
 
-Add support for `settlement_ts` field (added Dec 25, 2025). Currently using `expiration_time` as proxy.
+Add support for `settlement_ts` field (added Dec 19, 2025). Currently using `expiration_time` as proxy.
 
 **Why now:**
 - API field exists but we don't consume it

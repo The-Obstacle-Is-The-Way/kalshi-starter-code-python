@@ -153,7 +153,7 @@ Only these count against **write** limits:
 
 **Note:** Timestamp filters are mutually exclusive. Only one status filter allowed.
 
-### Market Response Settlement Fields (Dec 25, 2025+)
+### Market Response Settlement Fields (Dec 19, 2025+)
 
 | Field | Type | Description |
 |-------|------|-------------|
