@@ -264,7 +264,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from kalshi_research.exa.models.common import ContentsRequest, CostDollars
 
@@ -305,7 +305,7 @@ class SearchRequest(BaseModel):
     start_published_date: datetime | None = Field(default=None, alias="startPublishedDate")
     end_published_date: datetime | None = Field(default=None, alias="endPublishedDate")
     user_location: str | None = Field(default=None, alias="userLocation")
-    moderation: bool | None = None
+    moderation: bool | None = None  # SDK-supported; not present in OpenAPI v1.2.0
     include_text: list[str] | None = Field(default=None, alias="includeText")
     exclude_text: list[str] | None = Field(default=None, alias="excludeText")
     category: SearchCategory | None = None
@@ -346,7 +346,14 @@ class SearchResponse(BaseModel):
 
     request_id: str = Field(alias="requestId")
     results: list[SearchResult]
-    search_type: str = Field(alias="searchType")
+    # OpenAPI documents `searchType`; the official SDK also references `resolvedSearchType`.
+    # Accept both for compatibility; serialize using `searchType`.
+    search_type: str | None = Field(
+        default=None,
+        alias="searchType",
+        validation_alias=AliasChoices("searchType", "resolvedSearchType"),
+    )
+    auto_date: str | None = Field(default=None, alias="autoDate")
     context: str | None = None  # Combined content for RAG (if context=True in request)
     cost_dollars: CostDollars | None = Field(default=None, alias="costDollars")
 ```
@@ -410,6 +417,47 @@ class ContentsResponse(BaseModel):
     request_id: str = Field(alias="requestId")
     results: list[SearchResult]
     statuses: list[ContentsStatus]
+    context: str | None = None
+    cost_dollars: CostDollars | None = Field(default=None, alias="costDollars")
+```
+
+```python
+# src/kalshi_research/exa/models/similar.py
+from __future__ import annotations
+
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from kalshi_research.exa.models.common import ContentsRequest, CostDollars
+from kalshi_research.exa.models.search import SearchResult
+
+
+class FindSimilarRequest(BaseModel):
+    """Request body for /findSimilar endpoint."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    url: str
+    num_results: int = Field(default=10, ge=1, le=100, alias="numResults")
+    include_domains: list[str] | None = Field(default=None, alias="includeDomains")
+    exclude_domains: list[str] | None = Field(default=None, alias="excludeDomains")
+    start_crawl_date: datetime | None = Field(default=None, alias="startCrawlDate")
+    end_crawl_date: datetime | None = Field(default=None, alias="endCrawlDate")
+    start_published_date: datetime | None = Field(default=None, alias="startPublishedDate")
+    end_published_date: datetime | None = Field(default=None, alias="endPublishedDate")
+    include_text: list[str] | None = Field(default=None, alias="includeText")
+    exclude_text: list[str] | None = Field(default=None, alias="excludeText")
+    contents: ContentsRequest | None = None
+
+
+class FindSimilarResponse(BaseModel):
+    """Response from /findSimilar endpoint."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    request_id: str = Field(alias="requestId")
+    results: list[SearchResult]
     context: str | None = None
     cost_dollars: CostDollars | None = Field(default=None, alias="costDollars")
 ```
@@ -556,6 +604,7 @@ from kalshi_research.exa.models import (
     AnswerRequest,
     AnswerResponse,
     ContentsRequest,
+    HighlightsOptions,
     GetContentsRequest,
     ContentsResponse,
     FindSimilarRequest,
@@ -564,6 +613,7 @@ from kalshi_research.exa.models import (
     ResearchTask,
     SearchRequest,
     SearchResponse,
+    SummaryOptions,
 )
 
 if TYPE_CHECKING:
@@ -710,6 +760,8 @@ class ExaClient:
         end_crawl_date: datetime | None = None,
         user_location: str | None = None,
         moderation: bool | None = None,
+        include_text: list[str] | None = None,
+        exclude_text: list[str] | None = None,
         text: bool = False,
         highlights: bool = False,
         summary: bool = False,
@@ -732,6 +784,8 @@ class ExaClient:
             end_crawl_date: Only return results before this crawl date (ISO 8601)
             user_location: Two-letter ISO country code (e.g., "US")
             moderation: Filter unsafe content (default false if omitted)
+            include_text: Only return results that contain these phrases (currently 1 phrase supported by Exa)
+            exclude_text: Exclude results that contain these phrases (currently 1 phrase supported by Exa)
             text: Include full page text in results
             highlights: Include relevant snippets
             summary: Include LLM-generated summaries
@@ -753,12 +807,16 @@ class ExaClient:
             ...     num_results=20,
             ... )
         """
-        contents = ContentsRequest(
-            text=text,
-            highlights={} if highlights else None,
-            summary={} if summary else None,
-            context=context,
-        )
+        contents: ContentsRequest | None = None
+        if text or highlights or summary or context:
+            # OpenAPI documents `highlights`/`summary` as objects; the official SDK also accepts booleans.
+            # Normalize booleans to empty option objects for predictable serialization.
+            contents = ContentsRequest(
+                text=True if text else None,
+                highlights=HighlightsOptions() if highlights else None,
+                summary=SummaryOptions() if summary else None,
+                context=True if context else None,
+            )
 
         request = SearchRequest(
             query=query,
@@ -771,6 +829,8 @@ class ExaClient:
             end_crawl_date=end_crawl_date,
             user_location=user_location,
             moderation=moderation,
+            include_text=include_text,
+            exclude_text=exclude_text,
             include_domains=include_domains,
             exclude_domains=exclude_domains,
             category=category,
@@ -835,9 +895,9 @@ class ExaClient:
         """
         request = GetContentsRequest(
             urls=urls,
-            text=text,
-            highlights={} if highlights else None,
-            summary={} if summary else None,
+            text=True if text else None,
+            highlights=HighlightsOptions() if highlights else None,
+            summary=SummaryOptions() if summary else None,
             livecrawl=livecrawl,
         )
 

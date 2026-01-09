@@ -159,13 +159,15 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import structlog
 
 if TYPE_CHECKING:
     from kalshi_research.api.models.market import Market
     from kalshi_research.exa.client import ExaClient
+    from kalshi_research.exa.models.research import ResearchOutput
+    from kalshi_research.exa.models.search import SearchResult
 
 logger = structlog.get_logger()
 
@@ -194,10 +196,10 @@ class ResearchStep:
     phase: ResearchPhase
     description: str
     query: str | None = None
-    action: str = "search"  # search, contents, answer, research
+    action: Literal["search", "contents", "answer", "research"] = "search"
     params: dict[str, Any] = field(default_factory=dict)
     completed: bool = False
-    result: Any = None
+    result: list[SearchResult] | dict[str, object] | ResearchOutput | None = None
     cost: float = 0.0
 
 
@@ -443,13 +445,13 @@ class ResearchAgent:
             step.result = None
             step.completed = False
 
-    async def _execute_plan(self, plan: ResearchPlan) -> dict[ResearchPhase, list[Any]]:
+    async def _execute_plan(self, plan: ResearchPlan) -> dict[ResearchPhase, list[object]]:
         """
         Execute all steps in the research plan.
 
         Returns results grouped by phase.
         """
-        results_by_phase: dict[ResearchPhase, list[Any]] = {
+        results_by_phase: dict[ResearchPhase, list[object]] = {
             phase: [] for phase in ResearchPhase
         }
 
@@ -477,7 +479,7 @@ class ResearchAgent:
     def _synthesize_results(
         self,
         market: Market,
-        results: dict[ResearchPhase, list[Any]],
+        results: dict[ResearchPhase, list[object]],
         depth: ResearchDepth,
         duration: float,
     ) -> ResearchResult:
@@ -555,7 +557,7 @@ class ResearchAgent:
             duration_seconds=duration,
         )
 
-    def _extract_key_findings(self, sources: list[Any]) -> list[str]:
+    def _extract_key_findings(self, sources: list[object]) -> list[str]:
         """Extract key findings from sources."""
         findings = []
         seen = set()
@@ -573,7 +575,7 @@ class ResearchAgent:
 
     def _generate_cases(
         self,
-        sources: list[Any],
+        sources: list[object],
         deep_content: str,
     ) -> tuple[str, str]:
         """Generate bull and bear cases from research."""
@@ -645,7 +647,7 @@ class ResearchAgent:
 
     def _extract_expert_opinions(
         self,
-        expert_results: list[Any],
+        expert_results: list[object],
     ) -> list[dict[str, str]]:
         """Extract expert opinions from research."""
         opinions = []

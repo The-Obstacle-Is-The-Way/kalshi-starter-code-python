@@ -113,12 +113,13 @@ uv run kalshi research thesis suggest --category "crypto"
 ```
 src/kalshi_research/
 ├── research/
-│   ├── thesis.py           # (existing) - Add evidence field
+│   ├── thesis.py           # (existing) - Add evidence fields (persisted in theses JSON)
 │   ├── thesis_research.py  # NEW: Research-enhanced thesis operations
 │   └── invalidation.py     # NEW: Invalidation detection
-├── data/
-│   └── models.py           # Add: ThesisEvidence
 ```
+
+**Persistence (SSOT):** Theses are currently stored in `data/theses.json` via `ThesisTracker`. This spec stores
+research evidence **inside the existing thesis JSON schema** (no SQLite tables or Alembic migrations in-scope).
 
 ### 3.2 Enhanced Thesis Model
 
@@ -193,6 +194,42 @@ class Thesis:
         base["research_summary"] = self.research_summary
         base["last_research_at"] = self.last_research_at.isoformat() if self.last_research_at else None
         return base
+```
+
+Also update `Thesis.from_dict` to parse these new optional fields and keep backward compatibility with existing
+saved theses (missing keys must not raise):
+
+```python
+@classmethod
+def from_dict(cls, data: dict[str, Any]) -> Thesis:
+    evidence_raw = data.get("evidence", [])
+    evidence: list[ThesisEvidence] = []
+    for item in evidence_raw:
+        if not isinstance(item, dict):
+            continue
+        published = item.get("published_date")
+        added = item.get("added_at")
+        evidence.append(
+            ThesisEvidence(
+                url=str(item.get("url", "")),
+                title=str(item.get("title", "")),
+                source_domain=str(item.get("source_domain", "")),
+                published_date=datetime.fromisoformat(published) if published else None,
+                snippet=str(item.get("snippet", "")),
+                supports=str(item.get("supports", "neutral")),
+                relevance_score=float(item.get("relevance_score", 0.0)),
+                added_at=datetime.fromisoformat(added) if added else datetime.now(UTC),
+            )
+        )
+
+    thesis = cls(
+        # ... existing required fields ...
+    )
+    thesis.evidence = evidence
+    thesis.research_summary = data.get("research_summary")
+    last = data.get("last_research_at")
+    thesis.last_research_at = datetime.fromisoformat(last) if last else None
+    return thesis
 ```
 
 ### 3.3 Thesis Researcher
