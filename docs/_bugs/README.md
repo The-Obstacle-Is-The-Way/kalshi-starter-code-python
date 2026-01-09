@@ -6,11 +6,11 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-| *(none)* | All bugs resolved! | - | - |
+| **BUG-047** | Portfolio sync shows 0 positions despite portfolio_value > 0 | Medium | Investigating |
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-# **BUG-047**
+# **BUG-048**
 
 ---
 

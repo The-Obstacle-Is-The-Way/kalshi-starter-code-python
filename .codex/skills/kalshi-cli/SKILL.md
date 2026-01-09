@@ -51,7 +51,7 @@ uv run kalshi data init                    # Initialize database
 uv run kalshi data sync-markets            # Sync markets from API
 uv run kalshi data sync-settlements        # Sync resolved outcomes
 uv run kalshi data snapshot                # Take price snapshot
-uv run kalshi data collect [--once]        # Continuous collection
+uv run kalshi data collect [--interval 15] [--once] [--max-pages N]  # Continuous collection
 uv run kalshi data export [-f csv|parquet] # Export data
 uv run kalshi data stats                   # Show statistics
 ```
@@ -65,9 +65,9 @@ uv run kalshi market orderbook TICKER      # Get orderbook
 
 ### scan - Opportunity Scanning
 ```bash
-uv run kalshi scan opportunities [-f close-race|high-volume|wide-spread|expiring-soon]
-uv run kalshi scan arbitrage [--threshold 0.1]
-uv run kalshi scan movers [-p 1h|6h|24h]
+uv run kalshi scan opportunities [--filter close-race] [--top 10] [--max-pages N]
+uv run kalshi scan arbitrage [--threshold 0.1] [--top 10] [--max-pages N]
+uv run kalshi scan movers [--period 24h] [--top 10] [--max-pages N]
 ```
 
 ### portfolio - Portfolio Tracking (Requires Auth)
@@ -105,7 +105,7 @@ uv run kalshi news untrack TICKER                              # Stop tracking
 uv run kalshi alerts list
 uv run kalshi alerts add price|volume|spread TICKER [--above N] [--below N]
 uv run kalshi alerts remove ALERT_ID
-uv run kalshi alerts monitor [--daemon] [--once]
+uv run kalshi alerts monitor [--interval 60] [--daemon] [--once] [--max-pages N]
 ```
 
 ### analysis - Market Analysis

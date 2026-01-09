@@ -1,7 +1,6 @@
 ---
 name: kalshi-doc-audit
 description: Audits and corrects Kalshi Research Platform documentation/specs against SSOT (code, CLI help, vendor docs), and records any drift in docs/_bugs, docs/_todo, or docs/_debt.
-allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Documentation Audit
@@ -23,7 +22,7 @@ allowed-tools: Bash, Read, Grep, Glob
    - Search code for `os.getenv("KALSHI_")` / `os.getenv("EXA_")` and ensure docs match.
 4. When you find drift:
    - Fix the doc/spec directly.
-   - If it’s a known limitation or a deliberate compromise, record it in:
+   - If it's a known limitation or a deliberate compromise, record it in:
      - `docs/_bugs/` (active bug), or
      - `docs/_todo/` (planned work), or
      - `docs/_debt/` (accepted technical debt).
@@ -40,5 +39,5 @@ allowed-tools: Bash, Read, Grep, Glob
 
 ## Safety notes
 
-- Never delete `data/kalshi.db` to “fix” corruption; diagnose and recover instead.
+- Never delete `data/kalshi.db` to "fix" corruption; diagnose and recover instead.
 - `data/exa_cache/` is disposable cache; keep it out of git.

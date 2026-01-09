@@ -17,7 +17,9 @@ Use this ID for the next todo you create:
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-None.
+| *(none)* | - | - | - |
+
+*Note: TODO-005 was reclassified as [BUG-047](../bugs/BUG-047-portfolio-positions-sync.md).*
 
 ---
 
