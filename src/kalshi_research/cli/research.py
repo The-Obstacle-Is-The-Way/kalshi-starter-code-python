@@ -1,8 +1,10 @@
 import asyncio
+import json
 import uuid
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -14,6 +16,13 @@ from kalshi_research.cli.utils import (
     load_json_storage_file,
 )
 from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
+
+if TYPE_CHECKING:
+    from kalshi_research.api.models.market import Market
+    from kalshi_research.research.context import MarketResearch, ResearchSource
+    from kalshi_research.research.thesis import ThesisEvidence
+    from kalshi_research.research.thesis_research import ResearchedThesisData
+    from kalshi_research.research.topic import TopicResearch
 
 app = typer.Typer(help="Research and thesis tracking commands.")
 thesis_app = typer.Typer(help="Thesis management commands.")
@@ -105,6 +114,36 @@ def _display_backtest_results(results: list[Any], start: str, end: str) -> None:
     console.print(detail_table)
 
 
+def _serialize_thesis_evidence(evidence_items: "list[ThesisEvidence]") -> list[dict[str, Any]]:
+    return [
+        {
+            "url": e.url,
+            "title": e.title,
+            "source_domain": e.source_domain,
+            "published_date": e.published_date.isoformat() if e.published_date else None,
+            "snippet": e.snippet,
+            "supports": e.supports,
+            "relevance_score": e.relevance_score,
+            "added_at": e.added_at.isoformat(),
+        }
+        for e in evidence_items
+    ]
+
+
+async def _gather_thesis_research_data(
+    market_ticker: str,
+    *,
+    thesis_direction: str,
+) -> "ResearchedThesisData":
+    from kalshi_research.exa import ExaClient
+    from kalshi_research.research.thesis_research import ThesisResearcher
+
+    market = await _fetch_market(market_ticker)
+    async with ExaClient.from_env() as exa:
+        researcher = ThesisResearcher(exa)
+        return await researcher.research_for_thesis(market, thesis_direction=thesis_direction)
+
+
 @thesis_app.command("create")
 def research_thesis_create(
     title: Annotated[str, typer.Argument(help="Thesis title")],
@@ -114,10 +153,70 @@ def research_thesis_create(
     confidence: Annotated[float, typer.Option("--confidence", help="Your confidence (0-1)")],
     bull_case: Annotated[str, typer.Option("--bull", help="Bull case")] = "Why YES",
     bear_case: Annotated[str, typer.Option("--bear", help="Bear case")] = "Why NO",
+    with_research: Annotated[
+        bool, typer.Option("--with-research", help="Attach Exa research evidence to this thesis")
+    ] = False,
+    yes: Annotated[
+        bool,
+        typer.Option(
+            "--yes",
+            "-y",
+            help=(
+                "Accept research suggestions without prompting "
+                "(only relevant with --with-research)."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Create a new research thesis."""
     thesis_id = str(uuid.uuid4())
     market_tickers = [t.strip() for t in markets.split(",")]
+
+    final_bull = bull_case
+    final_bear = bear_case
+    evidence: list[dict[str, Any]] = []
+    research_summary: str | None = None
+    last_research_at: str | None = None
+
+    if with_research and market_tickers:
+        console.print("[dim]🔍 Researching thesis...[/dim]")
+
+        try:
+            direction = "yes" if your_prob > 0.5 else "no"
+            research_data = asyncio.run(
+                _gather_thesis_research_data(market_tickers[0], thesis_direction=direction)
+            )
+        except ValueError as e:
+            console.print(f"[yellow]Research skipped:[/yellow] {e}")
+        else:
+            total_sources = (
+                len(research_data.bull_evidence)
+                + len(research_data.bear_evidence)
+                + len(research_data.neutral_evidence)
+            )
+            console.print(f"[green]📰 Found {total_sources} relevant sources[/green]\n")
+
+            console.print("[bold cyan]Suggested Bull Case:[/bold cyan]")
+            console.print(research_data.suggested_bull_case)
+            console.print()
+
+            console.print("[bold cyan]Suggested Bear Case:[/bold cyan]")
+            console.print(research_data.suggested_bear_case)
+            console.print()
+
+            accept = yes or typer.confirm("Accept these suggestions?", default=True)
+            if accept:
+                final_bull = research_data.suggested_bull_case
+                final_bear = research_data.suggested_bear_case
+
+            evidence = _serialize_thesis_evidence(
+                research_data.bull_evidence
+                + research_data.bear_evidence
+                + research_data.neutral_evidence
+            )
+            research_summary = research_data.summary
+            last_research_at = datetime.now(UTC).isoformat() if evidence else None
+            console.print(f"[dim]Research cost: ${research_data.exa_cost_dollars:.4f}[/dim]")
 
     thesis = {
         "id": thesis_id,
@@ -126,8 +225,8 @@ def research_thesis_create(
         "your_probability": your_prob,
         "market_probability": market_prob,
         "confidence": confidence,
-        "bull_case": bull_case,
-        "bear_case": bear_case,
+        "bull_case": final_bull,
+        "bear_case": final_bear,
         "key_assumptions": [],
         "invalidation_criteria": [],
         "status": "active",
@@ -135,6 +234,9 @@ def research_thesis_create(
         "resolved_at": None,
         "actual_outcome": None,
         "updates": [],
+        "evidence": evidence,
+        "research_summary": research_summary,
+        "last_research_at": last_research_at,
     }
 
     # Save
@@ -145,6 +247,8 @@ def research_thesis_create(
     console.print(f"[green]✓[/green] Thesis created: {title}")
     console.print(f"[dim]ID: {thesis_id[:8]}[/dim]")
     console.print(f"Edge: {(your_prob - market_prob) * 100:.1f}%")
+    if evidence:
+        console.print(f"[dim]Evidence attached: {len(evidence)} sources[/dim]")
 
 
 @thesis_app.command("list")
@@ -227,6 +331,32 @@ def research_thesis_show(  # noqa: PLR0915
         for update in thesis["updates"]:
             console.print(f"  {update['timestamp']}: {update['note']}")
 
+    if thesis.get("research_summary"):
+        console.print("\n[cyan]Research Summary:[/cyan]")
+        console.print(thesis["research_summary"])
+
+    evidence = thesis.get("evidence") or []
+    if isinstance(evidence, list) and evidence:
+        console.print("\n[cyan]Evidence:[/cyan]")
+
+        def _print_evidence_group(label: str, title: str) -> None:
+            items = [e for e in evidence if isinstance(e, dict) and e.get("supports") == label]
+            if not items:
+                return
+            console.print(f"[bold]{title}[/bold]")
+            for item in items[:3]:
+                item_title = str(item.get("title", "")).strip()
+                domain = str(item.get("source_domain", "")).strip()
+                console.print(f"  • {item_title} [dim]({domain})[/dim]")
+                snippet = str(item.get("snippet", "")).strip()
+                if snippet:
+                    snippet_preview = snippet[:180] + ("..." if len(snippet) > 180 else "")
+                    console.print(f"    [dim]{snippet_preview}[/dim]")
+
+        _print_evidence_group("bull", "🟢 Bull Evidence")
+        _print_evidence_group("bear", "🔴 Bear Evidence")
+        _print_evidence_group("neutral", "⚪ Neutral Evidence")
+
     # Show linked positions if requested
     if with_positions:
         from sqlalchemy import select
@@ -299,6 +429,115 @@ def research_thesis_resolve(
             return
 
     console.print(f"[yellow]Thesis not found: {thesis_id}[/yellow]")
+
+
+@thesis_app.command("check-invalidation")
+def research_thesis_check_invalidation(
+    thesis_id: Annotated[str, typer.Argument(help="Thesis ID to check")],
+    hours: Annotated[int, typer.Option("--hours", "-h", help="Lookback hours")] = 48,
+) -> None:
+    """Check for signals that might invalidate your thesis."""
+    from kalshi_research.exa import ExaClient
+    from kalshi_research.research.invalidation import InvalidationDetector, InvalidationSeverity
+    from kalshi_research.research.thesis import ThesisTracker
+
+    async def _check() -> None:
+        try:
+            tracker = ThesisTracker(_get_thesis_file())
+        except ValueError as e:
+            console.print(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1) from None
+
+        thesis = tracker.get(thesis_id)
+        if not thesis:
+            for t in tracker.list_all():
+                if t.id.startswith(thesis_id):
+                    thesis = t
+                    break
+
+        if not thesis:
+            console.print(f"[yellow]Thesis not found: {thesis_id}[/yellow]")
+            return
+
+        console.print(f"\n[bold]Thesis:[/bold] {thesis.title}")
+        console.print(f"Your probability: {thesis.your_probability:.0%} YES")
+        console.print(f"[dim]Checking last {hours} hours...[/dim]\n")
+
+        try:
+            async with ExaClient.from_env() as exa:
+                detector = InvalidationDetector(exa, lookback_hours=hours)
+                report = await detector.check_thesis(thesis)
+        except ValueError as e:
+            console.print(f"[red]Error:[/red] {e}")
+            console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+            raise typer.Exit(1) from None
+
+        if not report.signals:
+            console.print("[green]✓ No invalidation signals found[/green]")
+            console.print(f"[dim]{report.recommendation}[/dim]")
+            return
+
+        console.print("[yellow]⚠️ Potential Invalidation Signals[/yellow]")
+        console.print("─" * 50)
+
+        for signal in report.signals:
+            severity = signal.severity
+            label = severity.value.upper()
+            color = (
+                "red"
+                if severity == InvalidationSeverity.HIGH
+                else "yellow"
+                if severity == InvalidationSeverity.MEDIUM
+                else "white"
+            )
+            console.print(f"[{color}][{label}][/{color}] {signal.title}")
+            console.print(f"  [dim]{signal.source_domain} | {signal.url}[/dim]")
+            if signal.reason:
+                console.print(f"  [dim]{signal.reason}[/dim]")
+            if signal.snippet:
+                console.print(f"  [italic]> {signal.snippet[:200]}[/italic]")
+            console.print()
+
+        if report.recommendation:
+            console.print(f"[bold]Recommendation:[/bold] {report.recommendation}")
+
+    asyncio.run(_check())
+
+
+@thesis_app.command("suggest")
+def research_thesis_suggest(
+    category: Annotated[
+        str | None,
+        typer.Option("--category", "-c", help="Optional category filter (crypto, politics, etc.)"),
+    ] = None,
+) -> None:
+    """Generate thesis ideas from Exa research."""
+    from kalshi_research.exa import ExaClient
+    from kalshi_research.research.thesis_research import ThesisSuggester
+
+    async def _suggest() -> None:
+        try:
+            async with ExaClient.from_env() as exa:
+                suggester = ThesisSuggester(exa)
+                suggestions = await suggester.suggest_theses(category=category)
+        except ValueError as e:
+            console.print(f"[red]Error:[/red] {e}")
+            console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+            raise typer.Exit(1) from None
+
+        if not suggestions:
+            console.print("[yellow]No suggestions found.[/yellow]")
+            return
+
+        console.print("\n[bold]🎯 Thesis Suggestions Based on Research[/bold]")
+        console.print("─" * 60)
+        for i, s in enumerate(suggestions, 1):
+            console.print(f"\n[bold]{i}. {s.suggested_thesis}[/bold]")
+            console.print(f"[dim]Source:[/dim] {s.source_title} ({s.source_url})")
+            if s.key_insight:
+                console.print(f"[italic]> {s.key_insight[:200]}[/italic]")
+
+    asyncio.run(_suggest())
 
 
 @app.command("backtest")
@@ -414,3 +653,195 @@ def research_backtest(
             _display_backtest_results(results, start, end)
 
     asyncio.run(_backtest())
+
+
+def _print_market_news(sources: list["ResearchSource"]) -> None:
+    console.print("[bold cyan]📰 Recent News[/bold cyan]")
+    console.print("─" * 40)
+    for i, source in enumerate(sources[:5], 1):
+        date_str = source.published_date.strftime("%b %d") if source.published_date else "N/A"
+        console.print(f"{i}. [bold]{source.title}[/bold] ({date_str})")
+        console.print(f"   [dim]Source: {source.source_domain}[/dim]")
+        if source.highlight:
+            snippet = source.highlight[:150]
+            if len(source.highlight) > 150:
+                snippet += "..."
+            console.print(f"   [italic]> {snippet}[/italic]")
+        console.print()
+
+
+def _print_market_papers(sources: list["ResearchSource"]) -> None:
+    console.print("[bold cyan]📄 Research Papers[/bold cyan]")
+    console.print("─" * 40)
+    for i, source in enumerate(sources[:3], 1):
+        console.print(f"{i}. [bold]{source.title}[/bold]")
+        console.print(f"   [dim]Source: {source.source_domain}[/dim]")
+        console.print()
+
+
+def _print_market_related(sources: list["ResearchSource"]) -> None:
+    console.print("[bold cyan]🔗 Related Coverage[/bold cyan]")
+    console.print("─" * 40)
+    for source in sources[:3]:
+        console.print(f"  • {source.title}")
+        console.print(f"    [dim]{source.url}[/dim]")
+
+
+def _render_market_context(market: "Market", research: "MarketResearch") -> None:
+    console.print(f"\n[bold]Market:[/bold] {market.title}")
+    mid_prob = (market.yes_bid + market.yes_ask) / 200.0
+    console.print(
+        f"[dim]Current: {mid_prob:.0%} YES | "
+        f"Volume: {market.volume_24h:,} | "
+        f"Spread: {market.yes_ask - market.yes_bid}¢[/dim]\n"
+    )
+
+    if research.news:
+        _print_market_news(research.news)
+    if research.research_papers:
+        _print_market_papers(research.research_papers)
+    if research.related_coverage:
+        _print_market_related(research.related_coverage)
+
+    console.print(f"\n[dim]Cost: ${research.exa_cost_dollars:.4f}[/dim]")
+
+
+async def _fetch_market(ticker: str) -> "Market":
+    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    async with KalshiPublicClient() as kalshi:
+        try:
+            return await kalshi.get_market(ticker)
+        except KalshiAPIError as e:
+            console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+            raise typer.Exit(1) from None
+        except Exception as e:
+            console.print(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1) from None
+
+
+async def _run_market_context_research(
+    market: "Market",
+    *,
+    max_news: int,
+    max_papers: int,
+    days: int,
+) -> "MarketResearch":
+    from kalshi_research.exa import ExaCache, ExaClient
+    from kalshi_research.research import MarketContextResearcher
+
+    try:
+        async with ExaClient.from_env() as exa:
+            cache = ExaCache()
+            researcher = MarketContextResearcher(
+                exa,
+                cache=cache,
+                max_news_results=max_news,
+                max_paper_results=max_papers,
+                news_recency_days=days,
+            )
+            return await researcher.research_market(market)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+        raise typer.Exit(1) from None
+
+
+async def _research_market_context(
+    ticker: str,
+    *,
+    max_news: int,
+    max_papers: int,
+    days: int,
+) -> tuple["Market", "MarketResearch"]:
+    market = await _fetch_market(ticker)
+    research = await _run_market_context_research(
+        market,
+        max_news=max_news,
+        max_papers=max_papers,
+        days=days,
+    )
+    return market, research
+
+
+@app.command("context")
+def research_context(
+    ticker: Annotated[str, typer.Argument(help="Market ticker to research")],
+    max_news: Annotated[int, typer.Option("--max-news", help="Max news articles")] = 10,
+    max_papers: Annotated[int, typer.Option("--max-papers", help="Max research papers")] = 5,
+    days: Annotated[int, typer.Option("--days", help="News recency in days")] = 30,
+    output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
+) -> None:
+    """Research context for a specific market using Exa."""
+    market, research = asyncio.run(
+        _research_market_context(ticker, max_news=max_news, max_papers=max_papers, days=days)
+    )
+
+    if output_json:
+        console.print(json.dumps(asdict(research), indent=2, default=str))
+        return
+
+    _render_market_context(market, research)
+
+
+def _render_topic_research(topic: str, research: "TopicResearch") -> None:
+    console.print(f"\n[bold]Topic:[/bold] {topic}\n")
+
+    if research.summary:
+        console.print("[bold cyan]📝 Summary[/bold cyan]")
+        console.print("─" * 50)
+        console.print(research.summary)
+        console.print()
+
+        if research.summary_citations:
+            console.print("[bold cyan]📚 Citations[/bold cyan]")
+            for cite in research.summary_citations:
+                console.print(f"  • [link={cite.url}]{cite.title}[/link]")
+            console.print()
+
+    if research.articles:
+        console.print("[bold cyan]📰 Articles[/bold cyan]")
+        console.print("─" * 50)
+        for i, source in enumerate(research.articles[:10], 1):
+            console.print(f"{i}. [bold]{source.title}[/bold]")
+            console.print(f"   [dim]{source.source_domain}[/dim]")
+            if source.highlight:
+                snippet = source.highlight[:120]
+                if len(source.highlight) > 120:
+                    snippet += "..."
+                console.print(f"   [italic]> {snippet}[/italic]")
+            console.print()
+
+    console.print(f"\n[dim]Cost: ${research.exa_cost_dollars:.4f}[/dim]")
+
+
+async def _run_topic_research(topic: str, *, include_answer: bool) -> "TopicResearch":
+    from kalshi_research.exa import ExaCache, ExaClient
+    from kalshi_research.research import TopicResearcher
+
+    try:
+        async with ExaClient.from_env() as exa:
+            cache = ExaCache()
+            researcher = TopicResearcher(exa, cache=cache)
+            return await researcher.research_topic(topic, include_answer=include_answer)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+        raise typer.Exit(1) from None
+
+
+@app.command("topic")
+def research_topic(
+    topic: Annotated[str, typer.Argument(help="Topic or question to research")],
+    no_summary: Annotated[bool, typer.Option("--no-summary", help="Skip LLM summary")] = False,
+    output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
+) -> None:
+    """Research a topic for thesis ideation using Exa."""
+    research = asyncio.run(_run_topic_research(topic, include_answer=not no_summary))
+
+    if output_json:
+        console.print(json.dumps(asdict(research), indent=2, default=str))
+        return
+
+    _render_topic_research(topic, research)

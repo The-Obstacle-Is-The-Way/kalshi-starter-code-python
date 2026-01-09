@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from kalshi_research.research.thesis import Thesis, ThesisStatus, ThesisTracker
+from kalshi_research.research.thesis import Thesis, ThesisEvidence, ThesisStatus, ThesisTracker
 
 
 class TestThesis:
@@ -207,6 +207,61 @@ class TestThesis:
         assert restored.market_tickers == original.market_tickers
         assert restored.your_probability == original.your_probability
         assert len(restored.updates) == 1
+        assert restored.evidence == []
+
+    def test_serialization_roundtrip_with_evidence(self) -> None:
+        original = Thesis(
+            id="test",
+            title="Test",
+            market_tickers=["TEST1"],
+            your_probability=0.70,
+            market_probability=0.50,
+            confidence=0.8,
+            bull_case="Bull",
+            bear_case="Bear",
+            key_assumptions=[],
+            invalidation_criteria=[],
+        )
+        original.evidence.append(
+            ThesisEvidence(
+                url="https://example.com",
+                title="Example",
+                source_domain="example.com",
+                published_date=None,
+                snippet="Snippet",
+                supports="bull",
+                relevance_score=0.9,
+            )
+        )
+        original.research_summary = "Summary"
+
+        data = original.to_dict()
+        restored = Thesis.from_dict(data)
+
+        assert restored.research_summary == "Summary"
+        assert len(restored.evidence) == 1
+        assert restored.evidence[0].supports == "bull"
+
+    def test_from_dict_is_backward_compatible_with_missing_fields(self) -> None:
+        thesis = Thesis.from_dict(
+            {
+                "id": "test",
+                "title": "Test",
+                "market_tickers": ["TEST"],
+                "your_probability": 0.7,
+                "market_probability": 0.5,
+                "confidence": 0.8,
+                "bull_case": "Bull",
+                "bear_case": "Bear",
+                "status": "draft",
+                "created_at": "2026-01-01T00:00:00+00:00",
+            }
+        )
+
+        assert thesis.key_assumptions == []
+        assert thesis.invalidation_criteria == []
+        assert thesis.evidence == []
+        assert thesis.research_summary is None
 
     def test_str_representation(self) -> None:
         """String representation is readable."""

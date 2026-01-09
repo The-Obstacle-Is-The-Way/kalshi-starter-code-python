@@ -11,6 +11,48 @@ from kalshi_research.cli import app
 runner = CliRunner()
 
 
+def test_research_context_help() -> None:
+    result = runner.invoke(app, ["research", "context", "--help"])
+    assert result.exit_code == 0
+    assert "Market ticker to research" in result.stdout
+
+
+def test_research_topic_help() -> None:
+    result = runner.invoke(app, ["research", "topic", "--help"])
+    assert result.exit_code == 0
+    assert "Topic or question to research" in result.stdout
+
+
+def test_research_context_missing_exa_key_exits_with_error(make_market) -> None:
+    from kalshi_research.api.models.market import Market
+
+    market = Market.model_validate(make_market(ticker="TEST-MARKET"))
+    exa_error = ValueError("EXA_API_KEY is required")
+
+    mock_kalshi = AsyncMock()
+    mock_kalshi.__aenter__.return_value = mock_kalshi
+    mock_kalshi.__aexit__.return_value = AsyncMock()
+    mock_kalshi.get_market = AsyncMock(return_value=market)
+
+    with (
+        patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi),
+        patch("kalshi_research.exa.ExaClient.from_env", side_effect=exa_error),
+    ):
+        result = runner.invoke(app, ["research", "context", "TEST-MARKET"])
+
+    assert result.exit_code == 1
+    assert "EXA_API_KEY" in result.stdout
+
+
+def test_research_topic_missing_exa_key_exits_with_error() -> None:
+    exa_error = ValueError("EXA_API_KEY is required")
+    with patch("kalshi_research.exa.ExaClient.from_env", side_effect=exa_error):
+        result = runner.invoke(app, ["research", "topic", "Test topic"])
+
+    assert result.exit_code == 1
+    assert "EXA_API_KEY" in result.stdout
+
+
 def test_thesis_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
     thesis_file = tmp_path / "theses.json"
     thesis_file.write_text("{not json", encoding="utf-8")
