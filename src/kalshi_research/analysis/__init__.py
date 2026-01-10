@@ -1,7 +1,7 @@
 """Analysis tools for prediction market research."""
 
 from kalshi_research.analysis.calibration import CalibrationAnalyzer, CalibrationResult
-from kalshi_research.analysis.edge import Edge, EdgeDetector, EdgeType
+from kalshi_research.analysis.edge import Edge, EdgeType
 from kalshi_research.analysis.liquidity import (
     DepthAnalysis,
     ExecutionWindow,
@@ -39,7 +39,6 @@ __all__ = [
     "CalibrationResult",
     "DepthAnalysis",
     "Edge",
-    "EdgeDetector",
     "EdgeType",
     "ExecutionWindow",
     "LiquidityAnalysis",
