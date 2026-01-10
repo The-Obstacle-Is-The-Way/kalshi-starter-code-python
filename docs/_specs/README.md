@@ -13,44 +13,7 @@ This directory contains **active** design specifications - work happening NOW.
 
 ## Current Active Specs
 
-| ID | Title | Priority | Status |
-|---|---|---|---|
-| **SPEC-026** | [Liquidity Analysis](SPEC-026-liquidity-analysis.md) | P1 | Ready to implement |
-| **SPEC-027** | [Settlement Timestamp](SPEC-027-settlement-timestamp.md) | P2 | Ready to implement |
-
-### SPEC-026: Liquidity Analysis
-
-Comprehensive liquidity analysis framework for Kalshi markets.
-
-**Why now:**
-- Kalshi deprecated `liquidity` field (Jan 15, 2026)
-- `liquidity_dollars` is insufficient for position sizing
-- Directly improves trading quality
-- Prevents "trapped position" scenarios
-
-**Deliverables:**
-- `src/kalshi_research/analysis/liquidity.py` - Core metrics
-- `kalshi market liquidity TICKER` - CLI command
-- Composite 0-100 liquidity score with grades
-
-**Estimated effort:** ~4-5 hours
-
-### SPEC-027: Settlement Timestamp
-
-Add support for `settlement_ts` field (added Dec 19, 2025). Currently using `expiration_time` as proxy.
-
-**Why now:**
-- API field exists but we don't consume it
-- Affects settlement timing accuracy
-- Quick win (~2-3 hours)
-- Also updates vendor docs and skills
-
-**Deliverables:**
-- Add `settlement_ts` to `Market` model
-- Update fetcher to prefer real timestamp
-- Update vendor docs and skills
-
-**Estimated effort:** ~2-3 hours
+_None._
 
 ---
 
@@ -71,10 +34,13 @@ Use this ID for the next specification:
 
 ## Archive (Implemented)
 
-Completed specifications are stored in [`docs/_archive/specs/`](../_archive/specs/).
+Completed specifications are stored under `docs/_archive/specs/` (excluded from the MkDocs site
+build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive structure.
 
 | ID | Title | Status |
 |---|---|---|
+| SPEC-027 | [Settlement Timestamp Support](../_archive/specs/SPEC-027-settlement-timestamp.md) | ✅ Implemented |
+| SPEC-026 | [Liquidity Analysis](../_archive/specs/SPEC-026-liquidity-analysis.md) | ✅ Implemented |
 | SPEC-025 | Market Open Time Display | ✅ Implemented |
 | SPEC-023 | Exa-Thesis Integration | ✅ Implemented |
 | SPEC-022 | Exa News & Sentiment Pipeline | ✅ Implemented |

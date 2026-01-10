@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from typer.testing import CliRunner
 
+from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.cli import app
 
 runner = CliRunner()
@@ -101,3 +102,24 @@ def test_market_list(mock_client_cls: MagicMock) -> None:
     assert result.exit_code == 0
     assert "TEST-MARKET" in result.stdout
     assert "Test Market" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_liquidity(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_market = MagicMock()
+    mock_market.volume_24h = 7000
+    mock_market.open_interest = 3000
+    mock_client.get_market.return_value = mock_market
+
+    mock_client.get_orderbook.return_value = Orderbook(yes=[(47, 500)], no=[(53, 500)])
+
+    result = runner.invoke(app, ["market", "liquidity", "TEST-MARKET", "--depth", "5"])
+
+    assert result.exit_code == 0
+    assert "Liquidity Analysis" in result.stdout
+    assert "Score" in result.stdout

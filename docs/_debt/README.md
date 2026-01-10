@@ -22,7 +22,7 @@ Use this ID for the next debt item:
 ## Workflow
 
 - Add new debt as a short, actionable entry (priority + impact + fix path).
-- Link to the relevant bug (`docs/_bugs/`) or task (`docs/_todo/`) when applicable.
+- Link to the relevant bug (`docs/_bugs/`) or task (`docs/_future/`) when applicable.
 - When resolved, move the entry to the **Resolved** section (don't delete history).
 
 ---
@@ -48,5 +48,5 @@ None. All debt items resolved or elevated to specs.
 
 | Item | Resolution | Date |
 |------|------------|------|
-| DEBT-004 | Elevated to [SPEC-027](../_specs/SPEC-027-settlement-timestamp.md) | 2026-01-09 |
+| DEBT-004 | Implemented via [SPEC-027](../_archive/specs/SPEC-027-settlement-timestamp.md) | 2026-01-09 |
 | DEBT-002 Phase 2-3 | Closed as "Won't Fix" (see `technical-debt.md`) | 2026-01-09 |

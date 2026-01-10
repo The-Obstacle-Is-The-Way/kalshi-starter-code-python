@@ -1,11 +1,12 @@
 # DEBT-004: Settlement Timestamp Proxy
 
 **Priority:** Low-Medium
-**Status:** SUPERSEDED by [SPEC-027](../_specs/SPEC-027-settlement-timestamp.md)
+**Status:** RESOLVED (Implemented via [SPEC-027](../_archive/specs/SPEC-027-settlement-timestamp.md))
 **Created:** 2026-01-09
 **Effort:** ~2-3 hours
 
-> **Note:** This debt item was elevated to a spec because it's a feature gap (API provides `settlement_ts` but we don't consume it), not just technical debt. See [SPEC-027](../_specs/SPEC-027-settlement-timestamp.md) for the implementation plan.
+> **Note:** This debt item was elevated to a spec because it's a feature gap (API provides
+> `settlement_ts`). It has now been implemented; see the archived spec for details.
 
 ---
 
@@ -101,11 +102,11 @@ The `GET /portfolio/settlements` endpoint returns `settled_time` for each positi
 
 ## Acceptance Criteria
 
-- [ ] Add `settlement_ts: datetime | None` to `Market` model
-- [ ] Update `_api_market_to_settlement` to prefer `settlement_ts` over `expiration_time`
+- [x] Add `settlement_ts: datetime | None` to `Market` model
+- [x] Update `_api_market_to_settlement` to prefer `settlement_ts` over `expiration_time`
 - [ ] Add migration to update existing settlements with real timestamps (optional)
-- [ ] Update tests to cover the new field
-- [ ] Document the fallback behavior in code comments
+- [x] Update tests to cover the new field
+- [x] Document the fallback behavior in code comments
 
 ---
 

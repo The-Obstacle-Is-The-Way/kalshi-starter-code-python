@@ -85,6 +85,24 @@ class TestMarketModel:
         market = Market.model_validate(data)
         assert market.liquidity == 50000
 
+    def test_market_settlement_ts_parses(self, make_market: Any) -> None:
+        """Market model parses settlement_ts when present."""
+        data = make_market(
+            status="finalized",
+            result="yes",
+            settlement_ts="2025-12-31T12:00:00Z",
+            expiration_time="2026-01-01T00:00:00Z",
+        )
+        market = Market.model_validate(data)
+
+        assert market.settlement_ts is not None
+        assert market.settlement_ts < market.expiration_time
+
+    def test_market_settlement_ts_optional(self, make_market: Any) -> None:
+        """Market model accepts missing settlement_ts for unsettled/legacy markets."""
+        market = Market.model_validate(make_market())
+        assert market.settlement_ts is None
+
     def test_market_immutability(self, make_market: Any) -> None:
         """Market model is frozen (immutable)."""
         from pydantic import ValidationError

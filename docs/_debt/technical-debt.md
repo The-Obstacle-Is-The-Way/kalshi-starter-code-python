@@ -10,7 +10,7 @@
 
 | ID | Status | Resolution |
 |----|--------|------------|
-| DEBT-004 | Elevated to Spec | [SPEC-027](../_specs/SPEC-027-settlement-timestamp.md) |
+| DEBT-004 | Implemented via Spec | [SPEC-027](../_archive/specs/SPEC-027-settlement-timestamp.md) |
 
 ---
 

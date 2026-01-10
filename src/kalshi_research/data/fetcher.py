@@ -129,16 +129,17 @@ class DataFetcher:
         """Convert a settled API market to a settlement row.
 
         Notes:
-            Kalshi's public markets endpoint exposes `result` but does not provide a clear
-            `settled_at` timestamp. We use `expiration_time` as an explicit proxy for `settled_at`.
+            Prefer `settlement_ts` (added Dec 19, 2025) when available. Fall back to
+            `expiration_time` for historical data or older synced markets.
         """
         if not api_market.result:
             return None
 
+        settled_at = api_market.settlement_ts or api_market.expiration_time
         return DBSettlement(
             ticker=api_market.ticker,
             event_ticker=api_market.event_ticker,
-            settled_at=api_market.expiration_time,
+            settled_at=settled_at,
             result=api_market.result,
         )
 

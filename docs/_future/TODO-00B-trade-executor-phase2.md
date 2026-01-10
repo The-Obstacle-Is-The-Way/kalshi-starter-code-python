@@ -64,9 +64,9 @@ class TradeExecutor:
 
 ## Related
 
-- [TODO-008 (Archived)](../_archive/todo/TODO-008-agent-safety-rails.md) - dry_run implementation
+- [TODO-008 (Archived)](../_archive/future/TODO-008-agent-safety-rails.md) - dry_run implementation
 - [Security Audit](../_debt/security-audit.md) - Agent safety section
-- [SPEC-026](../_specs/SPEC-026-liquidity-analysis.md) - Liquidity for position sizing
+- [SPEC-026 (Archived)](../_archive/specs/SPEC-026-liquidity-analysis.md) - Liquidity for position sizing
 
 ---
 

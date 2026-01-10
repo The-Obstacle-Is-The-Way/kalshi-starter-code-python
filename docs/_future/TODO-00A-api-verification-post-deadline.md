@@ -41,7 +41,7 @@ When unblocked, verify:
 
 ## Related
 
-- [TODO-009 (Archived)](../_archive/todo/TODO-009-cent-field-deprecation-migration.md) - Migration implementation
+- [TODO-009 (Archived)](../_archive/future/TODO-009-cent-field-deprecation-migration.md) - Migration implementation
 - [Kalshi API Changelog](https://docs.kalshi.com/changelog) - Breaking changes
 
 ---

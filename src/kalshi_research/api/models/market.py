@@ -85,6 +85,10 @@ class Market(BaseModel):
     open_time: datetime
     close_time: datetime
     expiration_time: datetime
+    settlement_ts: datetime | None = Field(
+        default=None,
+        description="Actual settlement timestamp (None if not yet settled).",
+    )
 
     # Liquidity (DEPRECATED: removed Jan 15, 2026 - use dollar fields)
     liquidity: int | None = Field(

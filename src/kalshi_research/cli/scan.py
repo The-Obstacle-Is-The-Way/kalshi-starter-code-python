@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -11,6 +11,198 @@ from kalshi_research.cli.utils import console
 from kalshi_research.paths import DEFAULT_DB_PATH
 
 app = typer.Typer(help="Market scanning commands.")
+
+
+if TYPE_CHECKING:
+    from kalshi_research.analysis.scanner import MarketScanner, ScanResult
+    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.api.models.market import Market
+
+
+def _select_opportunity_results(
+    scanner: "MarketScanner",
+    markets: list["Market"],
+    *,
+    filter_type: str | None,
+    top_n: int,
+    min_volume: int,
+    max_spread: int,
+) -> tuple[list["ScanResult"], str]:
+    if filter_type is None:
+        return (
+            scanner.scan_close_races(
+                markets,
+                top_n,
+                min_volume_24h=min_volume,
+                max_spread=max_spread,
+            ),
+            "Scan Results (Close Races)",
+        )
+
+    if filter_type == "close-race":
+        return (
+            scanner.scan_close_races(
+                markets,
+                top_n,
+                min_volume_24h=min_volume,
+                max_spread=max_spread,
+            ),
+            "Scan Results (close-race)",
+        )
+    if filter_type == "high-volume":
+        return scanner.scan_high_volume(markets, top_n), "Scan Results (high-volume)"
+    if filter_type == "wide-spread":
+        return scanner.scan_wide_spread(markets, top_n), "Scan Results (wide-spread)"
+    if filter_type == "expiring-soon":
+        return scanner.scan_expiring_soon(markets, top_n=top_n), "Scan Results (expiring-soon)"
+
+    console.print(f"[red]Error:[/red] Unknown filter: {filter_type}")
+    raise typer.Exit(1)
+
+
+async def _compute_liquidity_scores(
+    client: "KalshiPublicClient",
+    markets_by_ticker: dict[str, "Market"],
+    results: list["ScanResult"],
+    *,
+    liquidity_depth: int,
+) -> dict[str, int]:
+    from kalshi_research.analysis.liquidity import liquidity_score
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    scores: dict[str, int] = {}
+
+    for r in results:
+        market = markets_by_ticker.get(r.ticker)
+        if market is None:
+            continue
+        try:
+            orderbook = await client.get_orderbook(r.ticker, depth=liquidity_depth)
+        except KalshiAPIError as e:
+            console.print(
+                f"[yellow]Warning:[/yellow] Skipping liquidity for {r.ticker}: "
+                f"API Error {e.status_code}: {e.message}"
+            )
+            continue
+
+        scores[r.ticker] = liquidity_score(market, orderbook).score
+
+    return scores
+
+
+def _filter_results_by_liquidity(
+    results: list["ScanResult"],
+    liquidity_by_ticker: dict[str, int],
+    *,
+    min_liquidity: int,
+    top_n: int,
+) -> list["ScanResult"]:
+    filtered = [r for r in results if liquidity_by_ticker.get(r.ticker, 0) >= min_liquidity]
+    return filtered[:top_n]
+
+
+def _render_opportunities_table(
+    results: list["ScanResult"],
+    title: str,
+    *,
+    show_liquidity: bool,
+    min_liquidity: int | None,
+    liquidity_by_ticker: dict[str, int],
+) -> None:
+    table = Table(title=title)
+    table.add_column("Ticker", style="cyan", no_wrap=True)
+    table.add_column("Title", style="white")
+    table.add_column("Probability", style="green")
+    table.add_column("Spread", style="yellow")
+    table.add_column("Volume", style="magenta")
+    if show_liquidity or min_liquidity is not None:
+        table.add_column("Liquidity", style="blue", justify="right")
+
+    for m in results:
+        row = [
+            m.ticker,
+            m.title[:50],
+            f"{m.market_prob:.1%}",
+            f"{m.spread}¢",
+            f"{m.volume_24h:,}",
+        ]
+        if show_liquidity or min_liquidity is not None:
+            score = liquidity_by_ticker.get(m.ticker)
+            row.append(f"{score}" if score is not None else "N/A")
+        table.add_row(*row)
+
+    console.print(table)
+
+
+async def _scan_opportunities_async(
+    *,
+    filter_type: str | None,
+    top_n: int,
+    min_volume: int,
+    max_spread: int,
+    max_pages: int | None,
+    min_liquidity: int | None,
+    show_liquidity: bool,
+    liquidity_depth: int,
+) -> None:
+    from kalshi_research.analysis.scanner import MarketScanner
+    from kalshi_research.api import KalshiPublicClient
+
+    scan_top_n = top_n if min_liquidity is None else min(top_n * 5, 50)
+
+    async with KalshiPublicClient() as client:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            progress.add_task("Fetching markets...", total=None)
+            markets = [m async for m in client.get_all_markets(status="open", max_pages=max_pages)]
+
+            scanner = MarketScanner()
+            results, title = _select_opportunity_results(
+                scanner,
+                markets,
+                filter_type=filter_type,
+                top_n=scan_top_n,
+                min_volume=min_volume,
+                max_spread=max_spread,
+            )
+
+            if not results:
+                console.print("[yellow]No markets found matching criteria.[/yellow]")
+                return
+
+            liquidity_by_ticker: dict[str, int] = {}
+            if show_liquidity or min_liquidity is not None:
+                progress.add_task("Analyzing liquidity...", total=None)
+                markets_by_ticker = {m.ticker: m for m in markets}
+                liquidity_by_ticker = await _compute_liquidity_scores(
+                    client,
+                    markets_by_ticker,
+                    results,
+                    liquidity_depth=liquidity_depth,
+                )
+
+            if min_liquidity is not None:
+                results = _filter_results_by_liquidity(
+                    results,
+                    liquidity_by_ticker,
+                    min_liquidity=min_liquidity,
+                    top_n=top_n,
+                )
+
+                if not results:
+                    console.print("[yellow]No markets found matching liquidity threshold.[/yellow]")
+                    return
+
+    _render_opportunities_table(
+        results,
+        title,
+        show_liquidity=show_liquidity,
+        min_liquidity=min_liquidity,
+        liquidity_by_ticker=liquidity_by_ticker,
+    )
 
 
 @app.command("opportunities")
@@ -45,85 +237,45 @@ def scan_opportunities(
             help="Optional pagination safety limit for market fetch (None = full).",
         ),
     ] = None,
+    min_liquidity: Annotated[
+        int | None,
+        typer.Option(
+            "--min-liquidity",
+            help="Minimum liquidity score (0-100). Fetches orderbooks for candidate markets.",
+        ),
+    ] = None,
+    show_liquidity: Annotated[
+        bool,
+        typer.Option(
+            "--show-liquidity",
+            help="Show liquidity score column (fetches orderbooks for displayed markets).",
+        ),
+    ] = False,
+    liquidity_depth: Annotated[
+        int,
+        typer.Option(
+            "--liquidity-depth",
+            help="Orderbook depth levels for liquidity scoring.",
+        ),
+    ] = 25,
 ) -> None:
     """Scan markets for opportunities."""
-    from kalshi_research.analysis.scanner import MarketScanner
-    from kalshi_research.api import KalshiPublicClient
-
-    async def _scan() -> None:
-        async with KalshiPublicClient() as client:
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-            ) as progress:
-                progress.add_task("Fetching markets...", total=None)
-                # Fetch all open markets for scanning
-                markets = [
-                    m async for m in client.get_all_markets(status="open", max_pages=max_pages)
-                ]
-
-        scanner = MarketScanner()
-
-        if filter_type:
-            if filter_type == "close-race":
-                results = scanner.scan_close_races(
-                    markets,
-                    top_n,
-                    min_volume_24h=min_volume,
-                    max_spread=max_spread,
-                )
-                title = "Scan Results (close-race)"
-            elif filter_type == "high-volume":
-                results = scanner.scan_high_volume(markets, top_n)
-                title = "Scan Results (high-volume)"
-            elif filter_type == "wide-spread":
-                results = scanner.scan_wide_spread(markets, top_n)
-                title = "Scan Results (wide-spread)"
-            elif filter_type == "expiring-soon":
-                results = scanner.scan_expiring_soon(markets, top_n)
-                title = "Scan Results (expiring-soon)"
-            else:
-                console.print(f"[red]Error:[/red] Unknown filter: {filter_type}")
-                raise typer.Exit(1)
-        else:
-            # Default to "interesting" markets logic (e.g. close races for now)
-            # In a real impl, this might combine multiple signals
-            results = scanner.scan_close_races(
-                markets,
-                top_n,
-                min_volume_24h=min_volume,
-                max_spread=max_spread,
-            )
-            title = "Scan Results (Close Races)"
-
-        if not results:
-            console.print("[yellow]No markets found matching criteria.[/yellow]")
-            return
-
-        table = Table(title=title)
-        table.add_column("Ticker", style="cyan", no_wrap=True)
-        table.add_column("Title", style="white")
-        table.add_column("Probability", style="green")
-        table.add_column("Spread", style="yellow")
-        table.add_column("Volume", style="magenta")
-
-        for m in results:
-            table.add_row(
-                m.ticker,
-                m.title[:50],
-                f"{m.market_prob:.1%}",
-                f"{m.spread}¢",
-                f"{m.volume_24h:,}",
-            )
-
-        console.print(table)
-
-    asyncio.run(_scan())
+    asyncio.run(
+        _scan_opportunities_async(
+            filter_type=filter_type,
+            top_n=top_n,
+            min_volume=min_volume,
+            max_spread=max_spread,
+            max_pages=max_pages,
+            min_liquidity=min_liquidity,
+            show_liquidity=show_liquidity,
+            liquidity_depth=liquidity_depth,
+        )
+    )
 
 
 @app.command("arbitrage")
-def scan_arbitrage(  # noqa: PLR0915
+def scan_arbitrage(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
@@ -150,7 +302,6 @@ def scan_arbitrage(  # noqa: PLR0915
     """Find arbitrage opportunities from correlated markets."""
     from kalshi_research.analysis.correlation import CorrelationAnalyzer, CorrelationResult
     from kalshi_research.api import KalshiPublicClient
-    from kalshi_research.api.models.market import Market
     from kalshi_research.data import DatabaseManager
 
     if not db_path.exists():
@@ -158,7 +309,7 @@ def scan_arbitrage(  # noqa: PLR0915
             "[yellow]Warning:[/yellow] Database not found, analyzing current markets only"
         )
 
-    async def _load_correlated_pairs(markets: list[Market]) -> list[CorrelationResult]:
+    async def _load_correlated_pairs(markets: list["Market"]) -> list[CorrelationResult]:
         if not db_path.exists():
             return []
 

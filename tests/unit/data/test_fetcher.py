@@ -53,6 +53,40 @@ def data_fetcher(mock_db, mock_client):
     return DataFetcher(mock_db, mock_client)
 
 
+def test_api_market_to_settlement_falls_back_to_expiration_time(data_fetcher) -> None:
+    """When settlement_ts is missing, use expiration_time as a documented proxy."""
+    from datetime import UTC, datetime, timedelta
+
+    base = datetime(2026, 1, 2, 12, 0, tzinfo=UTC)
+
+    market = Market(
+        ticker="TEST-MARKET",
+        event_ticker="TEST-EVENT",
+        series_ticker=None,
+        title="Test Market",
+        subtitle="",
+        status=MarketStatus.FINALIZED,
+        result="yes",
+        yes_bid=50,
+        yes_ask=52,
+        no_bid=48,
+        no_ask=50,
+        last_price=51,
+        volume=100,
+        volume_24h=10,
+        open_interest=20,
+        open_time=base - timedelta(days=3),
+        close_time=base - timedelta(days=2),
+        expiration_time=base - timedelta(days=1),
+        settlement_ts=None,
+        liquidity=1000,
+    )
+
+    settlement = data_fetcher._api_market_to_settlement(market)
+    assert settlement is not None
+    assert settlement.settled_at == market.expiration_time
+
+
 @pytest.mark.asyncio
 async def test_sync_events(data_fetcher, mock_client, mock_db):
     # Mock API events
@@ -135,6 +169,7 @@ async def test_sync_settlements(data_fetcher, mock_client, mock_db):
     mock_market.open_time = datetime.now(UTC) - timedelta(days=2)
     mock_market.close_time = datetime.now(UTC) - timedelta(days=1)
     mock_market.expiration_time = datetime.now(UTC) - timedelta(days=1)
+    mock_market.settlement_ts = mock_market.expiration_time - timedelta(hours=1)
 
     async def market_gen(status=None, max_pages: int | None = None):
         yield mock_market
@@ -277,6 +312,9 @@ async def test_sync_settlements_creates_missing_market_event_and_settlement(tmp_
 
     db_path = tmp_path / "kalshi_fetcher_settlements_fk.db"
 
+    expiration_time = datetime.now(UTC) - timedelta(days=1)
+    settlement_ts = expiration_time - timedelta(hours=1)
+
     api_market = Market(
         ticker="TEST-MARKET",
         event_ticker="TEST-EVENT",
@@ -295,7 +333,8 @@ async def test_sync_settlements_creates_missing_market_event_and_settlement(tmp_
         open_interest=20,
         open_time=datetime.now(UTC) - timedelta(days=3),
         close_time=datetime.now(UTC) - timedelta(days=2),
-        expiration_time=datetime.now(UTC) - timedelta(days=1),
+        expiration_time=expiration_time,
+        settlement_ts=settlement_ts,
         liquidity=1000,
     )
 
@@ -324,4 +363,4 @@ async def test_sync_settlements_creates_missing_market_event_and_settlement(tmp_
             settled_at = settlement.settled_at
             if settled_at.tzinfo is None:
                 settled_at = settled_at.replace(tzinfo=UTC)
-            assert settled_at == api_market.expiration_time
+            assert settled_at == api_market.settlement_ts

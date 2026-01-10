@@ -43,14 +43,15 @@ This directory contains **future work** - items that are blocked, deferred, or p
 
 ## Archive (Completed)
 
-Completed items are stored in [`docs/_archive/todo/`](../_archive/todo/).
+Completed backlog items are stored under `docs/_archive/future/` (excluded from the MkDocs site
+build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive structure.
 
 ### Recently Completed (Ralph Wiggum Cleanup - 2026-01-09)
 
 | ID | Title | Status |
 |---|---|---|
-| TODO-009 | Cent-to-Dollar Field Migration | ✅ Complete |
-| TODO-008 | Agent Safety Rails (dry_run) | ✅ Complete |
-| TODO-007 | Market Timing Safety | ✅ Complete |
-| TODO-006 | Session Friction Audit | ✅ Complete |
-| TODO-005 | Market Open Date Validation | ✅ Complete |
+| [TODO-009](../_archive/future/TODO-009-cent-field-deprecation-migration.md) | Cent-to-Dollar Field Migration | ✅ Complete |
+| [TODO-008](../_archive/future/TODO-008-agent-safety-rails.md) | Agent Safety Rails (dry_run) | ✅ Complete |
+| [TODO-007](../_archive/future/TODO-007-market-timing-safety.md) | Market Timing Safety | ✅ Complete |
+| [TODO-006](../_archive/future/TODO-006-session-friction-audit.md) | Session Friction Audit | ✅ Complete |
+| [TODO-005](../_archive/future/TODO-005-market-open-date-validation.md) | Market Open Date Validation | ✅ Complete |

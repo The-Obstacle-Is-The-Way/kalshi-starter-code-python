@@ -1,8 +1,9 @@
 # SPEC-027: Settlement Timestamp Support
 
 **Priority:** Medium
-**Status:** Approved
+**Status:** Implemented
 **Created:** 2026-01-09
+**Completed:** 2026-01-09
 **Effort:** ~2-3 hours
 **Supersedes:** DEBT-004
 
@@ -168,12 +169,12 @@ def test_api_market_to_settlement_prefers_settlement_ts():
 
 ## Acceptance Criteria
 
-- [ ] `settlement_ts: datetime | None` added to `Market` model
-- [ ] `_api_market_to_settlement` prefers `settlement_ts` over `expiration_time`
-- [ ] Vendor docs updated with settlement fields documentation
-- [ ] Skills docs (all 3 mirrors) updated with correct schema
-- [ ] Unit tests for model parsing and fetcher logic
-- [ ] All quality gates pass (ruff, mypy, pytest)
+- [x] `settlement_ts: datetime | None` added to `Market` model
+- [x] `_api_market_to_settlement` prefers `settlement_ts` over `expiration_time`
+- [x] Vendor docs updated with settlement fields documentation
+- [x] Skills docs (all 3 mirrors) updated with correct schema
+- [x] Unit tests for model parsing and fetcher logic
+- [x] All quality gates pass (ruff, mypy, pytest)
 
 ---
 

@@ -147,6 +147,19 @@ uv run kalshi market orderbook TICKER [OPTIONS]
 | `TICKER` | Required | Market ticker |
 | `--depth`, `-d` | `5` | Orderbook depth (levels) |
 
+### market liquidity
+Analyze liquidity using orderbook depth + slippage estimates.
+
+```bash
+uv run kalshi market liquidity TICKER [OPTIONS]
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `TICKER` | Required | Market ticker |
+| `--depth`, `-d` | `25` | Orderbook depth levels to fetch for analysis |
+| `--max-slippage-cents` | `3` | Max slippage (cents) for the "max safe size" calculation |
+
 ---
 
 ## scan - Market Scanning
@@ -165,6 +178,9 @@ uv run kalshi scan opportunities [OPTIONS]
 | `--min-volume` | `0` | Minimum 24h volume (close-race only) |
 | `--max-spread` | `100` | Maximum bid-ask spread in cents (close-race only) |
 | `--max-pages` | None | Pagination safety limit |
+| `--min-liquidity` | None | Minimum liquidity score (0-100); fetches orderbooks for candidates |
+| `--show-liquidity` | False | Show liquidity score column; fetches orderbooks for displayed markets |
+| `--liquidity-depth` | `25` | Orderbook depth levels for liquidity scoring |
 
 ### scan arbitrage
 Find arbitrage opportunities from correlated markets.

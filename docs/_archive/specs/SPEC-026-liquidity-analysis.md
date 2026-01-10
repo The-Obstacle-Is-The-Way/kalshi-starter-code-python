@@ -1,8 +1,9 @@
 # SPEC-026: Liquidity Analysis for Kalshi Markets
 
 **Priority**: High (Trading Quality)
-**Status**: Approved
+**Status**: Implemented
 **Created**: 2026-01-09
+**Completed**: 2026-01-09
 **Context**: Kalshi deprecated the `liquidity` field (Jan 15, 2026). We must calculate our own.
 
 ---
@@ -249,7 +250,10 @@ def orderbook_depth_score(
         if levels is None:
             continue
         for price, qty in levels:
-            distance = abs(price - float(midpoint))
+            # Orderbook returns YES bids and NO bids. Convert NO bids to implied YES asks so both
+            # sides are comparable around the YES midpoint.
+            effective_price = price if side_name == "yes" else 100 - price
+            distance = abs(effective_price - float(midpoint))
             if distance <= radius_cents:
                 # Inverse distance weighting (BBO = weight 1.0)
                 weight = 1.0 - (distance / (radius_cents + 1))
@@ -342,10 +346,11 @@ def estimate_slippage(
     filled = 0
     cost = 0.0
     levels_crossed = 0
-    best_price = levels[0][0]
+    sorted_levels = sorted(levels, key=lambda x: x[0], reverse=(action == "sell"))
+    best_price = sorted_levels[0][0]
     worst_price = best_price
 
-    for price, available_qty in sorted(levels, key=lambda x: x[0], reverse=(action == "sell")):
+    for price, available_qty in sorted_levels:
         if filled >= quantity:
             break
 
@@ -556,9 +561,10 @@ def max_safe_order_size(
     Returns:
         Maximum contracts that can be bought within slippage limit
     """
-    # Start with depth-based estimate
-    depth = orderbook_depth_score(orderbook)
-    max_possible = depth.total_contracts
+    # BUY-side max size is limited by ask-side depth.
+    # Buy YES consumes implied YES asks from NO bids; buy NO consumes implied NO asks from YES bids.
+    levels = _invert_levels(orderbook.no) if side == "yes" else _invert_levels(orderbook.yes)
+    max_possible = sum(qty for _, qty in levels)
 
     if max_possible == 0:
         return 0
@@ -570,6 +576,11 @@ def max_safe_order_size(
     while low <= high:
         mid = (low + high) // 2
         estimate = estimate_slippage(orderbook, side, "buy", mid)
+
+        # Unfillable sizes are unsafe even if "slippage" looks small.
+        if estimate.remaining_unfilled > 0:
+            high = mid - 1
+            continue
 
         if estimate.slippage_cents <= max_slippage_cents:
             result = mid
@@ -810,16 +821,16 @@ async def create_order_with_liquidity_check(
 
 ## Acceptance Criteria
 
-- [ ] `OrderbookAnalyzer` class with all core metrics
-- [ ] `liquidity_score()` returns 0-100 with grade classification
-- [ ] `estimate_slippage()` accurately walks orderbook
-- [ ] `max_safe_order_size()` binary searches for safe size
-- [ ] CLI command: `kalshi market liquidity TICKER` with rich output
-- [ ] Scanner filter: `--min-liquidity N` works correctly
-- [ ] Research recommendations include liquidity warnings
-- [ ] Pre-trade slippage check available
-- [ ] Comprehensive unit tests (>90% coverage)
-- [ ] Documentation with real examples
+- [x] `OrderbookAnalyzer` class with all core metrics
+- [x] `liquidity_score()` returns 0-100 with grade classification
+- [x] `estimate_slippage()` accurately walks orderbook
+- [x] `max_safe_order_size()` binary searches for safe size
+- [x] CLI command: `kalshi market liquidity TICKER` with rich output
+- [x] Scanner filter: `--min-liquidity N` works correctly
+- [x] Research recommendations include liquidity warnings
+- [x] Pre-trade slippage check available
+- [x] Comprehensive unit tests (>90% coverage)
+- [x] Documentation with real examples
 
 ---
 
