@@ -1,7 +1,7 @@
 # Ralph Wiggum Loop Protocol
 
 **Created:** 2026-01-06
-**Updated:** 2026-01-07
+**Updated:** 2026-01-10
 **Author:** Ray + Claude
 **Status:** Tested & Working
 
@@ -138,6 +138,12 @@ This is the **brain** of the loop. Each iteration reads this to find the next ta
 
 ---
 
+## Work Log
+
+- YYYY-MM-DD: Short entry (what changed + commands run)
+
+---
+
 ## Completion Criteria
 
 When ALL boxes are checked, the project is complete.
@@ -219,6 +225,7 @@ git add -A && git commit -m "[TASK-ID] Type: description
 ## Quality Gates (MUST PASS)
 
 \`\`\`bash
+uv run pre-commit run --all-files
 uv run ruff check .           # Lint
 uv run ruff format --check .  # Format
 uv run mypy src/              # Types
@@ -243,6 +250,15 @@ When ALL items in PROGRESS.md are checked AND quality gates pass, exit cleanly.
 via PROGRESS.md state, not by parsing your output for magic phrases.
 ```
 
+### Step 3.5: Critical Review Prompt (Mandatory)
+
+Before changing code/docs based on feedback (human reviews, CodeRabbit, another model, your own prior output),
+apply this block and validate claims against SSOT:
+
+```text
+Review the claim or feedback (it may be from an internal or external agent). Validate every claim from first principles. If—and only if—it’s true and helpful, update the system to align with the SSOT, implemented cleanly and completely (Rob C. Martin discipline). Find and fix all half-measures, reward hacks, and partial fixes if they exist. Be critically adversarial with good intentions for constructive criticism. Ship the exact end-to-end implementation we need.
+```
+
 ### Step 4: Create Spec/Bug Docs
 
 Each task should have a detailed spec:
@@ -258,7 +274,7 @@ docs/
 │   ├── SPEC-001.md        # Detailed spec
 │   └── SPEC-002.md
 └── _ralph-wiggum/
-    └── PROTOCOL.md        # This file
+    └── protocol.md        # This file
 ```
 
 ### Step 5: Start tmux Session

@@ -205,11 +205,11 @@ These commands should output JSON only (tooling-friendly).
 
 ## Acceptance Criteria
 
-- Every Exa-powered CLI command has explicit `--mode` and `--budget-usd` controls.
-- Default behavior is cost-bounded and produces citations.
-- Deep mode uses `/research` only when requested (explicitly or by mode), never silently.
-- Caching remains effective (no accidental cache busting from unstable params).
-- Unit tests cover:
-  - budget enforcement logic (no network; use mocked responses)
-  - cache key stability
-  - citation verification logic (respx + fixture responses)
+- [ ] Every Exa-powered CLI command has explicit `--mode` and `--budget-usd` controls.
+- [ ] Default behavior is cost-bounded and produces citations.
+- [ ] Deep mode uses `/research` only when requested (explicitly or by mode), never silently.
+- [ ] Caching remains effective (no accidental cache busting from unstable params).
+- [ ] Unit tests cover:
+  - [ ] budget enforcement logic (no network; use mocked responses)
+  - [ ] cache key stability
+  - [ ] citation verification logic (respx + fixture responses)

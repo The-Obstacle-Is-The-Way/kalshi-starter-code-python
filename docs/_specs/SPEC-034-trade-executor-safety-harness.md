@@ -168,9 +168,9 @@ Integration tests (optional, require Kalshi write keys):
 
 ## Acceptance Criteria
 
-- It is impossible to hit Kalshi write endpoints without explicitly setting `live=True`.
-- Every order attempt (dry-run or live) emits one audit log event.
-- Violations of risk checks fail fast with actionable error messages and do not place orders.
+- [ ] It is impossible to hit Kalshi write endpoints without explicitly setting `live=True`.
+- [ ] Every order attempt (dry-run or live) emits one audit log event.
+- [ ] Violations of risk checks fail fast with actionable error messages and do not place orders.
 
 ---
 

@@ -1,6 +1,6 @@
 # Kalshi Research - Ralph Wiggum Loop Prompt
 
-You are fixing bugs, debt, and TODOs in a Kalshi prediction market research platform.
+You are fixing bugs, debt, TODOs, and implementing specs in a Kalshi prediction market research platform.
 This prompt runs headless via:
 
 ```bash
@@ -22,20 +22,31 @@ Then read the relevant documentation:
 cat docs/_bugs/README.md
 cat docs/_debt/README.md
 cat docs/_todo/README.md
+cat docs/_specs/README.md
 ```
 
 ## Your Task This Iteration
 
 1. Find the **FIRST** unchecked `[ ]` item in PROGRESS.md
-2. Read the corresponding doc: `docs/_bugs/BUG-XXX.md`, `docs/_debt/DEBT-XXX.md`, or `docs/_todo/TODO-XXX.md`
+2. Read the corresponding doc: `docs/_bugs/BUG-XXX*.md`, `docs/_debt/DEBT-XXX*.md`, `docs/_todo/TODO-XXX*.md`, or `docs/_specs/SPEC-XXX*.md`
 3. **READ THE ACCEPTANCE CRITERIA** in the task doc - you MUST complete ALL of them
-4. Complete that ONE item fully (all acceptance criteria met, tests pass, quality checks pass)
-5. **UPDATE THE TASK DOC** - check off `[x]` each acceptance criterion you completed
-6. Check off the item in PROGRESS.md: `[ ]` → `[x]`
-7. **ATOMIC COMMIT** (see format below)
-8. Exit
+4. Apply the **Critical Review Prompt** (below) to any external feedback and to your own assumptions
+5. Complete that ONE item fully (all acceptance criteria met, tests pass, quality checks pass)
+6. **UPDATE THE TASK DOC** - check off `[x]` each acceptance criterion you completed
+7. Check off the item in PROGRESS.md: `[ ]` → `[x]` (ONLY if all acceptance criteria are `[x]`)
+8. Append a short entry to PROGRESS.md “Work Log” (what changed + commands run)
+9. **ATOMIC COMMIT** (see format below)
+10. Exit
 
 **DO NOT** attempt multiple tasks. One task per iteration.
+
+## Critical Review Prompt (MANDATORY)
+
+Before changing code/docs based on feedback (human, CodeRabbit, another model, your own prior output), apply:
+
+```text
+Review the claim or feedback (it may be from an internal or external agent). Validate every claim from first principles. If—and only if—it’s true and helpful, update the system to align with the SSOT, implemented cleanly and completely (Rob C. Martin discipline). Find and fix all half-measures, reward hacks, and partial fixes if they exist. Be critically adversarial with good intentions for constructive criticism. Ship the exact end-to-end implementation we need.
+```
 
 ## A++ STANDARD: Acceptance Criteria Enforcement
 
@@ -84,6 +95,8 @@ EOF
 
 Before marking ANY task complete:
 ```bash
+uv run pre-commit install         # ONCE per clone (if hooks not installed)
+uv run pre-commit run --all-files # ALWAYS before any commit
 uv run ruff check .           # No lint errors
 uv run ruff format --check .  # Properly formatted
 uv run mypy src/              # No type errors
@@ -115,11 +128,16 @@ If ANY check fails, fix it before proceeding.
 **You MUST complete ALL of these steps before exiting:**
 
 ```bash
-# 1. Run ALL quality gates
+# 1. Run ALL quality gates (never commit without these)
+uv run pre-commit install         # ONCE per clone (if hooks not installed)
+uv run pre-commit run --all-files # ALWAYS before any commit
 uv run ruff check .           # Fix any issues
 uv run ruff format .          # Auto-format
 uv run mypy src/              # Fix type errors
 uv run pytest tests/unit -v   # All tests pass
+
+# 1b. If docs changed, validate site build
+uv run mkdocs build --strict  # If you touched docs/ (or any markdown used by MkDocs)
 
 # 2. Verify acceptance criteria
 # - Read task doc's Acceptance Criteria section
@@ -157,26 +175,10 @@ EOF
 - Bugs: `docs/_bugs/BUG-*.md`
 - Debt: `docs/_debt/DEBT-*.md`
 - TODOs: `docs/_todo/TODO-*.md`
+- Specs: `docs/_specs/SPEC-*.md`
 - Source: `src/kalshi_research/`
 - Tests: `tests/unit/`, `tests/integration/`
-- Skills: `.claude/skills/kalshi-cli/`
-
-## Task-Specific Guidance
-
-### TODO-005b: Temporal Validation
-- Add `TemporalValidator` class to `research/thesis.py`
-- Validates that researched events occurred AFTER `market.open_time`
-- Add test in `tests/unit/research/test_thesis.py`
-
-### TODO-005c: GOTCHAS Documentation
-- Add "Market Timing Trap" section to `.claude/skills/kalshi-cli/GOTCHAS.md`
-- Explain that events before `open_time` don't count
-- Include the Stranger Things example
-
-### DOCS-001: Sync Task Doc Acceptance Criteria
-- Review each task doc in `docs/_bugs/`, `docs/_debt/`, `docs/_todo/`
-- Update acceptance criteria checkboxes to match actual implementation state
-- This is a documentation-only task (no code changes)
+- Skills: `.claude/skills/`, `.codex/skills/`, `.gemini/skills/` (keep in sync)
 
 ## Completion
 

@@ -1,7 +1,7 @@
 # Kalshi Research Platform - Progress Tracker
 
-**Last Updated:** 2026-01-09
-**Purpose:** State file for Ralph Wiggum loop - fixes bugs, debt, and TODOs
+**Last Updated:** 2026-01-10
+**Purpose:** State file for Ralph Wiggum loop - fixes bugs, debt, TODOs, and implements specs
 
 ---
 
@@ -49,9 +49,27 @@
 
 ---
 
+## Phase 9: New Feature Specs (Draft)
+
+- [ ] **SPEC-030**: Exa endpoint strategy (cost-bounded research) → `docs/_specs/SPEC-030-exa-endpoint-strategy.md`
+- [ ] **SPEC-033**: Exa research agent (deterministic, budgeted) → `docs/_specs/SPEC-033-exa-research-agent.md`
+- [ ] **SPEC-032**: Agent system orchestration (single-agent default) → `docs/_specs/SPEC-032-agent-system-orchestration.md`
+- [ ] **SPEC-031**: Scanner quality profiles (slop filtering + early mode) → `docs/_specs/SPEC-031-scanner-quality-profiles.md`
+- [ ] **SPEC-028**: Topic search & discovery (DB + CLI) → `docs/_specs/SPEC-028-topic-search-and-discovery.md`
+- [ ] **SPEC-029**: Kalshi endpoint coverage & strategic use → `docs/_specs/SPEC-029-kalshi-endpoint-coverage-strategy.md`
+- [ ] **SPEC-034**: TradeExecutor safety harness (safe-by-default) → `docs/_specs/SPEC-034-trade-executor-safety-harness.md`
+
+---
+
+## Work Log
+
+- 2026-01-10: Prep for spec implementation (audited SPEC-028..034, added `kalshi-codebase` skill, updated Ralph prompt/protocol)
+
+---
+
 ## Completion Criteria
 
-When ALL boxes are checked AND all quality gates pass, the cleanup is complete.
+When ALL boxes are checked AND all quality gates pass, the current Ralph Wiggum work queue is complete.
 The loop operator verifies completion by checking this file's state (all `[x]`).
 
 **A++ Standard:** Every acceptance criterion in every task doc MUST be checked off,

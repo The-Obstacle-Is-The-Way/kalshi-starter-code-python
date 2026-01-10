@@ -26,7 +26,7 @@ This is not “LLM agent magic”; it is a **deterministic planner + bounded too
 1. A `ResearchAgent` that can run a **multi-step Exa workflow** for a given market ticker.
 2. Outputs a structured `ResearchSummary` compatible with SPEC-032.
 3. Enforces a per-run **USD budget**, stopping early with partial results rather than failing.
-4. Supports **depth levels** (quick/standard/deep) with predictable request counts.
+4. Supports **modes** (fast/standard/deep) with predictable request counts.
 5. Clear CLI interface with JSON output suitable for automation.
 
 ---
@@ -57,18 +57,18 @@ Define a deterministic plan builder:
 - input: `Market` (from `KalshiPublicClient.get_market`)
 - output: `ResearchPlan` (serializable)
 
-Depth levels map to fixed steps:
+Modes map to fixed steps:
 
-| Depth | Exa calls | Includes |
+| Mode | Exa calls | Includes |
 |---|---:|---|
-| `quick` | ~2–4 | 1–2 searches + minimal summarization |
+| `fast` | ~2–4 | 1–2 searches + minimal summarization |
 | `standard` | ~4–8 | news + background + (optional) expert search |
 | `deep` | ~6–12 | standard + Exa `/research` task (async) |
 
 The plan is deterministic given:
 
 - market title + ticker
-- depth
+- mode
 - recency window
 - include/exclude domains
 
@@ -83,7 +83,7 @@ Track cost via Exa responses:
 Stop early when the next step would exceed `budget_usd`:
 
 - mark remaining steps as skipped
-- produce partial `ResearchSummary` with an explicit `budget_exhausted=True` indicator (schema field)
+- produce partial `ResearchSummary` with `budget_exhausted=True` (SPEC-032 schema field)
 
 ### 3) Output schema
 
@@ -98,7 +98,7 @@ No free-form prose reports are required for machine use; Markdown output is an o
 
 ### 4) Optional citation verification (Phase 2)
 
-For `deep` depth:
+For `deep` mode:
 
 - verify that key quoted “highlights” exist in `/contents` text
 - if verification fails, keep URL but drop the quote
@@ -111,9 +111,10 @@ This follows SPEC-030’s “trust but verify” policy.
 
 ```txt
 src/kalshi_research/agent/
-  research_agent.py         # planning + execution (this spec)
-  research_models.py        # Pydantic models for plan/result
+  research_models.py        # Pydantic models for plan/result (this spec)
   reporter.py               # Markdown formatter (optional)
+  providers/
+    exa.py                  # planning + execution (this spec)
 ```
 
 Prefer Pydantic models (not dataclasses) for:
@@ -130,7 +131,7 @@ Add `kalshi agent research`:
 
 ```bash
 uv run kalshi agent research TICKER \
-  --depth quick|standard|deep \
+  --mode fast|standard|deep \
   --budget-usd 0.50 \
   --json \
   --output report.json
@@ -148,7 +149,7 @@ CLI requirements:
 
 Unit tests (no network):
 
-- plan creation per depth (step counts + expected endpoint types)
+- plan creation per mode (step counts + expected endpoint types)
 - budget enforcement (stop before exceeding)
 - stable serialization/deserialization of `ResearchPlan`
 
@@ -176,9 +177,9 @@ Integration tests (optional, require EXA_API_KEY):
 
 ## Acceptance Criteria
 
-- `kalshi agent research TICKER --json` returns valid JSON even when Exa fails (empty results, `total_cost_usd=0.0`).
-- Budget enforcement is deterministic and never exceeds the requested budget by more than a single step’s cost.
-- Outputs include URLs for all factors; no factor exists without a source URL.
+- [ ] `kalshi agent research TICKER --json` returns valid JSON even when Exa fails (empty results, `total_cost_usd=0.0`).
+- [ ] Budget enforcement is deterministic and never exceeds the requested budget by more than a single step’s cost.
+- [ ] Outputs include URLs for all factors; no factor exists without a source URL.
 
 ---
 

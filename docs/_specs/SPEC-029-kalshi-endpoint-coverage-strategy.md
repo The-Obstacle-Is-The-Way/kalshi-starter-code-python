@@ -296,7 +296,7 @@ We persist only if it improves workflows:
 
 ## Acceptance Criteria
 
-- `KalshiPublicClient.get_markets_*` supports `tickers` + timestamp filters with client-side validation.
-- Series and structured targets can be listed/fetched from CLI without ad-hoc scripts.
-- Multivariate events are accessible and can be optionally synced.
-- All new code is covered by unit tests and doesn’t require live credentials.
+- [ ] `KalshiPublicClient.get_markets_*` supports `tickers` + timestamp filters with client-side validation.
+- [ ] Series and structured targets can be listed/fetched from CLI without ad-hoc scripts.
+- [ ] Multivariate events are accessible and can be optionally synced.
+- [ ] All new code is covered by unit tests and doesn’t require live credentials.

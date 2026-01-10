@@ -167,6 +167,7 @@ class ResearchSummary(BaseModel):
     summary_text: str | None = None
     factors: list[Factor] = Field(default_factory=list)
     articles: list[NewsArticle] = Field(default_factory=list)
+    budget_exhausted: bool = False
     total_cost_usd: float = 0.0
 ```
 
@@ -356,15 +357,13 @@ usable without LLM keys.
 
 ## Acceptance Criteria
 
-- `kalshi agent analyze TICKER --json` returns valid `AgentRunResult` JSON and never prints stack traces for
-  expected failures (missing Exa key, empty research, etc.).
-- Verification failures are explicit in `VerificationReport` and do not silently pass.
-- Escalation is off by default or gated; multi-agent is never automatically run without meeting policy
-  triggers.
-- Unit tests cover:
-  - schema validation for `AnalysisResult`
-  - verifier logic for citations/range checks
-  - deterministic escalation gating
+- [ ] `kalshi agent analyze TICKER --json` returns valid `AgentRunResult` JSON and never prints stack traces for expected failures (missing Exa key, empty research, etc.).
+- [ ] Verification failures are explicit in `VerificationReport` and do not silently pass.
+- [ ] Escalation is off by default or gated; multi-agent is never automatically run without meeting policy triggers.
+- [ ] Unit tests cover:
+  - [ ] schema validation for `AnalysisResult`
+  - [ ] verifier logic for citations/range checks
+  - [ ] deterministic escalation gating
 
 ---
 

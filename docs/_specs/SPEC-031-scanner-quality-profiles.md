@@ -146,8 +146,7 @@ This prevents confusion (“why did it show garbage?”).
 
 ## Acceptance Criteria
 
-- Running `uv run kalshi scan opportunities --profile tradeable` produces materially less slop out-of-the-box.
-- `--profile early` surfaces some low-volume markets but still enforces tight spread + liquidity score.
-- Existing invocations without `--profile` continue to work exactly as before (unless we intentionally change
-  the default and document it).
-- Docs reflect the recommended operational defaults and explicitly explain the tradeoff (“slop vs early”).
+- [ ] Running `uv run kalshi scan opportunities --profile tradeable` produces materially less slop out-of-the-box.
+- [ ] `--profile early` surfaces some low-volume markets but still enforces tight spread + liquidity score.
+- [ ] Existing invocations without `--profile` continue to work exactly as before (unless we intentionally change the default and document it).
+- [ ] Docs reflect the recommended operational defaults and explicitly explain the tradeoff (“slop vs early”).

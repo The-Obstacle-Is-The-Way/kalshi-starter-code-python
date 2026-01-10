@@ -29,7 +29,7 @@ This spec exists because:
 1. **Fast keyword search** across markets and events (sub-100ms on a warm cache for typical queries).
 2. **Simple filters** that match how humans think:
    - status (`open`, `closed`, etc.)
-   - category (via `events.category`, since market `category` was removed from market responses on 2026-01-08)
+   - category (via `events.category`, since our current market API model does not include market-level categories)
    - time windows (close/settle)
    - “quality” filters (min volume, max spread) via latest snapshot join
 3. **Deterministic, testable behavior** (no LLM dependence).
@@ -60,8 +60,8 @@ This spec exists because:
 - Tables: `events`, `markets`, `price_snapshots`, … (SSOT: `src/kalshi_research/data/models.py`).
 - `Market.category` / `Market.subcategory` exist in the DB schema but are currently written as `None`
   (SSOT: `src/kalshi_research/data/fetcher.py`).
-- Market response field `category` was removed from Kalshi market responses on 2026-01-08, so the **only**
-  reliable “category” is `events.category` (SSOT: `../_vendor-docs/kalshi-api-reference.md`).
+- Market responses (as represented by our `Market` API model) do not include market-level `category` fields, so
+  the reliable “category” is `events.category` (SSOT: `src/kalshi_research/api/models/market.py`).
 
 ### 3) Price filters require joining latest snapshots
 
@@ -117,14 +117,12 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS market_fts_ad
 AFTER DELETE ON markets BEGIN
-  INSERT INTO market_fts(market_fts, ticker, title, subtitle, event_ticker, series_ticker)
-  VALUES ('delete', old.ticker, old.title, old.subtitle, old.event_ticker, old.series_ticker);
+  DELETE FROM market_fts WHERE ticker = old.ticker;
 END;
 
 CREATE TRIGGER IF NOT EXISTS market_fts_au
 AFTER UPDATE ON markets BEGIN
-  INSERT INTO market_fts(market_fts, ticker, title, subtitle, event_ticker, series_ticker)
-  VALUES ('delete', old.ticker, old.title, old.subtitle, old.event_ticker, old.series_ticker);
+  DELETE FROM market_fts WHERE ticker = old.ticker;
   INSERT INTO market_fts(ticker, title, subtitle, event_ticker, series_ticker)
   VALUES (new.ticker, new.title, new.subtitle, new.event_ticker, new.series_ticker);
 END;
@@ -151,7 +149,27 @@ CREATE VIRTUAL TABLE IF NOT EXISTS event_fts USING fts5(
 );
 ```
 
-Triggers mirror the `market_fts_*` pattern.
+**Triggers**
+
+```sql
+CREATE TRIGGER IF NOT EXISTS event_fts_ai
+AFTER INSERT ON events BEGIN
+  INSERT INTO event_fts(ticker, title, category, series_ticker)
+  VALUES (new.ticker, new.title, new.category, new.series_ticker);
+END;
+
+CREATE TRIGGER IF NOT EXISTS event_fts_ad
+AFTER DELETE ON events BEGIN
+  DELETE FROM event_fts WHERE ticker = old.ticker;
+END;
+
+CREATE TRIGGER IF NOT EXISTS event_fts_au
+AFTER UPDATE ON events BEGIN
+  DELETE FROM event_fts WHERE ticker = old.ticker;
+  INSERT INTO event_fts(ticker, title, category, series_ticker)
+  VALUES (new.ticker, new.title, new.category, new.series_ticker);
+END;
+```
 
 #### 1.3 Availability: FTS5 compile option
 
@@ -296,11 +314,11 @@ uv run kalshi market topics delete "crypto"
 
 ## Acceptance Criteria
 
-- Keyword searching works via CLI without requiring raw SQL.
-- Filtering by `events.category` is supported (and documented) since market category is not in the API.
-- Search returns stable JSON when requested.
-- If FTS5 is unavailable, commands still work via LIKE fallback (with a warning).
-- `uv run mkdocs build --strict` passes after docs updates that accompany implementation.
+- [ ] Keyword searching works via CLI without requiring raw SQL.
+- [ ] Filtering by `events.category` is supported (and documented) since market category is not in the API.
+- [ ] Search returns stable JSON when requested.
+- [ ] If FTS5 is unavailable, commands still work via LIKE fallback (with a warning).
+- [ ] `uv run mkdocs build --strict` passes after docs updates that accompany implementation.
 
 ---
 
