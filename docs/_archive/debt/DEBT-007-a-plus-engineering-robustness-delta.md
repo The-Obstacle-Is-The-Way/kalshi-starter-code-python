@@ -1,9 +1,10 @@
 # DEBT-007: A+ Engineering Robustness Delta (Operational Hardening Gaps)
 
 **Priority:** P2 (Reliability / correctness confidence)
-**Status:** 🔴 Active
+**Status:** ✅ Resolved
 **Created:** 2026-01-10
 **Last Verified:** 2026-01-10
+**Resolved:** 2026-01-10
 
 ---
 
@@ -23,6 +24,16 @@ This doc is the **A- → A+ delta dossier**: evidence-backed gaps and the clean,
 
 ---
 
+## Resolution Summary (Implemented)
+
+- Added `kalshi data migrate` for safe Alembic upgrades (dry-run by default).
+- Added a scheduled GitHub Action workflow to run live Kalshi API contract tests daily (demo env).
+- Implemented `TradeExecutor` safety harness (safe-by-default, confirmation gate for live, audit logging).
+- Wired exchange-wide halts into scanning via `GET /exchange/status` (see DEBT-009).
+- Fixed docs strict-build failure by including `_debt/bloat.md` in MkDocs nav.
+
+---
+
 ## Evidence (SSOT)
 
 ### 1) DB schema evolution is not part of the default CLI runtime
@@ -37,6 +48,8 @@ This doc is the **A- → A+ delta dossier**: evidence-backed gaps and the clean,
 
 **Why it matters:** `create_all` does **not** upgrade existing tables. Once the schema evolves, existing
 `data/kalshi.db` can drift from the ORM expectations without an automatic upgrade path.
+
+**Resolution:** A supported upgrade path now exists via `kalshi data migrate` (dry-run default, `--apply` to execute).
 
 ### 2) E2E CLI pipelines are gated in CI (not pre-commit)
 
@@ -72,6 +85,8 @@ Exa also has a real-API integration test that is intentionally opt-in (and can c
 **Why it matters:** These tests are “trust anchors” for vendor drift; if they’re skipped or stale, they
 provide false confidence.
 
+**Resolution:** A scheduled workflow now runs the gated live Kalshi API contract tests daily in demo.
+
 ### 4) DB invariants are not fully enforced at the DB layer (optional hardening)
 
 - Portfolio invariants are encoded as unconstrained strings:
@@ -90,6 +105,13 @@ prevent silent corruption (manual edits, future code paths, migrations, bulk loa
 **Why it matters:** The low-level client supports `dry_run`, but without a higher-level harness the system
 can accidentally trade in any future autonomous loop.
 
+**Resolution:** Implemented `src/kalshi_research/execution/executor.py` (`TradeExecutor`) with:
+- `live=False` default (enforced dry-run)
+- kill switch (`KALSHI_TRADE_KILL_SWITCH=1`)
+- confirmation gate for live trades (callback injection)
+- per-order risk limit + per-day order cap
+- append-only JSONL audit log (`data/trade_audit.log` by default)
+
 ### 6) Docs build is green but emits warnings (polish)
 
 - `uv run mkdocs build` succeeds, but emits warnings:
@@ -100,6 +122,8 @@ can accidentally trade in any future autonomous loop.
 
 **Why it matters:** It’s not a correctness bug, but it’s a signal that the docs are not “warning clean” at
 A+ polish level.
+
+**Resolution:** `_debt/bloat.md` is now in `mkdocs.yml` nav; `mkdocs build --strict` is warning-clean.
 
 ---
 

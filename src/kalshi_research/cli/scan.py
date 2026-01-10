@@ -151,6 +151,30 @@ async def _scan_opportunities_async(
     scan_top_n = top_n if min_liquidity is None else min(top_n * 5, 50)
 
     async with KalshiPublicClient() as client:
+        exchange_status: dict[str, object] | None = None
+        try:
+            raw_status = await client.get_exchange_status()
+            if isinstance(raw_status, dict):
+                exchange_active = raw_status.get("exchange_active")
+                trading_active = raw_status.get("trading_active")
+                if isinstance(exchange_active, bool) and isinstance(trading_active, bool):
+                    exchange_status = raw_status
+                else:
+                    console.print(
+                        "[yellow]Warning:[/yellow] Exchange status response was missing expected "
+                        "boolean fields; proceeding without exchange halt checks."
+                    )
+            else:
+                console.print(
+                    "[yellow]Warning:[/yellow] Exchange status response had unexpected type; "
+                    "proceeding without exchange halt checks."
+                )
+        except Exception as exc:
+            console.print(
+                "[yellow]Warning:[/yellow] Failed to fetch exchange status; proceeding without "
+                f"exchange halt checks ({exc})."
+            )
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -159,7 +183,9 @@ async def _scan_opportunities_async(
             progress.add_task("Fetching markets...", total=None)
             markets = [m async for m in client.get_all_markets(status="open", max_pages=max_pages)]
 
-            scanner = MarketScanner()
+            from kalshi_research.analysis.scanner import MarketStatusVerifier
+
+            scanner = MarketScanner(verifier=MarketStatusVerifier(exchange_status=exchange_status))
             results, title = _select_opportunity_results(
                 scanner,
                 markets,

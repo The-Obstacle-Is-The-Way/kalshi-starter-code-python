@@ -110,7 +110,7 @@ src/kalshi_research/research/notebook_utils.py - All functions unused in CLI
 src/kalshi_research/alerts/notifiers.py:46: unused class 'FileNotifier'
 src/kalshi_research/alerts/notifiers.py:71: unused class 'WebhookNotifier'
 ```
-**Decision:** These are legitimate features - wire in with `--output-file` and `--webhook-url` options on `kalshi alerts monitor`.
+**Decision:** ✅ Wired in DEBT-009 via `kalshi alerts monitor --output-file ... --webhook-url ...`.
 
 #### Exa Client Methods
 ```
@@ -118,7 +118,7 @@ src/kalshi_research/exa/client.py:349: unused method 'find_similar'
 src/kalshi_research/exa/client.py:403: unused method 'create_research_task'
 src/kalshi_research/exa/client.py:426: unused method 'wait_for_research'
 ```
-**Decision:** These wrap Exa API endpoints that exist but aren't integrated into CLI. Either integrate or delete.
+**Decision:** ✅ Wired in DEBT-009 via `kalshi research similar ...` and `kalshi research deep ...`.
 
 #### Unused Repository Methods
 ```
@@ -142,23 +142,23 @@ Each item traced against official Kalshi/Exa API docs to determine TRUE dead cod
 
 | Our Method | Kalshi Endpoint | Verdict | Action |
 |------------|-----------------|---------|--------|
-| `get_trades` | `GET /markets/trades` | **HALFWAY** | Wire in: `kalshi data sync-trades` |
-| `get_candlesticks` | `GET /markets/{ticker}/candlesticks` | **HALFWAY** | Wire in: `kalshi market history` |
-| `get_series_candlesticks` | `GET /markets/candlesticks` | **HALFWAY** | Low priority, evaluate |
-| `get_exchange_status` | `GET /exchange/status` | **HALFWAY** | Wire in: Use in `verify_market_open` |
+| `get_trades` | `GET /markets/trades` | ✅ WIRED | `kalshi data sync-trades` |
+| `get_candlesticks` | `GET /markets/candlesticks` | ✅ WIRED | `kalshi market history` |
+| `get_series_candlesticks` | `GET /series/{series}/markets/{ticker}/candlesticks` | ✅ WIRED | `kalshi market history --series ...` |
+| `get_exchange_status` | `GET /exchange/status` | ✅ WIRED | `kalshi status` and scan halt checks |
 | `create_order` | `POST /portfolio/orders` | **RESERVED** | Keep - trading feature |
 | `cancel_order` | `DELETE /portfolio/orders/{id}` | **RESERVED** | Keep - trading feature |
 | `amend_order` | `POST /portfolio/orders/{id}/amend` | **RESERVED** | Keep - trading feature |
 | `get_orders` | `GET /portfolio/orders` | **RESERVED** | Keep - order management |
-| WebSocket `subscribe_*` | All WS channels | **HALFWAY** | Wire in or extract to optional |
+| WebSocket `subscribe_*` | All WS channels | **RESERVED** | Explicit `# RESERVED` marker (DEBT-009) |
 
 ### Exa API Methods - Verified Against `docs/_vendor-docs/exa-api-reference.md`
 
 | Our Method | Exa Endpoint | Verdict | Action |
 |------------|--------------|---------|--------|
-| `find_similar` | `POST /findSimilar` | **HALFWAY** | Wire in: `kalshi research similar` |
-| `create_research_task` | `POST /research/v1` | **HALFWAY** | Wire in: `kalshi research deep` |
-| `wait_for_research` | Polling `GET /research/v1/{id}` | **HALFWAY** | Goes with above |
+| `find_similar` | `POST /findSimilar` | ✅ WIRED | `kalshi research similar` |
+| `create_research_task` | `POST /research/v1` | ✅ WIRED | `kalshi research deep` |
+| `wait_for_research` | Polling `GET /research/v1/{id}` | ✅ WIRED | `kalshi research deep --wait` |
 
 ### Analysis Module - No Vendor API (Our Logic)
 
@@ -169,7 +169,7 @@ Each item traced against official Kalshi/Exa API docs to determine TRUE dead cod
 | `compute_volatility` | **TRUE SLOP** | Called in tests/docs only, never in app logic |
 | `compute_volume_profile` | **TRUE SLOP** | Called in tests/docs only, never in app logic |
 | `scan_all` | **TRUE SLOP** | Convenience method, never used |
-| `verify_market_open` | **HALFWAY** | Should use `get_exchange_status`, doesn't |
+| `verify_market_open` | ✅ WIRED | Supports exchange halt checks when provided |
 | `max_safe_buy_size` | **TRUE SLOP** | Redundant wrapper: safe sizing is already exposed via `max_safe_order_size` and `kalshi market liquidity` |
 
 ### Research Module
@@ -316,12 +316,12 @@ Repository pattern adds abstraction but many methods are unused:
 4. [x] Delete unused repository methods (DEBT-008)
 5. [x] Remove unused imports flagged by ruff (DEBT-008)
 
-**Note:** `FileNotifier` and `WebhookNotifier` are NOT to be deleted - they're HALFWAY implementations to wire in (see DEBT-009).
+**Note:** `FileNotifier` and `WebhookNotifier` were HALFWAY implementations; ✅ wired in DEBT-009.
 
 ### Phase 2: Refactoring (Est. 300 LOC reduction)
 
 1. [x] Consolidate repeated `create_tables()` calls into `open_db()` helpers (DEBT-010)
-2. [ ] Consolidate Exa client methods (delete or integrate)
+2. [x] Wire in Exa client methods (DEBT-009)
 3. [ ] Review data model redundancy
 
 ### Phase 3: Strategic Decisions
@@ -381,8 +381,7 @@ src/kalshi_research/api/models/candlestick.py:20: unused variable 'open_dollars'
 ### What's Actually Bloat
 
 - EdgeDetector never integrated
-- Multiple unused notifier classes
-- Unused API methods accumulating
+- Halfway implementations (now wired in DEBT-009)
 - Repeated boilerplate patterns
 - Some over-abstracted layers
 
@@ -438,7 +437,7 @@ vulture src/ --make-whitelist > vulture_whitelist.py
 | Category | Count | Action |
 |----------|-------|--------|
 | **TRUE SLOP** | ~12 items | DELETE immediately (see DEBT-008) |
-| **HALFWAY IMPL** | ~14 items | Wire in via CLI (see DEBT-009) |
+| **HALFWAY IMPL** | ~14 items | ✅ Wired in DEBT-009 |
 | **RESERVED** | ~5 items | Keep with `# RESERVED:` comment |
 | **FALSE POSITIVE** | ~30+ items | Add to whitelist |
 | **YAGNI CRUFT** | ~7 items | DELETE (see DEBT-008) |
@@ -452,7 +451,7 @@ vulture src/ --make-whitelist > vulture_whitelist.py
 | Debt Item | Derived From This Audit |
 |-----------|------------------------|
 | [DEBT-008](../_archive/debt/DEBT-008-dead-code-cleanup.md) | TRUE SLOP + YAGNI items |
-| [DEBT-009](DEBT-009-finish-halfway-implementations.md) | HALFWAY items |
+| [DEBT-009](../_archive/debt/DEBT-009-finish-halfway-implementations.md) | HALFWAY items |
 | [DEBT-010](../_archive/debt/DEBT-010-reduce-boilerplate.md) | Structural bloat (boilerplate) |
 
 **Note:** DEBT-007 is a separate operational hardening document, not derived from this bloat audit.

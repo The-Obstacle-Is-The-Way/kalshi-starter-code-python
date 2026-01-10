@@ -29,6 +29,60 @@ def data_init(
     asyncio.run(_init())
 
 
+@app.command("migrate")
+def data_migrate(
+    db_path: Annotated[
+        Path,
+        typer.Option("--db", "-d", help="Path to SQLite database file."),
+    ] = DEFAULT_DB_PATH,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run/--apply",
+            help="Preview SQL without applying changes (default: dry-run).",
+        ),
+    ] = True,
+) -> None:
+    """Run Alembic schema migrations (upgrade to head)."""
+    from alembic import command
+    from alembic.config import Config
+    from alembic.runtime.migration import MigrationContext
+    from alembic.script import ScriptDirectory
+    from sqlalchemy import create_engine
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite+aiosqlite:///{db_path}")
+
+    script = ScriptDirectory.from_config(alembic_cfg)
+    target_revision = script.get_current_head()
+
+    current_revision: str | None = None
+    if db_path.exists():
+        engine = create_engine(f"sqlite:///{db_path}")
+        with engine.connect() as conn:
+            context = MigrationContext.configure(conn)
+            current_revision = context.get_current_revision()
+
+    mode = "dry-run" if dry_run else "apply"
+    console.print(
+        f"[dim]Schema migrate ({mode}):[/dim] {current_revision or 'base'} → {target_revision}"
+    )
+
+    try:
+        if dry_run:
+            command.upgrade(alembic_cfg, "head", sql=True)
+        else:
+            command.upgrade(alembic_cfg, "head")
+    except Exception as exc:
+        console.print(f"[red]Error:[/red] Migration failed: {exc}")
+        raise typer.Exit(1) from None
+
+    if dry_run:
+        console.print("[green]✓[/green] Dry-run complete (no changes applied).")
+    else:
+        console.print("[green]✓[/green] Migration applied successfully.")
+
+
 @app.command("sync-markets")
 def data_sync_markets(
     db_path: Annotated[
@@ -107,6 +161,116 @@ def data_sync_settlements(
         console.print(f"[green]✓[/green] Synced {settlements} settlements")
 
     asyncio.run(_sync())
+
+
+@app.command("sync-trades")
+def data_sync_trades(
+    ticker: Annotated[
+        str | None,
+        typer.Option("--ticker", help="Optional market ticker filter."),
+    ] = None,
+    limit: Annotated[
+        int,
+        typer.Option("--limit", help="Max trades to fetch (Kalshi caps at 1000)."),
+    ] = 100,
+    min_ts: Annotated[
+        int | None,
+        typer.Option("--min-ts", help="Filter: min Unix timestamp (seconds)."),
+    ] = None,
+    max_ts: Annotated[
+        int | None,
+        typer.Option("--max-ts", help="Filter: max Unix timestamp (seconds)."),
+    ] = None,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Write results to a CSV file."),
+    ] = None,
+    output_json: Annotated[
+        bool,
+        typer.Option("--json", help="Output results as JSON to stdout."),
+    ] = False,
+) -> None:
+    """Fetch public trade history from Kalshi (GET /markets/trades)."""
+    import csv
+    import json
+
+    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    if output is not None and output_json:
+        console.print("[red]Error:[/red] Choose one of --output or --json (not both).")
+        raise typer.Exit(2)
+
+    async def _fetch() -> list[dict[str, object]]:
+        async with KalshiPublicClient() as client:
+            try:
+                trades = await client.get_trades(
+                    ticker=ticker,
+                    limit=limit,
+                    min_ts=min_ts,
+                    max_ts=max_ts,
+                )
+            except KalshiAPIError as e:
+                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+                raise typer.Exit(1) from None
+            except Exception as e:
+                console.print(f"[red]Error:[/red] {e}")
+                raise typer.Exit(1) from None
+
+        return [t.model_dump(mode="json") for t in trades]
+
+    trade_rows = asyncio.run(_fetch())
+
+    if output_json:
+        console.print(json.dumps(trade_rows, indent=2, default=str))
+        return
+
+    if output is None:
+        if not trade_rows:
+            console.print("[yellow]No trades returned for the given filters.[/yellow]")
+            return
+        table = Table(title="Trades")
+        table.add_column("Ticker", style="cyan", no_wrap=True)
+        table.add_column("Time", style="dim")
+        table.add_column("YES", justify="right", style="green")
+        table.add_column("NO", justify="right", style="red")
+        table.add_column("Qty", justify="right", style="magenta")
+        table.add_column("Taker", style="white")
+
+        for row in trade_rows[:25]:
+            table.add_row(
+                str(row.get("ticker", "")),
+                str(row.get("created_time", "")),
+                str(row.get("yes_price", "")),
+                str(row.get("no_price", "")),
+                str(row.get("count", "")),
+                str(row.get("taker_side", "")),
+            )
+
+        console.print(table)
+        if len(trade_rows) > 25:
+            console.print(
+                f"[dim]Showing 25 of {len(trade_rows)} trades. Use --output to export.[/dim]"
+            )
+        return
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "trade_id",
+        "ticker",
+        "created_time",
+        "yes_price",
+        "no_price",
+        "count",
+        "taker_side",
+    ]
+    with output.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in trade_rows:
+            writer.writerow({k: row.get(k) for k in fieldnames})
+
+    console.print(f"[green]✓[/green] Exported {len(trade_rows)} trades to {output}")
 
 
 @app.command("snapshot")

@@ -4,10 +4,9 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**2 active debt items.** (DEBT-010 resolved; DEBT-008 resolved; DEBT-005 resolved; DEBT-004 elevated to SPEC-027; DEBT-002 closed as "Won't Fix")
+**0 active debt items.** (All known debt items resolved or archived.)
 
-- [DEBT-007: A+ Engineering Robustness Delta (Operational Hardening Gaps)](DEBT-007-a-plus-engineering-robustness-delta.md)
-- [DEBT-009: Finish Halfway Implementations](DEBT-009-finish-halfway-implementations.md)
+- None.
 
 ## Next ID Tracker
 
@@ -49,6 +48,8 @@ All resolved debt items are stored in
 |---|---|---|
 | **[DEBT-008](../_archive/debt/DEBT-008-dead-code-cleanup.md)** | Dead Code Cleanup (True Slop) | ✅ Complete |
 | **[DEBT-010](../_archive/debt/DEBT-010-reduce-boilerplate.md)** | Reduce Boilerplate & Structural Bloat | ✅ Complete |
+| **[DEBT-009](../_archive/debt/DEBT-009-finish-halfway-implementations.md)** | Finish Halfway Implementations | ✅ Complete |
+| **[DEBT-007](../_archive/debt/DEBT-007-a-plus-engineering-robustness-delta.md)** | A+ Engineering Robustness Delta (Operational Hardening Gaps) | ✅ Complete |
 
 ---
 

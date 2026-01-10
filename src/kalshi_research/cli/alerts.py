@@ -51,6 +51,8 @@ def _spawn_alert_monitor_daemon(
     once: bool,
     max_pages: int | None,
     environment: str,
+    output_file: Path | None,
+    webhook_url: str | None,
 ) -> tuple[int, Path]:
     import os
 
@@ -67,6 +69,10 @@ def _spawn_alert_monitor_daemon(
         args.extend(["--max-pages", str(max_pages)])
     if once:
         args.append("--once")
+    if output_file is not None:
+        args.extend(["--output-file", str(output_file)])
+    if webhook_url is not None:
+        args.extend(["--webhook-url", webhook_url])
 
     daemon_env = dict(os.environ)
     daemon_env["KALSHI_ENVIRONMENT"] = environment
@@ -306,11 +312,25 @@ def alerts_monitor(
             help="Optional pagination safety limit for market fetch (None = full).",
         ),
     ] = None,
+    output_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--output-file",
+            help="Write triggered alerts to a JSONL file (one alert per line).",
+        ),
+    ] = None,
+    webhook_url: Annotated[
+        str | None,
+        typer.Option(
+            "--webhook-url",
+            help="POST triggered alerts to a webhook URL (Slack/Discord style payload).",
+        ),
+    ] = None,
 ) -> None:
     """Start monitoring alerts (runs in foreground)."""
     from kalshi_research.alerts import AlertMonitor
     from kalshi_research.alerts.conditions import AlertCondition, ConditionType
-    from kalshi_research.alerts.notifiers import ConsoleNotifier
+    from kalshi_research.alerts.notifiers import ConsoleNotifier, FileNotifier, WebhookNotifier
 
     # Load alert conditions from storage
     data = _load_alerts()
@@ -332,6 +352,8 @@ def alerts_monitor(
                 once=once,
                 max_pages=max_pages,
                 environment=environment_value,
+                output_file=output_file,
+                webhook_url=webhook_url,
             )
         except (OSError, RuntimeError) as exc:
             console.print(f"[red]Error:[/red] Failed to start daemon: {exc}")
@@ -344,6 +366,10 @@ def alerts_monitor(
     # Create monitor and add notifier
     monitor = AlertMonitor()
     monitor.add_notifier(ConsoleNotifier())
+    if output_file is not None:
+        monitor.add_notifier(FileNotifier(output_file))
+    if webhook_url is not None:
+        monitor.add_notifier(WebhookNotifier(webhook_url))
 
     # Reconstruct AlertCondition objects from stored data
     for cond_data in conditions_data:

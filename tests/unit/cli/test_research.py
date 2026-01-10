@@ -54,6 +54,86 @@ def test_research_topic_missing_exa_key_exits_with_error() -> None:
     assert "EXA_API_KEY" in result.stdout
 
 
+def test_research_similar_missing_exa_key_exits_with_error() -> None:
+    exa_error = ValueError("EXA_API_KEY is required")
+    with patch("kalshi_research.exa.ExaClient.from_env", side_effect=exa_error):
+        result = runner.invoke(app, ["research", "similar", "https://example.com"])
+
+    assert result.exit_code == 1
+    assert "EXA_API_KEY" in result.stdout
+
+
+def test_research_deep_missing_exa_key_exits_with_error() -> None:
+    exa_error = ValueError("EXA_API_KEY is required")
+    with patch("kalshi_research.exa.ExaClient.from_env", side_effect=exa_error):
+        result = runner.invoke(app, ["research", "deep", "Test topic"])
+
+    assert result.exit_code == 1
+    assert "EXA_API_KEY" in result.stdout
+
+
+def test_research_similar_json_output() -> None:
+    from kalshi_research.exa.models.search import SearchResult
+    from kalshi_research.exa.models.similar import FindSimilarResponse
+
+    response = FindSimilarResponse(
+        request_id="req-1",
+        results=[
+            SearchResult(
+                id="1",
+                url="https://example.com/a",
+                title="Example A",
+                score=0.9,
+            )
+        ],
+    )
+
+    mock_exa = AsyncMock()
+    mock_exa.__aenter__.return_value = mock_exa
+    mock_exa.__aexit__.return_value = AsyncMock()
+    mock_exa.find_similar = AsyncMock(return_value=response)
+
+    with patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa):
+        result = runner.invoke(app, ["research", "similar", "https://example.com", "--json"])
+
+    assert result.exit_code == 0
+    assert "requestId" in result.stdout
+    assert "Example A" in result.stdout
+
+
+def test_research_deep_wait_json_output() -> None:
+    from kalshi_research.exa.models.research import ResearchOutput, ResearchStatus, ResearchTask
+
+    created = ResearchTask(
+        research_id="research-1",
+        status=ResearchStatus.PENDING,
+        created_at=1700000000,
+        model="exa-research",
+        instructions="Test",
+    )
+    completed = ResearchTask(
+        research_id="research-1",
+        status=ResearchStatus.COMPLETED,
+        created_at=1700000000,
+        model="exa-research",
+        instructions="Test",
+        output=ResearchOutput(content="Done", parsed=None),
+    )
+
+    mock_exa = AsyncMock()
+    mock_exa.__aenter__.return_value = mock_exa
+    mock_exa.__aexit__.return_value = AsyncMock()
+    mock_exa.create_research_task = AsyncMock(return_value=created)
+    mock_exa.wait_for_research = AsyncMock(return_value=completed)
+
+    with patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa):
+        result = runner.invoke(app, ["research", "deep", "Test topic", "--wait", "--json"])
+
+    assert result.exit_code == 0
+    assert "researchId" in result.stdout
+    assert "completed" in result.stdout
+
+
 def test_thesis_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
     thesis_file = tmp_path / "theses.json"
     thesis_file.write_text("{not json", encoding="utf-8")

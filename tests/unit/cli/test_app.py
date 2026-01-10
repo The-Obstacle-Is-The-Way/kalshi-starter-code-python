@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import runpy
 import sys
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
@@ -62,3 +62,20 @@ def test_module_entrypoint_executes() -> None:
     ):
         runpy.run_module("kalshi_research.cli.__main__", run_name="__main__")
     assert exc.value.code == 2
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_status_command(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_exchange_status = AsyncMock(
+        return_value={"exchange_active": True, "trading_active": True}
+    )
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["status"])
+
+    assert result.exit_code == 0
+    assert "Exchange Status" in result.stdout
+    assert "exchange_active" in result.stdout

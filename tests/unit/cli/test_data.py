@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from typer.testing import CliRunner
 
+from kalshi_research.api.models.trade import Trade
 from kalshi_research.cli import app
 
 runner = CliRunner()
@@ -142,3 +145,69 @@ def test_data_stats(
     assert result.exit_code == 0
     assert "Total Events" in result.stdout
     assert "3" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_data_sync_trades_exports_csv(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_trades = AsyncMock(
+        return_value=[
+            Trade(
+                trade_id="trade-1",
+                ticker="TEST-TICKER",
+                created_time=datetime.now(UTC),
+                yes_price=51,
+                no_price=49,
+                count=10,
+                taker_side="yes",
+            )
+        ]
+    )
+    mock_client_cls.return_value = mock_client
+
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            app,
+            [
+                "data",
+                "sync-trades",
+                "--ticker",
+                "TEST-TICKER",
+                "--output",
+                "trades.csv",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Exported 1 trades" in result.stdout
+        csv_text = Path("trades.csv").read_text(encoding="utf-8")
+        assert "trade_id,ticker,created_time,yes_price,no_price,count,taker_side" in csv_text
+        assert "trade-1,TEST-TICKER" in csv_text
+
+
+@patch("alembic.command.upgrade")
+def test_data_migrate_dry_run_calls_alembic_upgrade(
+    mock_upgrade: MagicMock, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "kalshi.db"
+
+    result = runner.invoke(app, ["data", "migrate", "--db", str(db_path), "--dry-run"])
+
+    assert result.exit_code == 0
+    mock_upgrade.assert_called_once()
+    _, kwargs = mock_upgrade.call_args
+    assert kwargs["sql"] is True
+
+
+@patch("alembic.command.upgrade")
+def test_data_migrate_apply_calls_alembic_upgrade(mock_upgrade: MagicMock, tmp_path: Path) -> None:
+    db_path = tmp_path / "kalshi.db"
+
+    result = runner.invoke(app, ["data", "migrate", "--db", str(db_path), "--apply"])
+
+    assert result.exit_code == 0
+    mock_upgrade.assert_called_once()
+    _, kwargs = mock_upgrade.call_args
+    assert kwargs == {}
