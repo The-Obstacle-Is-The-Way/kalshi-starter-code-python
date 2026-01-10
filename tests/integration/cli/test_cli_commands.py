@@ -12,6 +12,7 @@ import respx
 from httpx import Response
 from typer.testing import CliRunner
 
+from kalshi_research.api.models.portfolio import FillPage, PortfolioBalance, PortfolioPosition
 from kalshi_research.cli import app
 from kalshi_research.data import DatabaseManager
 from kalshi_research.data.models import Event, Market, PriceSnapshot
@@ -42,6 +43,7 @@ def _market_dict(
     status: str = "active",
     volume_24h: int = 10_000,
 ) -> dict[str, Any]:
+    now = datetime.now(UTC)
     return {
         "ticker": ticker,
         "event_ticker": event_ticker,
@@ -60,8 +62,8 @@ def _market_dict(
         "open_interest": 100,
         "liquidity": 1_000,
         "open_time": "2024-01-01T00:00:00Z",
-        "close_time": "2025-01-01T00:00:00Z",
-        "expiration_time": "2025-01-02T00:00:00Z",
+        "close_time": (now + timedelta(days=30)).isoformat().replace("+00:00", "Z"),
+        "expiration_time": (now + timedelta(days=31)).isoformat().replace("+00:00", "Z"),
     }
 
 
@@ -504,14 +506,14 @@ def test_portfolio_commands_smoke(runner: CliRunner) -> None:
         ) -> None:
             return None
 
-        async def get_positions(self) -> list[dict[str, Any]]:
+        async def get_positions(self) -> list[PortfolioPosition]:
             return []
 
-        async def get_fills(self, **_: object) -> dict[str, Any]:
-            return {"fills": [], "cursor": None}
+        async def get_fills(self, **_: object) -> FillPage:
+            return FillPage(fills=[], cursor=None)
 
-        async def get_balance(self) -> dict[str, Any]:
-            return {"balance": 0}
+        async def get_balance(self) -> PortfolioBalance:
+            return PortfolioBalance(balance=0, portfolio_value=0)
 
     with runner.isolated_filesystem():
         db_path = Path("data/test.db")

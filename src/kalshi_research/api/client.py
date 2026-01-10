@@ -733,7 +733,16 @@ class KalshiClient(KalshiPublicClient):
                     raise KalshiAPIError(response.status_code, response.text)
 
                 data = response.json()
-                return CancelOrderResponse.model_validate(data)
+                payload_obj = data.get("order", data) if isinstance(data, dict) else data
+                if not isinstance(payload_obj, dict):
+                    raise KalshiAPIError(
+                        response.status_code,
+                        "Unexpected cancel order response shape (expected object).",
+                    )
+
+                payload = dict(payload_obj)
+                payload.setdefault("order_id", order_id)
+                return CancelOrderResponse.model_validate(payload)
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 

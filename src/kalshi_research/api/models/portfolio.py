@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class PortfolioBalance(BaseModel):
@@ -130,7 +130,7 @@ class CancelOrderResponse(BaseModel):
     order_id: str
     """ID of the canceled order."""
 
-    status: str
+    status: str = Field(validation_alias=AliasChoices("status", "order_status"))
     """New status (typically 'canceled')."""
 
     reduced_by: int | None = None
