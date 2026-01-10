@@ -86,6 +86,7 @@ class NewsCollector:
                     ticker=tracked.ticker,
                     query=query,
                     error=str(exc),
+                    exc_info=True,
                 )
                 continue
 

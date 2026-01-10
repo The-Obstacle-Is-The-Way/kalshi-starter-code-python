@@ -190,6 +190,7 @@ class MarketContextResearcher:
                 market=market_ticker,
                 category=source_category,
                 error=str(e),
+                exc_info=True,
             )
             return ([], 0.0)
 
