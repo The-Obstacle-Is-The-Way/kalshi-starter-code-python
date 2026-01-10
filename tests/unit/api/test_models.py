@@ -182,6 +182,77 @@ class TestOrderbookModel:
         orderbook = Orderbook(yes=yes_bids, no=no_bids)
         assert orderbook.spread == expected_spread
 
+    # === Dollar field fallback tests (BUG-056 P0-1 fix) ===
+
+    def test_orderbook_dollar_fallback_best_yes_bid(self) -> None:
+        """best_yes_bid falls back to yes_dollars when yes is None."""
+        # Simulates post-Jan 15, 2026 API response (no legacy cents field)
+        orderbook = Orderbook(
+            yes=None,
+            no=None,
+            yes_dollars=[("0.45", 100), ("0.44", 200), ("0.43", 500)],
+            no_dollars=[("0.53", 150)],
+        )
+
+        # Should convert "0.45" to 45 cents
+        assert orderbook.best_yes_bid == 45
+
+    def test_orderbook_dollar_fallback_best_no_bid(self) -> None:
+        """best_no_bid falls back to no_dollars when no is None."""
+        orderbook = Orderbook(
+            yes=None,
+            no=None,
+            yes_dollars=[("0.45", 100)],
+            no_dollars=[("0.53", 150), ("0.54", 250), ("0.55", 400)],
+        )
+
+        # Should convert "0.55" (max) to 55 cents
+        assert orderbook.best_no_bid == 55
+
+    def test_orderbook_dollar_fallback_spread(self) -> None:
+        """Spread works with dollar-only orderbook."""
+        orderbook = Orderbook(
+            yes_dollars=[("0.45", 100)],
+            no_dollars=[("0.54", 100)],
+        )
+
+        # Spread = 100 - 45 - 54 = 1
+        assert orderbook.spread == 1
+
+    def test_orderbook_dollar_fallback_midpoint(self) -> None:
+        """Midpoint works with dollar-only orderbook."""
+        orderbook = Orderbook(
+            yes_dollars=[("0.45", 100)],
+            no_dollars=[("0.54", 100)],
+        )
+
+        # Implied YES ask = 100 - 54 = 46
+        # Midpoint = (45 + 46) / 2 = 45.5
+        assert orderbook.midpoint == Decimal("45.5")
+
+    def test_orderbook_legacy_cents_preferred_over_dollars(self) -> None:
+        """When both legacy and dollar fields present, prefer legacy cents."""
+        orderbook = Orderbook(
+            yes=[(45, 100)],  # Legacy cents
+            no=[(54, 100)],  # Legacy cents
+            yes_dollars=[("0.99", 100)],  # Different dollar value
+            no_dollars=[("0.01", 100)],  # Different dollar value
+        )
+
+        # Should use legacy cents, not dollar fields
+        assert orderbook.best_yes_bid == 45
+        assert orderbook.best_no_bid == 54
+
+    def test_orderbook_dollar_precision(self) -> None:
+        """Dollar string conversion handles various precision values."""
+        orderbook = Orderbook(
+            yes_dollars=[("0.50", 100), ("0.5", 50)],  # Both "0.50" and "0.5" valid
+            no_dollars=[("0.01", 100)],  # Minimum
+        )
+
+        assert orderbook.best_yes_bid == 50
+        assert orderbook.best_no_bid == 1
+
 
 class TestTradeModel:
     """Test Trade model with REAL instances."""

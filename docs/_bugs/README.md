@@ -6,11 +6,19 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Status |
 |---|---|---|
-| **[BUG-056](BUG-056-deep-audit.md)** | Deep Codebase Audit: Financial & Safety Risks (P0/P1) | 🔴 Open |
+| (none) | All critical bugs resolved | ✅ |
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
 **BUG-057**
+
+---
+
+## Recently Resolved (2026-01-10)
+
+| ID | Title | Status |
+|---|---|---|
+| **[BUG-056](BUG-056-deep-audit.md)** | Deep Codebase Audit: Financial & Safety Risks (P0/P1) | ✅ Fixed |
 
 ---
 

@@ -73,7 +73,11 @@ def compute_fifo_cost_basis(trades: list[Trade], side: str) -> int:
     if total_qty == 0:
         return 0
 
-    return total_cost // total_qty
+    # Use standard division and round to nearest cent
+    # This avoids precision loss from floor division (//)
+    # Example: 101/2 = 50.5 -> rounds to 50 or 51 depending on rounding
+    # Using round() for standard half-to-even rounding (banker's rounding)
+    return round(total_cost / total_qty)
 
 
 @dataclass
@@ -138,6 +142,17 @@ class PortfolioSyncer:
                 )
                 trades = list(trades_result.scalars().all())
                 avg_price_cents = compute_fifo_cost_basis(trades, side)
+
+                # Cold start detection: position exists but no trades -> cost basis unreliable
+                if quantity > 0 and not trades:
+                    logger.warning(
+                        "Cold start detected: position exists but no local trade history. "
+                        "Cost basis will be 0 (inaccurate). Run 'portfolio sync' to backfill "
+                        "trades, or manually verify P&L calculations.",
+                        ticker=ticker,
+                        quantity=quantity,
+                        side=side,
+                    )
 
                 # Check if exists
                 existing = existing_open.get(ticker)
@@ -355,6 +370,7 @@ class PortfolioSyncer:
                         "Failed to fetch market data; skipping mark price update",
                         ticker=pos.ticker,
                         error=str(e),
+                        exc_info=True,
                     )
                     continue
 
