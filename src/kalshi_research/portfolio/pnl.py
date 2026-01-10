@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from kalshi_research.portfolio.models import Position, Trade
+    from kalshi_research.portfolio.models import PortfolioSettlement, Position, Trade
 
 
 @dataclass
@@ -25,6 +26,7 @@ class PnLSummary:
     avg_loss_cents: int
     profit_factor: float
     unrealized_positions_unknown: int = 0
+    orphan_sells_skipped: int = 0
 
 
 class PnLCalculator:
@@ -34,6 +36,11 @@ class PnLCalculator:
     class _Lot:
         qty_remaining: int
         cost_remaining_cents: int
+
+    @dataclass
+    class _FifoResult:
+        closed_pnls: list[int]
+        orphan_sells_skipped: int
 
     def calculate_unrealized(self, position: Position, current_price_cents: int) -> int:
         """
@@ -47,7 +54,7 @@ class PnLCalculator:
         else:
             return (position.avg_price_cents - current_price_cents) * position.quantity
 
-    def _get_closed_trade_pnls_fifo(self, trades: list[Trade]) -> list[int]:
+    def _get_closed_trade_pnls_fifo(self, trades: list[Trade]) -> _FifoResult:
         """
         Compute per-sell realized P&L in cents using FIFO lots (integer arithmetic).
 
@@ -62,6 +69,7 @@ class PnLCalculator:
             ticker_side_trades.setdefault(key, []).append(trade)
 
         closed_pnls: list[int] = []
+        orphan_sells_skipped = 0
 
         for group_trades in ticker_side_trades.values():
             sorted_trades = sorted(group_trades, key=lambda t: t.executed_at)
@@ -82,17 +90,17 @@ class PnLCalculator:
 
                 if trade.action == "sell":
                     remaining_to_sell = trade.quantity
+                    matched_qty = 0
                     cost_basis_cents = 0
 
                     while remaining_to_sell > 0:
                         if not lots:
-                            raise ValueError(
-                                "Sell trade exceeds available FIFO lots; trade history is "
-                                "incomplete"
-                            )
+                            orphan_sells_skipped += remaining_to_sell
+                            break
 
                         lot = lots[0]
                         consume_qty = min(lot.qty_remaining, remaining_to_sell)
+                        matched_qty += consume_qty
                         # Use round() to avoid systematic downward bias from floor division
                         # This matches the pattern in syncer.py:compute_fifo_cost_basis
                         consume_cost_cents = round(
@@ -107,11 +115,20 @@ class PnLCalculator:
                         if lot.qty_remaining == 0:
                             lots.popleft()
 
-                    net_proceeds_cents = trade.total_cost_cents - trade.fee_cents
+                    if matched_qty == 0:
+                        continue
+
+                    # Only count proceeds for the portion we could match against FIFO lots.
+                    # Fee is prorated to the matched quantity.
+                    matched_fee_cents = round(trade.fee_cents * matched_qty / trade.quantity)
+                    net_proceeds_cents = (trade.price_cents * matched_qty) - matched_fee_cents
                     closed_pnls.append(net_proceeds_cents - cost_basis_cents)
                     continue
 
-        return closed_pnls
+        return PnLCalculator._FifoResult(
+            closed_pnls=closed_pnls,
+            orphan_sells_skipped=orphan_sells_skipped,
+        )
 
     def calculate_realized(self, trades: list[Trade]) -> int:
         """
@@ -120,7 +137,7 @@ class PnLCalculator:
         Realized P&L is calculated from closed positions (matched buy/sell pairs).
         Groups by (ticker, side) to handle YES/NO positions separately.
         """
-        return sum(self._get_closed_trade_pnls_fifo(trades))
+        return sum(self._get_closed_trade_pnls_fifo(trades).closed_pnls)
 
     def calculate_total(self, positions: list[Position]) -> PnLSummary:
         """Calculate total P&L summary across all positions."""
@@ -150,7 +167,10 @@ class PnLCalculator:
         )
 
     def calculate_summary_with_trades(
-        self, positions: list[Position], trades: list[Trade]
+        self,
+        positions: list[Position],
+        trades: list[Trade],
+        settlements: list[PortfolioSettlement] | None = None,
     ) -> PnLSummary:
         """Calculate complete P&L summary including trade statistics."""
         unrealized_positions_unknown = sum(
@@ -159,8 +179,34 @@ class PnLCalculator:
         unrealized = sum(
             pos.unrealized_pnl_cents for pos in positions if pos.unrealized_pnl_cents is not None
         )
-        closed_trades = self._get_closed_trade_pnls_fifo(trades)
-        realized = sum(closed_trades)
+        fifo_result = self._get_closed_trade_pnls_fifo(trades)
+
+        settlement_pnls: list[int] = []
+        if settlements:
+            for settlement in settlements:
+                try:
+                    fee_cents = int(
+                        (Decimal(settlement.fee_cost_dollars) * 100).to_integral_value(
+                            rounding=ROUND_HALF_UP
+                        )
+                    )
+                except (InvalidOperation, ValueError):
+                    fee_cents = 0
+
+                settlement_pnls.append(
+                    settlement.revenue
+                    - settlement.yes_total_cost
+                    - settlement.no_total_cost
+                    - fee_cents
+                )
+
+        closed_trades = fifo_result.closed_pnls + settlement_pnls
+
+        realized_from_positions = sum(pos.realized_pnl_cents for pos in positions)
+        realized_from_settlements = sum(settlement_pnls)
+        realized = (
+            realized_from_positions + realized_from_settlements if positions else sum(closed_trades)
+        )
         total = unrealized + realized
 
         winning = [t for t in closed_trades if t > 0]
@@ -179,6 +225,7 @@ class PnLCalculator:
             realized_pnl_cents=realized,
             total_pnl_cents=total,
             unrealized_positions_unknown=unrealized_positions_unknown,
+            orphan_sells_skipped=fifo_result.orphan_sells_skipped,
             total_trades=total_trades,
             winning_trades=winning_trades,
             losing_trades=losing_trades,
@@ -190,4 +237,4 @@ class PnLCalculator:
 
     def _get_closed_trades(self, trades: list[Trade]) -> list[int]:
         """Extract per-sell realized P&L values (FIFO)."""
-        return self._get_closed_trade_pnls_fifo(trades)
+        return self._get_closed_trade_pnls_fifo(trades).closed_pnls

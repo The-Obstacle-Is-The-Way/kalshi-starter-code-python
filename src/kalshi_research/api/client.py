@@ -28,6 +28,7 @@ from kalshi_research.api.models.portfolio import (
     OrderPage,
     PortfolioBalance,
     PortfolioPosition,
+    SettlementPage,
 )
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.api.rate_limiter import RateLimiter, RateTier
@@ -605,6 +606,41 @@ class KalshiClient(KalshiPublicClient):
 
         data = await self._auth_get("/portfolio/fills", params)
         return FillPage.model_validate(data)
+
+    async def get_settlements(
+        self,
+        ticker: str | None = None,
+        event_ticker: str | None = None,
+        min_ts: int | None = None,
+        max_ts: int | None = None,
+        limit: int = 100,
+        cursor: str | None = None,
+    ) -> SettlementPage:
+        """
+        Fetch settlement history from the portfolio.
+
+        Args:
+            ticker: Filter by market ticker
+            event_ticker: Filter by event ticker (comma-separated list supported by API)
+            min_ts: Filter settlements after this timestamp (Unix seconds)
+            max_ts: Filter settlements before this timestamp
+            limit: Number of results per page (max 200)
+            cursor: Pagination cursor
+        """
+        params: dict[str, Any] = {"limit": min(limit, 200)}
+        if ticker:
+            params["ticker"] = ticker
+        if event_ticker:
+            params["event_ticker"] = event_ticker
+        if min_ts is not None:
+            params["min_ts"] = min_ts
+        if max_ts is not None:
+            params["max_ts"] = max_ts
+        if cursor:
+            params["cursor"] = cursor
+
+        data = await self._auth_get("/portfolio/settlements", params)
+        return SettlementPage.model_validate(data)
 
     # ==================== Trading ====================
 

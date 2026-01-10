@@ -276,10 +276,38 @@ async def test_sync_trades_uses_no_price_for_no_side() -> None:
 
 
 @pytest.mark.asyncio
+async def test_sync_settlements_with_no_api_settlements_returns_zero() -> None:
+    from kalshi_research.api.models.portfolio import SettlementPage
+
+    client = AsyncMock()
+    client.get_settlements.return_value = SettlementPage(settlements=[], cursor=None)
+
+    empty_result = MagicMock()
+    empty_result.all.return_value = []
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=empty_result)
+    session.commit = AsyncMock()
+    _mock_session_begin(session)
+
+    session_cm = AsyncMock()
+    session_cm.__aenter__.return_value = session
+    session_cm.__aexit__.return_value = None
+
+    db = MagicMock()
+    db.session_factory.return_value = session_cm
+
+    syncer = PortfolioSyncer(client=client, db=db)
+
+    assert await syncer.sync_settlements() == 0
+    session.begin.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_portfolio_syncer_full_sync_returns_sync_result() -> None:
     syncer = PortfolioSyncer(client=MagicMock(), db=MagicMock())
     with (
         patch.object(syncer, "sync_trades", new=AsyncMock(return_value=3)),
+        patch.object(syncer, "sync_settlements", new=AsyncMock(return_value=4)),
         patch.object(syncer, "sync_positions", new=AsyncMock(return_value=2)),
     ):
         result = await syncer.full_sync()
@@ -287,6 +315,7 @@ async def test_portfolio_syncer_full_sync_returns_sync_result() -> None:
     assert isinstance(result, SyncResult)
     assert result.positions_synced == 2
     assert result.trades_synced == 3
+    assert result.settlements_synced == 4
     assert result.errors is None
 
 

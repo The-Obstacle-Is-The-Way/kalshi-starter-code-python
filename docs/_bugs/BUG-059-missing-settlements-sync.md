@@ -1,16 +1,16 @@
 # BUG-059: Missing Portfolio Settlements Sync
 
 **Priority:** P1 (High - incomplete data causes downstream bugs)
-**Status:** 🔴 Active
+**Status:** ✅ Fixed
 **Found:** 2026-01-10
-**Fixed:** (pending)
+**Fixed:** 2026-01-10
 **Owner:** Platform
 
 ---
 
 ## Summary
 
-The `PortfolioSyncer` fetches fills (`/portfolio/fills`) but NOT settlements (`/portfolio/settlements`). This causes incomplete trade history which breaks FIFO P&L calculations (BUG-058) and prevents accurate win/loss statistics.
+The `PortfolioSyncer` fetched fills (`/portfolio/fills`) but NOT settlements (`/portfolio/settlements`). This caused incomplete history and prevented “all time” P&L and win/loss stats from including resolved markets.
 
 ---
 
@@ -66,14 +66,14 @@ Key fields:
 
 ---
 
-## Fix Plan
+## Fix Plan (Implemented)
 
-### 1. Add Settlement Model
+### 1. Add Portfolio Settlement Model (DB)
 
 ```python
 # portfolio/models.py
-class Settlement(Base):
-    __tablename__ = "settlements"
+class PortfolioSettlement(Base):
+    __tablename__ = "portfolio_settlements"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ticker: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -84,9 +84,9 @@ class Settlement(Base):
     yes_total_cost: Mapped[int] = mapped_column(Integer, default=0)
     no_total_cost: Mapped[int] = mapped_column(Integer, default=0)
     revenue: Mapped[int] = mapped_column(Integer, default=0)
-    fee_cents: Mapped[int] = mapped_column(Integer, default=0)
-    settled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    fee_cost_dollars: Mapped[str] = mapped_column(String(32), nullable=False)
+    settled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 ```
 
 ### 2. Add Pydantic Models
@@ -150,25 +150,24 @@ async def sync_settlements(self, since: datetime | None = None) -> int:
     # Similar to sync_trades but for settlements
 ```
 
-### 5. Update FIFO to Include Settlements
+### 5. Use Settlements in P&L Summary
 
-Treat settlements as "sells" at the settlement price:
-- `market_result=yes` → sell YES at 100¢, sell NO at 0¢
-- `market_result=no` → sell YES at 0¢, sell NO at 100¢
-- `market_result=void` → refund at cost basis
+Rather than inventing synthetic fills, we compute settlement P&L directly from Kalshi’s settlement record:
+
+`settlement_pnl_cents = revenue - yes_total_cost - no_total_cost - fee_cost`
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] `Settlement` SQLAlchemy model added to `portfolio/models.py`
-- [ ] `Settlement` + `SettlementPage` Pydantic models added to `api/models/portfolio.py`
-- [ ] `get_settlements()` method added to `KalshiClient`
-- [ ] `sync_settlements()` method added to `PortfolioSyncer`
-- [ ] `kalshi portfolio sync` calls `sync_settlements()`
-- [ ] FIFO includes settlements as closing trades
-- [ ] Unit tests for settlement sync
-- [ ] `uv run pre-commit run --all-files` passes
+- [x] `PortfolioSettlement` SQLAlchemy model added (`portfolio_settlements` table)
+- [x] `Settlement` + `SettlementPage` Pydantic models added to `api/models/portfolio.py`
+- [x] `get_settlements()` method added to `KalshiClient`
+- [x] `sync_settlements()` method added to `PortfolioSyncer`
+- [x] `kalshi portfolio sync` calls `sync_settlements()`
+- [x] P&L summary includes settlement P&L (and counts as a closed outcome)
+- [x] Unit tests for settlement sync + settlement P&L
+- [x] `uv run pre-commit run --all-files` passes
 
 ---
 
@@ -178,6 +177,7 @@ Treat settlements as "sells" at the settlement price:
 # Unit tests
 uv run pytest tests/unit/portfolio/test_syncer.py -v -k settlement
 uv run pytest tests/unit/api/test_client.py -v -k settlement
+uv run pytest tests/unit/portfolio/test_pnl.py -v -k settlement
 
 # Integration (requires auth)
 uv run kalshi portfolio sync

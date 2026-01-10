@@ -6,12 +6,9 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-| **[BUG-058](BUG-058-fifo-incomplete-history-crash.md)** | FIFO P&L crashes on incomplete trade history | P1 | 🔴 Active |
-| **[BUG-059](BUG-059-missing-settlements-sync.md)** | Missing portfolio settlements sync | P1 | 🔴 Active |
-| **[BUG-060](BUG-060-duplicate-realized-pnl-computation.md)** | Duplicate realized P&L computation (ignores Kalshi's value) | P2 | 🔴 Active |
-| **[BUG-061](BUG-061-missing-fifo-orphan-sells-test.md)** | Test suite missing FIFO edge case coverage | P2 | 🔴 Active |
+| *(none)* | *(none)* | *(none)* | ✅ |
 
-### Bug Dependency Chain
+### Recently Closed Dependency Chain (Resolved)
 
 ```
 BUG-057 (FIFO fix)
@@ -21,7 +18,7 @@ BUG-057 (FIFO fix)
             └── allowed by: BUG-061 (missing tests)
 ```
 
-**Recommended fix order:** BUG-061 (tests) → BUG-060 (use Kalshi's value) → BUG-059 (settlements) → BUG-058 (graceful degradation)
+**Fix order used:** BUG-061 → BUG-060 → BUG-059 → BUG-058
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
@@ -33,6 +30,10 @@ Use this ID for the next bug report you create:
 
 | ID | Title | Status |
 |---|---|---|
+| **[BUG-061](BUG-061-missing-fifo-orphan-sells-test.md)** | Test suite missing FIFO edge case coverage | ✅ Fixed |
+| **[BUG-060](BUG-060-duplicate-realized-pnl-computation.md)** | Duplicate realized P&L computation (ignores Kalshi's value) | ✅ Fixed |
+| **[BUG-059](BUG-059-missing-settlements-sync.md)** | Missing portfolio settlements sync | ✅ Fixed |
+| **[BUG-058](BUG-058-fifo-incomplete-history-crash.md)** | FIFO P&L crashes on incomplete trade history | ✅ Fixed |
 | **[BUG-057](BUG-057-portfolio-pnl-integrity.md)** | Portfolio P&L integrity (FIFO realized P&L + unknown handling) | ✅ Fixed |
 | **[BUG-056](BUG-056-deep-audit.md)** | Deep Codebase Audit: Financial & Safety Risks (P0/P1) | ✅ Fixed |
 

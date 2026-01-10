@@ -1,9 +1,9 @@
 # BUG-060: Duplicate Realized P&L Computation (Ignores Kalshi's Value)
 
 **Priority:** P2 (Medium - inefficient and potentially inaccurate)
-**Status:** 🔴 Active
+**Status:** ✅ Fixed
 **Found:** 2026-01-10
-**Fixed:** (pending)
+**Fixed:** 2026-01-10
 **Owner:** Platform
 
 ---
@@ -70,9 +70,9 @@ realized = sum(closed_trades)
 
 ---
 
-## Fix Plan
+## Fix Plan (Implemented)
 
-### Option A: Use Kalshi's `realized_pnl` for Totals (Recommended)
+### Use Kalshi's `realized_pnl` + Settlement Records for Totals
 
 For total realized P&L, use the value from positions (already synced):
 
@@ -97,25 +97,18 @@ def calculate_summary_with_trades(
     ...
 ```
 
-### Option B: Full FIFO with Settlements
-
-If we want accurate per-trade stats:
-1. Implement BUG-059 (settlement sync)
-2. Update FIFO to include settlements as closing trades
-3. Keep computing our own realized P&L
-
-**Recommendation:** Option A for immediate fix, Option B for completeness.
+For resolved markets, include `/portfolio/settlements` P&L as well (BUG-059).
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] `calculate_summary_with_trades` uses `positions.realized_pnl_cents` for totals
-- [ ] Per-trade FIFO is attempted but gracefully degrades on incomplete history
-- [ ] Warning logged when per-trade stats unavailable
-- [ ] `PnLSummary` includes `per_trade_stats_available: bool` field
-- [ ] Unit tests updated
-- [ ] `uv run pre-commit run --all-files` passes
+- [x] `calculate_summary_with_trades` uses `positions.realized_pnl_cents` for totals
+- [x] Settlement P&L is added when `/portfolio/settlements` is synced
+- [x] Per-trade FIFO no longer crashes on incomplete history (BUG-058)
+- [x] `PnLSummary` includes `orphan_sells_skipped: int` for transparency
+- [x] Unit tests updated
+- [x] `uv run pre-commit run --all-files` passes
 
 ---
 

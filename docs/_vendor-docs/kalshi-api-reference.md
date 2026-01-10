@@ -203,7 +203,7 @@ Only these count against **write** limits:
 | `GET /portfolio/positions` | Holdings across markets |
 | `GET /portfolio/fills` | Trade history |
 | `GET /portfolio/settlements` | Settlement records (includes trade fees, event ticker) |
-| `GET /portfolio/total_resting_order_value` | Total value of resting orders |
+| `GET /portfolio/summary/total_resting_order_value` | Total value of resting orders |
 
 ### `GET /portfolio/positions` response keys
 
