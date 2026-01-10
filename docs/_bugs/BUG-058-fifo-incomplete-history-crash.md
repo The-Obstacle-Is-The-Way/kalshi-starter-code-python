@@ -149,7 +149,42 @@ When a market settles:
 2. This appears in `/portfolio/settlements`, NOT `/portfolio/fills`
 3. We never fetch it → FIFO sees orphan buys with no matching "close"
 
-**Action item:** Consider adding `/portfolio/settlements` sync to `PortfolioSyncer`.
+**Settlement response fields (from official docs):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ticker` | string | Market that settled |
+| `market_result` | enum | `yes`, `no`, `scalar`, or `void` |
+| `yes_count` | int | YES contracts held at settlement |
+| `no_count` | int | NO contracts held at settlement |
+| `yes_total_cost` | int | Cost basis of YES contracts (cents) |
+| `no_total_cost` | int | Cost basis of NO contracts (cents) |
+| `revenue` | int | Payout (100¢ per winning contract) |
+| `settled_time` | string | ISO timestamp |
+| `fee_cost` | string | Fees in dollars |
+
+### Critical Finding: Kalshi Provides `realized_pnl`!
+
+**We don't need to compute total realized P&L ourselves.**
+
+From `/portfolio/positions` response:
+- `realized_pnl` - Locked-in profit/loss in cents
+- `realized_pnl_dollars` - Same in dollars
+
+Kalshi computes this correctly including settlements. We should USE this value for totals, not compute our own.
+
+### Robust Fix Strategy
+
+| What | Source | Notes |
+|------|--------|-------|
+| **Total Realized P&L** | `positions.realized_pnl` | Use Kalshi's number! |
+| **Per-Trade P&L** | fills + settlements | For win/loss stats |
+| **Unrealized P&L** | positions + mark prices | Open position value |
+
+For per-trade FIFO (if needed for win/loss breakdown):
+1. Fills with `action=buy` → add to FIFO queue
+2. Fills with `action=sell` → consume from FIFO queue
+3. **Settlements → consume ALL remaining lots** at settlement price (100¢ if won, 0¢ if lost, void=refund)
 
 ### Safety Features from Create Order Spec
 

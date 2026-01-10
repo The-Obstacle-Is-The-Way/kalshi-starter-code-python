@@ -244,6 +244,8 @@ Kalshi returns both market-level and event-level aggregates:
 
 Implementation note: `KalshiClient.get_positions()` consumes `market_positions` (fallback: legacy `positions`).
 
+> **💡 Key insight:** The `realized_pnl` field is computed BY KALSHI and includes all closed trades + settlements. For total realized P&L, use this value instead of computing your own FIFO. Only compute per-trade FIFO if you need win/loss breakdowns.
+
 ### `GET /portfolio/fills` response fields
 
 **Query Parameters:**
@@ -588,7 +590,38 @@ Manage groups of orders that can be modified/canceled together:
 |----------|-------------|
 | `GET /portfolio/settlements` | Your settlement history (when markets resolve) |
 
-> **Note:** Settlements are different from fills. When a market settles, your position auto-closes and appears here, NOT in `/portfolio/fills`. Important for complete P&L tracking.
+**Query Parameters:**
+
+| Parameter | Type | Default | Max | Description |
+|-----------|------|---------|-----|-------------|
+| `limit` | int | 100 | 200 | Results per page |
+| `cursor` | string | - | - | Pagination cursor |
+| `ticker` | string | - | - | Filter by market |
+| `event_ticker` | string | - | - | Filter by event (comma-separated, max 10) |
+| `min_ts` | int64 | - | - | Unix timestamp filter (after) |
+| `max_ts` | int64 | - | - | Unix timestamp filter (before) |
+
+**Response fields (per settlement):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ticker` | string | Market that settled |
+| `event_ticker` | string | Parent event |
+| `market_result` | enum | `yes`, `no`, `scalar`, or `void` |
+| `yes_count` | int | YES contracts held at settlement |
+| `no_count` | int | NO contracts held at settlement |
+| `yes_total_cost` | int | Cost basis of YES contracts (cents) |
+| `no_total_cost` | int | Cost basis of NO contracts (cents) |
+| `revenue` | int | Payout received (100¢ per winning contract) |
+| `settled_time` | string | ISO timestamp when settled |
+| `fee_cost` | string | Fees in fixed-point dollars |
+| `value` | int/null | Payout per contract (for scalar markets) |
+
+> **⚠️ Critical for P&L:** Settlements are NOT fills. When a market settles:
+> - Your position auto-closes
+> - This appears in `/portfolio/settlements`, NOT `/portfolio/fills`
+> - For complete FIFO P&L, you need BOTH endpoints
+> - Settlements act as "sells" at the settlement price (100¢ if won, 0¢ if lost)
 
 ---
 

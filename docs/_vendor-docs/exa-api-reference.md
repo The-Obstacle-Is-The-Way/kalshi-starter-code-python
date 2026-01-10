@@ -2,9 +2,10 @@
 
 **Source:** [docs.exa.ai](https://docs.exa.ai)
 **OpenAPI Spec:** [exa-openapi-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-openapi-spec.yaml)
-**Python SDK:** `pip install exa_py` or `uv add exa_py`
-**Last Verified:** 2026-01-08
+**Python SDK:** `pip install exa-py` / `pip install exa_py` (module: `exa_py`)
+**Last Verified:** 2026-01-10
 **MCP Server:** `npx exa-mcp-server` or hosted at `https://mcp.exa.ai/mcp`
+**Verified Against:** OpenAPI spec v1.2.0, `exa-py` v2.0.2, `exa-mcp-server` v3.1.3
 
 ---
 
@@ -15,7 +16,7 @@ Exa is "a search engine made for AIs" - optimized for RAG, agentic workflows, an
 **Core Capabilities:**
 
 - **Search**: Neural/embeddings-based web search with 4 modes (auto, neural, fast, deep)
-- **Contents**: Clean, parsed Markdown/text from URLs with live crawling
+- **Contents**: Clean, parsed text from URLs with live crawling
 - **Find Similar**: Discover semantically related pages
 - **Answer**: LLM-generated answers with citations
 - **Research**: Async deep research with structured output (agentic)
@@ -64,8 +65,8 @@ Intelligently find webpages using embeddings-based search.
 | `type` | enum | `"auto"` | `auto`, `neural`, `fast`, `deep` |
 | `additionalQueries` | string[] | - | Extra query variations (**deep search only**) |
 | `numResults` | integer | 10 | Max 100 results |
-| `includeDomains` | string[] | - | Filter to specific domains (max 1200) |
-| `excludeDomains` | string[] | - | Exclude domains (max 1200) |
+| `includeDomains` | string[] | - | Filter to specific domains |
+| `excludeDomains` | string[] | - | Exclude domains |
 | `startPublishedDate` | ISO 8601 | - | Filter by publish date |
 | `endPublishedDate` | ISO 8601 | - | Filter by publish date |
 | `startCrawlDate` | ISO 8601 | - | Filter by crawl date |
@@ -74,7 +75,8 @@ Intelligently find webpages using embeddings-based search.
 | `excludeText` | string[] | - | Must not contain (1 string, 5 words max; checks first 1,000 words) |
 | `category` | enum | - | See category table below |
 | `userLocation` | string | - | Two-letter ISO country code |
-| `moderation` | boolean | false | Filter unsafe content |
+| `moderation` | boolean | false | Moderate results for safety (SDK) |
+| `flags` | string[] | - | Experimental flags (SDK) |
 | `context` | boolean/object | - | Return combined context string for RAG |
 | `contents` | object | - | Control text/highlights/summary retrieval |
 
@@ -89,10 +91,10 @@ Intelligently find webpages using embeddings-based search.
 | `tweet` | Twitter/X posts |
 | `personal site` | Personal websites/blogs |
 | `financial report` | Financial documents |
-| `company` | Company profiles (restricted filters) |
-| `people` | People profiles (restricted filters) |
+| `company` | Company profiles |
+| `people` | People profiles |
 
-> **Warning:** `company` and `people` categories have limited filter support. The following parameters are **NOT supported** and will return 400 errors: `startPublishedDate`, `endPublishedDate`, `startCrawlDate`, `endCrawlDate`, `includeText`, `excludeText`, `excludeDomains`. For `people`, `includeDomains` only accepts LinkedIn domains.
+> **Notes:** The official `exa-py` SDK exposes `moderation` and `flags`, but they are not currently documented in `exa-openapi-spec.yaml` v1.2.0. Prefer treating them as optional/experimental until confirmed in vendor docs.
 
 ### Response
 
@@ -149,6 +151,8 @@ Intelligently find webpages using embeddings-based search.
 
 > **Note:** `searchType` indicates which search method was used. For `type="auto"`, this shows the actual method selected (e.g., "neural" or "deep").
 
+> **Contents note:** You may see `text: true` used at the top level in examples; the official SDKs send content options under `contents` (e.g. `contents: {"text": true}`), which supports advanced options like `highlights`, `summary`, `subpages`, and `extras`.
+
 ### Code Examples
 
 **cURL:**
@@ -164,7 +168,7 @@ curl -X POST 'https://api.exa.ai/search' \
 from exa_py import Exa
 
 exa = Exa('YOUR_EXA_API_KEY')
-results = exa.search_and_contents("Latest research in LLMs", text=True)
+results = exa.search("Latest research in LLMs", num_results=10, contents={"text": True})
 
 for result in results.results:
     print(f"{result.title}: {result.url}")
@@ -184,7 +188,7 @@ const results = await exa.searchAndContents('Latest research in LLMs', { text: t
 
 **POST** `/contents`
 
-Obtain clean, parsed content from URLs with automatic live crawling fallback. Returns Markdown by default.
+Obtain clean, parsed content from URLs with automatic live crawling fallback.
 
 ### Livecrawl Options
 
@@ -194,6 +198,7 @@ Obtain clean, parsed content from URLs with automatic live crawling fallback. Re
 | `fallback` | Livecrawl only when cache is empty |
 | `preferred` | **Recommended.** Try livecrawl first, fall back to cache if crawling fails |
 | `always` | Always live-crawl (not recommended without consulting Exa) |
+| `auto` | Let Exa choose behavior (SDK) |
 
 ### Request Body
 
@@ -204,11 +209,14 @@ Obtain clean, parsed content from URLs with automatic live crawling fallback. Re
 | `text` | boolean/object | Full page text. Object: `{maxCharacters, includeHtmlTags}` |
 | `highlights` | object | Extract snippets: `{query, numSentences, highlightsPerUrl}` |
 | `summary` | object | LLM summaries: `{query, schema}` for structured output |
-| `livecrawl` | enum | `never`, `fallback`, `preferred`, `always` |
+| `metadata` | boolean/object | Request metadata (SDK) |
+| `livecrawl` | enum | `never`, `fallback`, `preferred`, `always`, `auto` |
 | `livecrawlTimeout` | integer | Milliseconds (default 10000) |
+| `filterEmptyResults` | boolean | Drop empty results (SDK) |
 | `subpages` | integer | Number of subpages to crawl |
 | `subpageTarget` | string/string[] | Keywords for subpage filtering |
 | `extras` | object | Additional data: `{links: N, imageLinks: N}` |
+| `flags` | string[] | Experimental flags (SDK) |
 | `context` | boolean/object | Return combined context string for RAG |
 
 ### Response
@@ -283,16 +291,18 @@ Find semantically related pages to a given URL. Supports the same filtering opti
 |-----------|------|-------------|
 | `url` | string | Required. Source URL to find similar pages for |
 | `numResults` | integer | Max 100, default 10 |
-| `includeDomains` | string[] | Limit to domains (max 1200) |
-| `excludeDomains` | string[] | Exclude domains (max 1200) |
+| `includeDomains` | string[] | Limit to domains |
+| `excludeDomains` | string[] | Exclude domains |
 | `startPublishedDate` | ISO 8601 | Filter by publish date |
 | `endPublishedDate` | ISO 8601 | Filter by publish date |
 | `startCrawlDate` | ISO 8601 | Filter by crawl date |
 | `endCrawlDate` | ISO 8601 | Filter by crawl date |
 | `includeText` | string[] | Must contain (1 string, 5 words max) |
 | `excludeText` | string[] | Must not contain (1 string, 5 words max; checks first 1,000 words) |
+| `excludeSourceDomain` | boolean | Exclude results from the source URL's domain (SDK) |
+| `category` | enum | A data category to focus on (SDK) |
+| `flags` | string[] | Experimental flags (SDK) |
 | `context` | boolean/object | Return combined context string for RAG |
-| `moderation` | boolean | Enable content moderation |
 | `contents` | object | Configure text/highlights/summary retrieval |
 
 ### Response
@@ -330,9 +340,10 @@ Find semantically related pages to a given URL. Supports the same filtering opti
 from exa_py import Exa
 
 exa = Exa('YOUR_EXA_API_KEY')
-results = exa.find_similar_and_contents(
-    url="https://arxiv.org/abs/2307.06435",
-    text=True
+results = exa.find_similar(
+    "https://arxiv.org/abs/2307.06435",
+    num_results=10,
+    contents={"text": True},
 )
 ```
 
@@ -407,21 +418,30 @@ for citation in result.citations:
 
 ---
 
-## Research Endpoint
+## Research Endpoints
 
-**POST** `/research/v1`
+- **GET** `/research/v1` (list)
+- **POST** `/research/v1` (create)
+- **GET** `/research/v1/{researchId}` (get / stream)
 
 Async deep research with structured output support.
 
-### Request Body
+### Create Request Body
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `instructions` | string | Required. Research guidelines (max 4096 chars) |
-| `model` | enum | `exa-research`, `exa-research-pro` (default: `exa-research`) |
+| `model` | enum | `exa-research-fast`, `exa-research`, `exa-research-pro` (SDK default: `exa-research-fast`; OpenAPI spec v1.2.0 documents `exa-research`/`exa-research-pro`) |
 | `outputSchema` | object | JSON Schema for structured output |
 
-### Response (201 Created)
+### Get Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `stream` | boolean | false | Stream Server-Sent Events (SSE) |
+| `events` | boolean | false | Include `events` in non-streaming responses |
+
+### Response (create: 201)
 
 ```json
 {
@@ -440,7 +460,7 @@ When completed:
   "status": "completed",
   "output": {
     "content": "string - research results",
-    "parsed": {} // if outputSchema provided
+    "parsed": {}
   },
   "costDollars": {
     "total": 0.10,
@@ -450,6 +470,8 @@ When completed:
   }
 }
 ```
+
+> **Note:** When you provide `outputSchema`, the response may include a structured `output.parsed` in addition to `output.content`.
 
 ### Code Examples
 
@@ -476,9 +498,9 @@ result = exa.research.poll_until_finished(research.research_id)
 ### Installation
 
 ```bash
-pip install exa_py
+pip install exa-py
 # or
-uv add exa_py
+uv add exa-py
 ```
 
 ### Quick Start
@@ -489,13 +511,8 @@ from exa_py import Exa
 # Initialize client
 exa = Exa('YOUR_EXA_API_KEY')
 
-# Search with contents
-results = exa.search_and_contents(
-    query="prediction markets research",
-    num_results=10,
-    text=True,
-    highlights=True
-)
+# Search (returns text contents by default)
+results = exa.search("prediction markets research", num_results=10)
 
 # Access results
 for r in results.results:
@@ -509,11 +526,11 @@ for r in results.results:
 
 | Method | Description |
 |--------|-------------|
-| `search(query, **kwargs)` | Search without contents |
-| `search_and_contents(query, **kwargs)` | Search with text/highlights/summary |
+| `search(query, **kwargs)` | Search (returns text contents by default; use `contents=False` to disable) |
+| `search_and_contents(query, **kwargs)` | Deprecated; prefer `search(query, contents=...)` |
 | `get_contents(urls, **kwargs)` | Get contents from URLs |
 | `find_similar(url, **kwargs)` | Find similar pages |
-| `find_similar_and_contents(url, **kwargs)` | Find similar with contents |
+| `find_similar_and_contents(url, **kwargs)` | Deprecated; prefer `find_similar(url, contents=...)` |
 | `answer(query, **kwargs)` | Get LLM answer with citations |
 | `stream_answer(query, **kwargs)` | Streaming answer (yields chunks) |
 | `research.create(instructions=..., **kwargs)` | Start async research |
@@ -618,6 +635,7 @@ By default, only `web_search_exa` and `get_code_context_exa` are enabled. Enable
 | Tool | Description |
 |------|-------------|
 | `web_search_exa` | Real-time web search with content extraction |
+| `deep_search_exa` | Higher-quality web search (slower / more expensive) |
 | `get_code_context_exa` | Code snippets/docs from GitHub, StackOverflow |
 | `crawling_exa` | Extract content from specific URLs |
 | `company_research_exa` | Comprehensive company/business research |
@@ -627,7 +645,7 @@ By default, only `web_search_exa` and `get_code_context_exa` are enabled. Enable
 
 **Enable all tools:**
 ```json
-"args": ["-y", "exa-mcp-server", "tools=web_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"]
+"args": ["-y", "exa-mcp-server", "tools=web_search_exa,deep_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"]
 ```
 
 **Selective tools via hosted URL:**
@@ -679,10 +697,10 @@ tools = [
 # In your tool execution loop
 def execute_tool(tool_name, tool_input):
     if tool_name == "web_search":
-        results = exa.search_and_contents(
+        results = exa.search(
             tool_input["query"],
             num_results=5,
-            text=True
+            contents={"text": True},
         )
         return "\n\n".join([
             f"**{r.title}**\n{r.url}\n{r.text[:500]}"
@@ -700,13 +718,13 @@ When checking if a market resolved, use `category="news"` and date filters:
 
 ```python
 # Find resolution sources for a market expiring this week
-results = exa.search_and_contents(
+results = exa.search(
     "Federal Reserve interest rate decision January 2026",
     type="deep",  # Quality matters for resolution
     category="news",
     start_published_date="2026-01-06T00:00:00Z",
     include_domains=["federalreserve.gov", "reuters.com", "bloomberg.com"],
-    text=True
+    contents={"text": True},
 )
 ```
 
@@ -748,14 +766,16 @@ For sentiment analysis and news tracking:
 
 ```python
 # Find recent news about tracked markets
-results = exa.search_and_contents(
+results = exa.search(
     "Bitcoin ETF SEC approval 2026",
     type="auto",
     category="news",
     start_published_date="2026-01-01T00:00:00Z",
     num_results=20,
-    text=True,
-    highlights={"num_sentences": 3, "highlights_per_url": 2}
+    contents={
+        "text": True,
+        "highlights": {"num_sentences": 3, "highlights_per_url": 2},
+    },
 )
 ```
 
@@ -765,11 +785,13 @@ When a Kalshi market specifies a "Resolution Source", use `include_domains`:
 
 ```python
 # Market resolves based on BLS data
-results = exa.search_and_contents(
+results = exa.search(
     "unemployment rate January 2026",
     include_domains=["bls.gov"],
-    livecrawl="preferred",  # Get fresh data
-    text=True
+    contents={
+        "text": True,
+        "livecrawl": "preferred",  # Get fresh data
+    },
 )
 ```
 
