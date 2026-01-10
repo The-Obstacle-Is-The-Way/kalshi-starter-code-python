@@ -4,11 +4,13 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-_No active bugs._
+| ID | Title | Status |
+|---|---|---|
+| **[BUG-056](BUG-056-deep-audit.md)** | Deep Codebase Audit: Financial & Safety Risks (P0/P1) | 🔴 Open |
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-056**
+**BUG-057**
 
 ---
 
