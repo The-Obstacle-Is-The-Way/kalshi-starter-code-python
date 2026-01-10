@@ -1,10 +1,12 @@
 # BUG-057: Portfolio P&L Integrity (FIFO Realized P&L + Unknown Handling)
 
 **Priority:** P1 (High - financial reporting correctness)
-**Status:** ✅ Fixed
+**Status:** ⚠️ Partially Fixed (Regression: BUG-058)
 **Found:** 2026-01-10
-**Fixed:** 2026-01-10
+**Fixed:** 2026-01-10 (partial - see note below)
 **Owner:** Platform
+
+> **⚠️ REGRESSION NOTE:** The FIFO fix introduced BUG-058 - the algorithm crashes on incomplete trade history (orphan sells). See BUG-058, BUG-059, BUG-060, BUG-061 for the full fix chain.
 
 ---
 
