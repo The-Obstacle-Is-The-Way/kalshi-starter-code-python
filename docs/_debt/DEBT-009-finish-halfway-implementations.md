@@ -43,6 +43,46 @@ Several valuable features were implemented in the core logic but never wired int
 - **Action:**
     - Update `verify_market_open` to optionally check `client.get_exchange_status()` to respect exchange-wide halts.
 
+### 5. Candlestick History
+- **File:** `src/kalshi_research/api/client.py`
+- **Items:** `get_candlesticks()`, `get_series_candlesticks()`
+- **Current State:** Client methods wrap `GET /markets/{ticker}/candlesticks` and `GET /markets/candlesticks`, but no CLI exposes them.
+- **Action:**
+    - Create `kalshi market history <ticker> [--interval 1h|1d]` command for single market.
+    - Consider `kalshi data export-candlesticks` for batch export.
+
+### 6. Exchange Status Check
+- **File:** `src/kalshi_research/api/client.py`
+- **Item:** `get_exchange_status()`
+- **Current State:** Client method wraps `GET /exchange/status`, but not integrated into trading safety checks.
+- **Action:**
+    - Wire into `MarketStatusVerifier` (TODO-007) when implemented.
+    - Consider `kalshi status` command for operational visibility.
+
+### 7. Exa Deep Research
+- **File:** `src/kalshi_research/exa/client.py`
+- **Items:** `create_research_task()`, `wait_for_research()`
+- **Current State:** Client methods wrap Exa's async research API, but no CLI exposes them.
+- **Action:**
+    - Create `kalshi research deep <topic> [--wait]` command.
+    - Consider cost implications (Exa API usage).
+
+### 8. WebSocket Real-time Data
+- **File:** `src/kalshi_research/api/websocket/client.py`
+- **Items:** `subscribe_orderbook()`, `subscribe_ticker()`, `subscribe_trade()`
+- **Current State:** Full WebSocket client exists but isn't exposed via CLI or used by any feature.
+- **Action:**
+    - Decision needed: Wire into `kalshi stream <ticker>` command OR extract to optional package.
+    - If not wiring in, add `# RESERVED: future real-time features` comment.
+
+### 9. Liquidity Safety Sizing
+- **File:** `src/kalshi_research/analysis/liquidity.py`
+- **Item:** `max_safe_buy_size()`
+- **Current State:** Calculates safe order size based on orderbook depth, but not exposed.
+- **Action:**
+    - Wire into `kalshi market orderbook --show-safe-size` option.
+    - Useful for position sizing guidance.
+
 ## Success Criteria
 
 - All "Halfway" items are either reachable via CLI/Config OR explicitly marked as `# RESERVED` / `# TODO` if they are to be deferred further.

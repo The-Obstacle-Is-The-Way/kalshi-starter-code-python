@@ -24,7 +24,7 @@
 
 **Priority:** P3
 **Status:** 🔴 Active
-**Summary:** Wire in functional but unreachable features (Notifiers, Exa Similar, Trade Sync).
+**Summary:** Wire in 9 functional but unreachable features: Alert Notifiers (FileNotifier, WebhookNotifier), Trade Sync, Exa Similar/Deep Research, Candlestick History, Exchange Status, WebSocket Streaming, Liquidity Safety Sizing.
 **Plan:** `docs/_debt/DEBT-009-finish-halfway-implementations.md`
 
 ### DEBT-010: Reduce Boilerplate & Structural Bloat

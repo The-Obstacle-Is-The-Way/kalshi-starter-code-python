@@ -51,12 +51,9 @@ src/kalshi_research/analysis/edge.py:210: unused method 'detect_volatility_edge'
 ```
 **Action:** Delete entire `EdgeDetector` class. Keep only `Edge` dataclass if used by notebooks.
 
-#### `alerts/notifiers.py` - Unused Notifiers (67 lines)
-```
-src/kalshi_research/alerts/notifiers.py:46: unused class 'FileNotifier'
-src/kalshi_research/alerts/notifiers.py:71: unused class 'WebhookNotifier'
-```
-**REVISED:** These are HALFWAY IMPLEMENTATIONS, not slop. They're legitimate features that should be wired in with `--output file` and `--webhook url` CLI options.
+#### ~~`alerts/notifiers.py` - Unused Notifiers~~ → MOVED TO TIER 3
+
+**REVISED:** FileNotifier and WebhookNotifier are **HALFWAY IMPLEMENTATIONS**, not slop. See "Exa Client Methods" section in TIER 3. These are legitimate features that should be wired in with `--output file` and `--webhook url` CLI options.
 
 #### `research/thesis.py` - TemporalValidator (40+ lines)
 ```
@@ -100,6 +97,13 @@ src/kalshi_research/research/notebook_utils.py - All functions unused in CLI
 **Decision:** KEEP - Used by Jupyter notebooks in `notebooks/` directory.
 
 ### TIER 3: Gray Area (Evaluate Case-by-Case)
+
+#### Alert Notifiers (Halfway - Wire In)
+```
+src/kalshi_research/alerts/notifiers.py:46: unused class 'FileNotifier'
+src/kalshi_research/alerts/notifiers.py:71: unused class 'WebhookNotifier'
+```
+**Decision:** These are legitimate features - wire in with `--output-file` and `--webhook-url` options on `kalshi alerts watch`.
 
 #### Exa Client Methods
 ```
@@ -297,14 +301,15 @@ Repository pattern adds abstraction but many methods are unused:
 
 ## Recommended Cleanup Actions
 
-### Phase 1: Quick Wins (Est. 500 LOC reduction)
+### Phase 1: Quick Wins (Est. 400 LOC reduction)
 
 1. [ ] Delete `EdgeDetector` class (keep `Edge` dataclass)
-2. [ ] Delete `FileNotifier`, `WebhookNotifier` classes
-3. [ ] Delete `TemporalValidator` class
-4. [ ] Delete unused analysis methods (`compute_spread_stats`, etc.)
-5. [ ] Delete unused repository methods
-6. [ ] Remove 3 unused imports
+2. [ ] Delete `TemporalValidator` class
+3. [ ] Delete unused analysis methods (`compute_spread_stats`, etc.)
+4. [ ] Delete unused repository methods
+5. [ ] Remove 3 unused imports
+
+**Note:** `FileNotifier` and `WebhookNotifier` are NOT to be deleted - they're HALFWAY implementations to wire in (see DEBT-009).
 
 ### Phase 2: Refactoring (Est. 300 LOC reduction)
 
@@ -425,10 +430,22 @@ vulture src/ --make-whitelist > vulture_whitelist.py
 
 | Category | Count | Action |
 |----------|-------|--------|
-| **TRUE SLOP** | ~15 items | DELETE immediately |
-| **HALFWAY IMPL** | ~12 items | Wire in or delete (decision needed) |
+| **TRUE SLOP** | ~12 items | DELETE immediately (see DEBT-008) |
+| **HALFWAY IMPL** | ~14 items | Wire in via CLI (see DEBT-009) |
 | **RESERVED** | ~5 items | Keep with `# RESERVED:` comment |
 | **FALSE POSITIVE** | ~30+ items | Add to whitelist |
-| **YAGNI CRUFT** | ~7 items | DELETE (speculative building) |
+| **YAGNI CRUFT** | ~7 items | DELETE (see DEBT-008) |
 
 **Bottom line:** ~10-15% of code is dead. After cleanup, this codebase would be solid B+/A- engineering.
+
+---
+
+## Cross-References
+
+| Debt Item | Derived From This Audit |
+|-----------|------------------------|
+| [DEBT-008](DEBT-008-dead-code-cleanup.md) | TRUE SLOP + YAGNI items |
+| [DEBT-009](DEBT-009-finish-halfway-implementations.md) | HALFWAY items |
+| [DEBT-010](DEBT-010-reduce-boilerplate.md) | Structural bloat (boilerplate) |
+
+**Note:** DEBT-007 is a separate operational hardening document, not derived from this bloat audit.
