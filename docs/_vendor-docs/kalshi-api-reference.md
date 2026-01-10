@@ -193,6 +193,35 @@ Only these count against **write** limits:
 | `GET /portfolio/fills` | Trade history |
 | `GET /portfolio/settlements` | Settlement records (includes trade fees, event ticker) |
 
+### `GET /portfolio/positions` response keys
+
+Kalshi returns both market-level and event-level aggregates:
+
+```json
+{
+  "cursor": null,
+  "market_positions": [
+    {
+      "ticker": "KX...",
+      "position": 34,
+      "market_exposure": 952,
+      "realized_pnl": 0,
+      "fees_paid": 48
+    }
+  ],
+  "event_positions": [
+    {
+      "event_ticker": "KX...",
+      "event_exposure": 952,
+      "realized_pnl": 0,
+      "fees_paid": 48
+    }
+  ]
+}
+```
+
+Implementation note: `KalshiClient.get_positions()` consumes `market_positions` (fallback: legacy `positions`).
+
 ---
 
 ## Orderbook Endpoint

@@ -18,7 +18,7 @@ class PortfolioBalance(BaseModel):
 
 
 class PortfolioPosition(BaseModel):
-    """Single position from GET /portfolio/positions."""
+    """Single market position from GET /portfolio/positions (`market_positions`)."""
 
     model_config = ConfigDict(frozen=True)
 

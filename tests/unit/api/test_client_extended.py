@@ -42,6 +42,24 @@ class TestKalshiClientAuthenticated:
     async def test_get_positions(self, mock_auth):
         """Test getting positions."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/positions").mock(
+            return_value=Response(
+                200,
+                json={"market_positions": [{"ticker": "TEST", "position": 10}]},
+            )
+        )
+
+        async with KalshiClient(key_id="test", private_key_path="test.pem") as client:
+            positions = await client.get_positions()
+
+        assert len(positions) == 1
+        assert positions[0].ticker == "TEST"
+        assert positions[0].position == 10
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_positions_supports_legacy_positions_key(self, mock_auth):
+        """Older docs/examples use `positions`; keep compatibility."""
+        respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/positions").mock(
             return_value=Response(200, json={"positions": [{"ticker": "TEST", "position": 10}]})
         )
 

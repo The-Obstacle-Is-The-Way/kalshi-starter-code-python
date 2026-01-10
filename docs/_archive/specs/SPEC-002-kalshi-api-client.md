@@ -777,9 +777,11 @@ class KalshiClient(KalshiPublicClient):
         return await self._auth_get("/portfolio/balance")
 
     async def get_positions(self) -> list[dict[str, Any]]:
-        """Get current positions."""
+        """Get current market positions."""
         data = await self._auth_get("/portfolio/positions")
-        return data.get("positions", [])
+        # API returns `market_positions` (and `event_positions`). Keep `positions` as a fallback for
+        # older docs/examples.
+        return data.get("market_positions") or data.get("positions", [])
 
     async def get_orders(
         self,

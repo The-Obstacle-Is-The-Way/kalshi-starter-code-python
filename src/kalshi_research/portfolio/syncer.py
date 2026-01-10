@@ -108,11 +108,10 @@ class PortfolioSyncer:
 
         if not api_positions:
             logger.warning(
-                "API returned empty positions list. "
-                "Note: Kalshi's /portfolio/positions endpoint may not include settled positions or "
-                "positions in markets that have closed recently. "
-                "The portfolio_value in /portfolio/balance may include pending settlements or "
-                "be temporarily out of sync. This is a known Kalshi API behavior."
+                "API returned empty market positions list. "
+                "If you expect open positions, confirm you're using the correct environment "
+                "(demo vs prod). Note: /portfolio/positions returns market-level positions; "
+                "/portfolio/balance may reflect pending settlement value."
             )
 
         synced_count = 0

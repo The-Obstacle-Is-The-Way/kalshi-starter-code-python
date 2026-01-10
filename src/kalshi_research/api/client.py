@@ -548,10 +548,14 @@ class KalshiClient(KalshiPublicClient):
         return PortfolioBalance.model_validate(data)
 
     async def get_positions(self) -> list[PortfolioPosition]:
-        """Get current positions."""
+        """Get current market positions."""
         data = await self._auth_get("/portfolio/positions")
-        positions_raw: list[dict[str, Any]] = data.get("positions", [])
-        return [PortfolioPosition.model_validate(pos) for pos in positions_raw]
+        # NOTE: Kalshi returns `market_positions` (and `event_positions`). Older docs/examples may
+        # reference `positions`, so keep a fallback for compatibility.
+        raw = data.get("market_positions") or data.get("positions") or []
+        if not isinstance(raw, list):
+            return []
+        return [PortfolioPosition.model_validate(pos) for pos in raw]
 
     async def get_orders(
         self,

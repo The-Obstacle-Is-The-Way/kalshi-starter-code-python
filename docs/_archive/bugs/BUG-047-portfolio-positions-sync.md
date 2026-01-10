@@ -1,58 +1,66 @@
 # BUG-047: Portfolio Positions Sync Discrepancy
 
 **Priority**: Medium
-**Status**: Resolved (Known API Behavior)
+**Status**: Fixed
 **Created**: 2026-01-09
-**Resolved**: 2026-01-09
+**Resolved**: 2026-01-10
 
 ## Symptom
 
-`uv run kalshi portfolio sync` reports "Synced 0 positions" and `portfolio positions` shows "No open positions found", but `portfolio balance` shows a non-zero `portfolio_value` ($87.37).
+`uv run kalshi portfolio sync` reports "Synced 0 positions" and `kalshi portfolio positions` shows "No open positions found", despite the account having active market positions.
 
 ## Context
 
-- 9 trades were successfully synced to the database
-- All markets appear to still be active (checked KXNCAAFSPREAD-26JAN09OREIND-IND3, status=active)
-- Balance API returns: balance=10666, portfolio_value=8737
+- `GET /portfolio/positions` returns both market-level and event-level positions.
+- Our client code expected the response key `positions`, so it silently parsed an empty list.
 
 ## Root Cause
 
-This is **known Kalshi API behavior**, not a bug in our code. The discrepancy occurs because:
+Kalshi returns positions under `market_positions` (and `event_positions`), not `positions`.
 
-1. **`/portfolio/positions` endpoint**: Returns only **currently open positions** in active markets. It does **not** include:
-   - Positions in recently closed/settled markets
-   - Positions pending settlement
-   - Positions that have been automatically closed
+Observed live response keys:
 
-2. **`/portfolio/balance` endpoint**: The `portfolio_value` field may include:
-   - Pending settlements
-   - Recently closed positions not yet reflected in the balance
-   - Temporary inconsistencies during Kalshi's settlement process
+```json
+{
+  "cursor": null,
+  "market_positions": [...],
+  "event_positions": [...]
+}
+```
 
-This is a timing issue on Kalshi's side where different endpoints update at different rates during market settlements.
+Our implementation in `KalshiClient.get_positions()` incorrectly did:
+
+```python
+positions_raw = data.get("positions", [])
+```
+
+So `PortfolioSyncer.sync_positions()` always saw `api_positions == []`.
 
 ## Resolution
 
-Added enhanced logging to `portfolio/syncer.py:sync_positions()`:
-- Debug logging shows the raw API response count and content
-- Warning message when positions list is empty, explaining this is known Kalshi API behavior
-- Users are informed that the discrepancy is expected and will resolve as settlements complete
+Parse the correct key (`market_positions`) with a backwards-compatible fallback to `positions` for older docs/examples.
 
 ## Changes Made
 
-- `src/kalshi_research/portfolio/syncer.py:107`: Added debug logging for API response
-- `src/kalshi_research/portfolio/syncer.py:110-116`: Added warning with explanation of Kalshi API behavior
+- `src/kalshi_research/api/client.py:552`: `get_positions()` now reads `market_positions` (fallback: `positions`)
+- `tests/unit/api/test_client_extended.py:44`: Updated tests to match live API (`market_positions`) and kept a legacy compatibility test
 
 ## Related Files
 
 - `src/kalshi_research/portfolio/syncer.py`
 - `src/kalshi_research/api/client.py`
+- `src/kalshi_research/api/models/portfolio.py`
 
 ## User Action Required
 
-No action needed. The portfolio_value discrepancy will resolve automatically as Kalshi completes settlements. If it persists for >24 hours, contact Kalshi support.
+Re-run:
+
+```bash
+uv run kalshi portfolio sync
+uv run kalshi portfolio positions
+```
 
 ## Acceptance Criteria
-- [x] Debug logging added to show raw API response
-- [x] Warning message explains known Kalshi API behavior
-- [x] Documentation added to inform users this is expected
+- [x] `KalshiClient.get_positions()` parses `market_positions`
+- [x] `uv run kalshi portfolio sync` creates/updates DB positions correctly
+- [x] `uv run kalshi portfolio positions` shows open positions after sync

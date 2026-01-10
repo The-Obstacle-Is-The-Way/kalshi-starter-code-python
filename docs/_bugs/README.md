@@ -27,7 +27,7 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 | **BUG-050** | Silent exception swallowing in alerts sentiment computation | ✅ Fixed |
 | **BUG-049** | Asymmetrical rate limiting (reads unprotected) | ✅ Fixed |
 | **BUG-048** | Negative liquidity validation error crashes market scan | ✅ Fixed |
-| **BUG-047** | Portfolio sync shows 0 positions (Kalshi API behavior) | ✅ Documented |
+| **BUG-047** | Portfolio sync shows 0 positions (response key mismatch) | ✅ Fixed |
 
 ### Previously Resolved
 
