@@ -9,11 +9,12 @@ from kalshi_research.cli import app
 runner = CliRunner()
 
 
-@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.cli.db.DatabaseManager")
 def test_data_init(mock_db_cls: MagicMock) -> None:
-    mock_db = MagicMock()
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = False
     mock_db.create_tables = AsyncMock()
-    mock_db.close = AsyncMock()
     mock_db_cls.return_value = mock_db
 
     result = runner.invoke(app, ["data", "init"])
@@ -24,11 +25,12 @@ def test_data_init(mock_db_cls: MagicMock) -> None:
 
 
 @patch("kalshi_research.data.DataFetcher")
-@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.cli.db.DatabaseManager")
 def test_data_sync_markets(mock_db_cls: MagicMock, mock_fetcher_cls: MagicMock) -> None:
     mock_db = AsyncMock()
     mock_db.__aenter__.return_value = mock_db
     mock_db.__aexit__.return_value = None
+    mock_db.create_tables = AsyncMock()
     mock_db_cls.return_value = mock_db
 
     mock_fetcher = AsyncMock()
@@ -46,11 +48,12 @@ def test_data_sync_markets(mock_db_cls: MagicMock, mock_fetcher_cls: MagicMock) 
 
 
 @patch("kalshi_research.data.DataFetcher")
-@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.cli.db.DatabaseManager")
 def test_data_sync_settlements(mock_db_cls: MagicMock, mock_fetcher_cls: MagicMock) -> None:
     mock_db = AsyncMock()
     mock_db.__aenter__.return_value = mock_db
     mock_db.__aexit__.return_value = None
+    mock_db.create_tables = AsyncMock()
     mock_db_cls.return_value = mock_db
 
     mock_fetcher = AsyncMock()
@@ -67,11 +70,12 @@ def test_data_sync_settlements(mock_db_cls: MagicMock, mock_fetcher_cls: MagicMo
 
 
 @patch("kalshi_research.data.DataFetcher")
-@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.cli.db.DatabaseManager")
 def test_data_snapshot(mock_db_cls: MagicMock, mock_fetcher_cls: MagicMock) -> None:
     mock_db = AsyncMock()
     mock_db.__aenter__.return_value = mock_db
     mock_db.__aexit__.return_value = None
+    mock_db.create_tables = AsyncMock()
     mock_db_cls.return_value = mock_db
 
     mock_fetcher = AsyncMock()

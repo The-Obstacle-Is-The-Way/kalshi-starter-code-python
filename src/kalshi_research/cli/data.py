@@ -20,15 +20,11 @@ def data_init(
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """Initialize the database with required tables."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
 
     async def _init() -> None:
-        db = DatabaseManager(db_path)
-        try:
-            await db.create_tables()
+        async with open_db(db_path):
             console.print(f"[green]✓[/green] Database initialized at {db_path}")
-        finally:
-            await db.close()
 
     asyncio.run(_init())
 
@@ -52,23 +48,22 @@ def data_sync_markets(
     ] = None,
 ) -> None:
     """Sync markets from Kalshi API to database."""
-    from kalshi_research.data import DatabaseManager, DataFetcher
+    from kalshi_research.cli.db import open_db
+    from kalshi_research.data import DataFetcher
 
     async def _sync() -> None:
-        async with DatabaseManager(db_path) as db:
-            await db.create_tables()
-            async with DataFetcher(db) as fetcher:
-                with Progress(
-                    SpinnerColumn(),
-                    TextColumn("[progress.description]{task.description}"),
-                    console=console,
-                ) as progress:
-                    task1 = progress.add_task("Syncing events...", total=None)
-                    events = await fetcher.sync_events(max_pages=max_pages)
-                    progress.update(task1, description=f"Synced {events} events")
+        async with open_db(db_path) as db, DataFetcher(db) as fetcher:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                task1 = progress.add_task("Syncing events...", total=None)
+                events = await fetcher.sync_events(max_pages=max_pages)
+                progress.update(task1, description=f"Synced {events} events")
 
-                    progress.add_task("Syncing markets...", total=None)
-                    markets = await fetcher.sync_markets(status=status, max_pages=max_pages)
+                progress.add_task("Syncing markets...", total=None)
+                markets = await fetcher.sync_markets(status=status, max_pages=max_pages)
 
         console.print(f"[green]✓[/green] Synced {events} events and {markets} markets")
 
@@ -96,19 +91,18 @@ def data_sync_settlements(
         We store `Settlement.settled_at` using `Market.settlement_ts` when available, falling back
         to `Market.expiration_time` for historical/legacy data.
     """
-    from kalshi_research.data import DatabaseManager, DataFetcher
+    from kalshi_research.cli.db import open_db
+    from kalshi_research.data import DataFetcher
 
     async def _sync() -> None:
-        async with DatabaseManager(db_path) as db:
-            await db.create_tables()
-            async with DataFetcher(db) as fetcher:
-                with Progress(
-                    SpinnerColumn(),
-                    TextColumn("[progress.description]{task.description}"),
-                    console=console,
-                ) as progress:
-                    progress.add_task("Syncing settlements...", total=None)
-                    settlements = await fetcher.sync_settlements(max_pages=max_pages)
+        async with open_db(db_path) as db, DataFetcher(db) as fetcher:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                progress.add_task("Syncing settlements...", total=None)
+                settlements = await fetcher.sync_settlements(max_pages=max_pages)
 
         console.print(f"[green]✓[/green] Synced {settlements} settlements")
 
@@ -134,20 +128,18 @@ def data_snapshot(
     ] = None,
 ) -> None:
     """Take a price snapshot of all markets."""
-    from kalshi_research.data import DatabaseManager, DataFetcher
+    from kalshi_research.cli.db import open_db
+    from kalshi_research.data import DataFetcher
 
     async def _snapshot() -> None:
-        async with DatabaseManager(db_path) as db:
-            await db.create_tables()
-
-            async with DataFetcher(db) as fetcher:
-                with Progress(
-                    SpinnerColumn(),
-                    TextColumn("[progress.description]{task.description}"),
-                    console=console,
-                ) as progress:
-                    progress.add_task("Taking snapshot...", total=None)
-                    count = await fetcher.take_snapshot(status=status, max_pages=max_pages)
+        async with open_db(db_path) as db, DataFetcher(db) as fetcher:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                progress.add_task("Taking snapshot...", total=None)
+                count = await fetcher.take_snapshot(status=status, max_pages=max_pages)
 
         console.print(f"[green]✓[/green] Took {count} price snapshots")
 
@@ -177,64 +169,62 @@ def data_collect(
     ] = None,
 ) -> None:
     """Run continuous data collection."""
-    from kalshi_research.data import DatabaseManager, DataFetcher, DataScheduler
+    from kalshi_research.cli.db import open_db
+    from kalshi_research.data import DataFetcher, DataScheduler
 
     async def _collect() -> None:
-        async with DatabaseManager(db_path) as db:
-            await db.create_tables()
-
-            async with DataFetcher(db) as fetcher:
-                if once:
-                    counts = await fetcher.full_sync(max_pages=max_pages)
-                    console.print(
-                        "[green]✓[/green] Full sync complete: "
-                        f"{counts['events']} events, {counts['markets']} markets, "
-                        f"{counts['snapshots']} snapshots"
-                    )
-                    return
-
-                scheduler = DataScheduler()
-                write_lock = asyncio.Lock()
-
-                async def sync_task() -> None:
-                    async with write_lock:
-                        await fetcher.sync_markets(status="open", max_pages=max_pages)
-
-                async def snapshot_task() -> None:
-                    async with write_lock:
-                        count = await fetcher.take_snapshot(status="open", max_pages=max_pages)
-                        console.print(f"[dim]Took {count} snapshots[/dim]")
-
-                # Schedule tasks
-                await scheduler.schedule_interval(
-                    "market_sync",
-                    sync_task,
-                    interval_seconds=3600,  # Hourly
-                    run_immediately=False,
-                )
-                await scheduler.schedule_interval(
-                    "price_snapshot",
-                    snapshot_task,
-                    interval_seconds=interval * 60,
-                    run_immediately=False,
-                )
-
-                # Initial sync before starting scheduled tasks.
-                # Prevents in-process overlap on startup.
-                await fetcher.full_sync(max_pages=max_pages)
-
+        async with open_db(db_path) as db, DataFetcher(db) as fetcher:
+            if once:
+                counts = await fetcher.full_sync(max_pages=max_pages)
                 console.print(
-                    f"[green]✓[/green] Starting collection (interval: {interval}m). "
-                    "Press Ctrl+C to stop."
+                    "[green]✓[/green] Full sync complete: "
+                    f"{counts['events']} events, {counts['markets']} markets, "
+                    f"{counts['snapshots']} snapshots"
                 )
+                return
 
-                async with scheduler:
-                    # Run forever until interrupted
-                    try:
-                        while True:
-                            await asyncio.sleep(1)
-                    except asyncio.CancelledError:
-                        pass
+            scheduler = DataScheduler()
+            write_lock = asyncio.Lock()
+
+            async def sync_task() -> None:
+                async with write_lock:
+                    await fetcher.sync_markets(status="open", max_pages=max_pages)
+
+            async def snapshot_task() -> None:
+                async with write_lock:
+                    count = await fetcher.take_snapshot(status="open", max_pages=max_pages)
+                    console.print(f"[dim]Took {count} snapshots[/dim]")
+
+            # Schedule tasks
+            await scheduler.schedule_interval(
+                "market_sync",
+                sync_task,
+                interval_seconds=3600,  # Hourly
+                run_immediately=False,
+            )
+            await scheduler.schedule_interval(
+                "price_snapshot",
+                snapshot_task,
+                interval_seconds=interval * 60,
+                run_immediately=False,
+            )
+
+            # Initial sync before starting scheduled tasks.
+            # Prevents in-process overlap on startup.
+            await fetcher.full_sync(max_pages=max_pages)
+
+            console.print(
+                f"[green]✓[/green] Starting collection (interval: {interval}m). "
+                "Press Ctrl+C to stop."
+            )
+
+            async with scheduler:
+                # Run forever until interrupted
+                try:
+                    while True:
+                        await asyncio.sleep(1)
+                except asyncio.CancelledError:
+                    pass
 
     try:
         asyncio.run(_collect())
