@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-A deep audit of the `kalshi-starter-code-python` codebase has revealed significant financial integrity risks, specifically regarding P&L calculation precision and order management safety. While the architecture is generally sound, specific implementation details in the `portfolio` and `api` modules pose risks of incorrect financial reporting and accidental execution of "dry run" strategies.
+A deep audit of the `kalshi-starter-code-python` codebase has revealed significant financial integrity risks, specifically regarding P&L calculation precision and order management safety. Additionally, cross-reference with vendor documentation identified imminent API breaking changes (Jan 15, 2026) and missing parameters in the Exa integration.
 
 ## Critical Findings (P0 - Immediate Action Required)
 
@@ -92,9 +92,49 @@ Critical subsystems (pricing, research) can fail silently, leaving the applicati
 *   Refine exception handling to catch specific errors.
 *   Propagate critical errors up to the orchestrator/CLI.
 
+## Vendor & Schema Findings (P2 - Compliance)
+
+### 5. Imminent API Field Removals (Jan 15, 2026)
+
+**Location:** `src/kalshi_research/api/models/market.py`
+
+**Issue:**
+Kalshi is removing cent-denominated fields (`yes_bid`, `yes_ask`, `liquidity`, etc.) on Jan 15, 2026. The `Market` model still defines these as optional fields, but core logic (e.g., `midpoint`, `spread` properties) relies on `*_cents` computed properties which fallback to these legacy fields.
+
+**Impact:**
+Code relying on `market.yes_bid` directly (instead of `market.yes_bid_cents` property) will break. The `liquidity` field is already returning negative values in production (deprecated sentinel).
+
+**Recommendation:**
+*   Audit all usages of `market.yes_bid`, `market.liquidity`, etc.
+*   Ensure all access goes through the `*_dollars` fields or the normalized properties.
+
+### 6. Missing Exa Search Parameters
+
+**Location:** `src/kalshi_research/exa/client.py`
+
+**Issue:**
+The `ExaClient.search` method is missing `subpages` and `subpageTarget` parameters, which are available in the Exa API (per `docs/_vendor-docs/exa-api-reference.md`).
+
+**Impact:**
+Users cannot use deep search capabilities for specific subpages.
+
+**Recommendation:**
+*   Add missing parameters to `ExaClient.search` and `SearchRequest` model.
+
+### 7. Potential 32-bit Integer Overflow
+
+**Location:** `src/kalshi_research/api/models/market.py` (and DB models)
+
+**Issue:**
+`volume`, `volume_24h`, and `open_interest` are defined as `int`. In high-volume markets or aggregate stats, these could exceed 32-bit integer limits (2.1 billion). While Python integers are arbitrary precision, most SQL databases (and `pydantic` strict mode in some configs) might default to 32-bit.
+
+**Recommendation:**
+*   Explicitly use `BigInteger` in SQLAlchemy models.
+*   Ensure Pydantic models allow large integers.
+
 ## Minor Findings (P3 - Technical Debt)
 
-### 5. Magic Numbers in Analysis
+### 8. Magic Numbers in Analysis
 
 **Location:** `src/kalshi_research/analysis/scanner.py`
 

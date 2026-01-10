@@ -9,6 +9,8 @@ This repository includes Agent Skills for enhanced CLI navigation and documentat
 | Skill | Location | Purpose |
 |-------|----------|---------|
 | `kalshi-cli` | `.claude/skills/kalshi-cli/` | CLI commands, database queries, workflows, gotchas |
+| `kalshi-codebase` | `.claude/skills/kalshi-codebase/` | Repo navigation and codebase structure |
+| `kalshi-ralph-wiggum` | `.claude/skills/kalshi-ralph-wiggum/` | Ralph Wiggum autonomous loop operation |
 | `kalshi-doc-audit` | `.claude/skills/kalshi-doc-audit/` | Documentation auditing against SSOT |
 
 Skills are also mirrored to `.codex/skills/` and `.gemini/skills/` for other agents.

@@ -1,75 +1,150 @@
 ---
 name: kalshi-codebase
-description: Repo navigation + workflows for the Kalshi Research Platform codebase (src-layout, CLI, tests). Includes SSOT discipline and how to operate the Ralph Wiggum loop (PROMPT.md/PROGRESS.md) for iterative spec/bug implementation.
+description: Repo navigation and codebase structure for the Kalshi Research Platform. Use this skill for understanding where code lives, how modules are organized, and what patterns to follow.
 ---
 
-# Kalshi Research Platform – Codebase Guide
+# Kalshi Research Platform - Codebase Guide
 
-Use this skill when you need a **repo map**, **where-to-change-what guidance**, or to operate the **Ralph Wiggum loop** in this repository.
+Use this skill when you need a **repo map**, **where-to-change-what guidance**, or to understand the **codebase structure**.
 
-## SSOT rules (do not violate)
+For **Ralph Wiggum loop operation** (running autonomous iterations), use `kalshi-ralph-wiggum` instead.
 
-1. Code behavior in `src/kalshi_research/`
-2. CLI surface in `uv run kalshi --help` / `uv run kalshi <cmd> --help`
-3. Vendor docs in `docs/_vendor-docs/`
-4. Internal docs/specs in `docs/`, `docs/_specs/`
+## SSOT Rules (Do Not Violate)
 
-If docs disagree with code, fix the docs (or open a bug/spec) rather than “believing” the docs.
+1. **Code behavior** in `src/kalshi_research/`
+2. **CLI surface** in `uv run kalshi --help` / `uv run kalshi <cmd> --help`
+3. **Vendor docs** in `docs/_vendor-docs/`
+4. **Internal docs/specs** in `docs/`, `docs/_specs/`
 
-## Quick start (repo navigation)
+**If docs disagree with code, fix the docs** (or open a bug/spec) rather than "believing" the docs.
 
-```bash
-uv run kalshi --help
-rg -n "SomeSymbolOrCommand" src/ tests/ docs/
+## Repository Map
+
+```
+kalshi-starter-code-python/
+├── src/kalshi_research/           # Main package (src-layout)
+│   ├── api/                       # Kalshi HTTP clients
+│   │   ├── client.py              # KalshiPublicClient, KalshiClient
+│   │   ├── models/                # Pydantic v2 models (frozen)
+│   │   └── auth.py                # RSA signing
+│   ├── data/                      # Persistence layer
+│   │   ├── database.py            # DatabaseManager (async SQLite)
+│   │   ├── models.py              # SQLAlchemy ORM models
+│   │   ├── repositories/          # Repository pattern
+│   │   ├── fetcher.py             # API → DB coordination
+│   │   └── export.py              # DuckDB/Parquet export
+│   ├── exa/                       # Exa API client + models
+│   ├── news/                      # News collection, sentiment
+│   ├── analysis/                  # Scanner, liquidity, calibration
+│   ├── research/                  # Thesis workflow, Exa research
+│   ├── portfolio/                 # Position/P&L tracking
+│   ├── alerts/                    # Alert conditions + monitoring
+│   └── cli/                       # Typer CLI (kalshi command)
+├── tests/
+│   ├── unit/                      # Mirrors src/ layout
+│   └── integration/               # Requires live credentials
+├── docs/
+│   ├── _bugs/                     # Active bug reports
+│   ├── _specs/                    # Active implementation specs
+│   ├── _debt/                     # Technical debt tracker
+│   ├── _todo/                     # Active TODOs
+│   ├── _vendor-docs/              # Kalshi/Exa API references
+│   └── _ralph-wiggum/             # Loop protocol reference
+├── alembic/                       # Database migrations
+├── data/                          # Runtime artifacts (kalshi.db)
+├── PROGRESS.md                    # Ralph Wiggum state file
+├── PROMPT.md                      # Ralph Wiggum loop prompt
+├── CLAUDE.md                      # Agent guidance (Claude Code)
+├── AGENTS.md                      # Agent guidance (all agents)
+└── GEMINI.md                      # Agent guidance (Gemini)
 ```
 
-## Repository map (what lives where)
+## Key Patterns
 
-- `src/kalshi_research/api/`: Kalshi HTTP clients + Pydantic models (`api/models/`)
-- `src/kalshi_research/data/`: SQLite/SQLAlchemy persistence, repositories, fetcher, exports
-- `src/kalshi_research/exa/`: Exa API client + models
-- `src/kalshi_research/news/`: News tracking, collection, sentiment
-- `src/kalshi_research/analysis/`: Scanner, liquidity scoring, calibration, correlations
-- `src/kalshi_research/research/`: Thesis workflow + Exa-powered context/topic research
-- `src/kalshi_research/cli/`: Typer CLI (`uv run kalshi ...`)
-- `tests/unit/`: Unit tests mirroring `src/` layout
-- `docs/_bugs/`, `docs/_specs/`, `docs/_debt/`: Trackers + implementation specs
-- `docs/_ralph-wiggum/protocol.md`: Ralph Wiggum reference protocol
+### API Clients
 
-## Quality gates (run before any commit)
+Use async context managers:
+
+```python
+async with KalshiPublicClient() as client:
+    market = await client.get_market("TICKER")
+```
+
+- `KalshiPublicClient`: Research, no auth required
+- `KalshiClient`: Portfolio operations, requires API key
+
+### Repository Pattern
+
+Prefer repositories in `data/repositories/` for shared persistence logic:
+
+```python
+async with market_repo.session() as session:
+    markets = await market_repo.get_by_event(session, event_ticker)
+```
+
+For small, one-off queries in CLI commands, direct `select()` is acceptable.
+
+### Pydantic Models
+
+API models in `api/models/` are frozen:
+
+```python
+model_config = ConfigDict(frozen=True)
+```
+
+Don't mutate them. Create new instances if needed.
+
+### Testing Philosophy
+
+- Only mock at system boundaries (HTTP via `respx`, filesystem via `tmp_path`)
+- Use real Pydantic models, real in-memory SQLite
+- Tests mirror `src/` structure: `tests/unit/api/`, `tests/unit/data/`, etc.
+
+## CLI Structure
+
+```
+kalshi
+├── data        # init, sync-markets, snapshot, collect, export
+├── market      # get, list, orderbook, liquidity
+├── scan        # opportunities, arbitrage, movers
+├── alerts      # list, add, remove, monitor
+├── analysis    # calibration, correlation, metrics
+├── research    # thesis, context, topic
+├── news        # track, collect, sentiment
+└── portfolio   # sync, positions, pnl, balance
+```
+
+## Quality Gates
 
 ```bash
+# Run before any commit
 uv run pre-commit run --all-files
-uv run mkdocs build --strict
-uv run pytest -m "not integration and not slow"
+
+# Individual gates
+uv run ruff check .           # Lint
+uv run ruff format --check .  # Format
+uv run mypy src/              # Types (strict)
+uv run pytest -m "not integration and not slow"  # Fast tests
 ```
 
-## Ralph Wiggum loop (operator contract)
+## Quick Navigation Commands
 
-Canonical files:
+```bash
+# Find a symbol/function
+rg -n "SomeFunction" src/ tests/
 
-- `PROMPT.md`: the repeated agent prompt
-- `PROGRESS.md`: state file (the “brain”)
-- `docs/_ralph-wiggum/protocol.md`: reference protocol
+# Find CLI command implementation
+rg -n "def some_command" src/kalshi_research/cli/
 
-Rules of the loop:
+# Find model definition
+rg -n "class SomeModel" src/kalshi_research/
 
-1. Always start by reading `PROGRESS.md`.
-2. Pick the **first** unchecked item and do **one** task per iteration.
-3. Implement against the task doc’s **Acceptance Criteria** checkboxes:
-   - `docs/_bugs/BUG-*.md`, `docs/_debt/DEBT-*.md`, `docs/_todo/TODO-*.md`, `docs/_specs/SPEC-*.md`
-4. Before marking anything complete, apply the “critical claim validation” block:
-
-```text
-Review the claim or feedback (it may be from an internal or external agent). Validate every claim from first principles. If—and only if—it’s true and helpful, update the system to align with the SSOT, implemented cleanly and completely (Rob C. Martin discipline). Find and fix all half-measures, reward hacks, and partial fixes if they exist. Be critically adversarial with good intentions for constructive criticism. Ship the exact end-to-end implementation we need.
+# Check CLI help
+uv run kalshi --help
+uv run kalshi market --help
 ```
 
-5. Update `PROGRESS.md`:
-   - Check off the completed item **only** when all acceptance criteria are `[x]`.
-   - Append a short entry to the “Work Log” section (what changed + commands run).
-6. Run quality gates and only then commit (never `--no-verify`).
+## Maintenance Note
 
-## Maintenance note (skills parity)
-
-This repository keeps `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/` in sync. If you update this skill,
-apply the same change to all three copies.
+This repository keeps `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/` in sync.
+If you update this skill, apply the same change to all three copies.
