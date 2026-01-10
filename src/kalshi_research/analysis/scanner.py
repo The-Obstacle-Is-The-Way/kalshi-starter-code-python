@@ -386,25 +386,3 @@ class MarketScanner:
 
         results.sort(key=get_hours_left)
         return results[:top_n]
-
-    def scan_all(
-        self,
-        markets: list[Market],
-        top_n: int = 5,
-    ) -> dict[ScanFilter, list[ScanResult]]:
-        """
-        Run all scans and return results grouped by filter.
-
-        Args:
-            markets: List of markets to scan
-            top_n: Number of results per filter
-
-        Returns:
-            Dictionary mapping filter type to results
-        """
-        return {
-            ScanFilter.CLOSE_RACE: self.scan_close_races(markets, top_n),
-            ScanFilter.HIGH_VOLUME: self.scan_high_volume(markets, top_n),
-            ScanFilter.WIDE_SPREAD: self.scan_wide_spread(markets, top_n),
-            ScanFilter.EXPIRING_SOON: self.scan_expiring_soon(markets, top_n=top_n),
-        }

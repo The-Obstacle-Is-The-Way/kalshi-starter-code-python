@@ -354,32 +354,3 @@ class TestExpiringSoonScan:
         results = scanner.scan_expiring_soon(markets, hours=24)
 
         assert len(results) == 0
-
-
-class TestScanAll:
-    """Test scan_all method."""
-
-    def test_returns_all_filter_types(self) -> None:
-        """Returns results for all filter types."""
-        scanner = MarketScanner(
-            close_race_range=(0.40, 0.60),
-            high_volume_threshold=10000,
-            wide_spread_threshold=5,
-        )
-        now = datetime.now(UTC)
-        markets = [
-            make_market(
-                "ALL",
-                yes_bid=45,
-                yes_ask=55,
-                volume_24h=20000,
-                close_time=now + timedelta(hours=12),
-            ),
-        ]
-
-        results = scanner.scan_all(markets)
-
-        assert ScanFilter.CLOSE_RACE in results
-        assert ScanFilter.HIGH_VOLUME in results
-        assert ScanFilter.WIDE_SPREAD in results
-        assert ScanFilter.EXPIRING_SOON in results
