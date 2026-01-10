@@ -730,6 +730,43 @@ grep -rn '"%.*%' --include="*.py" .
 
 ---
 
+## 25. Dead Code & Codebase Bloat
+
+**Why it matters:** AI generates "just in case" code, hallucinated helpers, and "halfway implementations" that never get wired in. This "True Slop" rots, confuses agents, and bloats maintenance costs. A 2026 audit of this very repo found ~15% of the codebase was verified dead code.
+
+### Checklist
+
+- [ ] **Unused exported classes/functions** — Defined in `__init__` but never imported externally
+- [ ] **"Halfway" implementations** — Fully coded features (like API clients) reachable only by tests, not CLI/API
+- [ ] **Speculative "YAGNI" abstractions** — Repositories with 10 methods, only 1 used
+- [ ] **Orphaned analysis logic** — Complex math functions never called by the pipeline
+- [ ] **Test-only code in production** — Helpers used only by tests but living in `src/`
+
+### Detection Pattern
+
+```bash
+# Vulture (Static analysis for unused code)
+# --min-confidence 80 is safe for automated checks; 60 for deep audits
+uv run vulture src/ --min-confidence 80
+
+# Deadcode (Finds unused files/definitions)
+uv run deadcode src/
+
+# Radon (Complexity analysis)
+# High complexity often correlates with bloated/confused AI code
+uv run radon cc src/ -a -s | grep -E " - [C-F] "
+```
+
+### Verification Strategy
+
+1. **Trace from entry points** — If `cli/` or `api/` doesn't call it, it's likely dead.
+2. **Grepping is not enough** — Use tools + manual trace. `grep` finds definitions and tests, masking lack of *production usage*.
+3. **Delete vs. Wire** —
+    *   **TRUE SLOP:** Delete immediately (e.g., unused validators, speculative classes).
+    *   **HALFWAY:** Wire into CLI/Config immediately or delete. Do not leave "for later".
+
+---
+
 ## Automated Audit Script
 
 Save as `scripts/audit.sh`:
@@ -740,34 +777,40 @@ set -e
 
 echo "=== Code Audit ==="
 
-echo -e "\n[1/10] Linting..."
+echo -e "\n[1/12] Linting..."
 uv run ruff check . || echo "❌ Ruff found issues"
 
-echo -e "\n[2/10] Type checking..."
+echo -e "\n[2/12] Type checking..."
 uv run mypy src/ --strict || echo "❌ MyPy found issues"
 
-echo -e "\n[3/10] Security scan..."
+echo -e "\n[3/12] Security scan..."
 uv run bandit -r src/ -ll || echo "❌ Bandit found issues"
 
-echo -e "\n[4/10] Silent exception swallowing..."
+echo -e "\n[4/12] Silent exception swallowing..."
 grep -rn "except.*:" --include="*.py" src/ | grep -c "pass$" && echo "⚠️ Found silent exceptions" || echo "✅ No silent exceptions"
 
-echo -e "\n[5/10] TODO/FIXME markers..."
+echo -e "\n[5/12] TODO/FIXME markers..."
 grep -rn "TODO\|FIXME\|XXX" --include="*.py" src/ || echo "✅ No TODOs found"
 
-echo -e "\n[6/10] Mutable default arguments..."
+echo -e "\n[6/12] Mutable default arguments..."
 grep -rn "def.*=\[\]\|def.*={}" --include="*.py" src/ || echo "✅ No mutable defaults"
 
-echo -e "\n[7/10] Hardcoded secrets scan..."
+echo -e "\n[7/12] Hardcoded secrets scan..."
 grep -rn "password\|api_key\|secret" --include="*.py" src/ | grep -v "os.environ\|getenv" || echo "✅ No hardcoded secrets"
 
-echo -e "\n[8/10] Type ignores count..."
+echo -e "\n[8/12] Type ignores count..."
 echo "Found $(grep -rn "type: ignore" --include="*.py" src/ | wc -l) type ignores"
 
-echo -e "\n[9/10] Tests..."
+echo -e "\n[9/12] Dead code check (High Confidence)..."
+uv run vulture src/ --min-confidence 100 || echo "⚠️ High confidence dead code found"
+
+echo -e "\n[10/12] Complexity check (Cyclomatic > 10)..."
+uv run radon cc src/ -a -s | grep -E " - [C-F] " || echo "✅ No highly complex blocks"
+
+echo -e "\n[11/12] Tests..."
 uv run pytest --tb=short || echo "❌ Tests failed"
 
-echo -e "\n[10/10] Coverage..."
+echo -e "\n[12/12] Coverage..."
 uv run pytest --cov=src --cov-fail-under=80 || echo "⚠️ Coverage below 80%"
 
 echo -e "\n=== Audit Complete ==="
@@ -1360,6 +1403,7 @@ if torch.cuda.is_available():
 
 | Date       | Change                                           |
 |------------|--------------------------------------------------|
+| 2026-01-10 | Added Dead Code & Bloat section (25) + tools audit script |
 | 2026-01-07 | **CRITICAL: Added Mock Data in Production anti-pattern at TOP** |
 | 2026-01-07 | Added Jupyter notebook anti-patterns (24)        |
 | 2026-01-07 | Added ML/research categories (14-23)             |
