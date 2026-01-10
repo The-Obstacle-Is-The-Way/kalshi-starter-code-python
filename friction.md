@@ -165,3 +165,94 @@ The friction is NOT in the Kalshi API integration (that works well).
 The friction is in the **research → synthesis → structured output** pipeline.
 
 Without this, Claude just vibes on market data - which defeats the entire purpose of the tool.
+
+---
+
+## Case Study: Indiana Spread Bet Failure (2026-01-09)
+
+### The Loss
+
+**Market:** `KXNCAAFSPREAD-26JAN09OREIND-IND3` (Indiana -3.5 vs Oregon)
+**Position:** 37 YES contracts at ~48¢
+**Result:** Oregon won. Loss: **$17.76**
+**Thesis ID:** `fd501d1b` (resolved as LOSS)
+
+### What Went Wrong
+
+Claude (Opus 4.5) surfaced this as an "upside bet" based on:
+- Spread analysis
+- Volume patterns
+- Price movement
+
+**What Claude FAILED to surface:**
+
+1. **Indiana was UNDEFEATED** - The most basic fact about the team
+2. **No adversarial research** - Didn't check Oregon's recent performance
+3. **No live game context** - User watched one quarter and saw Oregon "looked like absolute shit"
+4. **Sports domain blindness** - Training data ≠ current season performance
+
+### User's Direct Feedback
+
+> "If you're supposed to be the one going to AGI, you're the one who surfaced that. I was depending on you for the edge. And now I know that you're totally unreliable. It makes me question this whole system we're building."
+
+> "What is the whole point of this system if I'm going based on vibes, bro?"
+
+### The Architectural Lesson
+
+**Current failure mode:**
+
+```text
+User asks for edge → Claude scans markets → Claude gives "recommendation" (VIBES) → User loses money
+```
+
+**Required safeguard:**
+
+```text
+User asks for edge → Claude scans markets → ADVERSARIAL CHECK → Research BOTH sides →
+Surface disqualifying facts → THEN recommend (or refuse to recommend)
+```
+
+### Specific Gaps Exposed
+
+| Gap | Description | Fix Required |
+|-----|-------------|--------------|
+| **No adversarial weighting** | Claude recommends without checking counter-thesis | Force both bull AND bear research before ANY recommendation |
+| **No domain expertise check** | Claude has no current sports knowledge | Either integrate live sports data OR refuse sports bets entirely |
+| **No "basic facts" gate** | Missed that Indiana was undefeated | Pre-flight check: "What are the 3 most important facts about this market?" |
+| **No confidence calibration** | Gave recommendation with false confidence | Require explicit uncertainty disclosure: "I have NO current data on this" |
+
+### Implications for Agent Orchestration
+
+When we build the multi-agent system, we need:
+
+1. **Adversarial Agent** - Dedicated agent that argues AGAINST every recommendation
+2. **Domain Guard** - Refuses to recommend on domains with stale training data (sports, breaking news)
+3. **Basic Facts Gate** - Before any recommendation, surface 3-5 basic facts and ask: "Does this change my thesis?"
+4. **Confidence Disclosure** - Explicit statement: "This is based on [research/training data/vibes]"
+
+### Future Skill/Prompt Engineering
+
+Add to agent skills (`.claude/skills/`, etc.):
+
+```markdown
+## Pre-Recommendation Checklist
+
+Before making ANY trade recommendation:
+
+1. [ ] What are the 3 most important facts about this market?
+2. [ ] What is the strongest argument AGAINST this position?
+3. [ ] Is this based on current research or training data?
+4. [ ] If training data only: REFUSE to recommend, surface uncertainty instead
+5. [ ] If sports/breaking news: REQUIRE live data source or refuse
+```
+
+### The Silver Lining
+
+This $17.76 loss is:
+- **Tuition** for learning how Kalshi works
+- **Data** for improving the system
+- **Documented friction** that will prevent future losses
+
+> "We're paying money into education... This is good data."
+
+---
