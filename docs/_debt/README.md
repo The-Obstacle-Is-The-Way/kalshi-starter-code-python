@@ -4,14 +4,14 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**0 active debt items.** (All known debt items resolved or archived.)
+**0 active debt items.** (All known debt items resolved or archived unless listed below.)
 
-- None.
+No active debt items.
 
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-011**
+**DEBT-013**
 
 ---
 
@@ -46,6 +46,8 @@ All resolved debt items are stored in
 
 | ID | Title | Status |
 |---|---|---|
+| **[DEBT-012](../_archive/debt/DEBT-012-exa-error-observability.md)** | Exa pipeline error observability (missing trace context) | ✅ Complete |
+| **[DEBT-011](../_archive/debt/DEBT-011-unbounded-disk-growth-controls.md)** | Unbounded disk growth (DB snapshots, logs, caches) | ✅ Complete |
 | **[DEBT-008](../_archive/debt/DEBT-008-dead-code-cleanup.md)** | Dead Code Cleanup (True Slop) | ✅ Complete |
 | **[DEBT-010](../_archive/debt/DEBT-010-reduce-boilerplate.md)** | Reduce Boilerplate & Structural Bloat | ✅ Complete |
 | **[DEBT-009](../_archive/debt/DEBT-009-finish-halfway-implementations.md)** | Finish Halfway Implementations | ✅ Complete |

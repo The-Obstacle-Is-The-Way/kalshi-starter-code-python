@@ -29,6 +29,18 @@ uv run kalshi data init [--db PATH]
 |--------|---------|-------------|
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
 
+### data migrate
+Run Alembic schema migrations (upgrade to head).
+
+```bash
+uv run kalshi data migrate [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
+| `--dry-run` / `--apply` | `--dry-run` | Validate migrations on a temporary DB copy (dry-run) or apply to the DB |
+
 ### data sync-markets
 Sync markets from Kalshi API to database.
 
@@ -53,6 +65,22 @@ uv run kalshi data sync-settlements [OPTIONS]
 |--------|---------|-------------|
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
 | `--max-pages` | None | Pagination safety limit |
+
+### data sync-trades
+Fetch public trade history from Kalshi (GET /markets/trades).
+
+```bash
+uv run kalshi data sync-trades [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--ticker` | None | Optional market ticker filter |
+| `--limit` | `100` | Max trades to fetch (Kalshi caps at 1000) |
+| `--min-ts` | None | Filter: min Unix timestamp (seconds) |
+| `--max-ts` | None | Filter: max Unix timestamp (seconds) |
+| `--output`, `-o` | None | Write results to a CSV file |
+| `--json` | False | Output results as JSON to stdout |
 
 ### data snapshot
 Take a price snapshot of all markets.
@@ -99,6 +127,31 @@ Show database statistics.
 
 ```bash
 uv run kalshi data stats [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
+
+### data prune
+Prune old rows to keep the database manageable.
+
+```bash
+uv run kalshi data prune [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
+| `--snapshots-older-than-days` | None | Delete price snapshots older than N days |
+| `--news-older-than-days` | None | Delete collected news articles older than N days (by collected_at) |
+| `--dry-run` / `--apply` | `--dry-run` | Preview deletions or apply changes |
+
+### data vacuum
+Run SQLite VACUUM to reclaim disk space after large deletes.
+
+```bash
+uv run kalshi data vacuum [--db PATH]
 ```
 
 | Option | Default | Description |
@@ -369,7 +422,7 @@ uv run kalshi research backtest --start DATE --end DATE [OPTIONS]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--start` | Required | Start date (YYYY-MM-DD) |
-| `--end` | Required | End date (YYYY-MM-DD) |
+| `--end` | Required | End date (YYYY-MM-DD, inclusive) |
 | `--thesis`, `-t` | None | Specific thesis ID (default: all resolved) |
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
 
@@ -406,6 +459,18 @@ uv run kalshi research topic TOPIC [OPTIONS]
 | `--json` | False | Output as JSON |
 
 Requires `EXA_API_KEY`.
+
+### research cache clear
+Clear Exa response cache entries on disk.
+
+```bash
+uv run kalshi research cache clear [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--all` | False | Clear all cache entries (default: clear expired only) |
+| `--cache-dir` | None | Override cache directory (default: data/exa_cache/) |
 
 ---
 
@@ -526,6 +591,20 @@ uv run kalshi alerts monitor [OPTIONS]
 | `--daemon` | False | Run in background |
 | `--once` | False | Single check cycle and exit |
 | `--max-pages` | None | Pagination safety limit |
+
+### alerts trim-log
+Trim the alerts monitor log to keep disk usage bounded.
+
+```bash
+uv run kalshi alerts trim-log [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--log` | `data/alert_monitor.log` | Path to the alerts monitor log file |
+| `--max-mb` | `50` | Trim the log when it exceeds this many MB |
+| `--keep-mb` | `5` | When trimming, keep the last N MB |
+| `--dry-run` / `--apply` | `--dry-run` | Preview changes or apply trimming |
 
 ---
 

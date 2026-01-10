@@ -48,10 +48,14 @@ uv run kalshi --help
 ### data - Data Management
 ```bash
 uv run kalshi data init                    # Initialize database
+uv run kalshi data migrate                 # Validate/apply DB migrations (dry-run default)
 uv run kalshi data sync-markets            # Sync markets from API
 uv run kalshi data sync-settlements        # Sync resolved outcomes
+uv run kalshi data sync-trades             # Fetch public trade history (CSV/JSON output)
 uv run kalshi data snapshot                # Take price snapshot
 uv run kalshi data collect [--interval 15] [--once] [--max-pages N]  # Continuous collection
+uv run kalshi data prune                   # Prune old snapshots/news (dry-run default)
+uv run kalshi data vacuum                  # Reclaim DB space after deletes
 uv run kalshi data export [-f csv|parquet] # Export data
 uv run kalshi data stats                   # Show statistics
 ```
@@ -85,6 +89,7 @@ uv run kalshi portfolio suggest-links      # Suggest thesis links for positions
 ```bash
 uv run kalshi research context TICKER          # Exa: market context research
 uv run kalshi research topic "TOPIC"           # Exa: topic research / ideation
+uv run kalshi research cache clear [--all]     # Exa cache maintenance (expired-only default)
 uv run kalshi research thesis create "TITLE" -m TICKER --your-prob 0.7 --market-prob 0.5 --confidence 0.8
 uv run kalshi research thesis list
 uv run kalshi research thesis show ID [--with-positions]
@@ -107,6 +112,7 @@ uv run kalshi alerts list
 uv run kalshi alerts add price|volume|spread TICKER [--above N] [--below N]
 uv run kalshi alerts remove ALERT_ID
 uv run kalshi alerts monitor [--interval 60] [--daemon] [--once] [--max-pages N]
+uv run kalshi alerts trim-log               # Trim alerts daemon log (dry-run default)
 ```
 
 ### analysis - Market Analysis

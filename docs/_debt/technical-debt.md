@@ -6,7 +6,7 @@
 
 ## Outstanding Debt
 
-No outstanding debt items.
+No outstanding debt.
 
 ---
 
@@ -83,6 +83,8 @@ src/kalshi_research/
 
 | Item | Resolution |
 |------|------------|
+| [DEBT-012](../_archive/debt/DEBT-012-exa-error-observability.md) | Added `exc_info=True` to Exa-facing catch-and-continue logs; added unit coverage |
+| [DEBT-011](../_archive/debt/DEBT-011-unbounded-disk-growth-controls.md) | Added DB prune/vacuum + Exa cache clear + alerts log trimming commands; added unit coverage |
 | [DEBT-008](../_archive/debt/DEBT-008-dead-code-cleanup.md) | Deleted ~400 LOC of verified unused code and removed the dedicated unit tests |
 | [DEBT-010](../_archive/debt/DEBT-010-reduce-boilerplate.md) | Consolidated repeated CLI DB setup into `open_db()` / `open_db_session()` helpers |
 | [DEBT-009](../_archive/debt/DEBT-009-finish-halfway-implementations.md) | Wired in all halfway implementations (CLI exposure or explicit RESERVED) |

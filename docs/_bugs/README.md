@@ -4,9 +4,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-| ID | Title | Priority | Status |
-|---|---|---|---|
-| *(none)* | *(none)* | *(none)* | ✅ |
+No active bugs.
 
 ### Recently Closed Dependency Chain (Resolved)
 
@@ -21,7 +19,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-062**
+**BUG-063**
 
 ---
 
@@ -35,6 +33,7 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-062** | Backtest date range end-date excludes full day | ✅ Fixed |
 | **BUG-061** | Test suite missing FIFO edge case coverage | ✅ Fixed |
 | **BUG-060** | Duplicate realized P&L computation (ignores Kalshi's value) | 🟡 Closed |
 | **BUG-059** | Missing portfolio settlements sync | ✅ Fixed |
