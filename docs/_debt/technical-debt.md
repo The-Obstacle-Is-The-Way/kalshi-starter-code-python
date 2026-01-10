@@ -20,13 +20,6 @@
 **Summary:** Wire in 8 functional but unreachable features: Alert Notifiers (FileNotifier, WebhookNotifier), Trade Sync, Exa Similar/Deep Research, Candlestick History, Exchange Status, WebSocket Streaming.
 **Plan:** `docs/_debt/DEBT-009-finish-halfway-implementations.md`
 
-### DEBT-010: Reduce Boilerplate & Structural Bloat
-
-**Priority:** P3
-**Status:** 🔴 Active
-**Summary:** Refactor repeated DB initialization patterns and simplify the repository layer.
-**Plan:** `docs/_debt/DEBT-010-reduce-boilerplate.md`
-
 ---
 
 ## Implemented via Spec
@@ -103,6 +96,7 @@ src/kalshi_research/
 | Item | Resolution |
 |------|------------|
 | [DEBT-008](../_archive/debt/DEBT-008-dead-code-cleanup.md) | Deleted ~400 LOC of verified unused code and removed the dedicated unit tests |
+| [DEBT-010](../_archive/debt/DEBT-010-reduce-boilerplate.md) | Consolidated repeated CLI DB setup into `open_db()` / `open_db_session()` helpers |
 | [DEBT-006](../_archive/debt/DEBT-006-price-snapshot-insert-batching.md) | Avoid per-row flush/refresh; restore batching intent for snapshot ingestion |
 | [DEBT-005](../_archive/debt/DEBT-005-price-snapshot-liquidity-dead-column.md) | Dropped dead `price_snapshots.liquidity` column and stopped writing it |
 

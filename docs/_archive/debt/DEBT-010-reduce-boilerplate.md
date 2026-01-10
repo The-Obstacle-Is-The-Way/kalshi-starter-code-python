@@ -1,10 +1,12 @@
 # DEBT-010: Reduce Boilerplate & Structural Bloat
 
-**Status:** 🔴 Active
+**Status:** ✅ Resolved
 **Priority:** P3
 **Owner:** TBD
 **Created:** 2026-01-10
-**Audit Source:** [`bloat.md`](bloat.md)
+**Resolved:** 2026-01-10
+**Last Verified:** 2026-01-10
+**Audit Source:** [`bloat.md`](../../_debt/bloat.md)
 
 ## Summary
 
@@ -39,3 +41,15 @@ The audit identified structural patterns that contribute to bloat and maintenanc
 
 - 16 instances of `await db.create_tables()` removed/consolidated.
 - Database access pattern is consistent across all CLI commands.
+
+## Resolution Notes
+
+Implemented `open_db()` / `open_db_session()` helpers and refactored all CLI commands to use them:
+- New helpers: `src/kalshi_research/cli/db.py`
+- Refactors: `src/kalshi_research/cli/data.py`, `src/kalshi_research/cli/news.py`,
+  `src/kalshi_research/cli/portfolio.py`
+
+Verification:
+- `rg "await db\\.create_tables\\(\\)" src/kalshi_research/cli --count` now returns **1** occurrence
+  (centralized in `cli/db.py`).
+- Full quality gates and `uv run pre-commit run --all-files` pass.

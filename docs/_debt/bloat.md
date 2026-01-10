@@ -24,8 +24,10 @@
 
 **Julian's criticism has merit.** There is measurable bloat:
 - **116** raw unused candidates (Vulture 60% confidence) -> **~64 verified true positives**
-- Multiple dead modules (EdgeDetector, WebSocket client) and several halfway implementations (e.g. alert notifiers)
+- Multiple dead modules (EdgeDetector, TemporalValidator, etc.) and several halfway implementations (e.g. alert notifiers)
+  - ✅ Resolved: DEBT-008 removed the verified-dead code
 - Boilerplate duplication (16 `create_tables()` calls)
+  - ✅ Resolved: DEBT-010 consolidated to `open_db()` in `src/kalshi_research/cli/db.py`
 - Three data modeling patterns (dataclasses + Pydantic + SQLAlchemy)
 
 **However:**
@@ -244,22 +246,22 @@ The codebase uses THREE different patterns for data models:
 
 **This is proper separation of concerns.** Different layers need different models. The apparent "redundancy" is intentional - you don't want your DB model coupled to your API response format.
 
-### 2. Repeated Boilerplate (Medium Impact)
+### 2. Repeated Boilerplate (Resolved)
 
-**16 calls to `await db.create_tables()`** scattered across CLI commands:
+**Previously:** 16 calls to `await db.create_tables()` scattered across CLI commands:
 - `cli/portfolio.py`: 6 calls
 - `cli/news.py`: 5 calls
 - `cli/data.py`: 5 calls
 
-```python
-# Repeated pattern in every CLI command:
-async with get_db() as db:
-    await db.create_tables()  # Why here?
-    async with db.session() as session:
-        ...
-```
+**Now:** Consolidated into a single helper (`open_db()` / `open_db_session()`), leaving exactly **1**
+`await db.create_tables()` call in the CLI layer (`src/kalshi_research/cli/db.py`).
 
-**Recommendation:** Create a `@db_command` decorator or use CLI lifecycle hooks.
+```python
+from kalshi_research.cli.db import open_db
+
+async with open_db(db_path) as db, db.session_factory() as session:
+    ...
+```
 
 ### 3. Over-Abstracted Repository Layer (Low-Medium Impact)
 
@@ -280,12 +282,12 @@ Repository pattern adds abstraction but many methods are unused:
 |------|-----|------------|
 | `api/client.py` | 886 | Contains ~200 lines of unused trading methods |
 | `cli/research.py` | 849 | Legitimate complexity - thesis tracking UI |
-| `cli/portfolio.py` | 608 | 6x repeated `create_tables()` pattern |
+| `cli/portfolio.py` | 608 | DB setup refactored (DEBT-010); LOC snapshot is pre-refactor |
 | `cli/scan.py` | 564 | OK - scanner has legitimate complexity |
-| `research/thesis.py` | 482 | Contains unused TemporalValidator |
+| `research/thesis.py` | 482 | TemporalValidator removed (DEBT-008); LOC snapshot is pre-refactor |
 | `exa/client.py` | 449 | ~100 lines of unused methods |
-| `analysis/liquidity.py` | 448 | Some unused methods |
-| `analysis/scanner.py` | 410 | Some unused methods |
+| `analysis/liquidity.py` | 448 | Removed dead wrapper (DEBT-008); remaining dense calculations |
+| `analysis/scanner.py` | 410 | Removed dead `scan_all` (DEBT-008); remaining scanner logic |
 | `analysis/correlation.py` | 393 | OK - legitimate complexity |
 
 ### Module-Level LOC
@@ -308,17 +310,17 @@ Repository pattern adds abstraction but many methods are unused:
 
 ### Phase 1: Quick Wins (Est. 400 LOC reduction)
 
-1. [ ] Delete `EdgeDetector` class (keep `Edge` dataclass)
-2. [ ] Delete `TemporalValidator` class
-3. [ ] Delete unused analysis methods (`compute_spread_stats`, etc.)
-4. [ ] Delete unused repository methods
-5. [ ] Remove 3 unused imports
+1. [x] Delete `EdgeDetector` class (keep `Edge` dataclass) (DEBT-008)
+2. [x] Delete `TemporalValidator` class (DEBT-008)
+3. [x] Delete unused analysis methods (`compute_spread_stats`, etc.) (DEBT-008)
+4. [x] Delete unused repository methods (DEBT-008)
+5. [x] Remove unused imports flagged by ruff (DEBT-008)
 
 **Note:** `FileNotifier` and `WebhookNotifier` are NOT to be deleted - they're HALFWAY implementations to wire in (see DEBT-009).
 
 ### Phase 2: Refactoring (Est. 300 LOC reduction)
 
-1. [ ] Create `@db_command` decorator to eliminate 16 repeated `create_tables()` calls
+1. [x] Consolidate repeated `create_tables()` calls into `open_db()` helpers (DEBT-010)
 2. [ ] Consolidate Exa client methods (delete or integrate)
 3. [ ] Review data model redundancy
 
@@ -449,8 +451,8 @@ vulture src/ --make-whitelist > vulture_whitelist.py
 
 | Debt Item | Derived From This Audit |
 |-----------|------------------------|
-| [DEBT-008](DEBT-008-dead-code-cleanup.md) | TRUE SLOP + YAGNI items |
+| [DEBT-008](../_archive/debt/DEBT-008-dead-code-cleanup.md) | TRUE SLOP + YAGNI items |
 | [DEBT-009](DEBT-009-finish-halfway-implementations.md) | HALFWAY items |
-| [DEBT-010](DEBT-010-reduce-boilerplate.md) | Structural bloat (boilerplate) |
+| [DEBT-010](../_archive/debt/DEBT-010-reduce-boilerplate.md) | Structural bloat (boilerplate) |
 
 **Note:** DEBT-007 is a separate operational hardening document, not derived from this bloat audit.
