@@ -52,12 +52,6 @@ class SettlementRepository(BaseRepository[Settlement]):
         result = await self._session.execute(stmt)
         return result.scalars().all()
 
-    async def get_by_result(self, result: str) -> Sequence[Settlement]:
-        """Get all settlements with a specific result (yes, no, void)."""
-        stmt = select(Settlement).where(Settlement.result == result)
-        result_set = await self._session.execute(stmt)
-        return result_set.scalars().all()
-
     async def get_settled_after(self, after: datetime) -> Sequence[Settlement]:
         """Get settlements after a given time."""
         stmt = (
@@ -67,11 +61,3 @@ class SettlementRepository(BaseRepository[Settlement]):
         )
         result = await self._session.execute(stmt)
         return result.scalars().all()
-
-    async def count_by_result(self) -> dict[str, int]:
-        """Count settlements by result."""
-        from sqlalchemy import func
-
-        stmt = select(Settlement.result, func.count(Settlement.ticker)).group_by(Settlement.result)
-        result = await self._session.execute(stmt)
-        return {str(row[0]): int(row[1]) for row in result.all()}

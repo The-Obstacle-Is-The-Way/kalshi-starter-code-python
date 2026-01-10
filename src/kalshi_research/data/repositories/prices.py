@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 
@@ -12,8 +12,6 @@ from kalshi_research.data.repositories.base import BaseRepository
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    from sqlalchemy.engine import CursorResult
 
 
 class PriceRepository(BaseRepository[PriceSnapshot]):
@@ -55,31 +53,6 @@ class PriceRepository(BaseRepository[PriceSnapshot]):
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_latest_batch(self, tickers: list[str]) -> dict[str, PriceSnapshot]:
-        """Get the most recent price snapshot for multiple markets."""
-        # Use a subquery to get the latest snapshot time for each ticker
-        from sqlalchemy import func
-
-        subq = (
-            select(
-                PriceSnapshot.ticker,
-                func.max(PriceSnapshot.snapshot_time).label("max_time"),
-            )
-            .where(PriceSnapshot.ticker.in_(tickers))
-            .group_by(PriceSnapshot.ticker)
-            .subquery()
-        )
-
-        stmt = select(PriceSnapshot).join(
-            subq,
-            (PriceSnapshot.ticker == subq.c.ticker)
-            & (PriceSnapshot.snapshot_time == subq.c.max_time),
-        )
-
-        result = await self._session.execute(stmt)
-        snapshots = result.scalars().all()
-        return {s.ticker: s for s in snapshots}
-
     async def count_for_market(self, ticker: str) -> int:
         """Count price snapshots for a market."""
         from sqlalchemy import func
@@ -88,13 +61,3 @@ class PriceRepository(BaseRepository[PriceSnapshot]):
         result = await self._session.execute(stmt)
         count = result.scalar()
         return count if count is not None else 0
-
-    async def delete_older_than(self, before: datetime) -> int:
-        """Delete snapshots older than a given time. Returns count deleted."""
-        from sqlalchemy import delete
-
-        stmt = delete(PriceSnapshot).where(PriceSnapshot.snapshot_time < before)
-        result = await self._session.execute(stmt)
-        await self._session.flush()
-        cursor_result = cast("CursorResult[object]", result)
-        return int(cursor_result.rowcount)
