@@ -246,16 +246,41 @@ Implementation note: `KalshiClient.get_positions()` consumes `market_positions` 
 
 ### `GET /portfolio/fills` response fields
 
-Additional fields not always documented:
+**Query Parameters:**
+
+| Parameter | Type | Default | Max | Description |
+|-----------|------|---------|-----|-------------|
+| `limit` | int | 100 | 200 | Results per page |
+| `cursor` | string | - | - | Pagination cursor |
+| `min_ts` | int64 | - | - | Unix timestamp filter (after) |
+| `max_ts` | int64 | - | - | Unix timestamp filter (before) |
+| `ticker` | string | - | - | Filter by market |
+| `order_id` | string | - | - | Filter by order |
+
+**Response fields (per fill):**
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `fill_id` | string | Unique fill identifier |
+| `trade_id` | string | Legacy field (same as fill_id) |
+| `order_id` | string | Parent order ID |
+| `ticker` | string | Market ticker |
+| `side` | enum | `yes` or `no` - **literal side, not effective position** |
+| `action` | enum | `buy` or `sell` |
+| `count` | int | Contracts filled |
+| `yes_price` | int | YES price in cents |
+| `no_price` | int | NO price in cents |
 | `yes_price_fixed` | string | YES price in dollars (e.g., `"0.48"`) |
 | `no_price_fixed` | string | NO price in dollars (e.g., `"0.52"`) |
+| `is_taker` | bool | True if removed liquidity |
 | `client_order_id` | string | Client-provided order ID (if set) |
-| `purchased_side` | enum | `YES` or `NO` - direction simplified (added Sep 2025) |
+| `created_time` | string | RFC3339 timestamp |
 
-> **Tip:** `purchased_side` simplifies fill direction: BUY YES or SELL NO → `YES`, SELL YES or BUY NO → `NO`.
+> **⚠️ Data Retention:** Kalshi does NOT document how far back fills history is retained. Do not assume complete history exists.
+
+> **⚠️ Cross-Side Closing:** The `side` field is **literal** (the side you traded), NOT the effective position side. Selling YES to close a NO position shows `side=yes`, which can confuse FIFO calculations.
+
+> **Note:** Market settlements appear in `/portfolio/settlements`, NOT `/portfolio/fills`. For complete P&L, you need both endpoints.
 
 ---
 
@@ -557,6 +582,46 @@ Manage groups of orders that can be modified/canceled together:
 | `GET /search/tags` | Search tags |
 | `GET /search/sports_filters` | Sports filter options |
 
+### Portfolio Settlements (Authenticated)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /portfolio/settlements` | Your settlement history (when markets resolve) |
+
+> **Note:** Settlements are different from fills. When a market settles, your position auto-closes and appears here, NOT in `/portfolio/fills`. Important for complete P&L tracking.
+
+---
+
+## Create Order Safety Parameters
+
+`POST /portfolio/orders` supports several safety-critical parameters:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `reduce_only` | bool | **SAFETY:** Only reduce position, never increase. Use for closing trades. |
+| `cancel_order_on_pause` | bool | Auto-cancel if trading paused on exchange |
+| `buy_max_cost` | int | Max cost in cents. Enables Fill-or-Kill behavior. |
+| `post_only` | bool | Maker-only order (avoid taker fees, reject if would cross) |
+| `self_trade_prevention_type` | enum | `taker_at_cross` or `maker` - prevent self-trades |
+| `order_group_id` | string | Link order to a group (grouped cancel/modify) |
+| `time_in_force` | enum | `fill_or_kill`, `good_till_canceled`, `immediate_or_cancel` |
+
+### Order Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `queue_position` | int | **DEPRECATED** - Always returns 0. Use `GET /portfolio/orders/{id}/queue_position` instead. |
+| `taker_fees_dollars` | string | Fees paid on taker fills (dollars) |
+| `maker_fees_dollars` | string | Fees paid on maker fills (dollars) |
+| `fill_count` | int | Contracts filled so far |
+| `remaining_count` | int | Contracts still resting |
+
+### Deprecated Order Fields
+
+| Deprecated | Replacement |
+|------------|-------------|
+| `sell_position_floor` | Use `reduce_only: true` instead |
+
 ---
 
 ## Recent Breaking Changes (2025-2026)
@@ -636,8 +701,11 @@ New `include_volume` query parameter on `GET /series` endpoints. When set, retur
 | Resource | URL |
 |----------|-----|
 | Official Docs | https://docs.kalshi.com/welcome |
+| LLMs.txt (AI Discovery) | https://docs.kalshi.com/llms.txt |
 | OpenAPI Spec | https://docs.kalshi.com/openapi.yaml |
 | API Changelog | https://docs.kalshi.com/changelog |
 | Help Center | https://help.kalshi.com/kalshi-api |
 | Discord | `#dev` channel |
 | Demo Portal | https://demo.kalshi.co |
+
+> **Tip:** The `llms.txt` file is a standard LLM navigation file that lists all documentation pages. Useful for AI agents exploring the API.

@@ -119,8 +119,53 @@ uv run kalshi portfolio pnl
 
 ---
 
+## API Research (2026-01-10)
+
+### Official Kalshi Docs Findings
+
+Source: [Get Fills - API Documentation](https://docs.kalshi.com/api-reference/portfolio/get-fills)
+
+| Question | Answer |
+|----------|--------|
+| Data retention limits? | **NOT DOCUMENTED** - unknown how far back fills go |
+| `side` field semantics? | Literal side ("yes"/"no"), NOT effective position |
+| `purchased_side` field? | **NOT IN DOCS** - may be undocumented or removed |
+| Max pagination limit? | 200 per page (we use 100) |
+| Cross-side closing? | **NOT DOCUMENTED** - no guidance provided |
+
+### Implications
+
+1. **We cannot assume complete history** - Kalshi may truncate old fills
+2. **`side` is literal** - Selling YES shows `side=yes` even when closing NO position
+3. **Cross-side matching is our problem** - Kalshi doesn't help us here
+4. **Option A (graceful degradation) is correct approach** - we must handle incomplete data
+
+### Missing Endpoint: `/portfolio/settlements`
+
+**Critical finding:** We sync `/portfolio/fills` but NOT `/portfolio/settlements`.
+
+When a market settles:
+1. Position auto-closes via settlement (not a regular sell)
+2. This appears in `/portfolio/settlements`, NOT `/portfolio/fills`
+3. We never fetch it → FIFO sees orphan buys with no matching "close"
+
+**Action item:** Consider adding `/portfolio/settlements` sync to `PortfolioSyncer`.
+
+### Safety Features from Create Order Spec
+
+Relevant for future TODO-008 (agent safety rails):
+
+| Field | Use Case |
+|-------|----------|
+| `reduce_only` | Ensures order only reduces position, never increases |
+| `cancel_order_on_pause` | Auto-cancels if trading paused |
+| `buy_max_cost` | Max spend in cents, enables Fill-or-Kill |
+
+---
+
 ## References
 
 - **Regression from:** BUG-057 (FIFO implementation)
 - **File:** `src/kalshi_research/portfolio/pnl.py:88-92`
 - **CLI:** `src/kalshi_research/cli/portfolio.py:325`
+- **Kalshi Docs:** https://docs.kalshi.com/api-reference/portfolio/get-fills
