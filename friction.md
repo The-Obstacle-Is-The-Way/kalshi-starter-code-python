@@ -246,13 +246,136 @@ Before making ANY trade recommendation:
 5. [ ] If sports/breaking news: REQUIRE live data source or refuse
 ```
 
+### Critical Context: Bet Was Placed BEFORE Exa Integration
+
+**Timeline:**
+
+| Event | Timestamp |
+|-------|-----------|
+| Indiana thesis created | 2026-01-09 03:10:01 UTC |
+| Exa implemented (commit c285248) | 2026-01-09 07:15:00 UTC |
+
+The thesis was created **4 hours before** Exa was integrated. When we ran `kalshi research context` on this market AFTER Exa was live, it immediately surfaced:
+
+> "The Hoosiers have a clear edge, having already beaten the Ducks 30-20 in their previous matchup."
+
+**Exa would have caught this.** The system wasn't broken - it was incomplete.
+
 ### The Silver Lining
 
 This $17.76 loss is:
 - **Tuition** for learning how Kalshi works
 - **Data** for improving the system
 - **Documented friction** that will prevent future losses
+- **Proof that Exa integration works** (when it's actually used)
 
 > "We're paying money into education... This is good data."
+
+---
+
+## Strategic Insights: Information Arbitrage Framework (2026-01-09)
+
+### Insight 1: New Markets = Maximum Edge
+
+The best information arbitrage exists when:
+- Markets are **brand new** (crowd hasn't priced in information yet)
+- We have **domain knowledge** the market hasn't absorbed
+- The close date is far enough for resolution uncertainty
+
+**System Requirement:**
+- Alert system for newly opened markets
+- Filter by categories we have domain knowledge in (AI, politics, tech)
+- Surface markets where we can research faster than the crowd prices
+
+### Insight 2: Always Consider Both Sides (Adversarial Forcing)
+
+**The Problem:**
+If user prompts "Is X a good bet?", Claude only considers the bull case. This creates confirmation bias.
+
+**The Solution:**
+FORCE both bull AND bear research on EVERY recommendation:
+
+```text
+WRONG: "User asks about X" → Claude researches X → "Yes, X looks good"
+RIGHT: "User asks about X" → Claude researches BOTH sides → "Bull case: ... Bear case: ..." → Recommendation based on weight of evidence
+```
+
+**System Requirement:**
+- Every thesis MUST have bull_case AND bear_case populated
+- Before any recommendation, surface the 3 strongest counter-arguments
+- Refuse to recommend if counter-evidence is stronger than supporting evidence
+
+### Insight 3: Bet When Evidence is Lopsided (Not Just "Edge")
+
+**The Problem:**
+We were looking for "edge" (your probability vs market probability). But edge alone isn't enough if the evidence is uncertain.
+
+**The Solution:**
+Only recommend when:
+1. We have clear, current information (via Exa research)
+2. The evidence strongly favors one direction
+3. The market hasn't absorbed this information yet
+
+**Signal Strength Tiers:**
+
+| Tier | Evidence Quality | Recommendation |
+|------|------------------|----------------|
+| **Strong** | Multiple recent sources confirm thesis, no counter-evidence | Recommend bet |
+| **Moderate** | Some supporting evidence, some counter | Surface both, let user decide |
+| **Weak** | Training data only, no current research | REFUSE to recommend |
+| **Disqualified** | Counter-evidence stronger than thesis | Recommend AGAINST or refuse |
+
+### Insight 4: Alert System for New Market Opportunities
+
+**What We Need:**
+
+1. **New Market Scanner** - Detect markets opened in last 24-48 hours
+2. **Domain Filter** - Focus on categories with edge potential (AI, politics, economics)
+3. **Quick Research** - Run Exa on new markets immediately
+4. **Information Asymmetry Check** - Do we know something the market hasn't priced?
+
+**Proposed CLI Command:**
+
+```bash
+# Scan for new markets with quick research
+kalshi scan new-markets --hours 24 --categories politics,ai,tech --research
+```
+
+### Implementation Checklist (For Skills/Prompts)
+
+Add to `.claude/skills/kalshi-cli/` and mirrors:
+
+```markdown
+## Pre-Bet Research Protocol
+
+Before ANY bet recommendation:
+
+1. [ ] Run `kalshi research context <TICKER>` to get current news
+2. [ ] Identify 3 strongest BULL arguments
+3. [ ] Identify 3 strongest BEAR arguments
+4. [ ] Check: Is evidence lopsided or balanced?
+5. [ ] Check: Is this based on research or training data?
+6. [ ] If sports/breaking news with no live data: REFUSE to recommend
+7. [ ] If evidence is balanced: Surface both sides, let user decide
+8. [ ] If evidence is lopsided: Recommend direction evidence supports
+
+## New Market Opportunity Protocol
+
+Best edge exists on new markets. Check:
+
+1. [ ] When was market created? (newer = less efficient)
+2. [ ] Do we have domain knowledge here?
+3. [ ] Has the market absorbed obvious information?
+4. [ ] Can we research faster than crowd prices?
+```
+
+### Key Principle
+
+> **"We should bet when we clearly have information that fairly heavily favors us, when the market hasn't decided yet."**
+
+This means:
+- New markets (crowd hasn't priced in)
+- Clear evidence in one direction (not 50/50)
+- We've done the research (not vibes)
 
 ---
