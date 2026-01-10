@@ -111,8 +111,8 @@ class TestPnLCalculatorRealized:
         assert summary.total_trades == 0
         assert summary.orphan_sells_skipped == 10
 
-    def test_summary_with_trades_uses_positions_realized_pnl_for_totals(self) -> None:
-        """BUG-060: Total realized P&L should use Kalshi-synced position values."""
+    def test_summary_with_trades_does_not_use_positions_realized_pnl_for_totals(self) -> None:
+        """Total realized P&L is computed from synced history (fills + settlements)."""
         positions = [
             Position(
                 ticker="TEST-TICKER",
@@ -156,8 +156,8 @@ class TestPnLCalculatorRealized:
         calculator = PnLCalculator()
         summary = calculator.calculate_summary_with_trades(positions=positions, trades=trades)
 
-        assert summary.realized_pnl_cents == 123
-        assert summary.total_pnl_cents == 123  # unrealized is 0
+        assert summary.realized_pnl_cents == 30
+        assert summary.total_pnl_cents == 30  # unrealized is 0
 
     def test_realized_uses_fifo_across_multiple_buy_lots(self) -> None:
         """Realized P&L should use FIFO lots (not average cost)."""

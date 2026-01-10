@@ -202,11 +202,7 @@ class PnLCalculator:
 
         closed_trades = fifo_result.closed_pnls + settlement_pnls
 
-        realized_from_positions = sum(pos.realized_pnl_cents for pos in positions)
-        realized_from_settlements = sum(settlement_pnls)
-        realized = (
-            realized_from_positions + realized_from_settlements if positions else sum(closed_trades)
-        )
+        realized = sum(closed_trades)
         total = unrealized + realized
 
         winning = [t for t in closed_trades if t > 0]

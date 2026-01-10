@@ -160,21 +160,17 @@ When a market settles:
 | `settled_time` | string | ISO timestamp |
 | `fee_cost` | string | Fees in dollars |
 
-### Critical Finding: Kalshi Provides `realized_pnl`!
+### Note: `realized_pnl` coverage is not guaranteed by SSOT
 
-**We don't need to compute total realized P&L ourselves.**
-
-From `/portfolio/positions` response:
-- `realized_pnl` - Locked-in profit/loss in cents
-- `realized_pnl_dollars` - Same in dollars
-
-Kalshi computes this correctly including settlements. We should USE this value for totals, not compute our own.
+Kalshi exposes `realized_pnl` (locked-in P&L in cents) on market positions, but the docs do not specify whether
+`/portfolio/positions` returns *closed* markets (`position = 0`). For “all time” totals, we compute realized P&L from the
+synced history we control (`fills + settlements`) and surface gaps explicitly.
 
 ### Robust Fix Strategy
 
 | What | Source | Notes |
 |------|--------|-------|
-| **Total Realized P&L** | positions + settlements | Use Kalshi's `realized_pnl` and add `/portfolio/settlements` P&L |
+| **Total Realized P&L** | fills + settlements | Computed from synced history; may be incomplete if fills history is truncated |
 | **Per-Trade/Outcome Stats** | fills + settlements | FIFO on fills, plus settlement P&L as an additional “closed outcome” |
 | **Unrealized P&L** | positions + mark prices | Open position value |
 

@@ -1,7 +1,7 @@
 # BUG-060: Duplicate Realized P&L Computation (Ignores Kalshi's Value)
 
 **Priority:** P2 (Medium - inefficient and potentially inaccurate)
-**Status:** ✅ Fixed
+**Status:** 🟡 Closed (Not a bug / not provable from SSOT)
 **Found:** 2026-01-10
 **Fixed:** 2026-01-10
 **Owner:** Platform
@@ -10,11 +10,12 @@
 
 ## Summary
 
-We sync `realized_pnl` from Kalshi's `/portfolio/positions` API (which is accurate and includes settlements), but then **ignore it** and recompute our own FIFO from local trades. This is:
+This report was based on the assumption that Kalshi’s `/portfolio/positions.realized_pnl` can be treated as a complete,
+authoritative “all time realized P&L” feed. That assumption is **not supported by the SSOT**:
 
-1. **Wasteful** - duplicate computation
-2. **Inaccurate** - our FIFO lacks settlements (BUG-059)
-3. **Fragile** - crashes on incomplete history (BUG-058)
+- The OpenAPI schema defines `realized_pnl` as market-level “locked in P&L”, but does not specify whether
+  `/portfolio/positions` returns closed markets (`position = 0`) or provides complete historical coverage.
+- Settlements are surfaced via a separate endpoint (`GET /portfolio/settlements`) with cost basis + revenue fields.
 
 ---
 
@@ -37,78 +38,39 @@ From `/portfolio/positions` response:
 
 ### What We Do
 
-**Step 1 (syncer.py):** We correctly sync this value:
-```python
-# syncer.py:165
-existing.realized_pnl_cents = pos_data.realized_pnl or 0
-```
-
-**Step 2 (pnl.py):** We IGNORE it and recompute:
-```python
-# pnl.py:162 (calculate_summary_with_trades)
-closed_trades = self._get_closed_trade_pnls_fifo(trades)  # <-- Recomputes!
-realized = sum(closed_trades)
-```
+We compute **realized P&L totals** from synced history (`fills + settlements`) because there is no SSOT-backed guarantee
+that `market_positions[].realized_pnl` is available for all closed markets.
 
 ### The Problem
 
-| Source | Includes Settlements? | Includes All History? | Crashes on Gaps? |
-|--------|----------------------|----------------------|------------------|
-| Kalshi's `realized_pnl` | ✅ Yes | ✅ Yes | ❌ No |
-| Our FIFO computation | ❌ No (BUG-059) | ❌ No | ✅ Yes (BUG-058) |
+The *actual* problems were:
 
-**We're using the worse option.**
+- Missing settlement sync (BUG-059)
+- Strict FIFO that crashed on incomplete history (BUG-058)
 
 ---
 
 ## Impact
 
-1. **BUG-058 crash**: Our FIFO throws on incomplete history
-2. **Inaccurate totals**: Missing settled position P&L
-3. **Wasted computation**: Computing what Kalshi already provides
-4. **Test complexity**: Have to mock complex FIFO scenarios
+- Portfolio P&L was missing settled-market results and could crash on incomplete fills history.
 
 ---
 
-## Fix Plan (Implemented)
+## Resolution (Implemented Elsewhere)
 
-### Use Kalshi's `realized_pnl` + Settlement Records for Totals
+See BUG-058 and BUG-059. The implementation now:
 
-For total realized P&L, use the value from positions (already synced):
-
-```python
-# pnl.py - calculate_summary_with_trades
-def calculate_summary_with_trades(
-    self, positions: list[Position], trades: list[Trade]
-) -> PnLSummary:
-    # For TOTAL realized P&L, use Kalshi's authoritative value
-    realized_from_positions = sum(pos.realized_pnl_cents for pos in positions)
-
-    # For per-trade STATS (win rate, avg win/loss), still use FIFO
-    # but with graceful degradation (BUG-058 fix)
-    try:
-        closed_trades = self._get_closed_trade_pnls_fifo(trades)
-    except ValueError:
-        # Incomplete history - can't compute per-trade stats
-        closed_trades = []
-        logger.warning("Incomplete trade history; per-trade stats unavailable")
-
-    # Stats from closed_trades, total from positions
-    ...
-```
-
-For resolved markets, include `/portfolio/settlements` P&L as well (BUG-059).
+- Syncs `/portfolio/settlements` into `portfolio_settlements`
+- Computes realized P&L from synced fills + settlements
+- Degrades gracefully on gaps (orphan sells are skipped and surfaced as a count)
 
 ---
 
 ## Acceptance Criteria
 
-- [x] `calculate_summary_with_trades` uses `positions.realized_pnl_cents` for totals
-- [x] Settlement P&L is added when `/portfolio/settlements` is synced
-- [x] Per-trade FIFO no longer crashes on incomplete history (BUG-058)
-- [x] `PnLSummary` includes `orphan_sells_skipped: int` for transparency
-- [x] Unit tests updated
-- [x] `uv run pre-commit run --all-files` passes
+- [x] BUG-058 fixed (no crash on incomplete fills history)
+- [x] BUG-059 fixed (settlements synced and included)
+- [x] Docs updated to avoid unverified claims about `realized_pnl` coverage
 
 ---
 
@@ -125,4 +87,3 @@ uv run kalshi portfolio pnl  # Should not crash
 
 - **Related:** BUG-058 (FIFO crash), BUG-059 (missing settlements)
 - **API Docs:** https://docs.kalshi.com/api-reference/portfolio/get-positions
-- **Key insight:** Kalshi's `realized_pnl` includes settlements; ours doesn't

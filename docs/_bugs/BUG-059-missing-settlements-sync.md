@@ -77,13 +77,13 @@ class PortfolioSettlement(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ticker: Mapped[str] = mapped_column(String(100), nullable=False)
-    event_ticker: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    event_ticker: Mapped[str] = mapped_column(String(100), nullable=False)
     market_result: Mapped[str] = mapped_column(String(20), nullable=False)  # yes/no/void/scalar
-    yes_count: Mapped[int] = mapped_column(Integer, default=0)
-    no_count: Mapped[int] = mapped_column(Integer, default=0)
-    yes_total_cost: Mapped[int] = mapped_column(Integer, default=0)
-    no_total_cost: Mapped[int] = mapped_column(Integer, default=0)
-    revenue: Mapped[int] = mapped_column(Integer, default=0)
+    yes_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    no_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    yes_total_cost: Mapped[int] = mapped_column(Integer, nullable=False)
+    no_total_cost: Mapped[int] = mapped_column(Integer, nullable=False)
+    revenue: Mapped[int] = mapped_column(Integer, nullable=False)
     fee_cost_dollars: Mapped[str] = mapped_column(String(32), nullable=False)
     settled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -97,14 +97,14 @@ class Settlement(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     ticker: str
-    event_ticker: str | None = None
+    event_ticker: str
     market_result: str
-    yes_count: int = 0
-    no_count: int = 0
-    yes_total_cost: int = 0
-    no_total_cost: int = 0
-    revenue: int = 0
-    fee_cost: str = "0.0000"
+    yes_count: int
+    no_count: int
+    yes_total_cost: int
+    no_total_cost: int
+    revenue: int
+    fee_cost: str
     settled_time: str
     value: int | None = None
 

@@ -213,7 +213,7 @@ uv run kalshi portfolio balance
 uv run kalshi portfolio balance --env prod
 ```
 
-### Sync positions/trades (and compute P&L)
+### Sync positions/fills/settlements (and compute P&L)
 
 ```bash
 uv run kalshi portfolio sync --db data/kalshi.db

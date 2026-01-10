@@ -14,11 +14,10 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 BUG-057 (FIFO fix)
     └── introduced BUG-058 (crash on incomplete history)
             └── root cause: BUG-059 (missing settlements)
-            └── root cause: BUG-060 (ignoring Kalshi's realized_pnl)
             └── allowed by: BUG-061 (missing tests)
 ```
 
-**Fix order used:** BUG-061 → BUG-060 → BUG-059 → BUG-058
+**Fix order used:** BUG-061 → BUG-059 → BUG-058
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
@@ -31,7 +30,7 @@ Use this ID for the next bug report you create:
 | ID | Title | Status |
 |---|---|---|
 | **[BUG-061](BUG-061-missing-fifo-orphan-sells-test.md)** | Test suite missing FIFO edge case coverage | ✅ Fixed |
-| **[BUG-060](BUG-060-duplicate-realized-pnl-computation.md)** | Duplicate realized P&L computation (ignores Kalshi's value) | ✅ Fixed |
+| **[BUG-060](BUG-060-duplicate-realized-pnl-computation.md)** | Duplicate realized P&L computation (ignores Kalshi's value) | 🟡 Closed |
 | **[BUG-059](BUG-059-missing-settlements-sync.md)** | Missing portfolio settlements sync | ✅ Fixed |
 | **[BUG-058](BUG-058-fifo-incomplete-history-crash.md)** | FIFO P&L crashes on incomplete trade history | ✅ Fixed |
 | **[BUG-057](BUG-057-portfolio-pnl-integrity.md)** | Portfolio P&L integrity (FIFO realized P&L + unknown handling) | ✅ Fixed |

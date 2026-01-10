@@ -244,7 +244,10 @@ Kalshi returns both market-level and event-level aggregates:
 
 Implementation note: `KalshiClient.get_positions()` consumes `market_positions` (fallback: legacy `positions`).
 
-> **💡 Key insight:** The `realized_pnl` field is computed BY KALSHI and includes all closed trades + settlements. For total realized P&L, use this value instead of computing your own FIFO. Only compute per-trade FIFO if you need win/loss breakdowns.
+> **Note:** `realized_pnl` is a market-level “locked in P&L” field (cents) per the OpenAPI schema. Kalshi’s docs do
+> not specify whether `/portfolio/positions` returns closed markets (`position = 0`), so do not assume it is a complete
+> “all time realized P&L” feed. For end-to-end realized P&L across your history, sync `/portfolio/fills` **and**
+> `/portfolio/settlements` and compute from local history (handling gaps explicitly).
 
 ### `GET /portfolio/fills` response fields
 

@@ -283,7 +283,7 @@ def portfolio_pnl(  # noqa: PLR0915
         return value
 
     def _build_summary_table(summary: PnLSummary) -> Table:
-        table = Table(title="P&L Summary (All Time)", show_header=False)
+        table = Table(title="P&L Summary (Synced History)", show_header=False)
         table.add_column("Metric", style="cyan")
         table.add_column("Value", justify="right")
 
