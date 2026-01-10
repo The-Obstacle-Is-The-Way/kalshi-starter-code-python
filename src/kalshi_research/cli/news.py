@@ -96,14 +96,13 @@ async def _news_track_async(
     queries: str | None,
     db_path: Path,
 ) -> tuple[str, str, list[str]]:
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.news import NewsTracker
 
     event_obj, market_obj, title = await _fetch_tracking_targets(ticker, event=event)
     search_queries = _parse_search_queries(queries, title=title)
 
-    async with DatabaseManager(db_path) as db:
-        await db.create_tables()
+    async with open_db(db_path) as db:
         await _upsert_event_and_market(db=db, event_obj=event_obj, market_obj=market_obj)
         tracked = await NewsTracker(db).track(
             ticker=ticker,
@@ -157,12 +156,11 @@ def news_untrack(
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """Stop tracking a market/event."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.news import NewsTracker
 
     async def _untrack() -> None:
-        async with DatabaseManager(db_path) as db:
-            await db.create_tables()
+        async with open_db(db_path) as db:
             tracker = NewsTracker(db)
             removed = await tracker.untrack(ticker)
         if not removed:
@@ -185,12 +183,11 @@ def news_list_tracked(
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """List tracked markets/events."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.news import NewsTracker
 
     async def _list() -> None:
-        async with DatabaseManager(db_path) as db:
-            await db.create_tables()
+        async with open_db(db_path) as db:
             tracker = NewsTracker(db)
             items = await tracker.list_tracked(active_only=not include_all)
 
@@ -230,7 +227,7 @@ def news_collect(
     """Collect news for tracked items."""
     from sqlalchemy import select
 
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.data.models import TrackedItem
     from kalshi_research.exa import ExaClient, ExaConfig
     from kalshi_research.news import NewsCollector, SentimentAnalyzer
@@ -242,8 +239,7 @@ def news_collect(
             console.print(f"[red]Error:[/red] {exc}")
             raise typer.Exit(1) from None
 
-        async with DatabaseManager(db_path) as db, ExaClient(config) as exa:
-            await db.create_tables()
+        async with open_db(db_path) as db, ExaClient(config) as exa:
             collector = NewsCollector(
                 exa=exa,
                 db=db,
@@ -288,12 +284,11 @@ def news_sentiment(
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """Show a sentiment summary for a market/event."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.news import SentimentAggregator
 
     async def _report() -> None:
-        async with DatabaseManager(db_path) as db:
-            await db.create_tables()
+        async with open_db(db_path) as db:
             aggregator = SentimentAggregator(db)
             summary = (
                 await aggregator.get_event_summary(ticker, days=days)

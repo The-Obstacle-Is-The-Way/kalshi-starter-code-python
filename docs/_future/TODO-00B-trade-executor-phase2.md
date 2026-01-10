@@ -1,12 +1,15 @@
 # TODO-00B: TradeExecutor with Budget Limits (FUTURE)
 
 **Priority**: Low (until agent trading enabled)
-**Status**: DEFERRED
+**Status**: DEFERRED (Phase 2)
 **Created**: 2026-01-09
 **Depends On**: Active agent trading use case
 
 > **Note (2026-01-10):** This TODO is the backlog seed. The implementation-ready spec lives in
 > `docs/_specs/SPEC-034-trade-executor-safety-harness.md`.
+>
+> **Update (2026-01-10):** Phase 1 of `TradeExecutor` is implemented in `src/kalshi_research/execution/`.
+> This TODO now tracks Phase 2 hardening only (budgets/positions/liquidity guards).
 
 ---
 
@@ -17,8 +20,8 @@ Implement a full `TradeExecutor` class with budget limits, position caps, and sa
 ## Why Deferred?
 
 1. **No immediate need**: The platform is currently research-focused
-2. **dry_run implemented**: TODO-008 added `dry_run=True` to `create_order` for testing
-3. **High complexity**: Full trading harness needs careful design
+2. **Phase 1 implemented**: TradeExecutor exists (dry-run default, audit logging, confirmation gate, basic limits)
+3. **High complexity**: Full trading harness needs careful design (budgets, positions, liquidity checks)
 4. **Risk**: Financial risk if implemented poorly
 
 ## When to Implement

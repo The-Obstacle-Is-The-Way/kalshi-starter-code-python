@@ -10,8 +10,12 @@ The codebase is generally secure for a research tool, but lacks specific safegua
 ## Critical Risks (Action Required)
 
 ### 1. Agent Harness Safety (Financial Risk)
-*   **Issue**: `KalshiClient.create_order` executes immediately. An LLM agent using this tool has no "undo" button and no safety net.
-*   **Mitigation**: Created **TODO-008 (Agent Safety Rails)** to implement `dry_run` and a `TradeExecutor` with budget limits.
+*   **Issue**: Kalshi write endpoints are accessible via `KalshiClient` methods. Any automation (LLM/agent/cron) must not call these directly without a safety boundary.
+*   **Mitigation (2026-01-10)**: Implemented `TradeExecutor` as the safety boundary:
+    *   `src/kalshi_research/execution/executor.py` (safe-by-default: `live=False` ⇒ `dry_run=True`)
+    *   kill switch (`KALSHI_TRADE_KILL_SWITCH=1`), environment gating, confirmation gate for live, per-order risk cap, per-day order cap
+    *   append-only JSONL audit log (`data/trade_audit.log` by default)
+*   **Remaining (Phase 2, if autonomous trading is enabled)**: daily budgets / position caps / liquidity-aware sizing (see `docs/_specs/SPEC-034-trade-executor-safety-harness.md`).
 
 ### 2. DuckDB Export Injection (Local Risk) - CLEARED
 *   **Location**: `src/kalshi_research/data/export.py:43-46`
@@ -43,6 +47,7 @@ The codebase is generally secure for a research tool, but lacks specific safegua
 *   **Verdict**: **Safe**.
 
 ## Recommendations
-1.  **Implement TODO-008 immediately** if agents are to be enabled.
+1.  **Use `TradeExecutor` for all trading attempts** (and keep agent loops from importing/using `KalshiClient` trading methods directly).
+2.  If/when autonomous trading is enabled, complete Phase 2 safety rails in `docs/_specs/SPEC-034-trade-executor-safety-harness.md`.
 2.  ~~Add input validation to `src/kalshi_research/data/export.py` for file paths.~~ ✅ Already implemented.
 3.  Add a `SECURITY.md` to the root if open-sourcing.

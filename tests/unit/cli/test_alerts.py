@@ -235,6 +235,55 @@ def test_alerts_monitor_daemon_calls_spawn() -> None:
 
 
 @patch("kalshi_research.cli.alerts._load_alerts")
+def test_alerts_monitor_adds_optional_notifiers(mock_load_alerts: MagicMock) -> None:
+    mock_load_alerts.return_value = {
+        "conditions": [
+            {
+                "id": "alert-123",
+                "condition_type": "price_above",
+                "ticker": "TEST-TICKER",
+                "threshold": 0.9,
+                "label": "price_above TEST-TICKER > 0.9",
+            }
+        ]
+    }
+
+    monitor = MagicMock()
+
+    with (
+        patch("kalshi_research.alerts.AlertMonitor", return_value=monitor),
+        patch(
+            "kalshi_research.cli.alerts._run_alert_monitor_loop",
+            new=AsyncMock(return_value=None),
+        ),
+        patch("kalshi_research.alerts.notifiers.ConsoleNotifier") as mock_console_notifier,
+        patch("kalshi_research.alerts.notifiers.FileNotifier") as mock_file_notifier,
+        patch("kalshi_research.alerts.notifiers.WebhookNotifier") as mock_webhook_notifier,
+    ):
+        result = runner.invoke(
+            app,
+            [
+                "alerts",
+                "monitor",
+                "--once",
+                "--output-file",
+                "alerts.jsonl",
+                "--webhook-url",
+                "https://example.com/webhook",
+            ],
+        )
+
+    assert result.exit_code == 0
+    mock_console_notifier.assert_called_once_with()
+    mock_file_notifier.assert_called_once_with(Path("alerts.jsonl"))
+    mock_webhook_notifier.assert_called_once_with("https://example.com/webhook")
+
+    monitor.add_notifier.assert_any_call(mock_console_notifier.return_value)
+    monitor.add_notifier.assert_any_call(mock_file_notifier.return_value)
+    monitor.add_notifier.assert_any_call(mock_webhook_notifier.return_value)
+
+
+@patch("kalshi_research.cli.alerts._load_alerts")
 @patch("kalshi_research.cli.alerts.subprocess.Popen")
 def test_alerts_monitor_daemon_spawns_background_process(
     mock_popen: MagicMock,
@@ -271,6 +320,10 @@ def test_alerts_monitor_daemon_spawns_background_process(
                 "--max-pages",
                 "2",
                 "--once",
+                "--output-file",
+                "alerts.jsonl",
+                "--webhook-url",
+                "https://example.com/webhook",
             ],
         )
 
@@ -282,6 +335,10 @@ def test_alerts_monitor_daemon_spawns_background_process(
     args, kwargs = mock_popen.call_args
     assert args[0][:4] == ["/usr/bin/python", "-m", "kalshi_research.cli", "alerts"]
     assert args[0][4:6] == ["monitor", "--interval"]
+    assert "--output-file" in args[0]
+    assert "alerts.jsonl" in args[0]
+    assert "--webhook-url" in args[0]
+    assert "https://example.com/webhook" in args[0]
     assert "--daemon" not in args[0]
     assert kwargs["stdin"] is not None
     assert kwargs["stdout"] is kwargs["stderr"]

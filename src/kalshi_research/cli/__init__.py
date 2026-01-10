@@ -76,3 +76,54 @@ def version() -> None:
     from kalshi_research import __version__
 
     console.print(f"kalshi-research v{__version__}")
+
+
+@app.command()
+def status(
+    output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
+) -> None:
+    """Show Kalshi exchange operational status."""
+    import asyncio
+    import json
+
+    from rich.table import Table
+
+    from kalshi_research.api import KalshiPublicClient
+
+    async def _fetch() -> dict[str, object]:
+        from kalshi_research.api.exceptions import KalshiAPIError
+
+        async with KalshiPublicClient() as client:
+            try:
+                status = await client.get_exchange_status()
+            except KalshiAPIError as e:
+                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+                raise typer.Exit(1) from None
+            except Exception as e:
+                console.print(f"[red]Error:[/red] {e}")
+                raise typer.Exit(1) from None
+        if not isinstance(status, dict):
+            console.print("[red]Error:[/red] Unexpected exchange status response type")
+            raise typer.Exit(1) from None
+        return status
+
+    status = asyncio.run(_fetch())
+
+    if output_json:
+        console.print(json.dumps(status, indent=2, default=str))
+        return
+
+    table = Table(title="Exchange Status")
+    table.add_column("Field", style="cyan")
+    table.add_column("Value", style="green")
+
+    exchange_active = status.get("exchange_active")
+    trading_active = status.get("trading_active")
+    table.add_row("exchange_active", str(exchange_active))
+    table.add_row("trading_active", str(trading_active))
+
+    extra_keys = [k for k in status if k not in {"exchange_active", "trading_active"}]
+    for key in sorted(extra_keys):
+        table.add_row(key, str(status[key]))
+
+    console.print(table)

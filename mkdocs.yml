@@ -86,6 +86,7 @@ nav:
       - Bug Tracker: _bugs/README.md
       - Debt Overview: _debt/README.md
       - Technical Debt: _debt/technical-debt.md
+      - Bloat Analysis: _debt/bloat.md
       - Code Audit Checklist: _debt/code-audit-checklist.md
       - Security Audit: _debt/security-audit.md
       - Ralph Wiggum Protocol: _ralph-wiggum/protocol.md

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
@@ -35,14 +34,6 @@ class MarketRepository(BaseRepository[Market]):
     async def get_active(self) -> Sequence[Market]:
         """Get all active markets."""
         return await self.get_by_status("active")
-
-    async def get_expiring_before(self, before: datetime) -> Sequence[Market]:
-        """Get markets expiring before a given time."""
-        stmt = (
-            select(Market).where(Market.expiration_time < before).where(Market.status == "active")
-        )
-        result = await self._session.execute(stmt)
-        return result.scalars().all()
 
     async def insert_ignore(self, market: Market) -> None:
         """Insert a market row if it does not exist (FK robustness, no updates)."""

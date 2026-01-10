@@ -1,5 +1,8 @@
 """WebSocket client for Kalshi API."""
 
+# RESERVED: Real-time streaming is not yet exposed via the CLI.
+# See docs/_debt/DEBT-009-finish-halfway-implementations.md (WebSocket Real-time Data).
+
 from __future__ import annotations
 
 import asyncio

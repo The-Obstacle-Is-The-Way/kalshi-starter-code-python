@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from typer.testing import CliRunner
 
+from kalshi_research.api.models.candlestick import (
+    CandlePrice,
+    CandleSide,
+    Candlestick,
+    CandlestickResponse,
+)
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.cli import app
 
@@ -181,3 +188,297 @@ def test_market_liquidity_renders_zero_prices(mock_client_cls: MagicMock) -> Non
     assert result.exit_code == 0
     assert "Liquidity Analysis" in result.stdout
     assert "N/A" not in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_history_calls_get_candlesticks(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_client.get_candlesticks = AsyncMock(
+        return_value=[
+            CandlestickResponse(
+                market_ticker="TEST-MARKET",
+                candlesticks=[
+                    Candlestick(
+                        end_period_ts=1700003600,
+                        open_interest=123,
+                        volume=1000,
+                        price=CandlePrice(close=47),
+                        yes_bid=CandleSide(),
+                        yes_ask=CandleSide(),
+                    )
+                ],
+            )
+        ]
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "market",
+            "history",
+            "TEST-MARKET",
+            "--interval",
+            "1h",
+            "--start-ts",
+            "1700000000",
+            "--end-ts",
+            "1700100000",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Candlestick History: TEST-MARKET" in result.stdout
+    assert "47¢" in result.stdout
+    mock_client.get_candlesticks.assert_awaited_once_with(
+        market_tickers=["TEST-MARKET"],
+        start_ts=1700000000,
+        end_ts=1700100000,
+        period_interval=60,
+    )
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_history_with_series_uses_series_endpoint(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_client.get_series_candlesticks = AsyncMock(
+        return_value=[
+            Candlestick(
+                end_period_ts=1700003600,
+                open_interest=123,
+                volume=1000,
+                price=CandlePrice(close=47),
+                yes_bid=CandleSide(),
+                yes_ask=CandleSide(),
+            )
+        ]
+    )
+    mock_client.get_candlesticks = AsyncMock()
+
+    result = runner.invoke(
+        app,
+        [
+            "market",
+            "history",
+            "TEST-MARKET",
+            "--series",
+            "TEST-SERIES",
+            "--interval",
+            "1h",
+            "--start-ts",
+            "1700000000",
+            "--end-ts",
+            "1700100000",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Candlestick History: TEST-MARKET" in result.stdout
+    mock_client.get_series_candlesticks.assert_awaited_once_with(
+        series_ticker="TEST-SERIES",
+        ticker="TEST-MARKET",
+        start_ts=1700000000,
+        end_ts=1700100000,
+        period_interval=60,
+    )
+    mock_client.get_candlesticks.assert_not_awaited()
+
+
+def test_market_history_rejects_invalid_interval() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "market",
+            "history",
+            "TEST-MARKET",
+            "--interval",
+            "2h",
+            "--start-ts",
+            "1700000000",
+            "--end-ts",
+            "1700100000",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "Invalid interval" in result.stdout
+
+
+def test_market_history_rejects_days_when_start_ts_missing() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "market",
+            "history",
+            "TEST-MARKET",
+            "--interval",
+            "1h",
+            "--days",
+            "0",
+            "--end-ts",
+            "1700100000",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "--days must be > 0" in result.stdout
+
+
+def test_market_history_rejects_start_ts_after_end_ts() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "market",
+            "history",
+            "TEST-MARKET",
+            "--interval",
+            "1h",
+            "--start-ts",
+            "200",
+            "--end-ts",
+            "100",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "start-ts must be < end-ts" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_history_no_candles_prints_message(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_client.get_candlesticks = AsyncMock(return_value=[])
+
+    result = runner.invoke(
+        app,
+        [
+            "market",
+            "history",
+            "TEST-MARKET",
+            "--interval",
+            "1h",
+            "--start-ts",
+            "1700000000",
+            "--end-ts",
+            "1700100000",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "No candlesticks returned" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_history_json_output(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_client.get_candlesticks = AsyncMock(
+        return_value=[
+            CandlestickResponse(
+                market_ticker="TEST-MARKET",
+                candlesticks=[
+                    Candlestick(
+                        end_period_ts=1700003600,
+                        open_interest=123,
+                        volume=1000,
+                        price=CandlePrice(close=47),
+                        yes_bid=CandleSide(),
+                        yes_ask=CandleSide(),
+                    )
+                ],
+            )
+        ]
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "market",
+            "history",
+            "TEST-MARKET",
+            "--interval",
+            "1h",
+            "--start-ts",
+            "1700000000",
+            "--end-ts",
+            "1700100000",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload[0]["end_period_ts"] == 1700003600
+    assert payload[0]["price"]["close"] == 47
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_history_api_error_exits_with_error(mock_client_cls: MagicMock) -> None:
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_client.get_candlesticks = AsyncMock(side_effect=KalshiAPIError(400, "Bad request"))
+
+    result = runner.invoke(
+        app,
+        [
+            "market",
+            "history",
+            "TEST-MARKET",
+            "--interval",
+            "1h",
+            "--start-ts",
+            "1700000000",
+            "--end-ts",
+            "1700100000",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "API Error 400" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_history_unexpected_error_exits_with_error(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_client.get_candlesticks = AsyncMock(side_effect=RuntimeError("boom"))
+
+    result = runner.invoke(
+        app,
+        [
+            "market",
+            "history",
+            "TEST-MARKET",
+            "--interval",
+            "1h",
+            "--start-ts",
+            "1700000000",
+            "--end-ts",
+            "1700100000",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "boom" in result.stdout

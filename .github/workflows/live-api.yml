@@ -1,0 +1,38 @@
+name: Live API Contract (Kalshi)
+
+on:
+  schedule:
+    # Daily canary run to catch vendor drift (demo environment).
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: live-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-api:
+    name: Live API Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python
+        run: uv python install 3.11
+      - name: Install dependencies
+        run: uv sync --all-extras
+      - name: Run live API tests (demo)
+        env:
+          KALSHI_RUN_LIVE_API: "1"
+          KALSHI_ENVIRONMENT: "demo"
+          KALSHI_KEY_ID: ${{ secrets.DEMO_KEYID }}
+          KALSHI_PRIVATE_KEY_B64: ${{ secrets.DEMO_KEYFILE_CONTENT_B64 }}
+        run: |
+          uv run pytest \
+            tests/integration/api/test_public_api_live.py \
+            tests/integration/api/test_authenticated_api_live.py \
+            -m integration \
+            --timeout=60

@@ -7,7 +7,7 @@ Pydantic model instances, not mocked stand-ins.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -97,6 +97,43 @@ class TestMarketModel:
 
         assert market.settlement_ts is not None
         assert market.settlement_ts < market.expiration_time
+
+    def test_market_datetime_fields_are_normalized_to_utc(self) -> None:
+        market = Market.model_validate(
+            {
+                "ticker": "TEST",
+                "event_ticker": "EVT",
+                "title": "Test",
+                "subtitle": "",
+                "status": "active",
+                "result": "",
+                "yes_bid": 50,
+                "yes_ask": 50,
+                "no_bid": 50,
+                "no_ask": 50,
+                "volume": 0,
+                "volume_24h": 0,
+                "open_interest": 0,
+                "liquidity": 0,
+                "created_time": "2024-01-01T00:00:00",
+                "open_time": "2024-01-01T00:00:00",
+                "close_time": "2025-01-01T00:00:00",
+                "expiration_time": "2025-01-02T00:00:00",
+                "settlement_ts": "2025-12-31T12:00:00",
+            }
+        )
+
+        assert market.created_time is not None
+        for dt in (
+            market.created_time,
+            market.open_time,
+            market.close_time,
+            market.expiration_time,
+            market.settlement_ts,
+        ):
+            assert dt is not None
+            assert dt.tzinfo is not None
+            assert dt.utcoffset() == timedelta(0)
 
     def test_market_settlement_ts_optional(self, make_market: Any) -> None:
         """Market model accepts missing settlement_ts for unsettled/legacy markets."""

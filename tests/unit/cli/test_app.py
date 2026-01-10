@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import json
 import os
 import runpy
 import sys
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
@@ -62,3 +63,81 @@ def test_module_entrypoint_executes() -> None:
     ):
         runpy.run_module("kalshi_research.cli.__main__", run_name="__main__")
     assert exc.value.code == 2
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_status_command(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_exchange_status = AsyncMock(
+        return_value={"exchange_active": True, "trading_active": True, "maintenance": False}
+    )
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["status"])
+
+    assert result.exit_code == 0
+    assert "Exchange Status" in result.stdout
+    assert "exchange_active" in result.stdout
+    assert "maintenance" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_status_command_json_output(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_exchange_status = AsyncMock(return_value={"exchange_active": True})
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["status", "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["exchange_active"] is True
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_status_command_unexpected_type_exits_with_error(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_exchange_status = AsyncMock(return_value=["not-a-dict"])
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["status"])
+
+    assert result.exit_code == 1
+    assert "Unexpected exchange status response type" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_status_command_api_error_exits_cleanly(mock_client_cls: MagicMock) -> None:
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_exchange_status = AsyncMock(side_effect=KalshiAPIError(500, "Boom"))
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["status"])
+
+    assert result.exit_code == 1
+    assert "API Error 500" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_status_command_generic_error_exits_cleanly(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_exchange_status = AsyncMock(side_effect=RuntimeError("Boom"))
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["status"])
+
+    assert result.exit_code == 1
+    assert "Error:" in result.stdout
+    assert "Boom" in result.stdout

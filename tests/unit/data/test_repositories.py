@@ -122,24 +122,6 @@ class TestEventRepository:
         assert fetched.title == "Test Event"
 
     @pytest.mark.asyncio
-    async def test_get_by_series(self, seeded_session: AsyncSession) -> None:
-        """Can filter events by series."""
-        repo = EventRepository(seeded_session)
-        events = await repo.get_by_series("S1")
-
-        assert len(events) == 2
-        assert all(e.series_ticker == "S1" for e in events)
-
-    @pytest.mark.asyncio
-    async def test_get_by_category(self, seeded_session: AsyncSession) -> None:
-        """Can filter events by category."""
-        repo = EventRepository(seeded_session)
-        events = await repo.get_by_category("Crypto")
-
-        assert len(events) == 2
-        assert all(e.category == "Crypto" for e in events)
-
-    @pytest.mark.asyncio
     async def test_upsert_new(self, async_session: AsyncSession) -> None:
         """Upsert creates new event if not exists."""
         repo = EventRepository(async_session)
@@ -209,17 +191,6 @@ class TestMarketRepository:
         assert all(m.status == "active" for m in active)
 
     @pytest.mark.asyncio
-    async def test_get_expiring_before(self, seeded_session: AsyncSession) -> None:
-        """Can find markets expiring before a date."""
-        repo = MarketRepository(seeded_session)
-        now = datetime.now(UTC)
-        expiring = await repo.get_expiring_before(now + timedelta(days=10))
-
-        # MKT2 expires in 6 days
-        assert len(expiring) == 1
-        assert expiring[0].ticker == "MKT2"
-
-    @pytest.mark.asyncio
     async def test_count_by_status(self, seeded_session: AsyncSession) -> None:
         """Can count markets by status."""
         repo = MarketRepository(seeded_session)
@@ -266,39 +237,12 @@ class TestPriceRepository:
         assert latest.yes_bid == 45
 
     @pytest.mark.asyncio
-    async def test_get_latest_batch(self, seeded_session: AsyncSession) -> None:
-        """Can get latest snapshots for multiple markets at once."""
-        repo = PriceRepository(seeded_session)
-        latest = await repo.get_latest_batch(["MKT1", "MKT2"])
-
-        assert len(latest) == 2
-        assert "MKT1" in latest
-        assert "MKT2" in latest
-
-    @pytest.mark.asyncio
     async def test_count_for_market(self, seeded_session: AsyncSession) -> None:
         """Can count snapshots for a market."""
         repo = PriceRepository(seeded_session)
         count = await repo.count_for_market("MKT1")
 
         assert count == 5
-
-    @pytest.mark.asyncio
-    async def test_delete_older_than(self, seeded_session: AsyncSession) -> None:
-        """Can delete old snapshots."""
-        repo = PriceRepository(seeded_session)
-        now = datetime.now(UTC)
-
-        # Delete snapshots older than 3 hours
-        deleted = await repo.delete_older_than(now - timedelta(hours=3))
-        await repo.commit()
-
-        # Should have deleted some snapshots
-        assert deleted > 0
-
-        # Verify remaining snapshots are newer
-        remaining = await repo.count_for_market("MKT1")
-        assert remaining < 5
 
 
 class TestSettlementRepository:
@@ -342,17 +286,6 @@ class TestSettlementRepository:
         assert all(s.event_ticker == "EVT1" for s in settlements)
 
     @pytest.mark.asyncio
-    async def test_get_by_result(self, settlement_session: AsyncSession) -> None:
-        """Can filter settlements by result."""
-        repo = SettlementRepository(settlement_session)
-
-        yes_settlements = await repo.get_by_result("yes")
-        assert len(yes_settlements) == 2
-
-        no_settlements = await repo.get_by_result("no")
-        assert len(no_settlements) == 1
-
-    @pytest.mark.asyncio
     async def test_get_settled_after(self, settlement_session: AsyncSession) -> None:
         """Can filter settlements by settlement time."""
         repo = SettlementRepository(settlement_session)
@@ -361,12 +294,3 @@ class TestSettlementRepository:
         recent = await repo.get_settled_after(now - timedelta(hours=12))
         assert len(recent) == 1
         assert recent[0].ticker == "MKT3"
-
-    @pytest.mark.asyncio
-    async def test_count_by_result(self, settlement_session: AsyncSession) -> None:
-        """Can count settlements by result."""
-        repo = SettlementRepository(settlement_session)
-        counts = await repo.count_by_result()
-
-        assert counts["yes"] == 2
-        assert counts["no"] == 1

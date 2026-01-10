@@ -103,7 +103,7 @@ def portfolio_sync(
     """
     from kalshi_research.api import KalshiClient, KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.portfolio.syncer import PortfolioSyncer
 
     environment_override = _validate_environment_override(environment)
@@ -120,9 +120,8 @@ def portfolio_sync(
                     environment=environment_override,
                     rate_tier=rate_tier_override,
                 ) as client,
-                DatabaseManager(db_path) as db,
+                open_db(db_path) as db,
             ):
-                await db.create_tables()
                 syncer = PortfolioSyncer(client=client, db=db)
 
                 # Sync trades first (needed for cost basis calculation)
@@ -180,86 +179,79 @@ def portfolio_positions(
     ] = None,
 ) -> None:
     """View current positions."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.portfolio import Position
 
     async def _positions() -> None:
-        db = DatabaseManager(db_path)
-        try:
-            await db.create_tables()
-            async with db.session_factory() as session:
-                # Build query
-                query = select(Position).where(Position.closed_at.is_(None))
-                if ticker:
-                    query = query.where(Position.ticker == ticker)
+        async with open_db(db_path) as db, db.session_factory() as session:
+            # Build query
+            query = select(Position).where(Position.closed_at.is_(None))
+            if ticker:
+                query = query.where(Position.ticker == ticker)
 
-                result = await session.execute(query)
-                positions = result.scalars().all()
+            result = await session.execute(query)
+            positions = result.scalars().all()
 
-                if not positions:
-                    console.print("[yellow]No open positions found[/yellow]")
-                    console.print(PORTFOLIO_SYNC_TIP)
-                    return
+            if not positions:
+                console.print("[yellow]No open positions found[/yellow]")
+                console.print(PORTFOLIO_SYNC_TIP)
+                return
 
-                # Display positions table
-                table = Table(title="Current Positions", show_header=True)
-                table.add_column("Ticker", style="cyan")
-                table.add_column("Side", style="magenta")
-                table.add_column("Qty", justify="right")
-                table.add_column("Avg Price", justify="right")
-                table.add_column("Current", justify="right")
-                table.add_column("Unrealized P&L", justify="right")
+            # Display positions table
+            table = Table(title="Current Positions", show_header=True)
+            table.add_column("Ticker", style="cyan")
+            table.add_column("Side", style="magenta")
+            table.add_column("Qty", justify="right")
+            table.add_column("Avg Price", justify="right")
+            table.add_column("Current", justify="right")
+            table.add_column("Unrealized P&L", justify="right")
 
-                total_unrealized_cents = 0
-                unknown_unrealized = 0
-                for pos in positions:
-                    avg_price = "-" if pos.avg_price_cents == 0 else f"{pos.avg_price_cents}¢"
-                    current = (
-                        f"{pos.current_price_cents}¢"
-                        if pos.current_price_cents is not None
-                        else "-"
-                    )
+            total_unrealized_cents = 0
+            unknown_unrealized = 0
+            for pos in positions:
+                avg_price = "-" if pos.avg_price_cents == 0 else f"{pos.avg_price_cents}¢"
+                current = (
+                    f"{pos.current_price_cents}¢" if pos.current_price_cents is not None else "-"
+                )
 
-                    pnl_str = "-"
-                    if pos.unrealized_pnl_cents is None:
-                        unknown_unrealized += 1
-                    else:
-                        unrealized = pos.unrealized_pnl_cents
-                        total_unrealized_cents += unrealized
+                pnl_str = "-"
+                if pos.unrealized_pnl_cents is None:
+                    unknown_unrealized += 1
+                else:
+                    unrealized = pos.unrealized_pnl_cents
+                    total_unrealized_cents += unrealized
 
-                        pnl_str = f"${unrealized / 100:.2f}"
-                        if unrealized > 0:
-                            pnl_str = f"[green]+{pnl_str}[/green]"
-                        elif unrealized < 0:
-                            pnl_str = f"[red]{pnl_str}[/red]"
+                    pnl_str = f"${unrealized / 100:.2f}"
+                    if unrealized > 0:
+                        pnl_str = f"[green]+{pnl_str}[/green]"
+                    elif unrealized < 0:
+                        pnl_str = f"[red]{pnl_str}[/red]"
 
-                    table.add_row(
-                        pos.ticker,
-                        pos.side.upper(),
-                        str(pos.quantity),
-                        avg_price,
-                        current,
-                        pnl_str,
-                    )
+                table.add_row(
+                    pos.ticker,
+                    pos.side.upper(),
+                    str(pos.quantity),
+                    avg_price,
+                    current,
+                    pnl_str,
+                )
 
-                console.print(table)
-                total_label = "Total Unrealized P&L"
-                if unknown_unrealized:
-                    total_label = "Total Unrealized P&L (known only)"
-                console.print(f"\n{total_label}: ${total_unrealized_cents / 100:.2f}")
-                if unknown_unrealized:
-                    console.print(
-                        f"[yellow]{unknown_unrealized} position(s) have unknown unrealized P&L "
-                        "(missing cost basis or mark prices).[/yellow]"
-                    )
-        finally:
-            await db.close()
+            console.print(table)
+            total_label = "Total Unrealized P&L"
+            if unknown_unrealized:
+                total_label = "Total Unrealized P&L (known only)"
+            console.print(f"\n{total_label}: ${total_unrealized_cents / 100:.2f}")
+            if unknown_unrealized:
+                console.print(
+                    f"[yellow]{unknown_unrealized} position(s) have unknown unrealized P&L "
+                    "(missing cost basis or mark prices).[/yellow]"
+                )
 
     asyncio.run(_positions())
 
 
 @app.command("pnl")
-def portfolio_pnl(  # noqa: PLR0915
+def portfolio_pnl(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
@@ -270,7 +262,7 @@ def portfolio_pnl(  # noqa: PLR0915
     ] = None,
 ) -> None:
     """View profit & loss summary."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.portfolio import PnLCalculator, PnLSummary, Position, Trade
     from kalshi_research.portfolio.models import PortfolioSettlement
 
@@ -313,46 +305,41 @@ def portfolio_pnl(  # noqa: PLR0915
         return table
 
     async def _pnl() -> None:
-        db = DatabaseManager(db_path)
-        try:
-            await db.create_tables()
-            async with db.session_factory() as session:
-                # Get positions
-                pos_query = select(Position)
-                if ticker:
-                    pos_query = pos_query.where(Position.ticker == ticker)
+        async with open_db(db_path) as db, db.session_factory() as session:
+            # Get positions
+            pos_query = select(Position)
+            if ticker:
+                pos_query = pos_query.where(Position.ticker == ticker)
 
-                pos_result = await session.execute(pos_query)
-                positions = list(pos_result.scalars().all())
+            pos_result = await session.execute(pos_query)
+            positions = list(pos_result.scalars().all())
 
-                # Get trades
-                trade_query = select(Trade)
-                if ticker:
-                    trade_query = trade_query.where(Trade.ticker == ticker)
+            # Get trades
+            trade_query = select(Trade)
+            if ticker:
+                trade_query = trade_query.where(Trade.ticker == ticker)
 
-                trade_result = await session.execute(trade_query)
-                trades = list(trade_result.scalars().all())
+            trade_result = await session.execute(trade_query)
+            trades = list(trade_result.scalars().all())
 
-                # Get settlements (for complete history and resolved-market P&L)
-                settlement_query = select(PortfolioSettlement)
-                if ticker:
-                    settlement_query = settlement_query.where(PortfolioSettlement.ticker == ticker)
+            # Get settlements (for complete history and resolved-market P&L)
+            settlement_query = select(PortfolioSettlement)
+            if ticker:
+                settlement_query = settlement_query.where(PortfolioSettlement.ticker == ticker)
 
-                settlement_result = await session.execute(settlement_query)
-                settlements = list(settlement_result.scalars().all())
+            settlement_result = await session.execute(settlement_query)
+            settlements = list(settlement_result.scalars().all())
 
-                # Calculate P&L
-                calculator = PnLCalculator()
-                summary = calculator.calculate_summary_with_trades(
-                    positions=positions,
-                    trades=trades,
-                    settlements=settlements,
-                )
+            # Calculate P&L
+            calculator = PnLCalculator()
+            summary = calculator.calculate_summary_with_trades(
+                positions=positions,
+                trades=trades,
+                settlements=settlements,
+            )
 
-                # Display summary
-                console.print(_build_summary_table(summary))
-        finally:
-            await db.close()
+            # Display summary
+            console.print(_build_summary_table(summary))
 
     asyncio.run(_pnl())
 
@@ -438,55 +425,50 @@ def portfolio_history(
     ] = None,
 ) -> None:
     """View trade history."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.portfolio import Trade
 
     async def _history() -> None:
-        db = DatabaseManager(db_path)
-        try:
-            await db.create_tables()
-            async with db.session_factory() as session:
-                # Build query
-                query = select(Trade).order_by(Trade.executed_at.desc()).limit(limit)
-                if ticker:
-                    query = query.where(Trade.ticker == ticker)
+        async with open_db(db_path) as db, db.session_factory() as session:
+            # Build query
+            query = select(Trade).order_by(Trade.executed_at.desc()).limit(limit)
+            if ticker:
+                query = query.where(Trade.ticker == ticker)
 
-                result = await session.execute(query)
-                trades = result.scalars().all()
+            result = await session.execute(query)
+            trades = result.scalars().all()
 
-                if not trades:
-                    console.print("[yellow]No trades found[/yellow]")
-                    console.print(PORTFOLIO_SYNC_TIP)
-                    return
+            if not trades:
+                console.print("[yellow]No trades found[/yellow]")
+                console.print(PORTFOLIO_SYNC_TIP)
+                return
 
-                # Display trades table
-                table = Table(title=f"Trade History (Last {limit})", show_header=True)
-                table.add_column("Date", style="dim")
-                table.add_column("Ticker", style="cyan")
-                table.add_column("Side", style="magenta")
-                table.add_column("Action", style="yellow")
-                table.add_column("Qty", justify="right")
-                table.add_column("Price", justify="right")
-                table.add_column("Total", justify="right")
+            # Display trades table
+            table = Table(title=f"Trade History (Last {limit})", show_header=True)
+            table.add_column("Date", style="dim")
+            table.add_column("Ticker", style="cyan")
+            table.add_column("Side", style="magenta")
+            table.add_column("Action", style="yellow")
+            table.add_column("Qty", justify="right")
+            table.add_column("Price", justify="right")
+            table.add_column("Total", justify="right")
 
-                for trade in trades:
-                    date_str = trade.executed_at.strftime("%Y-%m-%d %H:%M")
-                    price_str = f"{trade.price_cents}¢"
-                    total_str = f"${trade.total_cost_cents / 100:.2f}"
+            for trade in trades:
+                date_str = trade.executed_at.strftime("%Y-%m-%d %H:%M")
+                price_str = f"{trade.price_cents}¢"
+                total_str = f"${trade.total_cost_cents / 100:.2f}"
 
-                    table.add_row(
-                        date_str,
-                        trade.ticker,
-                        trade.side.upper(),
-                        trade.action.upper(),
-                        str(trade.quantity),
-                        price_str,
-                        total_str,
-                    )
+                table.add_row(
+                    date_str,
+                    trade.ticker,
+                    trade.side.upper(),
+                    trade.action.upper(),
+                    str(trade.quantity),
+                    price_str,
+                    total_str,
+                )
 
-                console.print(table)
-        finally:
-            await db.close()
+            console.print(table)
 
     asyncio.run(_history())
 
@@ -501,33 +483,29 @@ def portfolio_link(
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """Link a position to a thesis."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.portfolio import Position
 
     async def _link() -> None:
-        db = DatabaseManager(db_path)
-        try:
-            await db.create_tables()
-            async with db.session_factory() as session:
-                async with session.begin():
-                    # Find open position
-                    query = select(Position).where(
-                        Position.ticker == ticker, Position.closed_at.is_(None)
-                    )
-                    result = await session.execute(query)
-                    position = result.scalar_one_or_none()
+        async with open_db(db_path) as db, db.session_factory() as session:
+            async with session.begin():
+                # Find open position
+                query = select(Position).where(
+                    Position.ticker == ticker,
+                    Position.closed_at.is_(None),
+                )
+                result = await session.execute(query)
+                position = result.scalar_one_or_none()
 
-                    if not position:
-                        console.print(f"[yellow]No open position found for {ticker}[/yellow]")
-                        console.print(PORTFOLIO_SYNC_TIP)
-                        return
+                if not position:
+                    console.print(f"[yellow]No open position found for {ticker}[/yellow]")
+                    console.print(PORTFOLIO_SYNC_TIP)
+                    return
 
-                    # Update thesis_id
-                    position.thesis_id = thesis
+                # Update thesis_id
+                position.thesis_id = thesis
 
-                console.print(f"[green]✓[/green] Position {ticker} linked to thesis {thesis}")
-        finally:
-            await db.close()
+            console.print(f"[green]✓[/green] Position {ticker} linked to thesis {thesis}")
 
     asyncio.run(_link())
 
@@ -540,7 +518,7 @@ def portfolio_suggest_links(
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """Suggest thesis-position links based on matching tickers."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.portfolio import Position
 
     async def _suggest() -> None:
@@ -553,56 +531,50 @@ def portfolio_suggest_links(
             return
 
         # Get unlinked positions
-        db = DatabaseManager(db_path)
-        try:
-            await db.create_tables()
-            async with db.session_factory() as session:
-                query = select(Position).where(
-                    Position.thesis_id.is_(None), Position.closed_at.is_(None)
+        async with open_db(db_path) as db, db.session_factory() as session:
+            query = select(Position).where(
+                Position.thesis_id.is_(None),
+                Position.closed_at.is_(None),
+            )
+            result = await session.execute(query)
+            positions = result.scalars().all()
+
+            if not positions:
+                console.print("[yellow]No unlinked positions found.[/yellow]")
+                console.print(PORTFOLIO_SYNC_TIP)
+                return
+
+            # Find matches
+            matches = []
+            for pos in positions:
+                for thesis in theses:
+                    if pos.ticker in thesis.get("market_tickers", []):
+                        matches.append(
+                            {
+                                "ticker": pos.ticker,
+                                "thesis_id": thesis["id"],
+                                "thesis_title": thesis["title"],
+                            }
+                        )
+
+            if not matches:
+                console.print("[yellow]No matching thesis-position pairs found.[/yellow]")
+                return
+
+            # Display suggestions
+            table = Table(title="Suggested Thesis-Position Links")
+            table.add_column("Ticker", style="cyan")
+            table.add_column("Thesis ID", style="magenta")
+            table.add_column("Thesis Title", style="white")
+
+            for match in matches:
+                table.add_row(
+                    match["ticker"],
+                    match["thesis_id"][:8],
+                    match["thesis_title"],
                 )
-                result = await session.execute(query)
-                positions = result.scalars().all()
 
-                if not positions:
-                    console.print("[yellow]No unlinked positions found.[/yellow]")
-                    console.print(PORTFOLIO_SYNC_TIP)
-                    return
-
-                # Find matches
-                matches = []
-                for pos in positions:
-                    for thesis in theses:
-                        if pos.ticker in thesis.get("market_tickers", []):
-                            matches.append(
-                                {
-                                    "ticker": pos.ticker,
-                                    "thesis_id": thesis["id"],
-                                    "thesis_title": thesis["title"],
-                                }
-                            )
-
-                if not matches:
-                    console.print("[yellow]No matching thesis-position pairs found.[/yellow]")
-                    return
-
-                # Display suggestions
-                table = Table(title="Suggested Thesis-Position Links")
-                table.add_column("Ticker", style="cyan")
-                table.add_column("Thesis ID", style="magenta")
-                table.add_column("Thesis Title", style="white")
-
-                for match in matches:
-                    table.add_row(
-                        match["ticker"],
-                        match["thesis_id"][:8],
-                        match["thesis_title"],
-                    )
-
-                console.print(table)
-                console.print(
-                    "\n[dim]To link: kalshi portfolio link TICKER --thesis THESIS_ID[/dim]"
-                )
-        finally:
-            await db.close()
+            console.print(table)
+            console.print("\n[dim]To link: kalshi portfolio link TICKER --thesis THESIS_ID[/dim]")
 
     asyncio.run(_suggest())

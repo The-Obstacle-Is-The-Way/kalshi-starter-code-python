@@ -6,33 +6,7 @@
 
 ## Outstanding Debt
 
-### DEBT-007: A+ Engineering Robustness Delta (Operational Hardening Gaps)
-
-**Priority:** P2
-**Status:** 🔴 Active
-**Summary:** Close confidence gaps in runtime schema upgrades, scheduled live API contract validation, DB invariants, and trade safety harness (CI runs mocked E2E; pre-commit is unit-only).
-**Plan:** `docs/_debt/DEBT-007-a-plus-engineering-robustness-delta.md`
-
-### DEBT-008: Dead Code Cleanup (True Slop)
-
-**Priority:** P2
-**Status:** 🔴 Active
-**Summary:** Delete ~400 LOC of verified unused code (`EdgeDetector`, `TemporalValidator`, etc.) identified in the bloat audit.
-**Plan:** `docs/_debt/DEBT-008-dead-code-cleanup.md`
-
-### DEBT-009: Finish Halfway Implementations
-
-**Priority:** P3
-**Status:** 🔴 Active
-**Summary:** Wire in 9 functional but unreachable features: Alert Notifiers (FileNotifier, WebhookNotifier), Trade Sync, Exa Similar/Deep Research, Candlestick History, Exchange Status, WebSocket Streaming, Liquidity Safety Sizing.
-**Plan:** `docs/_debt/DEBT-009-finish-halfway-implementations.md`
-
-### DEBT-010: Reduce Boilerplate & Structural Bloat
-
-**Priority:** P3
-**Status:** 🔴 Active
-**Summary:** Refactor repeated DB initialization patterns and simplify the repository layer.
-**Plan:** `docs/_debt/DEBT-010-reduce-boilerplate.md`
+No outstanding debt items.
 
 ---
 
@@ -109,6 +83,10 @@ src/kalshi_research/
 
 | Item | Resolution |
 |------|------------|
+| [DEBT-008](../_archive/debt/DEBT-008-dead-code-cleanup.md) | Deleted ~400 LOC of verified unused code and removed the dedicated unit tests |
+| [DEBT-010](../_archive/debt/DEBT-010-reduce-boilerplate.md) | Consolidated repeated CLI DB setup into `open_db()` / `open_db_session()` helpers |
+| [DEBT-009](../_archive/debt/DEBT-009-finish-halfway-implementations.md) | Wired in all halfway implementations (CLI exposure or explicit RESERVED) |
+| [DEBT-007](../_archive/debt/DEBT-007-a-plus-engineering-robustness-delta.md) | Added migrations CLI, live contract workflow, TradeExecutor harness, and warning-clean docs |
 | [DEBT-006](../_archive/debt/DEBT-006-price-snapshot-insert-batching.md) | Avoid per-row flush/refresh; restore batching intent for snapshot ingestion |
 | [DEBT-005](../_archive/debt/DEBT-005-price-snapshot-liquidity-dead-column.md) | Dropped dead `price_snapshots.liquidity` column and stopped writing it |
 

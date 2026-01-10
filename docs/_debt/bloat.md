@@ -11,22 +11,32 @@
 
 | Metric | Value | Grade |
 |--------|-------|-------|
-| Total Python files | 82 | - |
-| Total source LOC | 15,059 | - |
-| Test LOC | 15,644 | **A** (good coverage) |
-| Unused methods/functions/classes | ~64 (verified true positives) | **C** (needs cleanup) |
-| Total deadcode items | 343 (raw count) | C |
-| Average cyclomatic complexity | 2.9 | **A** |
+| Total Python files (src/) | 86 | - |
+| Total source LOC (src/) | 15,257 | - |
+| Test LOC (tests/) | 15,350 | **A** (good coverage) |
+| Tier 1 dead code items | 0 (resolved via DEBT-008) | **A** |
+| Vulture findings (60% confidence, raw) | 322 (218 vars, 58 funcs, 36 methods) | triage |
+| Average cyclomatic complexity | 2.98 | **A** |
 | Maintainability index | All files A | **A** |
-| **Overall Grade** | | **B-** |
+| **Overall Grade** | | **A-** |
+
+**Repro (2026-01-10):**
+- `find src -name '*.py' | wc -l` → Python file count
+- `find src -name '*.py' -print0 | xargs -0 wc -l | tail -1` → source LOC
+- `find tests -name '*.py' -print0 | xargs -0 wc -l | tail -1` → test LOC
+- `uv run vulture src/kalshi_research --min-confidence 60` → raw unused candidates
+- `uv run radon cc -a src/kalshi_research` / `uv run radon mi -s src/kalshi_research` → complexity/MI
 
 ### Verdict
 
-**Julian's criticism has merit.** There is measurable bloat:
-- **116** raw unused candidates (Vulture 60% confidence) -> **~64 verified true positives**
-- Multiple dead modules (EdgeDetector, unused notifiers, WebSocket client)
-- Boilerplate duplication (16 `create_tables()` calls)
-- Three data modeling patterns (dataclasses + Pydantic + SQLAlchemy)
+**Julian's criticism had merit at the time of the initial audit.** The high-signal bloat has now been addressed:
+- ✅ DEBT-008 deleted the verified Tier 1 dead code.
+- ✅ DEBT-009 wired legitimate halfway implementations into the CLI (or explicitly marked as reserved).
+- ✅ DEBT-010 consolidated CLI DB boilerplate to `open_db()` / `open_db_session()`.
+
+**Important:** Vulture/deadcode raw output includes many known false positives (Pydantic model fields like
+`model_config`, dataclass fields, and intentionally reserved features). Treat tool output as a triage list,
+not “debt” without first-principles verification.
 
 **However:**
 - Some "unused" code is intentional (notebook support, future trading features)
@@ -42,6 +52,9 @@
 
 These have zero usage paths and provide no value.
 
+> **Update (2026-01-10):** All TIER 1 items have been deleted under DEBT-008. The snippets below are
+> preserved as historical analyzer output.
+
 #### `analysis/edge.py` - EdgeDetector (246 lines)
 ```
 src/kalshi_research/analysis/edge.py:76: unused method 'detect_thesis_edge'
@@ -49,18 +62,20 @@ src/kalshi_research/analysis/edge.py:123: unused method 'detect_spread_edge'
 src/kalshi_research/analysis/edge.py:163: unused method 'detect_volume_edge'
 src/kalshi_research/analysis/edge.py:210: unused method 'detect_volatility_edge'
 ```
-**Action:** Delete entire `EdgeDetector` class. Keep only `Edge` dataclass if used by notebooks.
+**Action:** ✅ Deleted in DEBT-008 (`cc01a04`). Kept `Edge` dataclass for notebook usage.
 
 #### ~~`alerts/notifiers.py` - Unused Notifiers~~ → MOVED TO TIER 3
 
-**REVISED:** FileNotifier and WebhookNotifier are **HALFWAY IMPLEMENTATIONS**, not slop. See "Exa Client Methods" section in TIER 3. These are legitimate features that should be wired in with `--output file` and `--webhook url` CLI options.
+**REVISED (2026-01-10):** FileNotifier and WebhookNotifier are **HALFWAY IMPLEMENTATIONS**, not slop. See
+"Alert Notifiers" in TIER 3. These are legitimate features that should be wired into `kalshi alerts monitor`
+with `--output-file` and `--webhook-url` options.
 
 #### `research/thesis.py` - TemporalValidator (40+ lines)
 ```
 src/kalshi_research/research/thesis.py:41: unused class 'TemporalValidator'
 src/kalshi_research/research/thesis.py:56: unused method 'validate'
 ```
-**Action:** Delete `TemporalValidator` class entirely.
+**Action:** ✅ Deleted in DEBT-008 (`654cf50`).
 
 #### Unused Analysis Methods
 ```
@@ -70,7 +85,7 @@ src/kalshi_research/analysis/metrics.py:171: unused method 'compute_volume_profi
 src/kalshi_research/analysis/liquidity.py:438: unused method 'max_safe_buy_size'
 src/kalshi_research/analysis/scanner.py:390: unused method 'scan_all'
 ```
-**Action:** Delete these unused methods.
+**Action:** ✅ Deleted in DEBT-008 (`612e66f`, `1658a7b`, `237d52b`).
 
 ### TIER 2: Intentionally Reserved (Keep with Documentation)
 
@@ -103,7 +118,7 @@ src/kalshi_research/research/notebook_utils.py - All functions unused in CLI
 src/kalshi_research/alerts/notifiers.py:46: unused class 'FileNotifier'
 src/kalshi_research/alerts/notifiers.py:71: unused class 'WebhookNotifier'
 ```
-**Decision:** These are legitimate features - wire in with `--output-file` and `--webhook-url` options on `kalshi alerts watch`.
+**Decision:** ✅ Wired in DEBT-009 via `kalshi alerts monitor --output-file ... --webhook-url ...`.
 
 #### Exa Client Methods
 ```
@@ -111,7 +126,7 @@ src/kalshi_research/exa/client.py:349: unused method 'find_similar'
 src/kalshi_research/exa/client.py:403: unused method 'create_research_task'
 src/kalshi_research/exa/client.py:426: unused method 'wait_for_research'
 ```
-**Decision:** These wrap Exa API endpoints that exist but aren't integrated into CLI. Either integrate or delete.
+**Decision:** ✅ Wired in DEBT-009 via `kalshi research similar ...` and `kalshi research deep ...`.
 
 #### Unused Repository Methods
 ```
@@ -123,7 +138,7 @@ src/kalshi_research/data/repositories/prices.py:92: unused method 'delete_older_
 src/kalshi_research/data/repositories/settlements.py:55: unused method 'get_by_result'
 src/kalshi_research/data/repositories/settlements.py:71: unused method 'count_by_result'
 ```
-**Decision:** Delete unused repository methods unless they're part of an upcoming feature.
+**Decision:** ✅ Deleted in DEBT-008 (`f4921e5`).
 
 ---
 
@@ -135,23 +150,23 @@ Each item traced against official Kalshi/Exa API docs to determine TRUE dead cod
 
 | Our Method | Kalshi Endpoint | Verdict | Action |
 |------------|-----------------|---------|--------|
-| `get_trades` | `GET /markets/trades` | **HALFWAY** | Wire in: `kalshi data sync-trades` |
-| `get_candlesticks` | `GET /markets/{ticker}/candlesticks` | **HALFWAY** | Wire in: `kalshi market history` |
-| `get_series_candlesticks` | `GET /markets/candlesticks` | **HALFWAY** | Low priority, evaluate |
-| `get_exchange_status` | `GET /exchange/status` | **HALFWAY** | Wire in: Use in `verify_market_open` |
+| `get_trades` | `GET /markets/trades` | ✅ WIRED | `kalshi data sync-trades` |
+| `get_candlesticks` | `GET /markets/candlesticks` | ✅ WIRED | `kalshi market history` |
+| `get_series_candlesticks` | `GET /series/{series}/markets/{ticker}/candlesticks` | ✅ WIRED | `kalshi market history --series ...` |
+| `get_exchange_status` | `GET /exchange/status` | ✅ WIRED | `kalshi status` and scan halt checks |
 | `create_order` | `POST /portfolio/orders` | **RESERVED** | Keep - trading feature |
 | `cancel_order` | `DELETE /portfolio/orders/{id}` | **RESERVED** | Keep - trading feature |
 | `amend_order` | `POST /portfolio/orders/{id}/amend` | **RESERVED** | Keep - trading feature |
 | `get_orders` | `GET /portfolio/orders` | **RESERVED** | Keep - order management |
-| WebSocket `subscribe_*` | All WS channels | **HALFWAY** | Wire in or extract to optional |
+| WebSocket `subscribe_*` | All WS channels | **RESERVED** | Explicit `# RESERVED` marker (DEBT-009) |
 
 ### Exa API Methods - Verified Against `docs/_vendor-docs/exa-api-reference.md`
 
 | Our Method | Exa Endpoint | Verdict | Action |
 |------------|--------------|---------|--------|
-| `find_similar` | `POST /findSimilar` | **HALFWAY** | Wire in: `kalshi research similar` |
-| `create_research_task` | `POST /research/v1` | **HALFWAY** | Wire in: `kalshi research deep` |
-| `wait_for_research` | Polling `GET /research/v1/{id}` | **HALFWAY** | Goes with above |
+| `find_similar` | `POST /findSimilar` | ✅ WIRED | `kalshi research similar` |
+| `create_research_task` | `POST /research/v1` | ✅ WIRED | `kalshi research deep` |
+| `wait_for_research` | Polling `GET /research/v1/{id}` | ✅ WIRED | `kalshi research deep --wait` |
 
 ### Analysis Module - No Vendor API (Our Logic)
 
@@ -162,8 +177,8 @@ Each item traced against official Kalshi/Exa API docs to determine TRUE dead cod
 | `compute_volatility` | **TRUE SLOP** | Called in tests/docs only, never in app logic |
 | `compute_volume_profile` | **TRUE SLOP** | Called in tests/docs only, never in app logic |
 | `scan_all` | **TRUE SLOP** | Convenience method, never used |
-| `verify_market_open` | **HALFWAY** | Should use `get_exchange_status`, doesn't |
-| `max_safe_buy_size` | **HALFWAY** | Part of liquidity module, not in CLI |
+| `verify_market_open` | ⚠️ UNUSED | Scanner uses `filter_tradeable_markets` (which includes exchange-wide halt checks) |
+| `max_safe_buy_size` | **TRUE SLOP** | Redundant wrapper: safe sizing is already exposed via `max_safe_order_size` and `kalshi market liquidity` |
 
 ### Research Module
 
@@ -239,22 +254,22 @@ The codebase uses THREE different patterns for data models:
 
 **This is proper separation of concerns.** Different layers need different models. The apparent "redundancy" is intentional - you don't want your DB model coupled to your API response format.
 
-### 2. Repeated Boilerplate (Medium Impact)
+### 2. Repeated Boilerplate (Resolved)
 
-**16 calls to `await db.create_tables()`** scattered across CLI commands:
+**Previously:** 16 calls to `await db.create_tables()` scattered across CLI commands:
 - `cli/portfolio.py`: 6 calls
 - `cli/news.py`: 5 calls
 - `cli/data.py`: 5 calls
 
-```python
-# Repeated pattern in every CLI command:
-async with get_db() as db:
-    await db.create_tables()  # Why here?
-    async with db.session() as session:
-        ...
-```
+**Now:** Consolidated into a single helper (`open_db()` / `open_db_session()`), leaving exactly **1**
+`await db.create_tables()` call in the CLI layer (`src/kalshi_research/cli/db.py`).
 
-**Recommendation:** Create a `@db_command` decorator or use CLI lifecycle hooks.
+```python
+from kalshi_research.cli.db import open_db
+
+async with open_db(db_path) as db, db.session_factory() as session:
+    ...
+```
 
 ### 3. Over-Abstracted Repository Layer (Low-Medium Impact)
 
@@ -275,12 +290,12 @@ Repository pattern adds abstraction but many methods are unused:
 |------|-----|------------|
 | `api/client.py` | 886 | Contains ~200 lines of unused trading methods |
 | `cli/research.py` | 849 | Legitimate complexity - thesis tracking UI |
-| `cli/portfolio.py` | 608 | 6x repeated `create_tables()` pattern |
+| `cli/portfolio.py` | 608 | DB setup refactored (DEBT-010); LOC snapshot is pre-refactor |
 | `cli/scan.py` | 564 | OK - scanner has legitimate complexity |
-| `research/thesis.py` | 482 | Contains unused TemporalValidator |
+| `research/thesis.py` | 482 | TemporalValidator removed (DEBT-008); LOC snapshot is pre-refactor |
 | `exa/client.py` | 449 | ~100 lines of unused methods |
-| `analysis/liquidity.py` | 448 | Some unused methods |
-| `analysis/scanner.py` | 410 | Some unused methods |
+| `analysis/liquidity.py` | 448 | Removed dead wrapper (DEBT-008); remaining dense calculations |
+| `analysis/scanner.py` | 410 | Removed dead `scan_all` (DEBT-008); remaining scanner logic |
 | `analysis/correlation.py` | 393 | OK - legitimate complexity |
 
 ### Module-Level LOC
@@ -303,18 +318,18 @@ Repository pattern adds abstraction but many methods are unused:
 
 ### Phase 1: Quick Wins (Est. 400 LOC reduction)
 
-1. [ ] Delete `EdgeDetector` class (keep `Edge` dataclass)
-2. [ ] Delete `TemporalValidator` class
-3. [ ] Delete unused analysis methods (`compute_spread_stats`, etc.)
-4. [ ] Delete unused repository methods
-5. [ ] Remove 3 unused imports
+1. [x] Delete `EdgeDetector` class (keep `Edge` dataclass) (DEBT-008)
+2. [x] Delete `TemporalValidator` class (DEBT-008)
+3. [x] Delete unused analysis methods (`compute_spread_stats`, etc.) (DEBT-008)
+4. [x] Delete unused repository methods (DEBT-008)
+5. [x] Remove unused imports flagged by ruff (DEBT-008)
 
-**Note:** `FileNotifier` and `WebhookNotifier` are NOT to be deleted - they're HALFWAY implementations to wire in (see DEBT-009).
+**Note:** `FileNotifier` and `WebhookNotifier` were HALFWAY implementations; ✅ wired in DEBT-009.
 
 ### Phase 2: Refactoring (Est. 300 LOC reduction)
 
-1. [ ] Create `@db_command` decorator to eliminate 16 repeated `create_tables()` calls
-2. [ ] Consolidate Exa client methods (delete or integrate)
+1. [x] Consolidate repeated `create_tables()` calls into `open_db()` helpers (DEBT-010)
+2. [x] Wire in Exa client methods (DEBT-009)
 3. [ ] Review data model redundancy
 
 ### Phase 3: Strategic Decisions
@@ -374,8 +389,7 @@ src/kalshi_research/api/models/candlestick.py:20: unused variable 'open_dollars'
 ### What's Actually Bloat
 
 - EdgeDetector never integrated
-- Multiple unused notifier classes
-- Unused API methods accumulating
+- Halfway implementations (now wired in DEBT-009)
 - Repeated boilerplate patterns
 - Some over-abstracted layers
 
@@ -431,7 +445,7 @@ vulture src/ --make-whitelist > vulture_whitelist.py
 | Category | Count | Action |
 |----------|-------|--------|
 | **TRUE SLOP** | ~12 items | DELETE immediately (see DEBT-008) |
-| **HALFWAY IMPL** | ~14 items | Wire in via CLI (see DEBT-009) |
+| **HALFWAY IMPL** | ~14 items | ✅ Wired in DEBT-009 |
 | **RESERVED** | ~5 items | Keep with `# RESERVED:` comment |
 | **FALSE POSITIVE** | ~30+ items | Add to whitelist |
 | **YAGNI CRUFT** | ~7 items | DELETE (see DEBT-008) |
@@ -444,8 +458,8 @@ vulture src/ --make-whitelist > vulture_whitelist.py
 
 | Debt Item | Derived From This Audit |
 |-----------|------------------------|
-| [DEBT-008](DEBT-008-dead-code-cleanup.md) | TRUE SLOP + YAGNI items |
-| [DEBT-009](DEBT-009-finish-halfway-implementations.md) | HALFWAY items |
-| [DEBT-010](DEBT-010-reduce-boilerplate.md) | Structural bloat (boilerplate) |
+| [DEBT-008](../_archive/debt/DEBT-008-dead-code-cleanup.md) | TRUE SLOP + YAGNI items |
+| [DEBT-009](../_archive/debt/DEBT-009-finish-halfway-implementations.md) | HALFWAY items |
+| [DEBT-010](../_archive/debt/DEBT-010-reduce-boilerplate.md) | Structural bloat (boilerplate) |
 
 **Note:** DEBT-007 is a separate operational hardening document, not derived from this bloat audit.

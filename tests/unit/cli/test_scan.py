@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from typer.testing import CliRunner
 
 from kalshi_research.api.models.market import Market
@@ -332,3 +334,90 @@ def test_scan_opportunities_min_liquidity_filters_results(
     assert "Liquidity" in result.stdout
     mock_client.get_orderbook.assert_any_await("HIGH-LIQ", depth=25)
     mock_client.get_orderbook.assert_any_await("LOW-LIQ", depth=25)
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_scan_opportunities_parses_exchange_status_booleans(
+    mock_client_cls: MagicMock,
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    high_liquidity = Market.model_validate(
+        make_market(
+            ticker="HIGH-LIQ",
+            yes_bid=50,
+            yes_ask=51,
+            volume_24h=10_000,
+            open_interest=5_000,
+            close_time="2099-12-31T00:00:00Z",
+            expiration_time="2100-01-01T00:00:00Z",
+        )
+    )
+
+    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
+        _ = status, max_pages
+        yield high_liquidity
+
+    mock_client.get_exchange_status = AsyncMock(
+        return_value={"exchange_active": True, "trading_active": True}
+    )
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+
+    result = runner.invoke(app, ["scan", "opportunities", "--filter", "close-race", "--top", "1"])
+
+    assert result.exit_code == 0
+    assert "Warning:" not in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_scan_opportunities_warns_when_exchange_status_missing_boolean_fields(
+    mock_client_cls: MagicMock,
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    high_liquidity = Market.model_validate(
+        make_market(
+            ticker="HIGH-LIQ",
+            yes_bid=50,
+            yes_ask=51,
+            volume_24h=10_000,
+            open_interest=5_000,
+            close_time="2099-12-31T00:00:00Z",
+            expiration_time="2100-01-01T00:00:00Z",
+        )
+    )
+
+    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
+        _ = status, max_pages
+        yield high_liquidity
+
+    mock_client.get_exchange_status = AsyncMock(
+        return_value={"exchange_active": "yes", "trading_active": True}
+    )
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+
+    result = runner.invoke(app, ["scan", "opportunities", "--filter", "close-race", "--top", "1"])
+
+    assert result.exit_code == 0
+    assert "Exchange status response was missing expected boolean fields" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_scan_opportunities_propagates_cancelled_error(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_client.get_exchange_status = AsyncMock(side_effect=asyncio.CancelledError())
+
+    with pytest.raises(asyncio.CancelledError):
+        runner.invoke(app, ["scan", "opportunities", "--filter", "close-race", "--top", "1"])

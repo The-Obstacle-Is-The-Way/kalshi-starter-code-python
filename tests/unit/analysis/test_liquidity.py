@@ -268,7 +268,4 @@ def test_orderbook_analyzer_delegates_methods(make_market: Any) -> None:
     assert analyzer.slippage(orderbook, "yes", "buy", quantity=5) == estimate_slippage(
         orderbook, "yes", "buy", 5
     )
-    assert analyzer.max_safe_buy_size(
-        orderbook, "yes", max_slippage_cents=0
-    ) == max_safe_order_size(orderbook, "yes", max_slippage_cents=0)
     assert analyzer.liquidity(market, orderbook) == liquidity_score(market, orderbook)

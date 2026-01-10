@@ -9,6 +9,8 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from kalshi_research.api.models.market import Market
 
 from kalshi_research.api.models.market import MarketStatus
@@ -30,6 +32,21 @@ class MarketStatusVerifier:
     - Valid for current operations
     """
 
+    def __init__(self, *, exchange_status: Mapping[str, object] | None = None) -> None:
+        self._exchange_status = exchange_status
+
+    def _is_exchange_tradeable(self) -> bool:
+        if self._exchange_status is None:
+            return True
+
+        exchange_active = self._exchange_status.get("exchange_active")
+        trading_active = self._exchange_status.get("trading_active")
+
+        if not isinstance(exchange_active, bool) or not isinstance(trading_active, bool):
+            return False
+
+        return exchange_active and trading_active
+
     def is_market_tradeable(self, market: Market) -> bool:
         """
         Check if a market is currently tradeable.
@@ -44,6 +61,9 @@ class MarketStatusVerifier:
         Returns:
             True if market is tradeable, False otherwise
         """
+        if not self._is_exchange_tradeable():
+            return False
+
         now = datetime.now(UTC)
 
         # Check status
@@ -63,6 +83,22 @@ class MarketStatusVerifier:
         Raises:
             MarketClosedError: If market is closed or not tradeable
         """
+        if not self._is_exchange_tradeable():
+            exchange_active = (
+                self._exchange_status.get("exchange_active")
+                if self._exchange_status is not None
+                else None
+            )
+            trading_active = (
+                self._exchange_status.get("trading_active")
+                if self._exchange_status is not None
+                else None
+            )
+            raise MarketClosedError(
+                "Exchange trading is currently halted "
+                f"(exchange_active={exchange_active}, trading_active={trading_active})"
+            )
+
         if not self.is_market_tradeable(market):
             now = datetime.now(UTC)
             if market.status != MarketStatus.ACTIVE:
@@ -386,25 +422,3 @@ class MarketScanner:
 
         results.sort(key=get_hours_left)
         return results[:top_n]
-
-    def scan_all(
-        self,
-        markets: list[Market],
-        top_n: int = 5,
-    ) -> dict[ScanFilter, list[ScanResult]]:
-        """
-        Run all scans and return results grouped by filter.
-
-        Args:
-            markets: List of markets to scan
-            top_n: Number of results per filter
-
-        Returns:
-            Dictionary mapping filter type to results
-        """
-        return {
-            ScanFilter.CLOSE_RACE: self.scan_close_races(markets, top_n),
-            ScanFilter.HIGH_VOLUME: self.scan_high_volume(markets, top_n),
-            ScanFilter.WIDE_SPREAD: self.scan_wide_spread(markets, top_n),
-            ScanFilter.EXPIRING_SOON: self.scan_expiring_soon(markets, top_n=top_n),
-        }

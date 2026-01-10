@@ -847,3 +847,151 @@ def research_topic(
         return
 
     _render_topic_research(topic, research)
+
+
+@app.command("similar")
+def research_similar(
+    url: Annotated[str, typer.Argument(help="Seed URL to find similar pages for.")],
+    num_results: Annotated[
+        int,
+        typer.Option("--num-results", "-n", help="Number of results."),
+    ] = 10,
+    output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
+) -> None:
+    """Find pages similar to a URL using Exa's /findSimilar endpoint."""
+    from kalshi_research.exa import ExaClient
+    from kalshi_research.exa.models.similar import FindSimilarResponse
+
+    async def _find() -> FindSimilarResponse:
+        try:
+            async with ExaClient.from_env() as exa:
+                return await exa.find_similar(url, num_results=num_results)
+        except ValueError as e:
+            console.print(f"[red]Error:[/red] {e}")
+            console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+            raise typer.Exit(1) from None
+
+    response = asyncio.run(_find())
+
+    if output_json:
+        console.print(
+            json.dumps(response.model_dump(by_alias=True, mode="json"), indent=2, default=str),
+            markup=False,
+        )
+        return
+
+    table = Table(title="Exa Similar Pages")
+    table.add_column("#", style="dim", justify="right", no_wrap=True)
+    table.add_column("Title", style="white")
+    table.add_column("URL", style="cyan")
+    table.add_column("Score", style="green", justify="right")
+
+    for i, r in enumerate(response.results[:num_results], start=1):
+        score = f"{r.score:.3f}" if isinstance(r.score, float) else ""
+        table.add_row(str(i), r.title[:60], r.url[:80], score)
+
+    console.print(table)
+    if response.cost_dollars is not None:
+        console.print(f"[dim]Cost: ${response.cost_dollars.total:.4f}[/dim]")
+
+
+@app.command("deep")
+def research_deep(
+    topic: Annotated[str, typer.Argument(help="Topic or question for deep research.")],
+    model: Annotated[
+        str,
+        typer.Option("--model", help="Exa research model tier (exa-research, exa-research-pro)."),
+    ] = "exa-research",
+    wait: Annotated[
+        bool,
+        typer.Option(
+            "--wait",
+            help="Wait for completion and print results (incurs additional Exa cost).",
+        ),
+    ] = False,
+    poll_interval: Annotated[
+        float,
+        typer.Option("--poll-interval", help="Polling interval in seconds (when --wait)."),
+    ] = 5.0,
+    timeout: Annotated[
+        float,
+        typer.Option("--timeout", help="Timeout in seconds (when --wait)."),
+    ] = 300.0,
+    output_schema: Annotated[
+        Path | None,
+        typer.Option("--schema", help="Optional JSON schema file for structured output."),
+    ] = None,
+    output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
+) -> None:
+    """Run Exa async deep research via /research/v1 (paid API)."""
+    from kalshi_research.exa import ExaClient
+    from kalshi_research.exa.models.research import ResearchTask
+
+    async def _run() -> ResearchTask:
+        try:
+            schema: dict[str, Any] | None = None
+            if output_schema is not None:
+                try:
+                    schema_raw = json.loads(output_schema.read_text(encoding="utf-8"))
+                except OSError as exc:
+                    console.print(f"[red]Error:[/red] Failed to read schema file: {exc}")
+                    raise typer.Exit(1) from None
+                except json.JSONDecodeError as exc:
+                    console.print(f"[red]Error:[/red] Schema file is not valid JSON: {exc}")
+                    raise typer.Exit(1) from None
+
+                if not isinstance(schema_raw, dict):
+                    console.print("[red]Error:[/red] Schema JSON must be an object at the root.")
+                    raise typer.Exit(1) from None
+                schema = schema_raw
+
+            instructions = (
+                "Research the following topic and return key findings with citations:\\n\\n"
+                f"{topic.strip()}"
+            )
+            async with ExaClient.from_env() as exa:
+                task = await exa.create_research_task(
+                    instructions=instructions,
+                    model=model,
+                    output_schema=schema,
+                )
+                if wait:
+                    try:
+                        task = await exa.wait_for_research(
+                            task.research_id,
+                            poll_interval=poll_interval,
+                            timeout=timeout,
+                        )
+                    except TimeoutError as exc:
+                        console.print(f"[red]Error:[/red] {exc}")
+                        raise typer.Exit(1) from None
+                return task
+        except ValueError as e:
+            console.print(f"[red]Error:[/red] {e}")
+            console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+            raise typer.Exit(1) from None
+
+    task = asyncio.run(_run())
+
+    if output_json:
+        console.print(
+            json.dumps(task.model_dump(by_alias=True, mode="json"), indent=2, default=str),
+            markup=False,
+        )
+        return
+
+    table = Table(title="Exa Research Task")
+    table.add_column("Field", style="cyan")
+    table.add_column("Value", style="green")
+    table.add_row("research_id", task.research_id)
+    table.add_row("status", task.status.value)
+    table.add_row("model", str(task.model))
+    table.add_row("created_at", str(task.created_at))
+    console.print(table)
+
+    if task.output is not None and task.output.content:
+        console.print("\n[bold]Output[/bold]")
+        console.print(task.output.content)
+
+    if task.cost_dollars is not None:
+        console.print(f"\n[dim]Cost: ${task.cost_dollars.total:.4f}[/dim]")

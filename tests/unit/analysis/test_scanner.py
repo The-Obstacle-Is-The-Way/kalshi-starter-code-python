@@ -62,6 +62,33 @@ class TestMarketStatusVerifier:
 
         assert verifier.is_market_tradeable(market) is True
 
+    def test_is_market_tradeable_false_when_exchange_status_has_invalid_types(self) -> None:
+        """Non-bool exchange status values disable tradeability checks."""
+        verifier = MarketStatusVerifier(
+            exchange_status={"exchange_active": "yes", "trading_active": True},
+        )
+        market = make_market(
+            "TEST",
+            status=MarketStatus.ACTIVE,
+            close_time=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+        assert verifier.is_market_tradeable(market) is False
+
+    def test_verify_market_open_raises_when_exchange_halted(self) -> None:
+        """verify_market_open raises when exchange/trading is halted."""
+        verifier = MarketStatusVerifier(
+            exchange_status={"exchange_active": False, "trading_active": True}
+        )
+        market = make_market(
+            "TEST",
+            status=MarketStatus.ACTIVE,
+            close_time=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+        with pytest.raises(MarketClosedError, match="Exchange trading is currently halted"):
+            verifier.verify_market_open(market)
+
     def test_is_market_tradeable_closed_status(self) -> None:
         """Market with CLOSED status is not tradeable."""
         verifier = MarketStatusVerifier()
@@ -354,32 +381,3 @@ class TestExpiringSoonScan:
         results = scanner.scan_expiring_soon(markets, hours=24)
 
         assert len(results) == 0
-
-
-class TestScanAll:
-    """Test scan_all method."""
-
-    def test_returns_all_filter_types(self) -> None:
-        """Returns results for all filter types."""
-        scanner = MarketScanner(
-            close_race_range=(0.40, 0.60),
-            high_volume_threshold=10000,
-            wide_spread_threshold=5,
-        )
-        now = datetime.now(UTC)
-        markets = [
-            make_market(
-                "ALL",
-                yes_bid=45,
-                yes_ask=55,
-                volume_24h=20000,
-                close_time=now + timedelta(hours=12),
-            ),
-        ]
-
-        results = scanner.scan_all(markets)
-
-        assert ScanFilter.CLOSE_RACE in results
-        assert ScanFilter.HIGH_VOLUME in results
-        assert ScanFilter.WIDE_SPREAD in results
-        assert ScanFilter.EXPIRING_SOON in results

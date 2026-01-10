@@ -2,34 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from sqlalchemy import func, select
+from sqlalchemy import func
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from kalshi_research.data.models import Event, utc_now
 from kalshi_research.data.repositories.base import BaseRepository
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 
 class EventRepository(BaseRepository[Event]):
     """Repository for Event entities."""
 
     model = Event
-
-    async def get_by_series(self, series_ticker: str) -> Sequence[Event]:
-        """Get all events for a series."""
-        stmt = select(Event).where(Event.series_ticker == series_ticker)
-        result = await self._session.execute(stmt)
-        return result.scalars().all()
-
-    async def get_by_category(self, category: str) -> Sequence[Event]:
-        """Get all events in a category."""
-        stmt = select(Event).where(Event.category == category)
-        result = await self._session.execute(stmt)
-        return result.scalars().all()
 
     async def insert_ignore(self, event: Event) -> None:
         """Insert an event row if it does not exist.

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Literal
@@ -95,6 +95,23 @@ class Market(BaseModel):
         default=None,
         description="DEPRECATED: Use dollar-denominated fields. Removed Jan 15, 2026.",
     )
+
+    @field_validator(
+        "created_time",
+        "open_time",
+        "close_time",
+        "expiration_time",
+        "settlement_ts",
+        mode="after",
+    )
+    @classmethod
+    def ensure_utc_aware(cls, dt: datetime | None) -> datetime | None:
+        """Normalize datetime fields to timezone-aware UTC values."""
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=UTC)
+        return dt.astimezone(UTC)
 
     @field_validator("liquidity", mode="before")
     @classmethod
