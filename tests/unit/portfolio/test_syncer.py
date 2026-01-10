@@ -253,6 +253,7 @@ async def test_sync_trades_uses_no_price_for_no_side() -> None:
     session = MagicMock()
     session.execute = AsyncMock(return_value=existing_ids_result)
     session.commit = AsyncMock()
+    _mock_session_begin(session)
 
     session_cm = AsyncMock()
     session_cm.__aenter__.return_value = session
@@ -271,6 +272,7 @@ async def test_sync_trades_uses_no_price_for_no_side() -> None:
     assert trade.action == "buy"
     assert trade.price_cents == 40
     assert trade.total_cost_cents == 80
+    session.begin.assert_called_once()
 
 
 @pytest.mark.asyncio
