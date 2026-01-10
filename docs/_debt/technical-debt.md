@@ -13,6 +13,27 @@
 **Summary:** Close confidence gaps in runtime schema upgrades, scheduled live API contract validation, DB invariants, and trade safety harness (CI runs mocked E2E; pre-commit is unit-only).
 **Plan:** `docs/_debt/DEBT-007-a-plus-engineering-robustness-delta.md`
 
+### DEBT-008: Dead Code Cleanup (True Slop)
+
+**Priority:** P2
+**Status:** 🔴 Active
+**Summary:** Delete ~400 LOC of verified unused code (`EdgeDetector`, `TemporalValidator`, etc.) identified in the bloat audit.
+**Plan:** `docs/_debt/DEBT-008-dead-code-cleanup.md`
+
+### DEBT-009: Finish Halfway Implementations
+
+**Priority:** P3
+**Status:** 🔴 Active
+**Summary:** Wire in functional but unreachable features (Notifiers, Exa Similar, Trade Sync).
+**Plan:** `docs/_debt/DEBT-009-finish-halfway-implementations.md`
+
+### DEBT-010: Reduce Boilerplate & Structural Bloat
+
+**Priority:** P3
+**Status:** 🔴 Active
+**Summary:** Refactor repeated DB initialization patterns and simplify the repository layer.
+**Plan:** `docs/_debt/DEBT-010-reduce-boilerplate.md`
+
 ---
 
 ## Implemented via Spec

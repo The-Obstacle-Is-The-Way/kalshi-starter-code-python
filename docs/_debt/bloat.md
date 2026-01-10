@@ -14,8 +14,8 @@
 | Total Python files | 82 | - |
 | Total source LOC | 15,059 | - |
 | Test LOC | 15,644 | **A** (good coverage) |
-| Unused methods/functions/classes | 64 (confirmed) | **C** (needs cleanup) |
-| Total deadcode items | 343 | C |
+| Unused methods/functions/classes | ~64 (verified true positives) | **C** (needs cleanup) |
+| Total deadcode items | 343 (raw count) | C |
 | Average cyclomatic complexity | 2.9 | **A** |
 | Maintainability index | All files A | **A** |
 | **Overall Grade** | | **B-** |
@@ -23,7 +23,7 @@
 ### Verdict
 
 **Julian's criticism has merit.** There is measurable bloat:
-- ~116 unused methods/functions/classes (Vulture 60% confidence)
+- **116** raw unused candidates (Vulture 60% confidence) -> **~64 verified true positives**
 - Multiple dead modules (EdgeDetector, unused notifiers, WebSocket client)
 - Boilerplate duplication (16 `create_tables()` calls)
 - Three data modeling patterns (dataclasses + Pydantic + SQLAlchemy)
@@ -153,10 +153,10 @@ Each item traced against official Kalshi/Exa API docs to determine TRUE dead cod
 
 | Item | Verdict | Reasoning |
 |------|---------|-----------|
-| `EdgeDetector` (all methods) | **TRUE SLOP** | Built complete, never integrated, no CLI command uses it |
-| `compute_spread_stats` | **TRUE SLOP** | Built, never called |
-| `compute_volatility` | **TRUE SLOP** | Built, never called |
-| `compute_volume_profile` | **TRUE SLOP** | Built, never called |
+| `EdgeDetector` (all methods) | **TRUE SLOP** | Exported in `__init__` but never instantiated/used in app |
+| `compute_spread_stats` | **TRUE SLOP** | Called in tests/docs only, never in app logic |
+| `compute_volatility` | **TRUE SLOP** | Called in tests/docs only, never in app logic |
+| `compute_volume_profile` | **TRUE SLOP** | Called in tests/docs only, never in app logic |
 | `scan_all` | **TRUE SLOP** | Convenience method, never used |
 | `verify_market_open` | **HALFWAY** | Should use `get_exchange_status`, doesn't |
 | `max_safe_buy_size` | **HALFWAY** | Part of liquidity module, not in CLI |
