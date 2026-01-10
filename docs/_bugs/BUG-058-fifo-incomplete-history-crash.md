@@ -28,14 +28,11 @@ uv run kalshi portfolio pnl
 
 ### 1. Strict FIFO Without Graceful Degradation
 
-In `src/kalshi_research/portfolio/pnl.py:88-92`:
+**Old behavior (pre-fix):** `_get_closed_trade_pnls_fifo` raised when a sell could not be matched to any FIFO lots.
 
 ```python
 if not lots:
-    raise ValueError(
-        "Sell trade exceeds available FIFO lots; trade history is "
-        "incomplete"
-    )
+    raise ValueError("Sell trade exceeds available FIFO lots; trade history is incomplete")
 ```
 
 The algorithm expects **complete** trade history where every sell has a prior buy. Real-world scenarios where this fails:
@@ -177,14 +174,12 @@ Kalshi computes this correctly including settlements. We should USE this value f
 
 | What | Source | Notes |
 |------|--------|-------|
-| **Total Realized P&L** | `positions.realized_pnl` | Use Kalshi's number! |
-| **Per-Trade P&L** | fills + settlements | For win/loss stats |
+| **Total Realized P&L** | positions + settlements | Use Kalshi's `realized_pnl` and add `/portfolio/settlements` P&L |
+| **Per-Trade/Outcome Stats** | fills + settlements | FIFO on fills, plus settlement P&L as an additional “closed outcome” |
 | **Unrealized P&L** | positions + mark prices | Open position value |
 
-For per-trade FIFO (if needed for win/loss breakdown):
-1. Fills with `action=buy` → add to FIFO queue
-2. Fills with `action=sell` → consume from FIFO queue
-3. **Settlements → consume ALL remaining lots** at settlement price (100¢ if won, 0¢ if lost, void=refund)
+Implementation note: we do **not** synthesize fake fills for settlements. Settlement P&L is computed directly from
+`revenue - yes_total_cost - no_total_cost - fee_cost`.
 
 ### Safety Features from Create Order Spec
 
@@ -201,6 +196,6 @@ Relevant for future TODO-008 (agent safety rails):
 ## References
 
 - **Regression from:** BUG-057 (FIFO implementation)
-- **File:** `src/kalshi_research/portfolio/pnl.py:88-92`
-- **CLI:** `src/kalshi_research/cli/portfolio.py:325`
+- **File:** `src/kalshi_research/portfolio/pnl.py`
+- **CLI:** `src/kalshi_research/cli/portfolio.py`
 - **Kalshi Docs:** https://docs.kalshi.com/api-reference/portfolio/get-fills
