@@ -38,8 +38,9 @@ async def test_live_connection_and_balance():
 
         # 2. Check Balance (Auth)
         balance = await client.get_balance()
-        assert "balance" in balance
-        print(f"Live Demo Balance: {balance['balance']}")
+        assert balance.balance >= 0
+        assert balance.portfolio_value >= 0
+        print(f"Live Demo Balance: {balance.balance}")
 
         # 3. Fetch Markets
         markets = await client.get_markets(limit=5)

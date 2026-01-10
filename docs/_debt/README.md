@@ -4,14 +4,14 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**0 active debt items.** (DEBT-005 resolved; DEBT-004 elevated to SPEC-027; DEBT-002 closed as "Won't Fix")
+**1 active debt item.** (DEBT-005 resolved; DEBT-004 elevated to SPEC-027; DEBT-002 closed as "Won't Fix")
 
-_None._
+- [DEBT-007: A+ Engineering Robustness Delta (Operational Hardening Gaps)](DEBT-007-a-plus-engineering-robustness-delta.md)
 
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-007**
+**DEBT-008**
 
 ---
 

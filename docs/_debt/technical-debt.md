@@ -6,7 +6,12 @@
 
 ## Outstanding Debt
 
-_None._
+### DEBT-007: A+ Engineering Robustness Delta (Operational Hardening Gaps)
+
+**Priority:** P2
+**Status:** 🔴 Active
+**Summary:** Close confidence gaps in runtime schema upgrades, scheduled live API contract validation, DB invariants, and trade safety harness (CI runs mocked E2E; pre-commit is unit-only).
+**Plan:** `docs/_debt/DEBT-007-a-plus-engineering-robustness-delta.md`
 
 ---
 
