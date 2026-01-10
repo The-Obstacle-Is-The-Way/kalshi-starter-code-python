@@ -12,7 +12,12 @@ import respx
 from httpx import Response
 from typer.testing import CliRunner
 
-from kalshi_research.api.models.portfolio import FillPage, PortfolioBalance, PortfolioPosition
+from kalshi_research.api.models.portfolio import (
+    FillPage,
+    PortfolioBalance,
+    PortfolioPosition,
+    SettlementPage,
+)
 from kalshi_research.cli import app
 from kalshi_research.data import DatabaseManager
 from kalshi_research.data.models import Event, Market, PriceSnapshot
@@ -619,6 +624,9 @@ def test_portfolio_commands_smoke(runner: CliRunner) -> None:
 
         async def get_fills(self, **_: object) -> FillPage:
             return FillPage(fills=[], cursor=None)
+
+        async def get_settlements(self, **_: object) -> SettlementPage:
+            return SettlementPage(settlements=[], cursor=None)
 
         async def get_balance(self) -> PortfolioBalance:
             return PortfolioBalance(balance=0, portfolio_value=0)
