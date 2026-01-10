@@ -1,21 +1,24 @@
 # Codebase Bloat Analysis
 
 **Date:** 2026-01-10
-**Analyzer:** Vulture + manual inspection
+**Analyzer:** Vulture, deadcode, radon (complexity + maintainability)
 **Trigger:** External code review criticism (ex-Databricks engineer)
+**Verified Against:** Kalshi API docs, Exa API docs (vendor SSOT)
 
 ---
 
 ## Executive Summary
 
-| Metric | Value | Assessment |
-|--------|-------|------------|
-| Total Python files | 82 | Moderate |
-| Total source LOC | 15,059 | Significant for scope |
-| Test LOC | 15,644 | Good test coverage |
-| Unused methods/functions/classes | 116 | **HIGH - needs cleanup** |
-| Unused imports | 3 | Low |
-| Dead code confidence | 60%+ | Many confirmed |
+| Metric | Value | Grade |
+|--------|-------|-------|
+| Total Python files | 82 | - |
+| Total source LOC | 15,059 | - |
+| Test LOC | 15,644 | **A** (good coverage) |
+| Unused methods/functions/classes | 64 (confirmed) | **C** (needs cleanup) |
+| Total deadcode items | 343 | C |
+| Average cyclomatic complexity | 2.9 | **A** |
+| Maintainability index | All files A | **A** |
+| **Overall Grade** | | **B-** |
 
 ### Verdict
 
@@ -53,7 +56,7 @@ src/kalshi_research/analysis/edge.py:210: unused method 'detect_volatility_edge'
 src/kalshi_research/alerts/notifiers.py:46: unused class 'FileNotifier'
 src/kalshi_research/alerts/notifiers.py:71: unused class 'WebhookNotifier'
 ```
-**Action:** Delete `FileNotifier` and `WebhookNotifier`. Only `ConsoleNotifier` is used.
+**REVISED:** These are HALFWAY IMPLEMENTATIONS, not slop. They're legitimate features that should be wired in with `--output file` and `--webhook url` CLI options.
 
 #### `research/thesis.py` - TemporalValidator (40+ lines)
 ```
@@ -120,9 +123,101 @@ src/kalshi_research/data/repositories/settlements.py:71: unused method 'count_by
 
 ---
 
+## Deep Trace: Vendor API Verification
+
+Each item traced against official Kalshi/Exa API docs to determine TRUE dead code vs HALFWAY implementations.
+
+### Kalshi API Methods - Verified Against `docs/_vendor-docs/kalshi-api-reference.md`
+
+| Our Method | Kalshi Endpoint | Verdict | Action |
+|------------|-----------------|---------|--------|
+| `get_trades` | `GET /markets/trades` | **HALFWAY** | Wire in: `kalshi data sync-trades` |
+| `get_candlesticks` | `GET /markets/{ticker}/candlesticks` | **HALFWAY** | Wire in: `kalshi market history` |
+| `get_series_candlesticks` | `GET /markets/candlesticks` | **HALFWAY** | Low priority, evaluate |
+| `get_exchange_status` | `GET /exchange/status` | **HALFWAY** | Wire in: Use in `verify_market_open` |
+| `create_order` | `POST /portfolio/orders` | **RESERVED** | Keep - trading feature |
+| `cancel_order` | `DELETE /portfolio/orders/{id}` | **RESERVED** | Keep - trading feature |
+| `amend_order` | `POST /portfolio/orders/{id}/amend` | **RESERVED** | Keep - trading feature |
+| `get_orders` | `GET /portfolio/orders` | **RESERVED** | Keep - order management |
+| WebSocket `subscribe_*` | All WS channels | **HALFWAY** | Wire in or extract to optional |
+
+### Exa API Methods - Verified Against `docs/_vendor-docs/exa-api-reference.md`
+
+| Our Method | Exa Endpoint | Verdict | Action |
+|------------|--------------|---------|--------|
+| `find_similar` | `POST /findSimilar` | **HALFWAY** | Wire in: `kalshi research similar` |
+| `create_research_task` | `POST /research/v1` | **HALFWAY** | Wire in: `kalshi research deep` |
+| `wait_for_research` | Polling `GET /research/v1/{id}` | **HALFWAY** | Goes with above |
+
+### Analysis Module - No Vendor API (Our Logic)
+
+| Item | Verdict | Reasoning |
+|------|---------|-----------|
+| `EdgeDetector` (all methods) | **TRUE SLOP** | Built complete, never integrated, no CLI command uses it |
+| `compute_spread_stats` | **TRUE SLOP** | Built, never called |
+| `compute_volatility` | **TRUE SLOP** | Built, never called |
+| `compute_volume_profile` | **TRUE SLOP** | Built, never called |
+| `scan_all` | **TRUE SLOP** | Convenience method, never used |
+| `verify_market_open` | **HALFWAY** | Should use `get_exchange_status`, doesn't |
+| `max_safe_buy_size` | **HALFWAY** | Part of liquidity module, not in CLI |
+
+### Research Module
+
+| Item | Verdict | Reasoning |
+|------|---------|-----------|
+| `TemporalValidator` | **TRUE SLOP** | No clear use case, no integration path |
+| `notebook_utils.py` | **FALSE POSITIVE** | Used by Jupyter notebooks in `/notebooks/` |
+
+### Repository Methods
+
+| Method | Verdict | Reasoning |
+|--------|---------|-----------|
+| `get_by_series` | **YAGNI CRUFT** | Built speculatively, never used |
+| `get_by_category` | **YAGNI CRUFT** | Built speculatively, never used |
+| `get_expiring_before` | **YAGNI CRUFT** | Built speculatively, never used |
+| `get_latest_batch` | **YAGNI CRUFT** | Built speculatively, never used |
+| `delete_older_than` | **YAGNI CRUFT** | Built speculatively, never used |
+| `get_by_result` | **YAGNI CRUFT** | Built speculatively, never used |
+| `count_by_result` | **YAGNI CRUFT** | Built speculatively, never used |
+
+---
+
+## Complexity Hotspots (Radon Analysis)
+
+### Functions Rated D (Very High Complexity - Refactor Priority)
+
+| Function | Complexity | Location |
+|----------|------------|----------|
+| `ThesisBacktester._compute_result` | **D (22)** | `research/backtest.py:202` |
+
+### Functions Rated C (High Complexity - Monitor)
+
+| Function | Complexity | Location |
+|----------|------------|----------|
+| `PnLCalculator.calculate_summary_with_trades` | C (20) | `portfolio/pnl.py:171` |
+| `SentimentAggregator.get_market_summary` | C (16) | `news/sentiment.py:74` |
+| `SentimentAggregator.get_event_summary` | C (16) | `news/sentiment.py:158` |
+| `AlertMonitor._check_condition` | C (15) | `alerts/monitor.py:117` |
+| `KalshiClient.create_order` | C (15) | `api/client.py:647` |
+| `KalshiClient.amend_order` | C (15) | `api/client.py:809` |
+| `PortfolioSyncer.sync_trades` | C (14) | `portfolio/syncer.py:195` |
+| `KalshiWebSocket._handle_message` | C (14) | `websocket/client.py:215` |
+
+### Maintainability Index (Lowest Scores - Still Passing)
+
+| File | MI Score | Notes |
+|------|----------|-------|
+| `api/client.py` | 29.63 | Large file, many methods |
+| `research/invalidation.py` | 30.98 | Complex logic |
+| `exa/client.py` | 31.15 | Large file |
+| `research/thesis_research.py` | 31.31 | Complex logic |
+| `analysis/liquidity.py` | 35.29 | Dense calculations |
+
+---
+
 ## Structural Bloat
 
-### 1. Triple Data Modeling (High Impact)
+### 1. Triple Data Modeling (Actually NOT Bloat)
 
 The codebase uses THREE different patterns for data models:
 
@@ -132,14 +227,13 @@ The codebase uses THREE different patterns for data models:
 | Pydantic `BaseModel` | 15 files | API response models |
 | SQLAlchemy `Mapped[]` | 15 files | Database ORM |
 
-**Problem:** Potential redundancy when same concept is modeled multiple times.
+**REVISED Assessment:** This is **VALID architecture**, not bloat.
 
-**Example:** Market data exists as:
-- `api/models/market.py` (Pydantic) - API response
-- `data/models.py` (SQLAlchemy) - DB table
-- Various dataclasses in analysis modules
+- **Pydantic**: Validates external API responses (immutable, frozen)
+- **SQLAlchemy**: Persists to database (mutable, ORM-managed)
+- **dataclass**: Lightweight internal DTOs for analysis (no validation overhead)
 
-**Recommendation:** Audit for redundant models. Consider using Pydantic for API + dataclasses for internal, with explicit conversion.
+**This is proper separation of concerns.** Different layers need different models. The apparent "redundancy" is intentional - you don't want your DB model coupled to your API response format.
 
 ### 2. Repeated Boilerplate (Medium Impact)
 
@@ -293,15 +387,48 @@ src/kalshi_research/api/models/candlestick.py:20: unused variable 'open_dollars'
 
 ---
 
-## Vulture Command Reference
+## Tool Command Reference
 
 ```bash
-# High confidence dead code (safe to delete)
+# === DEAD CODE DETECTION ===
+
+# Vulture (high confidence - safe to delete)
 vulture src/ --min-confidence 80
 
-# All potential dead code
+# Vulture (all potential dead code)
 vulture src/ --min-confidence 60
 
-# Count by type
+# Deadcode (alternative, better scope tracking)
+deadcode src/
+
+# Count unused methods/functions/classes
 vulture src/ --min-confidence 60 2>&1 | grep -E "unused (method|function|class)" | wc -l
+
+# === COMPLEXITY ANALYSIS ===
+
+# Cyclomatic complexity (find complex functions)
+radon cc src/ -a -s
+
+# Only show C or worse
+radon cc src/ -a -s | grep -E " - [C-F] "
+
+# Maintainability index (lower = worse, but all A is good)
+radon mi src/ -s
+
+# === CREATE WHITELIST FOR FALSE POSITIVES ===
+vulture src/ --make-whitelist > vulture_whitelist.py
 ```
+
+---
+
+## Summary: Verdict Categories
+
+| Category | Count | Action |
+|----------|-------|--------|
+| **TRUE SLOP** | ~15 items | DELETE immediately |
+| **HALFWAY IMPL** | ~12 items | Wire in or delete (decision needed) |
+| **RESERVED** | ~5 items | Keep with `# RESERVED:` comment |
+| **FALSE POSITIVE** | ~30+ items | Add to whitelist |
+| **YAGNI CRUFT** | ~7 items | DELETE (speculative building) |
+
+**Bottom line:** ~10-15% of code is dead. After cleanup, this codebase would be solid B+/A- engineering.
