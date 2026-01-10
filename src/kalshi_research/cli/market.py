@@ -9,6 +9,38 @@ from kalshi_research.cli.utils import console
 app = typer.Typer(help="Market lookup commands.")
 
 
+def _normalize_market_list_status(status: str | None) -> str | None:
+    if status is None:
+        return None
+
+    from kalshi_research.api.models.market import MarketFilterStatus
+
+    raw = status
+    normalized = raw.strip().lower()
+
+    # Common footgun: response status values differ from filter values.
+    # Users often try "active" when they mean "open". Be helpful, but explicit.
+    if normalized == "active":
+        console.print(
+            "[yellow]Warning:[/yellow] 'active' is a response status, not a valid filter. "
+            "Using '--status open'."
+        )
+        return MarketFilterStatus.OPEN.value
+
+    allowed = {s.value for s in MarketFilterStatus}
+    if normalized not in allowed:
+        allowed_str = ", ".join(sorted(allowed))
+        console.print(f"[red]Error:[/red] Invalid status filter '{raw}'.")
+        console.print(f"[dim]Expected one of: {allowed_str}[/dim]")
+        console.print(
+            "[dim]Note: API responses may contain status values like 'active' or 'determined', "
+            "but the /markets filter uses different values.[/dim]"
+        )
+        raise typer.Exit(2)
+
+    return normalized
+
+
 @app.command("get")
 def market_get(
     ticker: Annotated[str, typer.Argument(help="Market ticker to fetch.")],
@@ -199,7 +231,14 @@ def market_liquidity(
 def market_list(
     status: Annotated[
         str | None,
-        typer.Option("--status", "-s", help="Filter by status (open, closed, etc)."),
+        typer.Option(
+            "--status",
+            "-s",
+            help=(
+                "Filter by status: unopened, open, paused, closed, settled "
+                "(filter values, not response statuses)."
+            ),
+        ),
     ] = "open",
     event: Annotated[
         str | None,
@@ -214,18 +253,29 @@ def market_list(
     from kalshi_research.api import KalshiPublicClient
 
     async def _list() -> None:
-        async with KalshiPublicClient() as client:
-            markets = await client.get_markets(
-                status=status,
-                event_ticker=event,
-                limit=limit,
-            )
+        from kalshi_research.api.exceptions import KalshiAPIError
+
+        status_filter = _normalize_market_list_status(status)
+
+        try:
+            async with KalshiPublicClient() as client:
+                markets = await client.get_markets(
+                    status=status_filter,
+                    event_ticker=event,
+                    limit=limit,
+                )
+        except KalshiAPIError as e:
+            console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+            raise typer.Exit(1) from None
+        except Exception as e:
+            console.print(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1) from None
 
         if not markets:
             console.print("[yellow]No markets found.[/yellow]")
             return
 
-        table = Table(title=f"Markets (status={status})")
+        table = Table(title=f"Markets (status={status_filter or 'all'})")
         table.add_column("Ticker", style="cyan", no_wrap=True)
         table.add_column("Title", style="white")
         table.add_column("Status", style="dim")

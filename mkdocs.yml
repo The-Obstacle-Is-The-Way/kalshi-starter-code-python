@@ -57,6 +57,7 @@ nav:
       - Overview: architecture/overview.md
       - CLI Design: architecture/cli.md
       - Data Pipeline: architecture/data-pipeline.md
+      - Evolution Plan: architecture/architecture-evolution-plan.md
   - Research:
       - Thesis System: research/thesis-system.md
       - Backtesting: research/backtesting.md

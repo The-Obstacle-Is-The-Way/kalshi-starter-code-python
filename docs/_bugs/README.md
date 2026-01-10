@@ -10,7 +10,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-052**
+**BUG-053**
 
 ---
 
@@ -24,6 +24,7 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-052** | `market list --status active` traceback (invalid filter) | ✅ Fixed |
 | **BUG-051** | Cancel order response schema mismatch | ✅ Fixed |
 | **BUG-050** | Silent exception swallowing in alerts sentiment computation | ✅ Fixed |
 | **BUG-049** | Asymmetrical rate limiting (reads unprotected) | ✅ Fixed |

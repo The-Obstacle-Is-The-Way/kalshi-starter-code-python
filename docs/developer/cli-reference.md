@@ -60,10 +60,12 @@ Notes:
 
 ## `kalshi market`
 
-- `kalshi market list [--status open] [--event EVT] [--limit N]`
+- `kalshi market list [--status unopened|open|paused|closed|settled] [--event EVT] [--limit N]`
 - `kalshi market get <TICKER>`
 - `kalshi market orderbook <TICKER> [--depth N]`
 - `kalshi market liquidity <TICKER> [--depth N] [--max-slippage-cents N]`
+
+Note: Kalshi's **response** `status` values (e.g. `active`) differ from the `/markets` **filter** values. The CLI maps `--status active` → `open` with a warning.
 
 ## `kalshi scan`
 

@@ -105,6 +105,41 @@ def test_market_list(mock_client_cls: MagicMock) -> None:
 
 
 @patch("kalshi_research.api.KalshiPublicClient")
+def test_market_list_maps_active_to_open(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_market = MagicMock()
+    mock_market.ticker = "TEST-MARKET"
+    mock_market.title = "Test Market"
+    mock_market.status.value = "active"
+    mock_market.yes_bid_cents = 50
+    mock_market.volume_24h = 1000
+
+    mock_client.get_markets.return_value = [mock_market]
+
+    result = runner.invoke(app, ["market", "list", "--status", "active"])
+
+    assert result.exit_code == 0
+    assert "active' is a response status" in result.stdout
+    assert "--status" in result.stdout
+    assert "open'." in result.stdout
+    assert "TEST-MARKET" in result.stdout
+    mock_client.get_markets.assert_awaited_once_with(status="open", event_ticker=None, limit=20)
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_list_rejects_invalid_status(mock_client_cls: MagicMock) -> None:
+    result = runner.invoke(app, ["market", "list", "--status", "nope"])
+
+    assert result.exit_code == 2
+    assert "Invalid status filter" in result.stdout
+    mock_client_cls.assert_not_called()
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
 def test_market_liquidity(mock_client_cls: MagicMock) -> None:
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client

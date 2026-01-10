@@ -129,11 +129,13 @@ uv run kalshi market list [OPTIONS]
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--status`, `-s` | `open` | Filter by status: open, closed, etc. |
+| `--status`, `-s` | `open` | Filter by status: `unopened`, `open`, `paused`, `closed`, `settled` |
 | `--event`, `-e` | None | Filter by event ticker |
 | `--limit`, `-n` | `20` | Maximum number of results |
 
 **IMPORTANT**: There is NO `--search` or `--query` option. Use database queries instead.
+
+Note: `active` is a **response** status (not a filter). The CLI treats `--status active` as `open` with a warning.
 
 ### market orderbook
 Fetch orderbook for a market.
