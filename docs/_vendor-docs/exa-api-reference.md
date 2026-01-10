@@ -4,8 +4,7 @@
 **OpenAPI Spec:** [exa-openapi-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-openapi-spec.yaml)
 **Python SDK:** `pip install exa-py` / `pip install exa_py` (module: `exa_py`)
 **Last Verified:** 2026-01-10
-**MCP Server:** `npx exa-mcp-server` or hosted at `https://mcp.exa.ai/mcp`
-**Verified Against:** OpenAPI spec v1.2.0, `exa-py` v2.0.2, `exa-mcp-server` v3.1.3
+**Verified Against:** OpenAPI spec v1.2.0, `exa-py` v2.0.2
 
 ---
 
@@ -20,7 +19,6 @@ Exa is "a search engine made for AIs" - optimized for RAG, agentic workflows, an
 - **Find Similar**: Discover semantically related pages
 - **Answer**: LLM-generated answers with citations
 - **Research**: Async deep research with structured output (agentic)
-- **MCP Server**: Native integration with Claude and other MCP-compatible agents
 
 ---
 
@@ -581,93 +579,9 @@ Research API uses consumption-based billing. You're only charged for tasks that 
 
 ---
 
-## MCP Server (Model Context Protocol)
-
-Exa provides an official MCP server for native integration with Claude Desktop, Claude Code, Cursor, and other MCP-compatible agents. This eliminates the need to write custom tool wrappers.
-
-### Installation Options
-
-**Option 1: NPX (Local)**
-```bash
-npx exa-mcp-server
-```
-
-**Option 2: Hosted Server**
-```
-https://mcp.exa.ai/mcp
-```
-
-### Claude Desktop Configuration
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
-
-```json
-{
-  "mcpServers": {
-    "exa": {
-      "command": "npx",
-      "args": ["-y", "exa-mcp-server"],
-      "env": {
-        "EXA_API_KEY": "your-api-key-here"
-      }
-    }
-  }
-}
-```
-
-### Claude Code / Cursor Configuration (HTTP)
-
-```json
-{
-  "mcpServers": {
-    "exa": {
-      "type": "http",
-      "url": "https://mcp.exa.ai/mcp"
-    }
-  }
-}
-```
-
-### Available MCP Tools
-
-By default, only `web_search_exa` and `get_code_context_exa` are enabled. Enable additional tools via args:
-
-| Tool | Description |
-|------|-------------|
-| `web_search_exa` | Real-time web search with content extraction |
-| `deep_search_exa` | Higher-quality web search (slower / more expensive) |
-| `get_code_context_exa` | Code snippets/docs from GitHub, StackOverflow |
-| `crawling_exa` | Extract content from specific URLs |
-| `company_research_exa` | Comprehensive company/business research |
-| `linkedin_search_exa` | LinkedIn people/company search |
-| `deep_researcher_start` | Start async research task |
-| `deep_researcher_check` | Poll for research results |
-
-**Enable all tools:**
-```json
-"args": ["-y", "exa-mcp-server", "tools=web_search_exa,deep_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"]
-```
-
-**Selective tools via hosted URL:**
-```
-https://mcp.exa.ai/mcp?tools=web_search_exa,company_research_exa
-```
-
-### When to Use MCP vs Direct SDK
-
-| Use Case | Recommendation |
-|----------|----------------|
-| Interactive research with Claude | MCP Server |
-| Jupyter notebooks | Python SDK |
-| Production pipelines | Python SDK (typed, testable) |
-| Quick prototyping | MCP Server |
-| Custom structured output | Python SDK with `outputSchema` |
-
----
-
 ## Tool Use with Claude (Manual)
 
-For custom tool definitions (when MCP is unavailable or you need fine-grained control):
+For custom tool definitions (or when you need fine-grained control):
 
 ```python
 import anthropic
@@ -801,5 +715,4 @@ results = exa.search(
 
 - [Kalshi API Reference](kalshi-api-reference.md) - Kalshi prediction market API
 - [Architecture](../architecture/overview.md) - How our codebase integrates external APIs
-- [Exa MCP Server (GitHub)](https://github.com/exa-labs/exa-mcp-server) - Official MCP server
 - [Exa Pricing](https://exa.ai/pricing) - Current pricing details
