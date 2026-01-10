@@ -189,7 +189,7 @@ Notes:
 
 ## References
 
-- Towards a Science of Scaling Agent Systems (arXiv:2512.08296): https://arxiv.org/abs/2512.08296
-- PydanticAI Graph: https://ai.pydantic.dev/graph/
-- Instructor: https://github.com/567-labs/instructor
-- Logfire article: https://kadermiyanyedi.medium.com/fire-up-your-logging-needs-with-logfire-6330d7a08dfe
+- [Towards a Science of Scaling Agent Systems (arXiv:2512.08296)](https://arxiv.org/abs/2512.08296)
+- [PydanticAI Graph](https://ai.pydantic.dev/graph/)
+- [Instructor](https://github.com/567-labs/instructor)
+- [Logfire article](https://kadermiyanyedi.medium.com/fire-up-your-logging-needs-with-logfire-6330d7a08dfe)

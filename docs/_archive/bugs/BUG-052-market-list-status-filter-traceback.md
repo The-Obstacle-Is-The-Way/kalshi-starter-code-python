@@ -15,7 +15,7 @@ uv run kalshi market list --status active
 
 Crashes with a full traceback ending in:
 
-```
+```text
 KalshiAPIError: API Error 400: ... "invalid status filter"
 ```
 
