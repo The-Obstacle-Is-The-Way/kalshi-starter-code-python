@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
     from kalshi_research.analysis.calibration import CalibrationResult
     from kalshi_research.analysis.edge import Edge
-    from kalshi_research.analysis.metrics import VolumeProfile
     from kalshi_research.data.models import PriceSnapshot
 
 
@@ -228,54 +227,6 @@ def plot_spread_timeline(
     ax.grid(True, alpha=0.3)
 
     plt.xticks(rotation=45)
-    plt.tight_layout()
-
-    if save_path:
-        fig.savefig(save_path, dpi=150, bbox_inches="tight")
-
-    return fig
-
-
-def plot_volume_profile(
-    profile: VolumeProfile,
-    title: str | None = None,
-    save_path: Path | str | None = None,
-) -> Figure:
-    """
-    Plot volume distribution by hour of day.
-
-    Args:
-        profile: VolumeProfile from MarketMetrics
-        title: Chart title
-        save_path: Optional path to save figure
-
-    Returns:
-        Matplotlib Figure
-    """
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-
-    # Hourly volume
-    hours = list(range(24))
-    volumes = [profile.hourly_volume.get(h, 0) for h in hours]
-
-    ax1.bar(hours, volumes, color="steelblue", edgecolor="black", alpha=0.7)
-    ax1.set_xlabel("Hour (UTC)")
-    ax1.set_ylabel("Average Volume")
-    ax1.set_title("Volume by Hour")
-    ax1.set_xticks(hours[::2])
-    ax1.grid(True, alpha=0.3, axis="y")
-
-    # Daily volume
-    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    day_volumes = [profile.daily_volume.get(d, 0) for d in days]
-
-    ax2.bar(days, day_volumes, color="coral", edgecolor="black", alpha=0.7)
-    ax2.set_xlabel("Day of Week")
-    ax2.set_ylabel("Average Volume")
-    ax2.set_title("Volume by Day")
-    ax2.grid(True, alpha=0.3, axis="y")
-
-    fig.suptitle(title or f"Volume Profile: {profile.ticker}")
     plt.tight_layout()
 
     if save_path:

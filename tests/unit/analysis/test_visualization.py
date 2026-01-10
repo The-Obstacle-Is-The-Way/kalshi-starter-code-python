@@ -10,13 +10,11 @@ from matplotlib.figure import Figure
 
 from kalshi_research.analysis.calibration import CalibrationResult
 from kalshi_research.analysis.edge import Edge
-from kalshi_research.analysis.metrics import VolumeProfile
 from kalshi_research.analysis.visualization import (
     plot_calibration_curve,
     plot_edge_histogram,
     plot_probability_timeline,
     plot_spread_timeline,
-    plot_volume_profile,
 )
 from kalshi_research.data.models import PriceSnapshot
 
@@ -97,26 +95,6 @@ def sample_edges() -> list[Edge]:
             description="Volume spike detected",
         ),
     ]
-
-
-@pytest.fixture
-def sample_volume_profile() -> VolumeProfile:
-    """Create sample volume profile for testing."""
-    return VolumeProfile(
-        ticker="TEST-25JAN-T50",
-        hourly_volume={i: float(i * 100 + 500) for i in range(24)},
-        daily_volume={
-            "Mon": 10000.0,
-            "Tue": 12000.0,
-            "Wed": 11000.0,
-            "Thu": 13000.0,
-            "Fri": 15000.0,
-            "Sat": 5000.0,
-            "Sun": 4000.0,
-        },
-        total_volume=100000,
-        period_days=7,
-    )
 
 
 class TestPlotCalibrationCurve:
@@ -296,41 +274,6 @@ class TestPlotSpreadTimeline:
         output_path = tmp_path / "spread.png"
 
         fig = plot_spread_timeline(sample_snapshots, save_path=output_path)
-
-        assert output_path.exists()
-        assert output_path.stat().st_size > 0
-
-        plt.close(fig)
-
-
-class TestPlotVolumeProfile:
-    """Tests for plot_volume_profile function."""
-
-    def test_plot_volume_profile_basic(self, sample_volume_profile: VolumeProfile) -> None:
-        """Test basic volume profile plotting."""
-        fig = plot_volume_profile(sample_volume_profile)
-
-        assert isinstance(fig, Figure)
-        assert len(fig.axes) == 2  # Two subplots
-
-        plt.close(fig)
-
-    def test_plot_volume_profile_custom_title(self, sample_volume_profile: VolumeProfile) -> None:
-        """Test volume profile with custom title."""
-        fig = plot_volume_profile(sample_volume_profile, title="Custom Volume")
-
-        # Check suptitle (figure title)
-        assert "Custom Volume" in fig._suptitle.get_text()
-
-        plt.close(fig)
-
-    def test_plot_volume_profile_save(
-        self, sample_volume_profile: VolumeProfile, tmp_path: Path
-    ) -> None:
-        """Test saving volume profile to file."""
-        output_path = tmp_path / "volume.png"
-
-        fig = plot_volume_profile(sample_volume_profile, save_path=output_path)
 
         assert output_path.exists()
         assert output_path.stat().st_size > 0
