@@ -57,7 +57,6 @@ def sample_snapshots() -> list[PriceSnapshot]:
             volume=100 + i * 10,
             volume_24h=50 + i * 5,
             open_interest=100,
-            liquidity=10000,
         )
         snapshots.append(snap)
 
@@ -155,7 +154,6 @@ class TestMarketMetrics:
             volume=0,
             volume_24h=0,
             open_interest=0,
-            liquidity=0,
         )
 
         vol = metrics.compute_volatility([single_snap])
@@ -176,7 +174,6 @@ class TestMarketMetrics:
                 volume=0,
                 volume_24h=0,
                 open_interest=0,
-                liquidity=0,
             ),
             PriceSnapshot(
                 id=2,
@@ -189,7 +186,6 @@ class TestMarketMetrics:
                 volume=0,
                 volume_24h=0,
                 open_interest=0,
-                liquidity=0,
             ),
         ]
 
@@ -235,7 +231,6 @@ class TestMarketMetrics:
                 volume=100 * (i + 1),  # Increasing volume
                 volume_24h=50,
                 open_interest=100,
-                liquidity=1000,
             )
             for i in range(24)
         ]

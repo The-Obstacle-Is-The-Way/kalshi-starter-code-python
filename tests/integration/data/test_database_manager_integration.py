@@ -108,7 +108,6 @@ async def test_concurrent_writes_do_not_deadlock(tmp_path) -> None:
                             volume=1000 + i,
                             volume_24h=100,
                             open_interest=500,
-                            liquidity=1000,
                         )
                     )
                 await session.commit()

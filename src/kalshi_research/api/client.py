@@ -91,6 +91,10 @@ class KalshiPublicClient:
         exc_val: BaseException | None,
         exc_tb: Any,
     ) -> None:
+        await self.aclose()
+
+    async def aclose(self) -> None:
+        """Close the underlying HTTP client."""
         await self._client.aclose()
 
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -492,7 +496,7 @@ class KalshiClient(KalshiPublicClient):
         exc_val: BaseException | None,
         exc_tb: Any,
     ) -> None:
-        await self._client.aclose()
+        await self.aclose()
 
     async def _auth_get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """

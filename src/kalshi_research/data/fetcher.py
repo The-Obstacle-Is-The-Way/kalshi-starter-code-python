@@ -122,7 +122,6 @@ class DataFetcher:
             volume=api_market.volume,
             volume_24h=api_market.volume_24h,
             open_interest=api_market.open_interest,
-            liquidity=api_market.liquidity,
         )
 
     def _api_market_to_settlement(self, api_market: APIMarket) -> DBSettlement | None:
@@ -156,7 +155,7 @@ class DataFetcher:
         logger.info("Starting event sync")
         count = 0
 
-        async with self._db.session_factory() as session:
+        async with self._db.session_factory() as session, session.begin():
             repo = EventRepository(session)
 
             async for api_event in self.client.get_all_events(limit=200, max_pages=max_pages):
@@ -164,7 +163,9 @@ class DataFetcher:
                 await repo.upsert(db_event)
                 count += 1
 
-            await repo.commit()
+                if count % 100 == 0:
+                    await session.flush()
+                    logger.info("Synced events so far", count=count)
 
         logger.info("Synced events", count=count)
         return count
@@ -188,16 +189,15 @@ class DataFetcher:
             event_repo = EventRepository(session)
 
             async for api_market in self.client.get_all_markets(status=status, max_pages=max_pages):
-                # Ensure event exists first
-                existing_event = await event_repo.get(api_market.event_ticker)
-                if existing_event is None:
-                    # Create minimal event record
-                    event = DBEvent(
+                # Ensure event exists first (FK robustness) without racing other writers.
+                await event_repo.insert_ignore(
+                    DBEvent(
                         ticker=api_market.event_ticker,
                         series_ticker=api_market.series_ticker or api_market.event_ticker,
                         title=api_market.event_ticker,  # Placeholder
+                        mutually_exclusive=False,
                     )
-                    await event_repo.add(event)
+                )
 
                 db_market = self._api_market_to_db(api_market)
                 await market_repo.upsert(db_market)
@@ -241,15 +241,15 @@ class DataFetcher:
                     skipped += 1
                     continue
 
-                # Ensure event exists first (FK robustness)
-                existing_event = await event_repo.get(api_market.event_ticker)
-                if existing_event is None:
-                    event = DBEvent(
+                # Ensure event exists first (FK robustness) without racing other writers.
+                await event_repo.insert_ignore(
+                    DBEvent(
                         ticker=api_market.event_ticker,
                         series_ticker=api_market.series_ticker or api_market.event_ticker,
                         title=api_market.event_ticker,  # Placeholder
+                        mutually_exclusive=False,
                     )
-                    await event_repo.add(event)
+                )
 
                 # Ensure market row exists (FK constraint)
                 await market_repo.upsert(self._api_market_to_db(api_market))
@@ -292,24 +292,19 @@ class DataFetcher:
             event_repo = EventRepository(session)
 
             async for api_market in self.client.get_all_markets(status=status, max_pages=max_pages):
-                # Ensure market row exists (FK constraint robustness)
-                existing_market = await market_repo.get(api_market.ticker)
-                if existing_market is None:
-                    # Ensure event exists first
-                    existing_event = await event_repo.get(api_market.event_ticker)
-                    if existing_event is None:
-                        event = DBEvent(
-                            ticker=api_market.event_ticker,
-                            series_ticker=api_market.series_ticker or api_market.event_ticker,
-                            title=api_market.event_ticker,  # Placeholder
-                        )
-                        await event_repo.add(event)
-
-                    db_market = self._api_market_to_db(api_market)
-                    await market_repo.upsert(db_market)
+                # Ensure event + market exist (FK robustness) without racing other writers.
+                await event_repo.insert_ignore(
+                    DBEvent(
+                        ticker=api_market.event_ticker,
+                        series_ticker=api_market.series_ticker or api_market.event_ticker,
+                        title=api_market.event_ticker,  # Placeholder
+                        mutually_exclusive=False,
+                    )
+                )
+                await market_repo.insert_ignore(self._api_market_to_db(api_market))
 
                 snapshot = self._api_market_to_snapshot(api_market, snapshot_time)
-                await price_repo.add(snapshot)
+                await price_repo.add(snapshot, flush=False)
                 count += 1
 
                 # Flush in batches to avoid memory issues (still within transaction)

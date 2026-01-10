@@ -12,6 +12,10 @@ from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
 
 app = typer.Typer(help="Portfolio tracking and P&L commands.")
 
+PORTFOLIO_SYNC_TIP = (
+    "[dim]Tip: run `kalshi portfolio sync` to populate/refresh the local cache.[/dim]"
+)
+
 
 def _load_theses() -> dict[str, Any]:
     """Load theses from storage."""
@@ -176,6 +180,7 @@ def portfolio_positions(
     async def _positions() -> None:
         db = DatabaseManager(db_path)
         try:
+            await db.create_tables()
             async with db.session_factory() as session:
                 # Build query
                 query = select(Position).where(Position.closed_at.is_(None))
@@ -187,6 +192,7 @@ def portfolio_positions(
 
                 if not positions:
                     console.print("[yellow]No open positions found[/yellow]")
+                    console.print(PORTFOLIO_SYNC_TIP)
                     return
 
                 # Display positions table
@@ -251,6 +257,7 @@ def portfolio_pnl(  # noqa: PLR0915
     async def _pnl() -> None:
         db = DatabaseManager(db_path)
         try:
+            await db.create_tables()
             async with db.session_factory() as session:
                 # Get positions
                 pos_query = select(Position)
@@ -400,6 +407,7 @@ def portfolio_history(
     async def _history() -> None:
         db = DatabaseManager(db_path)
         try:
+            await db.create_tables()
             async with db.session_factory() as session:
                 # Build query
                 query = select(Trade).order_by(Trade.executed_at.desc()).limit(limit)
@@ -411,6 +419,7 @@ def portfolio_history(
 
                 if not trades:
                     console.print("[yellow]No trades found[/yellow]")
+                    console.print(PORTFOLIO_SYNC_TIP)
                     return
 
                 # Display trades table
@@ -461,6 +470,7 @@ def portfolio_link(
     async def _link() -> None:
         db = DatabaseManager(db_path)
         try:
+            await db.create_tables()
             async with db.session_factory() as session:
                 async with session.begin():
                     # Find open position
@@ -472,6 +482,7 @@ def portfolio_link(
 
                     if not position:
                         console.print(f"[yellow]No open position found for {ticker}[/yellow]")
+                        console.print(PORTFOLIO_SYNC_TIP)
                         return
 
                     # Update thesis_id
@@ -507,6 +518,7 @@ def portfolio_suggest_links(
         # Get unlinked positions
         db = DatabaseManager(db_path)
         try:
+            await db.create_tables()
             async with db.session_factory() as session:
                 query = select(Position).where(
                     Position.thesis_id.is_(None), Position.closed_at.is_(None)
@@ -516,6 +528,7 @@ def portfolio_suggest_links(
 
                 if not positions:
                     console.print("[yellow]No unlinked positions found.[/yellow]")
+                    console.print(PORTFOLIO_SYNC_TIP)
                     return
 
                 # Find matches

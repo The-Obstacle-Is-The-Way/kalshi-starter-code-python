@@ -6,8 +6,9 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-from kalshi_research.data.models import Market
+from kalshi_research.data.models import Market, utc_now
 from kalshi_research.data.repositories.base import BaseRepository
 
 if TYPE_CHECKING:
@@ -43,26 +44,59 @@ class MarketRepository(BaseRepository[Market]):
         result = await self._session.execute(stmt)
         return result.scalars().all()
 
-    async def upsert(self, market: Market) -> Market:
-        """Insert or update a market."""
-        existing = await self.get(market.ticker)
-        if existing is not None:
-            # Update existing market
-            existing.event_ticker = market.event_ticker
-            existing.series_ticker = market.series_ticker
-            existing.title = market.title
-            existing.subtitle = market.subtitle
-            existing.status = market.status
-            existing.result = market.result
-            existing.open_time = market.open_time
-            existing.close_time = market.close_time
-            existing.expiration_time = market.expiration_time
-            existing.category = market.category
-            existing.subcategory = market.subcategory
-            await self._session.flush()
-            await self._session.refresh(existing)
-            return existing
-        return await self.add(market)
+    async def insert_ignore(self, market: Market) -> None:
+        """Insert a market row if it does not exist (FK robustness, no updates)."""
+        stmt = sqlite_insert(Market).values(
+            ticker=market.ticker,
+            event_ticker=market.event_ticker,
+            series_ticker=market.series_ticker,
+            title=market.title,
+            subtitle=market.subtitle,
+            status=market.status,
+            result=market.result,
+            open_time=market.open_time,
+            close_time=market.close_time,
+            expiration_time=market.expiration_time,
+            category=market.category,
+            subcategory=market.subcategory,
+        )
+        stmt = stmt.on_conflict_do_nothing(index_elements=[Market.ticker])
+        await self._session.execute(stmt)
+
+    async def upsert(self, market: Market) -> None:
+        """Insert or update a market using a DB-level upsert (atomic)."""
+        stmt = sqlite_insert(Market).values(
+            ticker=market.ticker,
+            event_ticker=market.event_ticker,
+            series_ticker=market.series_ticker,
+            title=market.title,
+            subtitle=market.subtitle,
+            status=market.status,
+            result=market.result,
+            open_time=market.open_time,
+            close_time=market.close_time,
+            expiration_time=market.expiration_time,
+            category=market.category,
+            subcategory=market.subcategory,
+        )
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[Market.ticker],
+            set_={
+                "event_ticker": stmt.excluded.event_ticker,
+                "series_ticker": stmt.excluded.series_ticker,
+                "title": stmt.excluded.title,
+                "subtitle": stmt.excluded.subtitle,
+                "status": stmt.excluded.status,
+                "result": stmt.excluded.result,
+                "open_time": stmt.excluded.open_time,
+                "close_time": stmt.excluded.close_time,
+                "expiration_time": stmt.excluded.expiration_time,
+                "category": stmt.excluded.category,
+                "subcategory": stmt.excluded.subcategory,
+                "updated_at": utc_now(),
+            },
+        )
+        await self._session.execute(stmt)
 
     async def count_by_status(self) -> dict[str, int]:
         """Count markets by status."""

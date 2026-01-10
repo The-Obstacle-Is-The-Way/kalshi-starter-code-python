@@ -595,4 +595,4 @@ class TestKalshiClientRateLimiting:
             # Verify rate limiter was called for GET request
             client._rate_limiter.acquire.assert_called_once_with("GET", "/portfolio/balance")
 
-            await client._client.aclose()
+            await client.aclose()

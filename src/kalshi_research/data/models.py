@@ -107,8 +107,6 @@ class PriceSnapshot(Base):
     volume: Mapped[int] = mapped_column(Integer, nullable=False)
     volume_24h: Mapped[int] = mapped_column(Integer, nullable=False)
     open_interest: Mapped[int] = mapped_column(Integer, nullable=False)
-    # DEPRECATED: liquidity field removed from Kalshi API Jan 15, 2026
-    liquidity: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Relationships
     market: Mapped[Market] = relationship("Market", back_populates="price_snapshots")

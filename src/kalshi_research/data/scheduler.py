@@ -32,6 +32,8 @@ class DataScheduler:
         name: str,
         func: Callable[[], Awaitable[None]],
         interval_seconds: int,
+        *,
+        run_immediately: bool = True,
     ) -> None:
         """
         Schedule a function to run at fixed intervals.
@@ -42,17 +44,24 @@ class DataScheduler:
             name: Human-readable name for logging
             func: Async function to call
             interval_seconds: Interval between runs in seconds
+            run_immediately: Whether to run once immediately after start
         """
 
         async def runner() -> None:
             # Use monotonic time for drift correction (safer than wall clock)
-            next_run = time.monotonic()
+            initialized = False
+            next_run = 0.0
             while True:
                 if not self.running:
                     # Allow scheduling before start(); tasks will wait until running = True.
+                    initialized = False
                     await asyncio.sleep(0.1)
-                    next_run = time.monotonic()
                     continue
+
+                if not initialized:
+                    now = time.monotonic()
+                    next_run = now if run_immediately else now + interval_seconds
+                    initialized = True
 
                 now = time.monotonic()
                 if now >= next_run:

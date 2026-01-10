@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-from kalshi_research.data.models import Event
+from kalshi_research.data.models import Event, utc_now
 from kalshi_research.data.repositories.base import BaseRepository
 
 if TYPE_CHECKING:
@@ -30,20 +31,48 @@ class EventRepository(BaseRepository[Event]):
         result = await self._session.execute(stmt)
         return result.scalars().all()
 
-    async def upsert(self, event: Event) -> Event:
-        """Insert or update an event."""
-        existing = await self.get(event.ticker)
-        if existing is not None:
-            # Update existing event - only update non-None values
-            existing.series_ticker = event.series_ticker
-            existing.title = event.title
-            if event.status is not None:
-                existing.status = event.status
-            if event.category is not None:
-                existing.category = event.category
-            # mutually_exclusive has a default of False, only update if explicitly set
-            existing.mutually_exclusive = event.mutually_exclusive
-            await self._session.flush()
-            await self._session.refresh(existing)
-            return existing
-        return await self.add(event)
+    async def insert_ignore(self, event: Event) -> None:
+        """Insert an event row if it does not exist.
+
+        This is used to create placeholder rows for foreign key robustness without racing other
+        writers.
+        """
+        mutually_exclusive = (
+            event.mutually_exclusive if event.mutually_exclusive is not None else False
+        )
+        stmt = sqlite_insert(Event).values(
+            ticker=event.ticker,
+            series_ticker=event.series_ticker,
+            title=event.title,
+            status=event.status,
+            category=event.category,
+            mutually_exclusive=mutually_exclusive,
+        )
+        stmt = stmt.on_conflict_do_nothing(index_elements=[Event.ticker])
+        await self._session.execute(stmt)
+
+    async def upsert(self, event: Event) -> None:
+        """Insert or update an event using a DB-level upsert (atomic)."""
+        mutually_exclusive = (
+            event.mutually_exclusive if event.mutually_exclusive is not None else False
+        )
+        stmt = sqlite_insert(Event).values(
+            ticker=event.ticker,
+            series_ticker=event.series_ticker,
+            title=event.title,
+            status=event.status,
+            category=event.category,
+            mutually_exclusive=mutually_exclusive,
+        )
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[Event.ticker],
+            set_={
+                "series_ticker": stmt.excluded.series_ticker,
+                "title": stmt.excluded.title,
+                "status": func.coalesce(stmt.excluded.status, Event.status),
+                "category": func.coalesce(stmt.excluded.category, Event.category),
+                "mutually_exclusive": stmt.excluded.mutually_exclusive,
+                "updated_at": utc_now(),
+            },
+        )
+        await self._session.execute(stmt)

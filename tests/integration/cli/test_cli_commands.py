@@ -280,7 +280,6 @@ def test_scan_movers_errors_and_success(runner: CliRunner) -> None:
                             volume=100,
                             volume_24h=100,
                             open_interest=50,
-                            liquidity=1000,
                         )
                     )
                     session.add(
@@ -295,7 +294,6 @@ def test_scan_movers_errors_and_success(runner: CliRunner) -> None:
                             volume=200,
                             volume_24h=200,
                             open_interest=100,
-                            liquidity=2000,
                         )
                     )
                     await session.commit()
@@ -459,7 +457,6 @@ def test_analysis_correlation_success(runner: CliRunner) -> None:
                                 volume=100,
                                 volume_24h=100,
                                 open_interest=50,
-                                liquidity=1000,
                             )
                         )
                         session.add(
@@ -474,7 +471,6 @@ def test_analysis_correlation_success(runner: CliRunner) -> None:
                                 volume=100,
                                 volume_24h=100,
                                 open_interest=50,
-                                liquidity=1000,
                             )
                         )
                     await session.commit()

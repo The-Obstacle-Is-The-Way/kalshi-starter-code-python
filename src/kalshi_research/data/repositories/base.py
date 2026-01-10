@@ -41,19 +41,33 @@ class BaseRepository(Generic[T]):
         result = await self._session.execute(stmt)
         return result.scalars().all()
 
-    async def add(self, entity: T) -> T:
-        """Add a new entity."""
+    async def add(self, entity: T, *, flush: bool = True) -> T:
+        """Add a new entity.
+
+        Args:
+            entity: Entity to add.
+            flush: Flush the session immediately (default: True).
+
+        Note:
+            This method intentionally does not call `refresh()`.
+            For SQLite, primary keys are populated on flush.
+            Most code in this repo does not rely on server-side defaults.
+        """
         self._session.add(entity)
-        await self._session.flush()
-        await self._session.refresh(entity)
+        if flush:
+            await self._session.flush()
         return entity
 
-    async def add_many(self, entities: list[T]) -> list[T]:
-        """Add multiple entities."""
+    async def add_many(self, entities: list[T], *, flush: bool = True) -> list[T]:
+        """Add multiple entities.
+
+        Args:
+            entities: Entities to add.
+            flush: Flush the session immediately (default: True).
+        """
         self._session.add_all(entities)
-        await self._session.flush()
-        for entity in entities:
-            await self._session.refresh(entity)
+        if flush:
+            await self._session.flush()
         return entities
 
     async def delete(self, entity: T) -> None:

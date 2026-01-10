@@ -95,7 +95,6 @@ async def seeded_session(async_session: AsyncSession) -> AsyncSession:
                 volume=10000 + i * 100,
                 volume_24h=500,
                 open_interest=5000,
-                liquidity=1000,
             )
             async_session.add(snapshot)
 

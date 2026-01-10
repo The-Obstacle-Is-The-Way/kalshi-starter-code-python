@@ -212,6 +212,15 @@ def test_portfolio_suggest_links_no_matches(mock_db_cls: MagicMock) -> None:
     assert "no" in result.stdout.lower() or "not found" in result.stdout.lower()
 
 
+def test_portfolio_positions_fresh_db_does_not_crash() -> None:
+    with runner.isolated_filesystem():
+        db_path = Path("fresh.db")
+        result = runner.invoke(app, ["portfolio", "positions", "--db", str(db_path)])
+
+    assert result.exit_code == 0
+    assert "No open positions found" in result.stdout
+
+
 @patch("kalshi_research.data.DatabaseManager")
 def test_portfolio_positions_shows_zero_mark_price(mock_db_cls: MagicMock) -> None:
     mock_position = MagicMock()

@@ -4,12 +4,14 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**0 active debt items.** (DEBT-004 elevated to SPEC-027; DEBT-002 closed as "Won't Fix")
+**0 active debt items.** (DEBT-005 resolved; DEBT-004 elevated to SPEC-027; DEBT-002 closed as "Won't Fix")
+
+_None._
 
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-005**
+**DEBT-007**
 
 ---
 

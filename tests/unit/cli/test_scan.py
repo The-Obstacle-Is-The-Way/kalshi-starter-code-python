@@ -54,7 +54,6 @@ def test_scan_movers_uses_probability_units(
         volume=100,
         volume_24h=10,
         open_interest=20,
-        liquidity=1000,
     )
     oldest = PriceSnapshot(
         ticker="TEST-TICKER",
@@ -67,7 +66,6 @@ def test_scan_movers_uses_probability_units(
         volume=100,
         volume_24h=10,
         open_interest=20,
-        liquidity=1000,
     )
 
     mock_price_repo = MagicMock()

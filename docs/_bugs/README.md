@@ -4,13 +4,11 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-| ID | Title | Priority | Status |
-|---|---|---|---|
-| *None* | All bugs resolved | - | - |
+_No active bugs._
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-053**
+**BUG-056**
 
 ---
 
@@ -19,6 +17,13 @@ All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
+### Recently Resolved (2026-01-10)
+
+| ID | Title | Status |
+|---|---|---|
+| **BUG-054** | Portfolio CLI crashes on fresh/empty DB (missing tables) | ✅ Fixed |
+| **BUG-053** | Data sync is not concurrency-safe (IntegrityError on upsert) | ✅ Fixed |
 
 ### Recently Resolved (Ralph Wiggum Cleanup - 2026-01-09)
 

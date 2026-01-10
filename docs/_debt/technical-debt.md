@@ -1,12 +1,16 @@
 # Technical Debt Register
 
-**Last Audit:** 2026-01-09 (Ralph Wiggum Cleanup)
+**Last Audit:** 2026-01-10
 
 ---
 
 ## Outstanding Debt
 
-**None.** All debt items resolved or elevated to specs.
+_None._
+
+---
+
+## Implemented via Spec
 
 | ID | Status | Resolution |
 |----|--------|------------|
@@ -72,6 +76,15 @@ src/kalshi_research/
 | [DEBT-003](../_archive/debt/DEBT-003-loose-db-transactions.md) | Added `session.begin()` transaction boundaries across 7 files |
 | [DEBT-002 Phase 1](../_archive/debt/DEBT-002-magic-numbers-analysis.md) | Added explanatory comments for platform constants (200.0, 1000, 1-99) |
 | [DEBT-001](../_archive/debt/DEBT-001-api-client-typing.md) | Created Pydantic models for all portfolio methods |
+
+---
+
+## Resolved (2026-01-10)
+
+| Item | Resolution |
+|------|------------|
+| [DEBT-006](../_archive/debt/DEBT-006-price-snapshot-insert-batching.md) | Avoid per-row flush/refresh; restore batching intent for snapshot ingestion |
+| [DEBT-005](../_archive/debt/DEBT-005-price-snapshot-liquidity-dead-column.md) | Dropped dead `price_snapshots.liquidity` column and stopped writing it |
 
 ---
 

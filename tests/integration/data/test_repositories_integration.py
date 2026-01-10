@@ -58,7 +58,6 @@ async def test_repositories_crud_lifecycle(tmp_path) -> None:
                 volume=100,
                 volume_24h=100,
                 open_interest=50,
-                liquidity=1000,
             )
             await price_repo.add(snapshot)
             await price_repo.commit()

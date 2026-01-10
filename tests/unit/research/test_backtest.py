@@ -341,7 +341,6 @@ class TestThesisBacktester:
                     volume=1000,
                     volume_24h=1000,
                     open_interest=500,
-                    liquidity=100,
                 ),
                 PriceSnapshot(
                     ticker="KXBTC-25JAN-T100000",
@@ -354,7 +353,6 @@ class TestThesisBacktester:
                     volume=2000,
                     volume_24h=1000,
                     open_interest=600,
-                    liquidity=100,
                 ),
             ]
         }

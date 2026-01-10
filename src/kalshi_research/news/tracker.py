@@ -64,6 +64,7 @@ class NewsTracker:
             if tracked is None:
                 return False
             tracked.is_active = False
+            await session.flush()
             return True
 
     async def list_tracked(self, *, active_only: bool = True) -> list[TrackedItem]:
