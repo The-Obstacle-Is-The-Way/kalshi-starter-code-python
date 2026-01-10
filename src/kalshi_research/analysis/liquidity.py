@@ -435,14 +435,5 @@ class OrderbookAnalyzer:
     ) -> SlippageEstimate:
         return estimate_slippage(orderbook, side, action, quantity)
 
-    def max_safe_buy_size(
-        self,
-        orderbook: Orderbook,
-        side: Literal["yes", "no"],
-        *,
-        max_slippage_cents: int = 3,
-    ) -> int:
-        return max_safe_order_size(orderbook, side, max_slippage_cents=max_slippage_cents)
-
     def liquidity(self, market: Market, orderbook: Orderbook) -> LiquidityAnalysis:
         return liquidity_score(market, orderbook, weights=self._weights)
