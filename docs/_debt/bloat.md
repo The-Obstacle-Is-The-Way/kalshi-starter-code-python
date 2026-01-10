@@ -24,7 +24,7 @@
 
 **Julian's criticism has merit.** There is measurable bloat:
 - **116** raw unused candidates (Vulture 60% confidence) -> **~64 verified true positives**
-- Multiple dead modules (EdgeDetector, unused notifiers, WebSocket client)
+- Multiple dead modules (EdgeDetector, WebSocket client) and several halfway implementations (e.g. alert notifiers)
 - Boilerplate duplication (16 `create_tables()` calls)
 - Three data modeling patterns (dataclasses + Pydantic + SQLAlchemy)
 
@@ -53,7 +53,9 @@ src/kalshi_research/analysis/edge.py:210: unused method 'detect_volatility_edge'
 
 #### ~~`alerts/notifiers.py` - Unused Notifiers~~ → MOVED TO TIER 3
 
-**REVISED:** FileNotifier and WebhookNotifier are **HALFWAY IMPLEMENTATIONS**, not slop. See "Exa Client Methods" section in TIER 3. These are legitimate features that should be wired in with `--output file` and `--webhook url` CLI options.
+**REVISED (2026-01-10):** FileNotifier and WebhookNotifier are **HALFWAY IMPLEMENTATIONS**, not slop. See
+"Alert Notifiers" in TIER 3. These are legitimate features that should be wired into `kalshi alerts monitor`
+with `--output-file` and `--webhook-url` options.
 
 #### `research/thesis.py` - TemporalValidator (40+ lines)
 ```
@@ -103,7 +105,7 @@ src/kalshi_research/research/notebook_utils.py - All functions unused in CLI
 src/kalshi_research/alerts/notifiers.py:46: unused class 'FileNotifier'
 src/kalshi_research/alerts/notifiers.py:71: unused class 'WebhookNotifier'
 ```
-**Decision:** These are legitimate features - wire in with `--output-file` and `--webhook-url` options on `kalshi alerts watch`.
+**Decision:** These are legitimate features - wire in with `--output-file` and `--webhook-url` options on `kalshi alerts monitor`.
 
 #### Exa Client Methods
 ```
@@ -163,7 +165,7 @@ Each item traced against official Kalshi/Exa API docs to determine TRUE dead cod
 | `compute_volume_profile` | **TRUE SLOP** | Called in tests/docs only, never in app logic |
 | `scan_all` | **TRUE SLOP** | Convenience method, never used |
 | `verify_market_open` | **HALFWAY** | Should use `get_exchange_status`, doesn't |
-| `max_safe_buy_size` | **HALFWAY** | Part of liquidity module, not in CLI |
+| `max_safe_buy_size` | **TRUE SLOP** | Redundant wrapper: safe sizing is already exposed via `max_safe_order_size` and `kalshi market liquidity` |
 
 ### Research Module
 

@@ -3,6 +3,7 @@
 **Priority:** P2 (Reliability / correctness confidence)
 **Status:** 🔴 Active
 **Created:** 2026-01-10
+**Last Verified:** 2026-01-10
 
 ---
 
@@ -91,9 +92,11 @@ can accidentally trade in any future autonomous loop.
 
 ### 6) Docs build is green but emits warnings (polish)
 
-- `uv run mkdocs build --strict` passes, but emits INFO warnings about links to excluded `_archive/**`
-  pages (because `mkdocs.yml` excludes `_archive/**` from the built site while internal docs still link to
-  those files).
+- `uv run mkdocs build` succeeds, but emits warnings:
+  - WARNING: `_debt/bloat.md` exists but is not included in `nav`
+  - INFO: links to excluded `_archive/**` pages (because `mkdocs.yml` excludes `_archive/**` from the built
+    site while internal docs still link to those files)
+- `uv run mkdocs build --strict` currently fails (warnings are errors in strict mode).
 
 **Why it matters:** It’s not a correctness bug, but it’s a signal that the docs are not “warning clean” at
 A+ polish level.

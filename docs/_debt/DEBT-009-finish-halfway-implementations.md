@@ -4,6 +4,7 @@
 **Priority:** P3
 **Owner:** TBD
 **Created:** 2026-01-10
+**Last Verified:** 2026-01-10
 **Audit Source:** [`bloat.md`](bloat.md)
 
 ## Summary
@@ -15,10 +16,10 @@ Several valuable features were implemented in the core logic but never wired int
 ### 1. Alerts Notifiers
 - **Files:** `src/kalshi_research/alerts/notifiers.py`
 - **Items:** `FileNotifier`, `WebhookNotifier`
-- **Current State:** Classes exist and are tested, but CLI `kalshi alerts watch` only uses `ConsoleNotifier`.
+- **Current State:** Classes exist and are tested, but CLI `kalshi alerts monitor` only uses `ConsoleNotifier`.
 - **Action:**
-    - Add `--output-file <path>` to `kalshi alerts watch`.
-    - Add `--webhook-url <url>` to `kalshi alerts watch`.
+    - Add `--output-file <path>` to `kalshi alerts monitor`.
+    - Add `--webhook-url <url>` to `kalshi alerts monitor`.
     - Instantiate the respective notifiers when flags are present.
 
 ### 2. Trade History Sync
@@ -74,14 +75,6 @@ Several valuable features were implemented in the core logic but never wired int
 - **Action:**
     - Decision needed: Wire into `kalshi stream <ticker>` command OR extract to optional package.
     - If not wiring in, add `# RESERVED: future real-time features` comment.
-
-### 9. Liquidity Safety Sizing
-- **File:** `src/kalshi_research/analysis/liquidity.py`
-- **Item:** `max_safe_buy_size()`
-- **Current State:** Calculates safe order size based on orderbook depth, but not exposed.
-- **Action:**
-    - Wire into `kalshi market orderbook --show-safe-size` option.
-    - Useful for position sizing guidance.
 
 ## Success Criteria
 

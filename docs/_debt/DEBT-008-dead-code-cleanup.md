@@ -4,6 +4,7 @@
 **Priority:** P2
 **Owner:** TBD
 **Created:** 2026-01-10
+**Last Verified:** 2026-01-10
 **Audit Source:** [`bloat.md`](bloat.md)
 
 ## Summary
@@ -23,7 +24,8 @@ These items have been verified as **unused** (except in their own unit tests) vi
 ### 2. `TemporalValidator` Class
 - **File:** `src/kalshi_research/research/thesis.py`
 - **Verdict:** TRUE SLOP.
-- **Reason:** Thesis validation is handled by Pydantic models. This class is redundant and unused.
+- **Reason:** No runtime code path instantiates or calls `TemporalValidator` (it only appears in its own unit
+  tests). The thesis layer is dataclass-based today and does not integrate this validator.
 - **Action:** Delete entire class.
 
 ### 3. Unused Analysis Methods
@@ -31,6 +33,8 @@ These items have been verified as **unused** (except in their own unit tests) vi
     - `compute_spread_stats`
     - `compute_volatility`
     - `compute_volume_profile`
+- **File:** `src/kalshi_research/analysis/liquidity.py`
+    - `OrderbookAnalyzer.max_safe_buy_size` (redundant wrapper; safe sizing is already exposed via `max_safe_order_size` and `kalshi market liquidity`)
 - **File:** `src/kalshi_research/analysis/scanner.py`
     - `scan_all`
 - **Verdict:** TRUE SLOP.
