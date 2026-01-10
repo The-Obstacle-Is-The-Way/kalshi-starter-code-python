@@ -659,6 +659,15 @@ def test_research_backtest(mock_db_cls: MagicMock) -> None:
     assert "No resolved theses to backtest" in result.stdout
 
 
+def test_parse_backtest_dates_includes_end_date() -> None:
+    from kalshi_research.cli.research import _parse_backtest_dates
+
+    start_dt, end_dt_exclusive = _parse_backtest_dates("2024-06-30", "2024-06-30")
+
+    assert start_dt == datetime(2024, 6, 30, 0, 0, tzinfo=UTC)
+    assert end_dt_exclusive == datetime(2024, 7, 1, 0, 0, tzinfo=UTC)
+
+
 @patch("kalshi_research.data.DatabaseManager")
 def test_research_thesis_show_with_positions(mock_db_cls: MagicMock) -> None:
     mock_position = MagicMock()

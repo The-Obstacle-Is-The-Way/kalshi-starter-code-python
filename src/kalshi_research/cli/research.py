@@ -2,7 +2,7 @@ import asyncio
 import json
 import uuid
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any
 
@@ -49,18 +49,21 @@ def _save_theses(data: dict[str, Any]) -> None:
 def _parse_backtest_dates(start: str, end: str) -> tuple[datetime, datetime]:
     """Parse and validate backtest dates."""
     try:
-        start_dt = datetime.fromisoformat(start)
-        end_dt = datetime.fromisoformat(end)
+        start_date = date.fromisoformat(start)
+        end_date = date.fromisoformat(end)
     except ValueError as e:
         console.print(f"[red]Error:[/red] Invalid date format: {e}")
         console.print("[dim]Use YYYY-MM-DD format.[/dim]")
         raise typer.Exit(1) from None
 
-    if start_dt >= end_dt:
-        console.print("[red]Error:[/red] Start date must be before end date")
+    if start_date > end_date:
+        console.print("[red]Error:[/red] Start date must be on or before end date")
         raise typer.Exit(1)
 
-    return start_dt, end_dt
+    start_dt = datetime.combine(start_date, time.min, tzinfo=UTC)
+    end_dt_exclusive = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=UTC)
+
+    return start_dt, end_dt_exclusive
 
 
 def _display_backtest_results(results: list[Any], start: str, end: str) -> None:
@@ -545,7 +548,7 @@ def research_thesis_suggest(
 @app.command("backtest")
 def research_backtest(
     start: Annotated[str, typer.Option("--start", help="Start date (YYYY-MM-DD)")],
-    end: Annotated[str, typer.Option("--end", help="End date (YYYY-MM-DD)")],
+    end: Annotated[str, typer.Option("--end", help="End date (YYYY-MM-DD, inclusive)")],
     thesis_id: Annotated[
         str | None,
         typer.Option(
@@ -592,7 +595,7 @@ def research_backtest(
 
             console.print(f"[dim]Backtesting from {start} to {end}...[/dim]")
 
-            start_dt, end_dt = _parse_backtest_dates(start, end)
+            start_dt, end_dt_exclusive = _parse_backtest_dates(start, end)
 
             # Load theses
             if thesis_id:
@@ -624,7 +627,7 @@ def research_backtest(
                 result = await session.execute(
                     select(Settlement).where(
                         Settlement.settled_at >= start_dt,
-                        Settlement.settled_at <= end_dt,
+                        Settlement.settled_at < end_dt_exclusive,
                     )
                 )
                 settlements = list(result.scalars().all())
