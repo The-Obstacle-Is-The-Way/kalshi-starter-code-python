@@ -43,6 +43,7 @@ def test_research_context_missing_exa_key_exits_with_error(make_market) -> None:
 
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
+    assert "Set EXA_API_KEY" in result.stdout
 
 
 def test_research_topic_missing_exa_key_exits_with_error() -> None:
@@ -52,6 +53,7 @@ def test_research_topic_missing_exa_key_exits_with_error() -> None:
 
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
+    assert "Set EXA_API_KEY" in result.stdout
 
 
 def test_research_similar_missing_exa_key_exits_with_error() -> None:
@@ -61,6 +63,7 @@ def test_research_similar_missing_exa_key_exits_with_error() -> None:
 
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
+    assert "Set EXA_API_KEY" in result.stdout
 
 
 def test_research_deep_missing_exa_key_exits_with_error() -> None:
@@ -70,6 +73,7 @@ def test_research_deep_missing_exa_key_exits_with_error() -> None:
 
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
+    assert "Set EXA_API_KEY" in result.stdout
 
 
 def test_research_similar_json_output() -> None:
@@ -97,8 +101,43 @@ def test_research_similar_json_output() -> None:
         result = runner.invoke(app, ["research", "similar", "https://example.com", "--json"])
 
     assert result.exit_code == 0
-    assert "requestId" in result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["requestId"] == "req-1"
+    assert payload["results"][0]["title"] == "Example A"
+
+
+def test_research_similar_table_output_includes_cost() -> None:
+    from kalshi_research.exa.models.common import CostDollars
+    from kalshi_research.exa.models.search import SearchResult
+    from kalshi_research.exa.models.similar import FindSimilarResponse
+
+    response = FindSimilarResponse(
+        request_id="req-1",
+        results=[
+            SearchResult(
+                id="1",
+                url="https://example.com/a",
+                title="Example A",
+                score=0.9,
+            )
+        ],
+        cost_dollars=CostDollars(total=0.005),
+    )
+
+    mock_exa = AsyncMock()
+    mock_exa.__aenter__.return_value = mock_exa
+    mock_exa.__aexit__.return_value = AsyncMock()
+    mock_exa.find_similar = AsyncMock(return_value=response)
+
+    with patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa):
+        result = runner.invoke(
+            app, ["research", "similar", "https://example.com", "--num-results", "1"]
+        )
+
+    assert result.exit_code == 0
+    assert "Exa Similar Pages" in result.stdout
     assert "Example A" in result.stdout
+    assert "Cost:" in result.stdout
 
 
 def test_research_deep_wait_json_output() -> None:
@@ -130,8 +169,92 @@ def test_research_deep_wait_json_output() -> None:
         result = runner.invoke(app, ["research", "deep", "Test topic", "--wait", "--json"])
 
     assert result.exit_code == 0
-    assert "researchId" in result.stdout
-    assert "completed" in result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["researchId"] == "research-1"
+    assert payload["status"] == "completed"
+    assert payload["output"]["content"] == "Done"
+
+
+def test_research_deep_schema_invalid_json_exits_with_error(tmp_path: Path) -> None:
+    schema_file = tmp_path / "schema.json"
+    schema_file.write_text("{not json", encoding="utf-8")
+
+    result = runner.invoke(app, ["research", "deep", "Test topic", "--schema", str(schema_file)])
+
+    assert result.exit_code == 1
+    assert "Schema file is not valid JSON" in result.stdout
+
+
+def test_research_deep_schema_root_not_object_exits_with_error(tmp_path: Path) -> None:
+    schema_file = tmp_path / "schema.json"
+    schema_file.write_text("[]", encoding="utf-8")
+
+    result = runner.invoke(app, ["research", "deep", "Test topic", "--schema", str(schema_file)])
+
+    assert result.exit_code == 1
+    assert "Schema JSON must be an object" in result.stdout
+
+
+def test_research_deep_wait_timeout_exits_with_error() -> None:
+    from kalshi_research.exa.models.research import ResearchStatus, ResearchTask
+
+    created = ResearchTask(
+        research_id="research-1",
+        status=ResearchStatus.PENDING,
+        created_at=1700000000,
+        model="exa-research",
+        instructions="Test",
+    )
+
+    mock_exa = AsyncMock()
+    mock_exa.__aenter__.return_value = mock_exa
+    mock_exa.__aexit__.return_value = AsyncMock()
+    mock_exa.create_research_task = AsyncMock(return_value=created)
+    mock_exa.wait_for_research = AsyncMock(side_effect=TimeoutError("Timed out"))
+
+    with patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa):
+        result = runner.invoke(
+            app, ["research", "deep", "Test topic", "--wait", "--timeout", "0.01"]
+        )
+
+    assert result.exit_code == 1
+    assert "Timed out" in result.stdout
+
+
+def test_research_deep_table_output_renders_task_data() -> None:
+    from kalshi_research.exa.models.research import (
+        ResearchCostDollars,
+        ResearchOutput,
+        ResearchStatus,
+        ResearchTask,
+    )
+
+    task = ResearchTask(
+        research_id="research-1",
+        status=ResearchStatus.COMPLETED,
+        created_at=1700000000,
+        model="exa-research",
+        instructions="Test",
+        output=ResearchOutput(content="Done", parsed=None),
+        cost_dollars=ResearchCostDollars(
+            total=0.1, num_searches=1, num_pages=1, reasoning_tokens=1
+        ),
+    )
+
+    mock_exa = AsyncMock()
+    mock_exa.__aenter__.return_value = mock_exa
+    mock_exa.__aexit__.return_value = AsyncMock()
+    mock_exa.create_research_task = AsyncMock(return_value=task)
+
+    with patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa):
+        result = runner.invoke(app, ["research", "deep", "Test topic"])
+
+    assert result.exit_code == 0
+    assert "Exa Research Task" in result.stdout
+    assert "research-1" in result.stdout
+    assert "Output" in result.stdout
+    assert "Done" in result.stdout
+    assert "Cost:" in result.stdout
 
 
 def test_thesis_list_invalid_json_exits_with_error(tmp_path: Path) -> None:

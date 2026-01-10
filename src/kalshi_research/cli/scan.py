@@ -169,6 +169,8 @@ async def _scan_opportunities_async(
                     "[yellow]Warning:[/yellow] Exchange status response had unexpected type; "
                     "proceeding without exchange halt checks."
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             console.print(
                 "[yellow]Warning:[/yellow] Failed to fetch exchange status; proceeding without "

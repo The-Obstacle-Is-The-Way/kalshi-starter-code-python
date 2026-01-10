@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from kalshi_research.data.models import PriceSnapshot
 from kalshi_research.data.repositories.base import BaseRepository
@@ -55,8 +55,6 @@ class PriceRepository(BaseRepository[PriceSnapshot]):
 
     async def count_for_market(self, ticker: str) -> int:
         """Count price snapshots for a market."""
-        from sqlalchemy import func
-
         stmt = select(func.count()).where(PriceSnapshot.ticker == ticker)
         result = await self._session.execute(stmt)
         count = result.scalar()

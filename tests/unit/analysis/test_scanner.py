@@ -62,6 +62,33 @@ class TestMarketStatusVerifier:
 
         assert verifier.is_market_tradeable(market) is True
 
+    def test_is_market_tradeable_false_when_exchange_status_has_invalid_types(self) -> None:
+        """Non-bool exchange status values disable tradeability checks."""
+        verifier = MarketStatusVerifier(
+            exchange_status={"exchange_active": "yes", "trading_active": True},
+        )
+        market = make_market(
+            "TEST",
+            status=MarketStatus.ACTIVE,
+            close_time=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+        assert verifier.is_market_tradeable(market) is False
+
+    def test_verify_market_open_raises_when_exchange_halted(self) -> None:
+        """verify_market_open raises when exchange/trading is halted."""
+        verifier = MarketStatusVerifier(
+            exchange_status={"exchange_active": False, "trading_active": True}
+        )
+        market = make_market(
+            "TEST",
+            status=MarketStatus.ACTIVE,
+            close_time=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+        with pytest.raises(MarketClosedError, match="Exchange trading is currently halted"):
+            verifier.verify_market_open(market)
+
     def test_is_market_tradeable_closed_status(self) -> None:
         """Market with CLOSED status is not tradeable."""
         verifier = MarketStatusVerifier()

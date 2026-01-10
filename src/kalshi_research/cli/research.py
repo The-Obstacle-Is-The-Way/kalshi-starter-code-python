@@ -875,7 +875,8 @@ def research_similar(
 
     if output_json:
         console.print(
-            json.dumps(response.model_dump(by_alias=True, mode="json"), indent=2, default=str)
+            json.dumps(response.model_dump(by_alias=True, mode="json"), indent=2, default=str),
+            markup=False,
         )
         return
 
@@ -928,7 +929,7 @@ def research_deep(
 
     async def _run() -> ResearchTask:
         try:
-            schema: dict[str, object] | None = None
+            schema: dict[str, Any] | None = None
             if output_schema is not None:
                 try:
                     schema_raw = json.loads(output_schema.read_text(encoding="utf-8"))
@@ -955,11 +956,15 @@ def research_deep(
                     output_schema=schema,
                 )
                 if wait:
-                    task = await exa.wait_for_research(
-                        task.research_id,
-                        poll_interval=poll_interval,
-                        timeout=timeout,
-                    )
+                    try:
+                        task = await exa.wait_for_research(
+                            task.research_id,
+                            poll_interval=poll_interval,
+                            timeout=timeout,
+                        )
+                    except TimeoutError as exc:
+                        console.print(f"[red]Error:[/red] {exc}")
+                        raise typer.Exit(1) from None
                 return task
         except ValueError as e:
             console.print(f"[red]Error:[/red] {e}")
@@ -970,7 +975,8 @@ def research_deep(
 
     if output_json:
         console.print(
-            json.dumps(task.model_dump(by_alias=True, mode="json"), indent=2, default=str)
+            json.dumps(task.model_dump(by_alias=True, mode="json"), indent=2, default=str),
+            markup=False,
         )
         return
 
