@@ -1,58 +1,64 @@
 # Kalshi Research Platform - Progress Tracker
 
-**Last Updated:** 2026-01-09
-**Purpose:** State file for Ralph Wiggum loop - fixes bugs, debt, and TODOs
+**Last Updated:** 2026-01-10
+**Purpose:** State file for Ralph Wiggum loop - implements specs, fixes bugs, debt, and TODOs
 
 ---
 
-## Phase 1: Critical Bug Fixes ✅
+## Phase 1-8: Completed (Bug/Debt/TODO Cleanup)
 
-- [x] **BUG-048**: Fix negative liquidity validation → `api/models/market.py`
-- [x] **BUG-050**: Add logging to silent exception → `cli/alerts.py:117`
+All phases 1-8 are complete. See Work Log below for history.
 
-## Phase 2: Safety-Critical Fixes ✅
+---
 
-- [x] **BUG-049**: Add rate limiter to read operations → `api/client.py`
-- [x] **TODO-007**: Implement `MarketStatusVerifier` → `analysis/scanner.py`
-- [x] **TODO-008**: Add `dry_run` parameter to `create_order` → `api/client.py`
+## Phase 9: Feature Specs (Active Queue)
 
-## Phase 3: URGENT - API Deprecation (Deadline: Jan 15, 2026) ✅
+**Implementation Order** (respects dependencies):
 
-- [x] **TODO-009**: Migrate from cent fields to dollar fields → `api/models/market.py`
+### Foundation Specs
 
-## Phase 4: Research Quality ✅
+- [ ] **SPEC-028**: Topic search & market discovery (FTS5) → `data/search.py`, `cli/market.py`
+- [ ] **SPEC-029**: Kalshi endpoint coverage (tickers, timestamps, series) → `api/client.py`
 
-- [x] **TODO-005a**: Display `open_time`/`created_time` in `market get` → `cli/market.py`
-- [x] **TODO-005b**: Add temporal validation to research workflow → `research/thesis.py`
-- [x] **TODO-005c**: Add market timing warnings to GOTCHAS.md → `.claude/skills/`
-- [x] **BUG-047**: Investigate portfolio sync discrepancy → `portfolio/syncer.py`
+### Research Quality Specs
 
-## Phase 5: Technical Debt ✅
+- [ ] **SPEC-030**: Exa endpoint strategy (cost-bounded, verifiable) → `exa/policy.py`
+- [ ] **SPEC-031**: Scanner quality profiles (slop filtering) → `analysis/scanner.py`, `cli/scan.py`
 
-- [x] **DEBT-002**: Complete Phase 1 magic number comments → `api/client.py`
-- [x] **DEBT-003**: Add `session.begin()` transaction boundaries → `data/repositories/`
-- [x] **DEBT-001**: Create Pydantic models for portfolio methods → `api/models/portfolio.py`
+### Agent System Specs (depends on SPEC-030)
 
-## Phase 6: Session Friction ✅
+- [ ] **SPEC-032**: Agent system orchestration (single-agent default) → `agent/orchestrator.py`
+- [ ] **SPEC-033**: Exa research agent (deterministic, budgeted) → `agent/providers/exa.py`
 
-- [x] **TODO-006**: Implement remaining code fixes from friction audit
+### Safety Harness (depends on SPEC-032)
 
-## Phase 7: Documentation Sync
+- [ ] **SPEC-034**: TradeExecutor safety harness (safe-by-default) → `execution/executor.py`
 
-- [x] **DOCS-001**: Update all task doc acceptance criteria checkboxes to match completion
+---
 
-## Phase 8: Final Verification
+## Phase 10: Final Verification
 
-- [x] **FINAL-001**: All quality gates pass (ruff, mypy, pytest)
-- [x] **FINAL-002**: Pre-commit hooks run successfully
-- [x] **FINAL-003**: All task doc acceptance criteria match PROGRESS.md state
+- [ ] **FINAL-SPECS**: All SPEC-* tasks have `[REVIEWED]` markers
+- [ ] **FINAL-GATES**: All quality gates pass (ruff, mypy, pytest, mkdocs)
+- [ ] **FINAL-CLEAN**: Clean git working tree
+
+---
+
+## Work Log
+
+- 2026-01-10: Fixed portfolio P&L integrity (FIFO realized P&L + unknown handling), updated BUG-056/057, ran `uv run pre-commit run --all-files` and `uv run mkdocs build --strict`
+- 2026-01-10: Skills refactor - created `kalshi-ralph-wiggum` skill, simplified `kalshi-codebase`, enhanced PROMPT.md with SPEC-* self-review protocol, verified SPEC-029/032 against SSOT
+- 2026-01-10: Prep for spec implementation (audited SPEC-028..034, added `kalshi-codebase` skill, updated Ralph prompt/protocol)
+- 2026-01-09: Phase 1-8 complete (all bugs, debt, TODOs resolved)
 
 ---
 
 ## Completion Criteria
 
-When ALL boxes are checked AND all quality gates pass, the cleanup is complete.
-The loop operator verifies completion by checking this file's state (all `[x]`).
+When ALL boxes are checked AND all quality gates pass, the current Ralph Wiggum work queue is complete.
+The loop operator verifies completion by checking this file's state (all `[x]}` and all SPEC-* have `[REVIEWED]`).
 
 **A++ Standard:** Every acceptance criterion in every task doc MUST be checked off,
 not just the PROGRESS.md line item. Partial implementations are NOT acceptable.
+
+**Self-Review Required:** SPEC-* tasks require a follow-up review iteration to add `[REVIEWED]` marker.

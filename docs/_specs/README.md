@@ -13,14 +13,22 @@ This directory contains **active** design specifications - work happening NOW.
 
 ## Current Active Specs
 
-_None._
+| ID | Title | Status |
+|---|---|---|
+| SPEC-028 | [Topic Search & Market Discovery (DB + CLI)](SPEC-028-topic-search-and-discovery.md) | 📝 Draft |
+| SPEC-029 | [Kalshi Endpoint Coverage & Strategic Use](SPEC-029-kalshi-endpoint-coverage-strategy.md) | 📝 Draft |
+| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 📝 Draft |
+| SPEC-031 | [Scanner Quality Profiles (Slop Filtering + “Get In Early” Mode)](SPEC-031-scanner-quality-profiles.md) | 📝 Draft |
+| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft |
+| SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft |
+| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft |
 
 ---
 
 ## Next ID Tracker
 
 Use this ID for the next specification:
-**SPEC-028**
+**SPEC-035**
 
 ---
 

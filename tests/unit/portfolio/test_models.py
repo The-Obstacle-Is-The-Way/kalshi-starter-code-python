@@ -39,9 +39,9 @@ class TestPositionModel:
             ticker="KXBTC-25JAN10-50000",
             side="yes",
             quantity=100,
-            avg_price_cents=4500,
-            current_price_cents=5200,
-            unrealized_pnl_cents=7000,
+            avg_price_cents=45,
+            current_price_cents=52,
+            unrealized_pnl_cents=700,
             realized_pnl_cents=0,
             opened_at=datetime.now(UTC),
             last_synced=datetime.now(UTC),
@@ -55,7 +55,7 @@ class TestPositionModel:
         assert position.ticker == "KXBTC-25JAN10-50000"
         assert position.side == "yes"
         assert position.quantity == 100
-        assert position.avg_price_cents == 4500
+        assert position.avg_price_cents == 45
 
     async def test_position_with_thesis_link(self, db_session: AsyncSession):
         """Test linking a position to a thesis."""
@@ -63,7 +63,7 @@ class TestPositionModel:
             ticker="KXBTC-25JAN10-50000",
             side="yes",
             quantity=100,
-            avg_price_cents=4500,
+            avg_price_cents=45,
             thesis_id="thesis-123",  # Link to thesis
             opened_at=datetime.now(UTC),
             last_synced=datetime.now(UTC),
@@ -81,7 +81,7 @@ class TestPositionModel:
             ticker="KXBTC-25JAN10-50000",
             side="yes",
             quantity=100,
-            avg_price_cents=4500,
+            avg_price_cents=45,
             current_price_cents=None,
             unrealized_pnl_cents=None,
             realized_pnl_cents=0,
@@ -107,7 +107,7 @@ class TestPositionModel:
             ticker="KXBTC-25JAN10-50000",
             side="yes",
             quantity=100,
-            avg_price_cents=4500,
+            avg_price_cents=45,
             opened_at=datetime.now(UTC),
             last_synced=datetime.now(UTC),
         )
@@ -115,7 +115,7 @@ class TestPositionModel:
             ticker="PRES-24-DEM",
             side="no",
             quantity=50,
-            avg_price_cents=5500,
+            avg_price_cents=55,
             opened_at=datetime.now(UTC),
             last_synced=datetime.now(UTC),
         )
@@ -144,8 +144,8 @@ class TestTradeModel:
             side="yes",
             action="buy",
             quantity=100,
-            price_cents=4500,
-            total_cost_cents=450000,
+            price_cents=45,
+            total_cost_cents=4500,
             fee_cents=225,
             executed_at=datetime.now(UTC),
             synced_at=datetime.now(UTC),
@@ -161,8 +161,8 @@ class TestTradeModel:
         assert trade.side == "yes"
         assert trade.action == "buy"
         assert trade.quantity == 100
-        assert trade.price_cents == 4500
-        assert trade.total_cost_cents == 450000
+        assert trade.price_cents == 45
+        assert trade.total_cost_cents == 4500
         assert trade.fee_cents == 225
 
     async def test_trade_with_position_link(self, db_session: AsyncSession):
@@ -172,7 +172,7 @@ class TestTradeModel:
             ticker="KXBTC-25JAN10-50000",
             side="yes",
             quantity=100,
-            avg_price_cents=4500,
+            avg_price_cents=45,
             opened_at=datetime.now(UTC),
             last_synced=datetime.now(UTC),
         )
@@ -187,8 +187,8 @@ class TestTradeModel:
             side="yes",
             action="buy",
             quantity=100,
-            price_cents=4500,
-            total_cost_cents=450000,
+            price_cents=45,
+            total_cost_cents=4500,
             fee_cents=225,
             position_id=position.id,
             executed_at=datetime.now(UTC),
@@ -209,8 +209,8 @@ class TestTradeModel:
             side="yes",
             action="buy",
             quantity=100,
-            price_cents=4500,
-            total_cost_cents=450000,
+            price_cents=45,
+            total_cost_cents=4500,
             executed_at=datetime.now(UTC),
             synced_at=datetime.now(UTC),
         )
@@ -221,8 +221,8 @@ class TestTradeModel:
             side="no",
             action="buy",
             quantity=50,
-            price_cents=5500,
-            total_cost_cents=275000,
+            price_cents=55,
+            total_cost_cents=2750,
             executed_at=datetime.now(UTC),
             synced_at=datetime.now(UTC),
         )
@@ -244,8 +244,8 @@ class TestTradeModel:
             side="yes",
             action="buy",
             quantity=100,
-            price_cents=4500,
-            total_cost_cents=450000,
+            price_cents=45,
+            total_cost_cents=4500,
             executed_at=datetime.now(UTC),
             synced_at=datetime.now(UTC),
         )
@@ -255,8 +255,8 @@ class TestTradeModel:
             side="yes",
             action="sell",
             quantity=50,
-            price_cents=5000,
-            total_cost_cents=250000,
+            price_cents=50,
+            total_cost_cents=2500,
             executed_at=datetime.now(UTC),
             synced_at=datetime.now(UTC),
         )
@@ -266,8 +266,8 @@ class TestTradeModel:
             side="no",
             action="buy",
             quantity=50,
-            price_cents=5500,
-            total_cost_cents=275000,
+            price_cents=55,
+            total_cost_cents=2750,
             executed_at=datetime.now(UTC),
             synced_at=datetime.now(UTC),
         )

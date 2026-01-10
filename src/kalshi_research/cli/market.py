@@ -107,8 +107,8 @@ def market_orderbook(
         table.add_column("YES Bids", style="green")
         table.add_column("NO Bids", style="red")
 
-        yes_bids = orderbook.yes or []
-        no_bids = orderbook.no or []
+        yes_bids = orderbook.yes_levels
+        no_bids = orderbook.no_levels
         max_len = max(len(yes_bids), len(no_bids))
 
         for i in range(max_len):

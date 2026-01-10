@@ -70,7 +70,7 @@ def orderbook_depth_score(orderbook: Orderbook, *, radius_cents: int = 10) -> De
     no_depth = 0
 
     # YES side: bids in YES cents
-    for price, qty in orderbook.yes or []:
+    for price, qty in orderbook.yes_levels:
         distance = abs(price - midpoint_float)
         if distance <= radius_cents:
             weight = 1.0 if radius_cents == 0 else 1.0 - (distance / (radius_cents + 1))
@@ -78,7 +78,7 @@ def orderbook_depth_score(orderbook: Orderbook, *, radius_cents: int = 10) -> De
             yes_depth += qty
 
     # NO side: bids in NO cents, convert to implied YES asks for distance-from-midpoint comparisons
-    for no_price, qty in orderbook.no or []:
+    for no_price, qty in orderbook.no_levels:
         implied_yes_ask = 100 - no_price
         distance = abs(implied_yes_ask - midpoint_float)
         if distance <= radius_cents:
@@ -112,10 +112,8 @@ class SlippageEstimate:
     levels_crossed: int
 
 
-def _invert_levels(levels: list[tuple[int, int]] | None) -> list[tuple[int, int]]:
+def _invert_levels(levels: list[tuple[int, int]]) -> list[tuple[int, int]]:
     """Convert bid levels to implied ask levels (100 - price)."""
-    if not levels:
-        return []
     return [(100 - price, qty) for price, qty in levels]
 
 
@@ -128,17 +126,17 @@ def _levels_for_execution(
     if side == "yes":
         if action == "buy":
             # Buy YES = cross implied YES asks (from NO bids)
-            levels = _invert_levels(orderbook.no)
+            levels = _invert_levels(orderbook.no_levels)
             return sorted(levels, key=lambda x: x[0])  # lowest ask first
         # Sell YES = hit YES bids
-        return sorted(orderbook.yes or [], key=lambda x: x[0], reverse=True)  # highest bid first
+        return sorted(orderbook.yes_levels, key=lambda x: x[0], reverse=True)  # highest bid first
 
     if action == "buy":
         # Buy NO = cross implied NO asks (from YES bids)
-        levels = _invert_levels(orderbook.yes)
+        levels = _invert_levels(orderbook.yes_levels)
         return sorted(levels, key=lambda x: x[0])  # lowest ask first
     # Sell NO = hit NO bids
-    return sorted(orderbook.no or [], key=lambda x: x[0], reverse=True)  # highest bid first
+    return sorted(orderbook.no_levels, key=lambda x: x[0], reverse=True)  # highest bid first
 
 
 def estimate_slippage(

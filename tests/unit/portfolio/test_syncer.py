@@ -328,15 +328,56 @@ def test_compute_fifo_cost_basis_single_buy() -> None:
 
 
 def test_compute_fifo_cost_basis_multiple_buys_weighted_average() -> None:
-    """Multiple buys should return weighted average."""
+    """Multiple buys should return weighted average (rounded, not floored)."""
     now = datetime.now(UTC)
     trades = [
         _make_trade("yes", "buy", 10, 40, now),  # 10 @ 40 = 400
         _make_trade("yes", "buy", 20, 50, now),  # 20 @ 50 = 1000
     ]
     # Total: 30 contracts, total cost 1400
-    # Average: 1400 / 30 = 46.67 -> 46 (integer division)
-    assert compute_fifo_cost_basis(trades, "yes") == 46
+    # Average: 1400 / 30 = 46.67 -> rounds to 47 (not 46 with floor division)
+    assert compute_fifo_cost_basis(trades, "yes") == 47
+
+
+def test_compute_fifo_cost_basis_precision_loss_fixed() -> None:
+    """BUG-056 P0-2: Verify precision loss is minimized with rounding vs floor division.
+
+    The old code used floor division (//) which always rounds down, causing
+    systematic underestimation of cost basis. The fix uses round() for
+    banker's rounding (round half to even), eliminating systematic bias.
+    """
+    now = datetime.now(UTC)
+
+    # Case 1: 50.5 cents average (exact midpoint)
+    # Old (//): 101 // 2 = 50
+    # New (round): round(50.5) = 50 (banker's rounding - round to even)
+    trades_midpoint = [
+        _make_trade("yes", "buy", 1, 50, now),
+        _make_trade("yes", "buy", 1, 51, now),
+    ]
+    # round(101/2) = round(50.5) = 50 (ties to even)
+    assert compute_fifo_cost_basis(trades_midpoint, "yes") == 50
+
+    # Case 2: 50.333... cents (would round down)
+    # Old (//): 151 // 3 = 50
+    # New (round): round(50.333) = 50
+    trades_low = [
+        _make_trade("yes", "buy", 1, 50, now),
+        _make_trade("yes", "buy", 1, 50, now),
+        _make_trade("yes", "buy", 1, 51, now),
+    ]
+    assert compute_fifo_cost_basis(trades_low, "yes") == 50
+
+    # Case 3: 50.666... cents (would round up - THIS IS THE FIX)
+    # Old (//): 152 // 3 = 50 (WRONG - loses precision)
+    # New (round): round(50.666) = 51 (CORRECT)
+    trades_high = [
+        _make_trade("yes", "buy", 1, 50, now),
+        _make_trade("yes", "buy", 1, 51, now),
+        _make_trade("yes", "buy", 1, 51, now),
+    ]
+    # 152 / 3 = 50.666... rounds to 51
+    assert compute_fifo_cost_basis(trades_high, "yes") == 51
 
 
 def test_compute_fifo_cost_basis_fifo_sell() -> None:

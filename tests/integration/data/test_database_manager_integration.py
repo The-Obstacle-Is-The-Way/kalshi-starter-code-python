@@ -108,7 +108,6 @@ async def test_concurrent_writes_do_not_deadlock(tmp_path) -> None:
                             volume=1000 + i,
                             volume_24h=100,
                             open_interest=500,
-                            liquidity=1000,
                         )
                     )
                 await session.commit()
@@ -137,7 +136,7 @@ async def test_portfolio_fk_integrity(tmp_path) -> None:
                 ticker="TICKER1",
                 side="yes",
                 quantity=10,
-                avg_price_cents=4500,
+                avg_price_cents=45,
                 opened_at=now,
                 last_synced=now,
             )
@@ -153,8 +152,8 @@ async def test_portfolio_fk_integrity(tmp_path) -> None:
                     side="yes",
                     action="buy",
                     quantity=10,
-                    price_cents=4500,
-                    total_cost_cents=45000,
+                    price_cents=45,
+                    total_cost_cents=450,
                     fee_cents=0,
                     position_id=position.id,
                     executed_at=now,
@@ -171,8 +170,8 @@ async def test_portfolio_fk_integrity(tmp_path) -> None:
                     side="yes",
                     action="buy",
                     quantity=10,
-                    price_cents=4500,
-                    total_cost_cents=45000,
+                    price_cents=45,
+                    total_cost_cents=450,
                     fee_cents=0,
                     position_id=999999,
                     executed_at=now,

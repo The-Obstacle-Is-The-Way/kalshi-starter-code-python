@@ -7,36 +7,97 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 
+def _dollar_to_cents(dollar_str: str) -> int:
+    """
+    Convert dollar string (e.g., "0.50") to cents (e.g., 50).
+
+    This handles the Kalshi API migration from integer cents to dollar strings.
+    After Jan 15, 2026, the API will only return dollar-denominated fields.
+    """
+    return int(Decimal(dollar_str) * 100)
+
+
 class Orderbook(BaseModel):
     """
     Market orderbook snapshot.
 
     Note: API returns yes/no as list of [price, quantity] tuples, or null if empty.
     The API only returns bids (no asks) - use yes for YES bids, no for NO bids.
+
+    IMPORTANT: As of Jan 15, 2026, Kalshi is deprecating the integer cents fields
+    (yes, no) in favor of dollar-denominated strings (yes_dollars, no_dollars).
+    The computed properties below handle both formats for backward compatibility.
     """
 
     model_config = ConfigDict(frozen=True)
 
-    # Each level is [price_cents, quantity]
+    # Each level is [price_cents, quantity] - DEPRECATED Jan 15, 2026
     yes: list[tuple[int, int]] | None = None
     no: list[tuple[int, int]] | None = None
-    # Dollar-denominated versions (optional in response)
+    # Dollar-denominated versions (e.g., [("0.50", 10), ("0.49", 5)])
+    # These become the primary fields after Jan 15, 2026
     yes_dollars: list[tuple[str, int]] | None = None
     no_dollars: list[tuple[str, int]] | None = None
 
     @property
+    def yes_levels(self) -> list[tuple[int, int]]:
+        """
+        YES bid levels as [(price_cents, quantity), ...].
+
+        Prefers dollar-denominated `yes_dollars` when provided, falls back to legacy `yes`.
+        Use this instead of accessing `yes` directly for forward compatibility.
+        """
+        if self.yes_dollars is not None:
+            if self.yes_dollars:
+                return [(_dollar_to_cents(price), qty) for price, qty in self.yes_dollars]
+            if self.yes is not None:
+                return list(self.yes)
+            return []
+        if self.yes is not None:
+            return list(self.yes)
+        return []
+
+    @property
+    def no_levels(self) -> list[tuple[int, int]]:
+        """
+        NO bid levels as [(price_cents, quantity), ...].
+
+        Prefers dollar-denominated `no_dollars` when provided, falls back to legacy `no`.
+        Use this instead of accessing `no` directly for forward compatibility.
+        """
+        if self.no_dollars is not None:
+            if self.no_dollars:
+                return [(_dollar_to_cents(price), qty) for price, qty in self.no_dollars]
+            if self.no is not None:
+                return list(self.no)
+            return []
+        if self.no is not None:
+            return list(self.no)
+        return []
+
+    @property
     def best_yes_bid(self) -> int | None:
-        """Best YES bid price in cents."""
-        if not self.yes:
-            return None
-        return max(price for price, _ in self.yes)
+        """
+        Best YES bid price in cents.
+
+        Prefers dollar-denominated `yes_dollars` when provided, falls back to legacy `yes`.
+        """
+        levels = self.yes_levels
+        if levels:
+            return max(price for price, _ in levels)
+        return None
 
     @property
     def best_no_bid(self) -> int | None:
-        """Best NO bid price in cents."""
-        if not self.no:
-            return None
-        return max(price for price, _ in self.no)
+        """
+        Best NO bid price in cents.
+
+        Prefers dollar-denominated `no_dollars` when provided, falls back to legacy `no`.
+        """
+        levels = self.no_levels
+        if levels:
+            return max(price for price, _ in levels)
+        return None
 
     @property
     def spread(self) -> int | None:

@@ -59,11 +59,16 @@ class TemporalValidator:
 
         Args:
             market: The market being researched
-            event_date: Date when the researched event occurred
+            event_date: Date when the researched event occurred (timezone-aware)
 
         Returns:
             TemporalValidationResult with valid=False if event predates market
         """
+        if event_date.tzinfo is None or market.open_time.tzinfo is None:
+            return TemporalValidationResult(
+                valid=False,
+                warning="Cannot compare naive and aware datetimes. Ensure both are timezone-aware.",
+            )
         if event_date < market.open_time:
             return TemporalValidationResult(
                 valid=False,

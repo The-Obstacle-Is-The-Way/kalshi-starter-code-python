@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from kalshi_research.data.models import Settlement
 from kalshi_research.data.repositories.base import BaseRepository
@@ -19,21 +20,31 @@ class SettlementRepository(BaseRepository[Settlement]):
 
     model = Settlement
 
-    async def upsert(self, settlement: Settlement) -> Settlement:
-        """Insert or update a settlement."""
-        existing = await self.get(settlement.ticker)
-        if existing is not None:
-            existing.event_ticker = settlement.event_ticker
-            existing.settled_at = settlement.settled_at
-            existing.result = settlement.result
-            existing.final_yes_price = settlement.final_yes_price
-            existing.final_no_price = settlement.final_no_price
-            existing.yes_payout = settlement.yes_payout
-            existing.no_payout = settlement.no_payout
-            await self._session.flush()
-            await self._session.refresh(existing)
-            return existing
-        return await self.add(settlement)
+    async def upsert(self, settlement: Settlement) -> None:
+        """Insert or update a settlement using a DB-level upsert (atomic)."""
+        stmt = sqlite_insert(Settlement).values(
+            ticker=settlement.ticker,
+            event_ticker=settlement.event_ticker,
+            settled_at=settlement.settled_at,
+            result=settlement.result,
+            final_yes_price=settlement.final_yes_price,
+            final_no_price=settlement.final_no_price,
+            yes_payout=settlement.yes_payout,
+            no_payout=settlement.no_payout,
+        )
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[Settlement.ticker],
+            set_={
+                "event_ticker": stmt.excluded.event_ticker,
+                "settled_at": stmt.excluded.settled_at,
+                "result": stmt.excluded.result,
+                "final_yes_price": stmt.excluded.final_yes_price,
+                "final_no_price": stmt.excluded.final_no_price,
+                "yes_payout": stmt.excluded.yes_payout,
+                "no_payout": stmt.excluded.no_payout,
+            },
+        )
+        await self._session.execute(stmt)
 
     async def get_by_event(self, event_ticker: str) -> Sequence[Settlement]:
         """Get all settlements for an event."""

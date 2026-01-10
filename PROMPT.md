@@ -1,6 +1,6 @@
 # Kalshi Research - Ralph Wiggum Loop Prompt
 
-You are fixing bugs, debt, and TODOs in a Kalshi prediction market research platform.
+You are implementing specs, fixing bugs, debt, and TODOs in a Kalshi prediction market research platform.
 This prompt runs headless via:
 
 ```bash
@@ -22,20 +22,54 @@ Then read the relevant documentation:
 cat docs/_bugs/README.md
 cat docs/_debt/README.md
 cat docs/_todo/README.md
+cat docs/_specs/README.md
 ```
+
+## SPEC-* Self-Review Protocol (APPLY FIRST)
+
+**Before picking up a new task**, check if the MOST RECENTLY completed item is a `SPEC-*` WITHOUT a `[REVIEWED]` marker.
+
+If yes, **THIS ITERATION IS A REVIEW ITERATION**:
+
+1. Read the spec doc and its acceptance criteria
+2. Verify the implementation matches ALL acceptance criteria
+3. Apply the Critical Review Prompt (below) to your own prior work
+4. Check for half-measures:
+   - Are there TODO comments that should be resolved?
+   - Do tests cover all acceptance criteria?
+   - Does SSOT (code) match the spec?
+5. **If issues found**:
+   - Create a fixup task in PROGRESS.md (e.g., `[ ] **SPEC-028-FIX**: Fix missing tests`)
+   - Mark the original as `[NEEDS-FIX]` instead of `[REVIEWED]`
+   - Commit and exit
+6. **If verified clean**:
+   - Add `[REVIEWED]` marker to the spec line
+   - Append to Work Log: "SPEC-XXX reviewed and verified"
+   - Commit and exit (do NOT start next task this iteration)
 
 ## Your Task This Iteration
 
-1. Find the **FIRST** unchecked `[ ]` item in PROGRESS.md
-2. Read the corresponding doc: `docs/_bugs/BUG-XXX.md`, `docs/_debt/DEBT-XXX.md`, or `docs/_todo/TODO-XXX.md`
-3. **READ THE ACCEPTANCE CRITERIA** in the task doc - you MUST complete ALL of them
-4. Complete that ONE item fully (all acceptance criteria met, tests pass, quality checks pass)
-5. **UPDATE THE TASK DOC** - check off `[x]` each acceptance criterion you completed
-6. Check off the item in PROGRESS.md: `[ ]` → `[x]`
-7. **ATOMIC COMMIT** (see format below)
-8. Exit
+1. Check for unreviewed SPEC-* (see above) - if found, do review, then exit
+2. Find the **FIRST** unchecked `[ ]` item in PROGRESS.md
+3. Read the corresponding doc: `docs/_bugs/BUG-XXX*.md`, `docs/_debt/DEBT-XXX*.md`, `docs/_todo/TODO-XXX*.md`, or `docs/_specs/SPEC-XXX*.md`
+4. **READ THE ACCEPTANCE CRITERIA** in the task doc - you MUST complete ALL of them
+5. Apply the **Critical Review Prompt** (below) to any external feedback and to your own assumptions
+6. Complete that ONE item fully (all acceptance criteria met, tests pass, quality checks pass)
+7. **UPDATE THE TASK DOC** - check off `[x]` each acceptance criterion you completed
+8. Check off the item in PROGRESS.md: `[ ]` → `[x]` (ONLY if all acceptance criteria are `[x]`)
+9. Append a short entry to PROGRESS.md "Work Log" (what changed + commands run)
+10. **ATOMIC COMMIT** (see format below)
+11. Exit
 
 **DO NOT** attempt multiple tasks. One task per iteration.
+
+## Critical Review Prompt (MANDATORY)
+
+Before changing code/docs based on feedback (human, CodeRabbit, another model, your own prior output), apply:
+
+```text
+Review the claim or feedback (it may be from an internal or external agent). Validate every claim from first principles. If—and only if—it's true and helpful, update the system to align with the SSOT, implemented cleanly and completely (Rob C. Martin discipline). Find and fix all half-measures, reward hacks, and partial fixes if they exist. Be critically adversarial with good intentions for constructive criticism. Ship the exact end-to-end implementation we need.
+```
 
 ## A++ STANDARD: Acceptance Criteria Enforcement
 
@@ -48,18 +82,6 @@ Before marking ANY task complete, verify:
 4. Update the task doc to show which criteria are done with `[x]`
 
 **Partial implementations are FAILURES.** Do not check off PROGRESS.md until ALL criteria pass.
-
-Example of WRONG behavior:
-```
-Task has 3 acceptance criteria, you complete 1, mark task done in PROGRESS.md
-```
-
-Example of CORRECT behavior:
-```
-Task has 3 acceptance criteria, you complete 1, task stays [ ] in PROGRESS.md
-Next iteration completes criterion 2, task stays [ ] in PROGRESS.md
-Next iteration completes criterion 3, NOW mark task [x] in PROGRESS.md
-```
 
 ## Atomic Commit Format
 
@@ -76,14 +98,16 @@ EOF
 ```
 
 **Examples:**
+- `[SPEC-028] Implement: Topic search via FTS5`
+- `[SPEC-028-REVIEW] Verify: All acceptance criteria met`
 - `[BUG-048] Fix: Allow negative liquidity values`
-- `[TODO-005b] Add: Temporal validation to research workflow`
-- `[DEBT-003] Refactor: Add session.begin() transaction boundaries`
 
 ## Quality Gates (MUST PASS)
 
 Before marking ANY task complete:
 ```bash
+uv run pre-commit install         # ONCE per clone (if hooks not installed)
+uv run pre-commit run --all-files # ALWAYS before any commit
 uv run ruff check .           # No lint errors
 uv run ruff format --check .  # Properly formatted
 uv run mypy src/              # No type errors
@@ -100,47 +124,45 @@ If ANY check fails, fix it before proceeding.
 
 ## Guardrails
 
-1. **ONE task per iteration**
-2. **Read PROGRESS.md first**
-3. **Read the task doc (BUG-XXX.md, etc.)**
-4. **Verify ALL acceptance criteria are addressed**
-5. **Quality gates must pass**
-6. **Update task doc acceptance criteria checkboxes**
-7. **Mark PROGRESS.md task complete ONLY if ALL criteria done**
-8. **Commit before exit**
-9. **Exit when done**
+1. **Check for unreviewed SPEC-* first**
+2. **ONE task per iteration**
+3. **Read PROGRESS.md first**
+4. **Read the task doc (BUG-XXX.md, etc.)**
+5. **Verify ALL acceptance criteria are addressed**
+6. **Quality gates must pass**
+7. **Update task doc acceptance criteria checkboxes**
+8. **Mark PROGRESS.md task complete ONLY if ALL criteria done**
+9. **Commit before exit**
+10. **Exit when done**
 
 ## BEFORE EXIT CHECKLIST (MANDATORY)
 
 **You MUST complete ALL of these steps before exiting:**
 
 ```bash
-# 1. Run ALL quality gates
-uv run ruff check .           # Fix any issues
-uv run ruff format .          # Auto-format
-uv run mypy src/              # Fix type errors
-uv run pytest tests/unit -v   # All tests pass
+# 1. Run ALL quality gates (never commit without these)
+uv run pre-commit run --all-files
+uv run ruff check .
+uv run ruff format .
+uv run mypy src/
+uv run pytest tests/unit -v
+
+# 1b. If docs changed, validate site build
+uv run mkdocs build --strict
 
 # 2. Verify acceptance criteria
 # - Read task doc's Acceptance Criteria section
 # - Ensure ALL criteria are [x] checked
 # - If any are [ ], do NOT mark PROGRESS.md as complete
 
-# 3. Stage ALL changes (including test files and docs!)
+# 3. Stage ALL changes
 git add -A
 
 # 4. Verify nothing is unstaged
-git status  # Should show "nothing to commit" or all staged
+git status
 
 # 5. Commit with proper message
-git commit -m "$(cat <<'EOF'
-[TASK-ID] Brief description
-
-- What was implemented/fixed
-- Tests added/updated
-- Quality gates passed
-EOF
-)"
+git commit -m "[TASK-ID] Brief description"
 ```
 
 **CRITICAL - Do NOT exit if:**
@@ -150,33 +172,15 @@ EOF
 - You haven't committed
 - Task doc has unchecked acceptance criteria but PROGRESS.md shows `[x]`
 
-**If quality gates fail:** Fix them, re-run all gates, then commit.
-
 ## File Locations
 
 - Bugs: `docs/_bugs/BUG-*.md`
 - Debt: `docs/_debt/DEBT-*.md`
 - TODOs: `docs/_todo/TODO-*.md`
+- Specs: `docs/_specs/SPEC-*.md`
 - Source: `src/kalshi_research/`
 - Tests: `tests/unit/`, `tests/integration/`
-- Skills: `.claude/skills/kalshi-cli/`
-
-## Task-Specific Guidance
-
-### TODO-005b: Temporal Validation
-- Add `TemporalValidator` class to `research/thesis.py`
-- Validates that researched events occurred AFTER `market.open_time`
-- Add test in `tests/unit/research/test_thesis.py`
-
-### TODO-005c: GOTCHAS Documentation
-- Add "Market Timing Trap" section to `.claude/skills/kalshi-cli/GOTCHAS.md`
-- Explain that events before `open_time` don't count
-- Include the Stranger Things example
-
-### DOCS-001: Sync Task Doc Acceptance Criteria
-- Review each task doc in `docs/_bugs/`, `docs/_debt/`, `docs/_todo/`
-- Update acceptance criteria checkboxes to match actual implementation state
-- This is a documentation-only task (no code changes)
+- Skills: `.claude/skills/`, `.codex/skills/`, `.gemini/skills/` (keep in sync)
 
 ## Completion
 
@@ -185,6 +189,7 @@ The loop operator verifies via PROGRESS.md state, not output parsing.
 
 **A++ Standard means:**
 - ALL PROGRESS.md items are `[x]`
+- ALL SPEC-* items have `[REVIEWED]` markers
 - ALL task doc acceptance criteria are `[x]`
 - ALL quality gates pass
 - Clean git working tree

@@ -14,6 +14,7 @@ exclude_docs: |
 # Keep tracker detail pages in the build but hide them from nav.
 not_in_nav: |
   _bugs/BUG-*.md
+  _specs/SPEC-*.md
   _future/TODO-*.md
   _debt/DEBT-*.md
   _debt/security-audit.md

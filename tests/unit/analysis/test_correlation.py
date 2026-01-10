@@ -34,7 +34,6 @@ def make_snapshot(ticker: str, timestamp: datetime, yes_price: float) -> PriceSn
     snap.volume = 100
     snap.volume_24h = 50
     snap.open_interest = 200
-    snap.liquidity = 1000
     return snap
 
 

@@ -6,6 +6,9 @@
 **Dependencies:** SPEC-020, SPEC-021, SPEC-023 (all implemented)
 **Why Deferred:** Complex feature, MCP alternative exists for interactive research
 
+> **Note (2026-01-10):** This document is the backlog seed. The implementation-ready spec lives in
+> `docs/_specs/SPEC-033-exa-research-agent.md`.
+
 ---
 
 ## 1. Overview

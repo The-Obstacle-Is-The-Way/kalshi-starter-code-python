@@ -12,6 +12,10 @@ from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
 
 app = typer.Typer(help="Portfolio tracking and P&L commands.")
 
+PORTFOLIO_SYNC_TIP = (
+    "[dim]Tip: run `kalshi portfolio sync` to populate/refresh the local cache.[/dim]"
+)
+
 
 def _load_theses() -> dict[str, Any]:
     """Load theses from storage."""
@@ -176,6 +180,7 @@ def portfolio_positions(
     async def _positions() -> None:
         db = DatabaseManager(db_path)
         try:
+            await db.create_tables()
             async with db.session_factory() as session:
                 # Build query
                 query = select(Position).where(Position.closed_at.is_(None))
@@ -187,6 +192,7 @@ def portfolio_positions(
 
                 if not positions:
                     console.print("[yellow]No open positions found[/yellow]")
+                    console.print(PORTFOLIO_SYNC_TIP)
                     return
 
                 # Display positions table
@@ -198,23 +204,28 @@ def portfolio_positions(
                 table.add_column("Current", justify="right")
                 table.add_column("Unrealized P&L", justify="right")
 
-                total_unrealized = 0.0
+                total_unrealized_cents = 0
+                unknown_unrealized = 0
                 for pos in positions:
-                    avg_price = f"{pos.avg_price_cents}¢"
+                    avg_price = "-" if pos.avg_price_cents == 0 else f"{pos.avg_price_cents}¢"
                     current = (
                         f"{pos.current_price_cents}¢"
                         if pos.current_price_cents is not None
                         else "-"
                     )
 
-                    unrealized = pos.unrealized_pnl_cents or 0
-                    total_unrealized += unrealized
+                    pnl_str = "-"
+                    if pos.unrealized_pnl_cents is None:
+                        unknown_unrealized += 1
+                    else:
+                        unrealized = pos.unrealized_pnl_cents
+                        total_unrealized_cents += unrealized
 
-                    pnl_str = f"${unrealized / 100:.2f}"
-                    if unrealized > 0:
-                        pnl_str = f"[green]+{pnl_str}[/green]"
-                    elif unrealized < 0:
-                        pnl_str = f"[red]{pnl_str}[/red]"
+                        pnl_str = f"${unrealized / 100:.2f}"
+                        if unrealized > 0:
+                            pnl_str = f"[green]+{pnl_str}[/green]"
+                        elif unrealized < 0:
+                            pnl_str = f"[red]{pnl_str}[/red]"
 
                     table.add_row(
                         pos.ticker,
@@ -226,7 +237,15 @@ def portfolio_positions(
                     )
 
                 console.print(table)
-                console.print(f"\nTotal Unrealized P&L: ${total_unrealized / 100:.2f}")
+                total_label = "Total Unrealized P&L"
+                if unknown_unrealized:
+                    total_label = "Total Unrealized P&L (known only)"
+                console.print(f"\n{total_label}: ${total_unrealized_cents / 100:.2f}")
+                if unknown_unrealized:
+                    console.print(
+                        f"[yellow]{unknown_unrealized} position(s) have unknown unrealized P&L "
+                        "(missing cost basis or mark prices).[/yellow]"
+                    )
         finally:
             await db.close()
 
@@ -234,7 +253,7 @@ def portfolio_positions(
 
 
 @app.command("pnl")
-def portfolio_pnl(  # noqa: PLR0915
+def portfolio_pnl(
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
@@ -246,11 +265,44 @@ def portfolio_pnl(  # noqa: PLR0915
 ) -> None:
     """View profit & loss summary."""
     from kalshi_research.data import DatabaseManager
-    from kalshi_research.portfolio import PnLCalculator, Position, Trade
+    from kalshi_research.portfolio import PnLCalculator, PnLSummary, Position, Trade
+
+    def _format_signed_currency(cents: int) -> str:
+        value = f"${cents / 100:.2f}"
+        if cents > 0:
+            return f"[green]+{value}[/green]"
+        if cents < 0:
+            return f"[red]{value}[/red]"
+        return value
+
+    def _build_summary_table(summary: PnLSummary) -> Table:
+        table = Table(title="P&L Summary (All Time)", show_header=False)
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", justify="right")
+
+        unrealized_label = "Unrealized P&L:"
+        if summary.unrealized_positions_unknown:
+            unrealized_label = "Unrealized P&L (known only):"
+
+        table.add_row("Realized P&L:", _format_signed_currency(summary.realized_pnl_cents))
+        table.add_row(unrealized_label, _format_signed_currency(summary.unrealized_pnl_cents))
+        table.add_row("Total P&L:", _format_signed_currency(summary.total_pnl_cents))
+
+        if summary.unrealized_positions_unknown:
+            table.add_row("Unknown unrealized rows:", str(summary.unrealized_positions_unknown))
+
+        table.add_row("", "")
+        table.add_row("Total Trades:", str(summary.total_trades))
+        table.add_row("Win Rate:", f"{summary.win_rate * 100:.1f}%")
+        table.add_row("Avg Win:", f"${summary.avg_win_cents / 100:.2f}")
+        table.add_row("Avg Loss:", f"${summary.avg_loss_cents / 100:.2f}")
+        table.add_row("Profit Factor:", f"{summary.profit_factor:.2f}")
+        return table
 
     async def _pnl() -> None:
         db = DatabaseManager(db_path)
         try:
+            await db.create_tables()
             async with db.session_factory() as session:
                 # Get positions
                 pos_query = select(Position)
@@ -273,40 +325,7 @@ def portfolio_pnl(  # noqa: PLR0915
                 summary = calculator.calculate_summary_with_trades(positions, trades)
 
                 # Display summary
-                table = Table(title="P&L Summary (All Time)", show_header=False)
-                table.add_column("Metric", style="cyan")
-                table.add_column("Value", justify="right")
-
-                unrealized_str = f"${summary.unrealized_pnl_cents / 100:.2f}"
-                realized_str = f"${summary.realized_pnl_cents / 100:.2f}"
-                total_str = f"${summary.total_pnl_cents / 100:.2f}"
-
-                if summary.unrealized_pnl_cents > 0:
-                    unrealized_str = f"[green]+{unrealized_str}[/green]"
-                elif summary.unrealized_pnl_cents < 0:
-                    unrealized_str = f"[red]{unrealized_str}[/red]"
-
-                if summary.realized_pnl_cents > 0:
-                    realized_str = f"[green]+{realized_str}[/green]"
-                elif summary.realized_pnl_cents < 0:
-                    realized_str = f"[red]{realized_str}[/red]"
-
-                if summary.total_pnl_cents > 0:
-                    total_str = f"[green]+{total_str}[/green]"
-                elif summary.total_pnl_cents < 0:
-                    total_str = f"[red]{total_str}[/red]"
-
-                table.add_row("Realized P&L:", realized_str)
-                table.add_row("Unrealized P&L:", unrealized_str)
-                table.add_row("Total P&L:", total_str)
-                table.add_row("", "")
-                table.add_row("Total Trades:", str(summary.total_trades))
-                table.add_row("Win Rate:", f"{summary.win_rate * 100:.1f}%")
-                table.add_row("Avg Win:", f"${summary.avg_win_cents / 100:.2f}")
-                table.add_row("Avg Loss:", f"${summary.avg_loss_cents / 100:.2f}")
-                table.add_row("Profit Factor:", f"{summary.profit_factor:.2f}")
-
-                console.print(table)
+                console.print(_build_summary_table(summary))
         finally:
             await db.close()
 
@@ -400,6 +419,7 @@ def portfolio_history(
     async def _history() -> None:
         db = DatabaseManager(db_path)
         try:
+            await db.create_tables()
             async with db.session_factory() as session:
                 # Build query
                 query = select(Trade).order_by(Trade.executed_at.desc()).limit(limit)
@@ -411,6 +431,7 @@ def portfolio_history(
 
                 if not trades:
                     console.print("[yellow]No trades found[/yellow]")
+                    console.print(PORTFOLIO_SYNC_TIP)
                     return
 
                 # Display trades table
@@ -461,6 +482,7 @@ def portfolio_link(
     async def _link() -> None:
         db = DatabaseManager(db_path)
         try:
+            await db.create_tables()
             async with db.session_factory() as session:
                 async with session.begin():
                     # Find open position
@@ -472,6 +494,7 @@ def portfolio_link(
 
                     if not position:
                         console.print(f"[yellow]No open position found for {ticker}[/yellow]")
+                        console.print(PORTFOLIO_SYNC_TIP)
                         return
 
                     # Update thesis_id
@@ -507,6 +530,7 @@ def portfolio_suggest_links(
         # Get unlinked positions
         db = DatabaseManager(db_path)
         try:
+            await db.create_tables()
             async with db.session_factory() as session:
                 query = select(Position).where(
                     Position.thesis_id.is_(None), Position.closed_at.is_(None)
@@ -516,6 +540,7 @@ def portfolio_suggest_links(
 
                 if not positions:
                     console.print("[yellow]No unlinked positions found.[/yellow]")
+                    console.print(PORTFOLIO_SYNC_TIP)
                     return
 
                 # Find matches

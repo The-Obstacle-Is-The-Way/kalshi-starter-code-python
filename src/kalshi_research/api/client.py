@@ -91,6 +91,10 @@ class KalshiPublicClient:
         exc_val: BaseException | None,
         exc_tb: Any,
     ) -> None:
+        await self.aclose()
+
+    async def aclose(self) -> None:
+        """Close the underlying HTTP client."""
         await self._client.aclose()
 
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -492,7 +496,7 @@ class KalshiClient(KalshiPublicClient):
         exc_val: BaseException | None,
         exc_tb: Any,
     ) -> None:
-        await self._client.aclose()
+        await self.aclose()
 
     async def _auth_get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """
@@ -703,8 +707,28 @@ class KalshiClient(KalshiPublicClient):
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 
-    async def cancel_order(self, order_id: str) -> CancelOrderResponse:
-        """Cancel an existing order."""
+    async def cancel_order(self, order_id: str, dry_run: bool = False) -> CancelOrderResponse:
+        """
+        Cancel an existing order.
+
+        Args:
+            order_id: The order ID to cancel
+            dry_run: If True, validate and log but do not execute the cancellation
+
+        Returns:
+            CancelOrderResponse with order status
+        """
+        # Handle dry run mode
+        if dry_run:
+            logger.info(
+                "DRY RUN: cancel_order - cancellation validated but not executed",
+                order_id=order_id,
+            )
+            return CancelOrderResponse(
+                order_id=f"dry-run-{order_id}",
+                status="simulated",
+            )
+
         path = f"/portfolio/orders/{order_id}"
         full_path = self.API_PATH + path
 
@@ -751,8 +775,20 @@ class KalshiClient(KalshiPublicClient):
         order_id: str,
         price: int | None = None,
         count: int | None = None,
+        dry_run: bool = False,
     ) -> OrderResponse:
-        """Amend an existing order's price or quantity."""
+        """
+        Amend an existing order's price or quantity.
+
+        Args:
+            order_id: The order ID to amend
+            price: New price in cents (1-99)
+            count: New quantity (must be positive)
+            dry_run: If True, validate and log but do not execute the amendment
+
+        Returns:
+            OrderResponse with updated order status
+        """
         if price is None and count is None:
             raise ValueError("Must provide either price or count")
 
@@ -761,6 +797,19 @@ class KalshiClient(KalshiPublicClient):
 
         if count is not None and count <= 0:
             raise ValueError("Count must be positive")
+
+        # Handle dry run mode
+        if dry_run:
+            logger.info(
+                "DRY RUN: amend_order - amendment validated but not executed",
+                order_id=order_id,
+                price=price,
+                count=count,
+            )
+            return OrderResponse(
+                order_id=f"dry-run-{order_id}",
+                order_status="simulated",
+            )
 
         path = f"/portfolio/orders/{order_id}/amend"
         full_path = self.API_PATH + path

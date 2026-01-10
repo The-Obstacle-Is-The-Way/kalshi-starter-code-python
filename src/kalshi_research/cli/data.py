@@ -194,25 +194,34 @@ def data_collect(
                     return
 
                 scheduler = DataScheduler()
+                write_lock = asyncio.Lock()
 
                 async def sync_task() -> None:
-                    await fetcher.sync_markets(status="open", max_pages=max_pages)
+                    async with write_lock:
+                        await fetcher.sync_markets(status="open", max_pages=max_pages)
 
                 async def snapshot_task() -> None:
-                    count = await fetcher.take_snapshot(status="open", max_pages=max_pages)
-                    console.print(f"[dim]Took {count} snapshots[/dim]")
+                    async with write_lock:
+                        count = await fetcher.take_snapshot(status="open", max_pages=max_pages)
+                        console.print(f"[dim]Took {count} snapshots[/dim]")
 
                 # Schedule tasks
                 await scheduler.schedule_interval(
                     "market_sync",
                     sync_task,
                     interval_seconds=3600,  # Hourly
+                    run_immediately=False,
                 )
                 await scheduler.schedule_interval(
                     "price_snapshot",
                     snapshot_task,
                     interval_seconds=interval * 60,
+                    run_immediately=False,
                 )
+
+                # Initial sync before starting scheduled tasks.
+                # Prevents in-process overlap on startup.
+                await fetcher.full_sync(max_pages=max_pages)
 
                 console.print(
                     f"[green]✓[/green] Starting collection (interval: {interval}m). "
@@ -220,9 +229,6 @@ def data_collect(
                 )
 
                 async with scheduler:
-                    # Initial sync
-                    await fetcher.full_sync(max_pages=max_pages)
-
                     # Run forever until interrupted
                     try:
                         while True:

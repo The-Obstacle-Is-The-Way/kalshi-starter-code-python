@@ -37,6 +37,9 @@ def mock_db():
     # session_factory() should return the async context manager
     db.session_factory = MagicMock(return_value=session_cm)
 
+    # Expose session for assertions in tests.
+    db._session = session
+
     return db
 
 
@@ -110,7 +113,8 @@ async def test_sync_events(data_fetcher, mock_client, mock_db):
 
         assert count == 1
         mock_repo.upsert.assert_called_once()
-        mock_repo.commit.assert_called_once()
+        mock_repo.commit.assert_not_called()
+        mock_db._session.begin.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -203,17 +207,29 @@ async def test_sync_settlements(data_fetcher, mock_client, mock_db):
 
 @pytest.mark.asyncio
 async def test_take_snapshot(data_fetcher, mock_client, mock_db):
-    mock_market = MagicMock(spec=Market)
-    mock_market.ticker = "TEST-MARKET"
-    mock_market.yes_bid = 50
-    mock_market.yes_ask = 52
-    mock_market.no_bid = 48
-    mock_market.no_ask = 50
-    mock_market.last_price = 51
-    mock_market.volume = 1000
-    mock_market.volume_24h = 100
-    mock_market.open_interest = 500
-    mock_market.liquidity = 10000
+    from datetime import UTC, datetime, timedelta
+
+    mock_market = Market(
+        ticker="TEST-MARKET",
+        event_ticker="TEST-EVENT",
+        series_ticker=None,
+        title="Test Market",
+        subtitle="",
+        status=MarketStatus.ACTIVE,
+        result="",
+        yes_bid=50,
+        yes_ask=52,
+        no_bid=48,
+        no_ask=50,
+        last_price=51,
+        volume=1000,
+        volume_24h=100,
+        open_interest=500,
+        open_time=datetime.now(UTC) - timedelta(days=1),
+        close_time=datetime.now(UTC) + timedelta(days=1),
+        expiration_time=datetime.now(UTC) + timedelta(days=2),
+        liquidity=10000,
+    )
 
     async def market_gen(status=None, max_pages: int | None = None):
         yield mock_market

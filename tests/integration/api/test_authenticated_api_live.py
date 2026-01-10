@@ -5,6 +5,7 @@ import os
 import pytest
 
 from kalshi_research.api import KalshiClient
+from kalshi_research.api.models.portfolio import PortfolioBalance
 
 pytestmark = [pytest.mark.integration]
 
@@ -42,8 +43,9 @@ async def test_authenticated_balance_live() -> None:
     ) as client:
         balance = await client.get_balance()
 
-    assert isinstance(balance, dict)
-    assert balance  # non-empty response indicates auth/signing worked
+    assert isinstance(balance, PortfolioBalance)
+    assert balance.balance >= 0
+    assert balance.portfolio_value >= 0
 
 
 @pytest.mark.asyncio

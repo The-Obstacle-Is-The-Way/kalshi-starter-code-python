@@ -40,7 +40,6 @@ def sample_snapshots() -> list[PriceSnapshot]:
             volume=100 + i * 10,
             volume_24h=50 + i * 5,
             open_interest=100,
-            liquidity=10000,
         )
         snapshots.append(snap)
 

@@ -11,7 +11,7 @@ The database separates **static metadata** from **live pricing data**:
 | Table | Contains | Updates |
 |-------|----------|---------|
 | `markets` | Static info: ticker, title, open_time, close_time, status | On `data sync-markets` |
-| `price_snapshots` | Live data: yes_bid, yes_ask, volume_24h, liquidity | On `data snapshot` or `data collect` |
+| `price_snapshots` | Live data: yes_bid, yes_ask, volume_24h | On `data snapshot` or `data collect` |
 
 **Common mistake**: Trying to query `yes_bid` or `volume_24h` from `markets` table - these columns don't exist there!
 
@@ -97,7 +97,6 @@ Historical price data for backtesting and analysis.
 | `volume` | INTEGER | Total volume |
 | `volume_24h` | INTEGER | 24-hour volume |
 | `open_interest` | INTEGER | Open interest |
-| `liquidity` | INTEGER | Liquidity measure |
 
 **Indexes**: `idx_snapshots_ticker_time`, `idx_snapshots_time`
 

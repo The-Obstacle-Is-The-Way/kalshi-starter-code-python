@@ -51,7 +51,7 @@ class MarketStatusVerifier:
             return False
 
         # Check timing - market must not be past close_time
-        return not now >= market.close_time
+        return now < market.close_time
 
     def verify_market_open(self, market: Market) -> None:
         """

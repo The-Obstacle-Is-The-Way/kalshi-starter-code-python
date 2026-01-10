@@ -151,7 +151,6 @@ class TestPriceSnapshotModel:
             volume=10000,
             volume_24h=500,
             open_interest=5000,
-            liquidity=1000,
         )
         db_session.add(snapshot)
         db_session.commit()
@@ -180,7 +179,6 @@ class TestPriceSnapshotModel:
             volume=10000,
             volume_24h=500,
             open_interest=5000,
-            liquidity=1000,
         )
         db_session.add_all([event, market, snapshot])
         db_session.commit()
@@ -219,7 +217,6 @@ class TestPriceSnapshotModel:
                 volume=10000,
                 volume_24h=500,
                 open_interest=5000,
-                liquidity=1000,
             )
             db_session.add(snapshot)
         db_session.commit()

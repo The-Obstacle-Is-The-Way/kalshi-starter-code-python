@@ -5,6 +5,9 @@
 **Created**: 2026-01-09
 **Depends On**: Active agent trading use case
 
+> **Note (2026-01-10):** This TODO is the backlog seed. The implementation-ready spec lives in
+> `docs/_specs/SPEC-034-trade-executor-safety-harness.md`.
+
 ---
 
 ## Overview

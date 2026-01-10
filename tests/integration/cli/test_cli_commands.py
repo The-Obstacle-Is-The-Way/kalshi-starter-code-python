@@ -145,6 +145,118 @@ def test_data_sync_snapshot_and_collect_once(runner: CliRunner) -> None:
         assert "Full sync complete" in collect.stdout
 
 
+def test_data_collect_daemon_schedules_tasks_and_exits_cleanly(runner: CliRunner) -> None:
+    class _FakeFetcher:
+        last: _FakeFetcher | None = None
+
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            del args, kwargs
+            _FakeFetcher.last = self
+            self.full_sync_calls: list[int | None] = []
+            self.sync_markets_calls: list[tuple[str | None, int | None]] = []
+            self.take_snapshot_calls: list[tuple[str | None, int | None]] = []
+
+        async def __aenter__(self) -> _FakeFetcher:
+            return self
+
+        async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc_val: BaseException | None,
+            exc_tb: object,
+        ) -> None:
+            return None
+
+        async def full_sync(self, *, max_pages: int | None = None) -> dict[str, int]:
+            self.full_sync_calls.append(max_pages)
+            return {"events": 0, "markets": 0, "snapshots": 0}
+
+        async def sync_markets(
+            self, status: str | None = None, *, max_pages: int | None = None
+        ) -> int:
+            self.sync_markets_calls.append((status, max_pages))
+            return 0
+
+        async def take_snapshot(
+            self, status: str | None = "open", *, max_pages: int | None = None
+        ) -> int:
+            self.take_snapshot_calls.append((status, max_pages))
+            return 0
+
+    class _FakeScheduler:
+        last: _FakeScheduler | None = None
+
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            del args, kwargs
+            _FakeScheduler.last = self
+            self.scheduled: list[tuple[str, object, int, bool]] = []
+
+        async def schedule_interval(
+            self,
+            name: str,
+            task: object,
+            *,
+            interval_seconds: int,
+            run_immediately: bool = True,
+        ) -> None:
+            self.scheduled.append((name, task, interval_seconds, run_immediately))
+
+        async def __aenter__(self) -> _FakeScheduler:
+            for _, task, _, _ in self.scheduled:
+                await task()
+            return self
+
+        async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc_val: BaseException | None,
+            exc_tb: object,
+        ) -> None:
+            return None
+
+    async def _cancel_sleep(seconds: float) -> None:
+        if seconds <= 0:
+            return None
+        raise asyncio.CancelledError
+
+    with runner.isolated_filesystem():
+        db_path = Path("data/test.db")
+        init = runner.invoke(app, ["data", "init", "--db", str(db_path)])
+        assert init.exit_code == 0
+
+        with (
+            patch("kalshi_research.data.DataFetcher", _FakeFetcher),
+            patch("kalshi_research.data.DataScheduler", _FakeScheduler),
+            patch("kalshi_research.cli.data.asyncio.sleep", new=_cancel_sleep),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "data",
+                    "collect",
+                    "--db",
+                    str(db_path),
+                    "--interval",
+                    "1",
+                    "--max-pages",
+                    "1",
+                ],
+            )
+
+        assert result.exit_code == 0
+
+        assert _FakeScheduler.last is not None
+        assert [run_immediately for *_, run_immediately in _FakeScheduler.last.scheduled] == [
+            False,
+            False,
+        ]
+
+        assert _FakeFetcher.last is not None
+        assert _FakeFetcher.last.full_sync_calls == [1]
+        assert _FakeFetcher.last.sync_markets_calls == [("open", 1)]
+        assert _FakeFetcher.last.take_snapshot_calls == [("open", 1)]
+
+
 def test_data_export_errors_and_unknown_format(runner: CliRunner) -> None:
     with runner.isolated_filesystem():
         db_path = Path("data/test.db")
@@ -280,7 +392,6 @@ def test_scan_movers_errors_and_success(runner: CliRunner) -> None:
                             volume=100,
                             volume_24h=100,
                             open_interest=50,
-                            liquidity=1000,
                         )
                     )
                     session.add(
@@ -295,7 +406,6 @@ def test_scan_movers_errors_and_success(runner: CliRunner) -> None:
                             volume=200,
                             volume_24h=200,
                             open_interest=100,
-                            liquidity=2000,
                         )
                     )
                     await session.commit()
@@ -459,7 +569,6 @@ def test_analysis_correlation_success(runner: CliRunner) -> None:
                                 volume=100,
                                 volume_24h=100,
                                 open_interest=50,
-                                liquidity=1000,
                             )
                         )
                         session.add(
@@ -474,7 +583,6 @@ def test_analysis_correlation_success(runner: CliRunner) -> None:
                                 volume=100,
                                 volume_24h=100,
                                 open_interest=50,
-                                liquidity=1000,
                             )
                         )
                     await session.commit()
