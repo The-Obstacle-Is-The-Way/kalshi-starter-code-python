@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -187,6 +188,126 @@ def test_data_sync_trades_exports_csv(mock_client_cls: MagicMock) -> None:
         assert "trade-1,TEST-TICKER" in csv_text
 
 
+def test_data_sync_trades_rejects_output_and_json_together() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "data",
+            "sync-trades",
+            "--ticker",
+            "TEST-TICKER",
+            "--output",
+            "trades.csv",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "Choose one of --output or --json" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_data_sync_trades_json_output(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_trades = AsyncMock(
+        return_value=[
+            Trade(
+                trade_id="trade-1",
+                ticker="TEST-TICKER",
+                created_time=datetime.now(UTC),
+                yes_price=51,
+                no_price=49,
+                count=10,
+                taker_side="yes",
+            )
+        ]
+    )
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["data", "sync-trades", "--ticker", "TEST-TICKER", "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload[0]["trade_id"] == "trade-1"
+    assert payload[0]["ticker"] == "TEST-TICKER"
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_data_sync_trades_no_trades_prints_message(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_trades = AsyncMock(return_value=[])
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["data", "sync-trades", "--ticker", "TEST-TICKER"])
+
+    assert result.exit_code == 0
+    assert "No trades returned" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_data_sync_trades_api_error_exits_with_error(mock_client_cls: MagicMock) -> None:
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_trades = AsyncMock(side_effect=KalshiAPIError(400, "Bad request"))
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["data", "sync-trades", "--ticker", "TEST-TICKER"])
+
+    assert result.exit_code == 1
+    assert "API Error 400" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_data_sync_trades_generic_error_exits_with_error(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_trades = AsyncMock(side_effect=RuntimeError("Boom"))
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["data", "sync-trades", "--ticker", "TEST-TICKER"])
+
+    assert result.exit_code == 1
+    assert "Error:" in result.stdout
+    assert "Boom" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_data_sync_trades_table_output_shows_25_limit_message(mock_client_cls: MagicMock) -> None:
+    now = datetime.now(UTC)
+    trades = [
+        Trade(
+            trade_id=f"trade-{i}",
+            ticker="TEST-TICKER",
+            created_time=now,
+            yes_price=51,
+            no_price=49,
+            count=10,
+            taker_side="yes",
+        )
+        for i in range(30)
+    ]
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get_trades = AsyncMock(return_value=trades)
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(app, ["data", "sync-trades", "--ticker", "TEST-TICKER", "--limit", "30"])
+
+    assert result.exit_code == 0
+    assert "Trades" in result.stdout
+    assert "Showing 25 of 30 trades" in result.stdout
+
+
 @patch("alembic.command.upgrade")
 def test_data_migrate_dry_run_calls_alembic_upgrade(
     mock_upgrade: MagicMock, tmp_path: Path
@@ -211,3 +332,42 @@ def test_data_migrate_apply_calls_alembic_upgrade(mock_upgrade: MagicMock, tmp_p
     mock_upgrade.assert_called_once()
     _, kwargs = mock_upgrade.call_args
     assert kwargs == {}
+
+
+@patch("alembic.command.upgrade")
+def test_data_migrate_reads_current_revision_when_db_exists(
+    mock_upgrade: MagicMock, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "kalshi.db"
+    db_path.touch()
+
+    mock_engine = MagicMock()
+    mock_conn_cm = MagicMock()
+    mock_conn_cm.__enter__.return_value = MagicMock()
+    mock_conn_cm.__exit__.return_value = None
+    mock_engine.connect.return_value = mock_conn_cm
+
+    mock_context = MagicMock()
+    mock_context.get_current_revision.return_value = "rev-1"
+
+    with (
+        patch("sqlalchemy.create_engine", return_value=mock_engine),
+        patch("alembic.runtime.migration.MigrationContext.configure", return_value=mock_context),
+    ):
+        result = runner.invoke(app, ["data", "migrate", "--db", str(db_path), "--dry-run"])
+
+    assert result.exit_code == 0
+    assert "rev-1" in result.stdout
+
+
+@patch("alembic.command.upgrade", side_effect=RuntimeError("Boom"))
+def test_data_migrate_upgrade_failure_exits_with_error(
+    mock_upgrade: MagicMock, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "kalshi.db"
+
+    result = runner.invoke(app, ["data", "migrate", "--db", str(db_path), "--dry-run"])
+
+    assert result.exit_code == 1
+    assert "Migration failed" in result.stdout
+    assert "Boom" in result.stdout

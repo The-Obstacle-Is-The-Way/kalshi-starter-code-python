@@ -52,6 +52,21 @@ async def test_trade_executor_defaults_to_dry_run(tmp_path: Path) -> None:
     assert event["checks"]["passed"] is True
 
 
+def test_trade_executor_properties_expose_live_and_audit_path(tmp_path: Path) -> None:
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    executor = TradeExecutor(
+        AsyncMock(),
+        live=False,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+    )
+
+    assert executor.live is False
+    assert executor.audit_log_path == audit_path
+
+
 @pytest.mark.asyncio
 async def test_trade_executor_live_requires_confirmation_callback(tmp_path: Path) -> None:
     audit_path = tmp_path / "trade_audit.jsonl"
@@ -121,6 +136,38 @@ async def test_trade_executor_live_confirmation_allows_trade(tmp_path: Path) -> 
 
 
 @pytest.mark.asyncio
+async def test_trade_executor_live_confirmation_declined_rejects_trade(tmp_path: Path) -> None:
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    confirm = MagicMock(return_value=False)
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=True,
+        confirm=confirm,
+        audit_log_path=audit_path,
+    )
+
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=1,
+            yes_price_cents=55,
+        )
+
+    client.create_order.assert_not_awaited()
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "confirmation_declined" in event["checks"]["failures"]
+
+
+@pytest.mark.asyncio
 async def test_trade_executor_rejects_price_out_of_bounds(tmp_path: Path) -> None:
     audit_path = tmp_path / "trade_audit.jsonl"
 
@@ -179,6 +226,34 @@ async def test_trade_executor_rejects_max_order_risk_exceeded(tmp_path: Path) ->
     event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
     assert event["checks"]["passed"] is False
     assert "max_order_risk_exceeded" in event["checks"]["failures"]
+
+
+@pytest.mark.asyncio
+async def test_trade_executor_rejects_non_positive_count(tmp_path: Path) -> None:
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    executor = TradeExecutor(
+        client,
+        live=False,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+    )
+
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=0,
+            yes_price_cents=55,
+        )
+
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "count_not_positive" in event["checks"]["failures"]
 
 
 @pytest.mark.asyncio
@@ -290,3 +365,34 @@ async def test_trade_executor_live_rejects_max_orders_per_day_exceeded(tmp_path:
     event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
     assert event["checks"]["passed"] is False
     assert "max_orders_per_day_exceeded" in event["checks"]["failures"]
+
+
+def test_trade_executor_counts_only_valid_live_entries_today(tmp_path: Path) -> None:
+    fixed_now = datetime(2026, 1, 10, 12, 0, 0, tzinfo=UTC)
+    audit_path = tmp_path / "trade_audit.jsonl"
+    audit_path.write_text(
+        "\n".join(
+            [
+                "",
+                "not json",
+                json.dumps([]),
+                json.dumps({"mode": "dry_run", "timestamp": fixed_now.isoformat()}),
+                json.dumps({"mode": "live", "timestamp": 123}),
+                json.dumps({"mode": "live", "timestamp": "not-a-date"}),
+                json.dumps({"mode": "live", "timestamp": fixed_now.isoformat()}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    executor = TradeExecutor(
+        AsyncMock(),
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+        clock=lambda: fixed_now,
+    )
+
+    assert executor._count_live_orders_today() == 1
