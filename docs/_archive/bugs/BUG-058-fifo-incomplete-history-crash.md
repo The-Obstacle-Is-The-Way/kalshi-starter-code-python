@@ -151,6 +151,7 @@ When a market settles:
 | Field | Type | Description |
 |-------|------|-------------|
 | `ticker` | string | Market that settled |
+| `event_ticker` | string | Parent event ticker |
 | `market_result` | enum | `yes`, `no`, `scalar`, or `void` |
 | `yes_count` | int | YES contracts held at settlement |
 | `no_count` | int | NO contracts held at settlement |
@@ -159,6 +160,7 @@ When a market settles:
 | `revenue` | int | Payout (100¢ per winning contract) |
 | `settled_time` | string | ISO timestamp |
 | `fee_cost` | string | Fees in dollars |
+| `value` | int \| null | Payout per YES contract in cents (scalar markets) |
 
 ### Note: `realized_pnl` coverage is not guaranteed by SSOT
 

@@ -25,29 +25,22 @@ Use this ID for the next bug report you create:
 
 ---
 
-## Recently Resolved (2026-01-10)
-
-| ID | Title | Status |
-|---|---|---|
-| **[BUG-061](BUG-061-missing-fifo-orphan-sells-test.md)** | Test suite missing FIFO edge case coverage | ✅ Fixed |
-| **[BUG-060](BUG-060-duplicate-realized-pnl-computation.md)** | Duplicate realized P&L computation (ignores Kalshi's value) | 🟡 Closed |
-| **[BUG-059](BUG-059-missing-settlements-sync.md)** | Missing portfolio settlements sync | ✅ Fixed |
-| **[BUG-058](BUG-058-fifo-incomplete-history-crash.md)** | FIFO P&L crashes on incomplete trade history | ✅ Fixed |
-| **[BUG-057](BUG-057-portfolio-pnl-integrity.md)** | Portfolio P&L integrity (FIFO realized P&L + unknown handling) | ✅ Fixed |
-| **[BUG-056](BUG-056-deep-audit.md)** | Deep Codebase Audit: Financial & Safety Risks (P0/P1) | ✅ Fixed |
-
----
-
 ## Archive (Resolved)
 All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
 
-### Recently Resolved (2026-01-10)
+### Recently Archived (2026-01-10)
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-061** | Test suite missing FIFO edge case coverage | ✅ Fixed |
+| **BUG-060** | Duplicate realized P&L computation (ignores Kalshi's value) | 🟡 Closed |
+| **BUG-059** | Missing portfolio settlements sync | ✅ Fixed |
+| **BUG-058** | FIFO P&L crashes on incomplete trade history | ✅ Fixed |
+| **BUG-057** | Portfolio P&L integrity (FIFO realized P&L + unknown handling) | ✅ Fixed |
+| **BUG-056** | Deep Codebase Audit: Financial & Safety Risks (P0/P1) | ✅ Fixed |
 | **BUG-054** | Portfolio CLI crashes on fresh/empty DB (missing tables) | ✅ Fixed |
 | **BUG-053** | Data sync is not concurrency-safe (IntegrityError on upsert) | ✅ Fixed |
 

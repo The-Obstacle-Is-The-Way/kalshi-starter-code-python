@@ -51,17 +51,17 @@ class TestPnLCalculatorUnrealized:
             ticker="TEST-TICKER",
             side="no",
             quantity=100,
-            avg_price_cents=55,  # Bought NO at 55¢
+            avg_price_cents=45,  # Bought NO at 45¢
             opened_at=datetime.now(UTC),
             last_synced=datetime.now(UTC),
         )
 
         calculator = PnLCalculator()
-        current_price = 48  # NO now at 48¢ (YES went up, NO went down)
+        current_price = 52  # NO now at 52¢
         pnl = calculator.calculate_unrealized(position, current_price)
 
-        # NO position profits when price goes down
-        # (55 - 48) * 100 = 700 cents = $7.00
+        # NO position profits when NO contract price rises
+        # (52 - 45) * 100 = 700 cents = $7.00
         assert pnl == 700
 
     def test_unrealized_no_position_loss(self):
@@ -70,17 +70,17 @@ class TestPnLCalculatorUnrealized:
             ticker="TEST-TICKER",
             side="no",
             quantity=100,
-            avg_price_cents=45,  # Bought NO at 45¢
+            avg_price_cents=55,  # Bought NO at 55¢
             opened_at=datetime.now(UTC),
             last_synced=datetime.now(UTC),
         )
 
         calculator = PnLCalculator()
-        current_price = 52  # NO now at 52¢ (YES went down, NO went up)
+        current_price = 48  # NO now at 48¢
         pnl = calculator.calculate_unrealized(position, current_price)
 
-        # NO position loses when price goes up
-        # (45 - 52) * 100 = -700 cents = -$7.00
+        # NO position loses when NO contract price falls
+        # (48 - 55) * 100 = -700 cents = -$7.00
         assert pnl == -700
 
 

@@ -10,7 +10,8 @@
 
 ## Summary
 
-The `PortfolioSyncer` fetched fills (`/portfolio/fills`) but NOT settlements (`/portfolio/settlements`). This caused incomplete history and prevented “all time” P&L and win/loss stats from including resolved markets.
+The `PortfolioSyncer` fetched fills (`/portfolio/fills`) but NOT settlements (`/portfolio/settlements`). This caused
+incomplete history and prevented realized P&L and win/loss stats from including resolved markets.
 
 ---
 
@@ -37,6 +38,7 @@ When a market settles:
 {
   "settlements": [{
     "ticker": "KXMARKET-123",
+    "event_ticker": "KXEVENT-123",
     "market_result": "yes",
     "yes_count": 100,
     "no_count": 0,
@@ -44,17 +46,20 @@ When a market settles:
     "no_total_cost": 0,
     "revenue": 10000,
     "settled_time": "2026-01-10T00:00:00Z",
-    "fee_cost": "0.50"
+    "fee_cost": "0.50",
+    "value": null
   }],
   "cursor": "..."
 }
 ```
 
 Key fields:
+- `event_ticker`: Parent event ticker
 - `market_result`: `yes`, `no`, `scalar`, or `void`
 - `yes_count` / `no_count`: Contracts held at settlement
 - `revenue`: Payout received (100¢ per winning contract)
 - `yes_total_cost` / `no_total_cost`: Cost basis (Kalshi-computed)
+- `value`: Payout per YES contract in cents (scalar markets)
 
 ---
 

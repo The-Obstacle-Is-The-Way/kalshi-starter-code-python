@@ -46,13 +46,12 @@ class PnLCalculator:
         """
         Calculate unrealized P&L for a position in cents.
 
-        For YES positions: (current_price - avg_price) * quantity
-        For NO positions: (avg_price - current_price) * quantity
+        Prices in this codebase are stored in contract cents for the position side (YES or NO).
+        Unrealized P&L is therefore always:
+
+            (current_price - avg_price) * quantity
         """
-        if position.side == "yes":
-            return (current_price_cents - position.avg_price_cents) * position.quantity
-        else:
-            return (position.avg_price_cents - current_price_cents) * position.quantity
+        return (current_price_cents - position.avg_price_cents) * position.quantity
 
     def _get_closed_trade_pnls_fifo(self, trades: list[Trade]) -> _FifoResult:
         """

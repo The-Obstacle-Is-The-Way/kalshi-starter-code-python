@@ -72,12 +72,13 @@ uv run kalshi scan movers [--period 24h] [--top 10] [--max-pages N]
 
 ### portfolio - Portfolio Tracking (Requires Auth)
 ```bash
-uv run kalshi portfolio sync               # Sync from Kalshi API
+uv run kalshi portfolio sync               # Sync positions, fills, settlements
 uv run kalshi portfolio positions          # View positions
 uv run kalshi portfolio pnl                # View P&L
 uv run kalshi portfolio balance            # View balance
 uv run kalshi portfolio history [-n 20]    # Trade history
 uv run kalshi portfolio link TICKER --thesis ID  # Link to thesis
+uv run kalshi portfolio suggest-links      # Suggest thesis links for positions
 ```
 
 ### research - Thesis Management
