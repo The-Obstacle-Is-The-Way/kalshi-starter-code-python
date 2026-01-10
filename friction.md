@@ -22,7 +22,7 @@ SELECT ticker, side, SUM(CASE WHEN action='buy' THEN quantity ELSE -quantity END
 FROM trades GROUP BY ticker, side HAVING net > 0;
 ```
 
-**Status:** Known bug, tracked in docs/_bugs/BUG-047-portfolio-positions-sync.md
+**Status:** Known bug, tracked in [`docs/_archive/bugs/BUG-047-portfolio-positions-sync.md`](docs/_archive/bugs/BUG-047-portfolio-positions-sync.md)
 
 ---
 
@@ -126,13 +126,13 @@ This is the EXACT problem the user identified in prior brainstorming:
 
 **Current state:**
 
-```
+```text
 User query → Claude Code → runs CLI → gets market data → Claude synthesizes (VIBES)
 ```
 
 **Needed state:**
 
-```
+```text
 User query → Claude Code → runs CLI → gets market data → Exa research → Structured synthesis → Validated output
 ```
 
