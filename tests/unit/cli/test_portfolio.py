@@ -74,7 +74,7 @@ def test_portfolio_balance_loads_dotenv(mock_client_cls: MagicMock) -> None:
     assert "Account Balance" in result.stdout
 
 
-@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.cli.db.DatabaseManager")
 def test_portfolio_link_success(mock_db_cls: MagicMock) -> None:
     mock_position = MagicMock()
     mock_position.ticker = "TEST-TICKER"
@@ -110,7 +110,7 @@ def test_portfolio_link_success(mock_db_cls: MagicMock) -> None:
     assert "linked" in result.stdout.lower()
 
 
-@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.cli.db.DatabaseManager")
 def test_portfolio_link_position_not_found(mock_db_cls: MagicMock) -> None:
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
@@ -141,7 +141,7 @@ def test_portfolio_link_position_not_found(mock_db_cls: MagicMock) -> None:
     assert "not found" in result.stdout.lower() or "no open position" in result.stdout.lower()
 
 
-@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.cli.db.DatabaseManager")
 def test_portfolio_suggest_links_with_matches(mock_db_cls: MagicMock) -> None:
     mock_position = MagicMock()
     mock_position.ticker = "SENATE-2024"
@@ -186,7 +186,7 @@ def test_portfolio_suggest_links_with_matches(mock_db_cls: MagicMock) -> None:
     assert "suggest" in result.stdout.lower() or "SENATE-2024" in result.stdout
 
 
-@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.cli.db.DatabaseManager")
 def test_portfolio_suggest_links_no_matches(mock_db_cls: MagicMock) -> None:
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = []
@@ -221,7 +221,7 @@ def test_portfolio_positions_fresh_db_does_not_crash() -> None:
     assert "No open positions found" in result.stdout
 
 
-@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.cli.db.DatabaseManager")
 def test_portfolio_positions_shows_zero_mark_price(mock_db_cls: MagicMock) -> None:
     mock_position = MagicMock()
     mock_position.ticker = "TEST-TICKER"
@@ -244,8 +244,10 @@ def test_portfolio_positions_shows_zero_mark_price(mock_db_cls: MagicMock) -> No
     mock_session_factory.return_value = mock_session
 
     mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = False
+    mock_db.create_tables = AsyncMock()
     mock_db.session_factory = mock_session_factory
-    mock_db.close = AsyncMock()
     mock_db_cls.return_value = mock_db
 
     result = runner.invoke(app, ["portfolio", "positions"])
@@ -254,7 +256,7 @@ def test_portfolio_positions_shows_zero_mark_price(mock_db_cls: MagicMock) -> No
     assert "0¢" in result.stdout
 
 
-@patch("kalshi_research.data.DatabaseManager")
+@patch("kalshi_research.cli.db.DatabaseManager")
 def test_portfolio_positions_shows_unknown_unrealized_pnl(mock_db_cls: MagicMock) -> None:
     mock_position = MagicMock()
     mock_position.ticker = "TEST-TICKER"
@@ -277,8 +279,10 @@ def test_portfolio_positions_shows_unknown_unrealized_pnl(mock_db_cls: MagicMock
     mock_session_factory.return_value = mock_session
 
     mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = False
+    mock_db.create_tables = AsyncMock()
     mock_db.session_factory = mock_session_factory
-    mock_db.close = AsyncMock()
     mock_db_cls.return_value = mock_db
 
     result = runner.invoke(app, ["portfolio", "positions"])
