@@ -6,11 +6,11 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Status |
 |---|---|---|
-| (none) | All critical bugs resolved | ✅ |
+| **[BUG-058](BUG-058-fifo-incomplete-history-crash.md)** | FIFO P&L crashes on incomplete trade history | 🔴 Active |
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-058**
+**BUG-059**
 
 ---
 
