@@ -99,7 +99,7 @@ def portfolio_sync(
 ) -> None:
     """Sync positions and trades from Kalshi API.
 
-    Syncs positions, trades, cost basis (FIFO), mark prices, and unrealized P&L.
+    Syncs positions, fills, settlements, cost basis (FIFO), mark prices, and unrealized P&L.
     """
     from kalshi_research.api import KalshiClient, KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
@@ -130,6 +130,11 @@ def portfolio_sync(
                 trades_count = await syncer.sync_trades()
                 console.print(f"[green]✓[/green] Synced {trades_count} trades")
 
+                # Sync settlements (needed for complete history and backtesting)
+                console.print("[dim]Syncing settlements...[/dim]")
+                settlements_count = await syncer.sync_settlements()
+                console.print(f"[green]✓[/green] Synced {settlements_count} settlements")
+
                 # Sync positions (computes cost basis from trades via FIFO)
                 console.print("[dim]Syncing positions + cost basis (FIFO)...[/dim]")
                 positions_count = await syncer.sync_positions()
@@ -149,7 +154,8 @@ def portfolio_sync(
 
                 console.print(
                     f"\n[green]✓[/green] Portfolio sync complete: "
-                    f"{positions_count} positions, {trades_count} trades"
+                    f"{positions_count} positions, {trades_count} trades, "
+                    f"{settlements_count} settlements"
                 )
 
         except KalshiAPIError as e:
@@ -253,7 +259,7 @@ def portfolio_positions(
 
 
 @app.command("pnl")
-def portfolio_pnl(
+def portfolio_pnl(  # noqa: PLR0915
     db_path: Annotated[
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
@@ -266,6 +272,7 @@ def portfolio_pnl(
     """View profit & loss summary."""
     from kalshi_research.data import DatabaseManager
     from kalshi_research.portfolio import PnLCalculator, PnLSummary, Position, Trade
+    from kalshi_research.portfolio.models import PortfolioSettlement
 
     def _format_signed_currency(cents: int) -> str:
         value = f"${cents / 100:.2f}"
@@ -276,7 +283,7 @@ def portfolio_pnl(
         return value
 
     def _build_summary_table(summary: PnLSummary) -> Table:
-        table = Table(title="P&L Summary (All Time)", show_header=False)
+        table = Table(title="P&L Summary (Synced History)", show_header=False)
         table.add_column("Metric", style="cyan")
         table.add_column("Value", justify="right")
 
@@ -290,6 +297,12 @@ def portfolio_pnl(
 
         if summary.unrealized_positions_unknown:
             table.add_row("Unknown unrealized rows:", str(summary.unrealized_positions_unknown))
+        if summary.orphan_sell_qty_skipped:
+            table.add_row("Orphan sell qty skipped:", str(summary.orphan_sell_qty_skipped))
+            table.add_row(
+                "Note:",
+                "[yellow]Trade history incomplete; trade stats are partial.[/yellow]",
+            )
 
         table.add_row("", "")
         table.add_row("Total Trades:", str(summary.total_trades))
@@ -320,9 +333,21 @@ def portfolio_pnl(
                 trade_result = await session.execute(trade_query)
                 trades = list(trade_result.scalars().all())
 
+                # Get settlements (for complete history and resolved-market P&L)
+                settlement_query = select(PortfolioSettlement)
+                if ticker:
+                    settlement_query = settlement_query.where(PortfolioSettlement.ticker == ticker)
+
+                settlement_result = await session.execute(settlement_query)
+                settlements = list(settlement_result.scalars().all())
+
                 # Calculate P&L
                 calculator = PnLCalculator()
-                summary = calculator.calculate_summary_with_trades(positions, trades)
+                summary = calculator.calculate_summary_with_trades(
+                    positions=positions,
+                    trades=trades,
+                    settlements=settlements,
+                )
 
                 # Display summary
                 console.print(_build_summary_table(summary))

@@ -6,6 +6,8 @@
 **Fixed:** 2026-01-10
 **Owner:** Platform
 
+> **Note:** The FIFO regression (BUG-058) has been resolved, and settlements are now synced and included (BUG-059/060/061).
+
 ---
 
 ## Summary

@@ -51,17 +51,17 @@ class TestPnLCalculatorUnrealized:
             ticker="TEST-TICKER",
             side="no",
             quantity=100,
-            avg_price_cents=55,  # Bought NO at 55¢
+            avg_price_cents=45,  # Bought NO at 45¢
             opened_at=datetime.now(UTC),
             last_synced=datetime.now(UTC),
         )
 
         calculator = PnLCalculator()
-        current_price = 48  # NO now at 48¢ (YES went up, NO went down)
+        current_price = 52  # NO now at 52¢
         pnl = calculator.calculate_unrealized(position, current_price)
 
-        # NO position profits when price goes down
-        # (55 - 48) * 100 = 700 cents = $7.00
+        # NO position profits when NO contract price rises
+        # (52 - 45) * 100 = 700 cents = $7.00
         assert pnl == 700
 
     def test_unrealized_no_position_loss(self):
@@ -70,22 +70,94 @@ class TestPnLCalculatorUnrealized:
             ticker="TEST-TICKER",
             side="no",
             quantity=100,
-            avg_price_cents=45,  # Bought NO at 45¢
+            avg_price_cents=55,  # Bought NO at 55¢
             opened_at=datetime.now(UTC),
             last_synced=datetime.now(UTC),
         )
 
         calculator = PnLCalculator()
-        current_price = 52  # NO now at 52¢ (YES went down, NO went up)
+        current_price = 48  # NO now at 48¢
         pnl = calculator.calculate_unrealized(position, current_price)
 
-        # NO position loses when price goes up
-        # (45 - 52) * 100 = -700 cents = -$7.00
+        # NO position loses when NO contract price falls
+        # (48 - 55) * 100 = -700 cents = -$7.00
         assert pnl == -700
 
 
 class TestPnLCalculatorRealized:
     """Tests for realized P&L calculation."""
+
+    def test_summary_with_trades_skips_orphan_sells_instead_of_crashing(self) -> None:
+        """BUG-058: Orphan sells (sell with no prior buys) must not crash the summary."""
+        trades = [
+            Trade(
+                kalshi_trade_id="trade_orphan_sell",
+                ticker="TEST-TICKER",
+                side="yes",
+                action="sell",
+                quantity=10,
+                price_cents=50,
+                total_cost_cents=500,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 3, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            )
+        ]
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(positions=[], trades=trades)
+
+        assert summary.realized_pnl_cents == 0
+        assert summary.total_trades == 0
+        assert summary.orphan_sell_qty_skipped == 10
+
+    def test_summary_with_trades_does_not_use_positions_realized_pnl_for_totals(self) -> None:
+        """Total realized P&L is computed from synced history (fills + settlements)."""
+        positions = [
+            Position(
+                ticker="TEST-TICKER",
+                side="yes",
+                quantity=1,
+                avg_price_cents=40,
+                current_price_cents=None,
+                unrealized_pnl_cents=0,
+                realized_pnl_cents=123,
+                opened_at=datetime.now(UTC),
+                last_synced=datetime.now(UTC),
+            )
+        ]
+        trades = [
+            Trade(
+                kalshi_trade_id="trade_1",
+                ticker="TEST-TICKER",
+                side="yes",
+                action="buy",
+                quantity=1,
+                price_cents=40,
+                total_cost_cents=40,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+            Trade(
+                kalshi_trade_id="trade_2",
+                ticker="TEST-TICKER",
+                side="yes",
+                action="sell",
+                quantity=1,
+                price_cents=70,
+                total_cost_cents=70,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 2, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+        ]
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(positions=positions, trades=trades)
+
+        assert summary.realized_pnl_cents == 30
+        assert summary.total_pnl_cents == 30  # unrealized is 0
 
     def test_realized_uses_fifo_across_multiple_buy_lots(self) -> None:
         """Realized P&L should use FIFO lots (not average cost)."""
@@ -396,6 +468,42 @@ class TestPnLCalculatorSummary:
         assert summary.total_pnl_cents == 1550  # 1050 + 500
         assert summary.unrealized_positions_unknown == 0
 
+    def test_summary_with_trades_ignores_closed_positions_for_unrealized(self) -> None:
+        """Closed positions must never contribute to unrealized P&L."""
+        now = datetime.now(UTC)
+        open_position = Position(
+            ticker="OPEN",
+            side="yes",
+            quantity=10,
+            avg_price_cents=50,
+            current_price_cents=60,
+            unrealized_pnl_cents=100,  # (60-50) * 10
+            realized_pnl_cents=0,
+            opened_at=now,
+            last_synced=now,
+        )
+        closed_position = Position(
+            ticker="CLOSED",
+            side="yes",
+            quantity=0,
+            avg_price_cents=50,
+            current_price_cents=60,
+            unrealized_pnl_cents=None,
+            realized_pnl_cents=0,
+            opened_at=now,
+            closed_at=now,
+            last_synced=now,
+        )
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(
+            positions=[open_position, closed_position],
+            trades=[],
+        )
+
+        assert summary.unrealized_pnl_cents == 100
+        assert summary.unrealized_positions_unknown == 0
+
     def test_summary_with_none_values(self):
         """Test summary handles None values in unrealized P&L."""
         positions = [
@@ -469,3 +577,33 @@ class TestPnLCalculatorSummary:
         assert summary.unrealized_pnl_cents == 700
         assert summary.total_trades >= 0
         assert 0 <= summary.win_rate <= 1.0
+
+    def test_summary_includes_portfolio_settlement_pnl(self) -> None:
+        """BUG-059: Settlements should contribute to realized P&L and trade stats."""
+        from kalshi_research.portfolio.models import PortfolioSettlement
+
+        settlement = PortfolioSettlement(
+            ticker="SETTLED-TICKER",
+            event_ticker="EVENT-1",
+            market_result="yes",
+            yes_count=10,
+            yes_total_cost=400,
+            no_count=0,
+            no_total_cost=0,
+            revenue=1000,
+            fee_cost_dollars="0.5000",
+            value=None,
+            settled_at=datetime(2026, 1, 5, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(
+            positions=[],
+            trades=[],
+            settlements=[settlement],
+        )
+
+        # P&L = revenue - cost - fees = 1000 - 400 - 50 = 550
+        assert summary.realized_pnl_cents == 550
+        assert summary.total_trades == 1

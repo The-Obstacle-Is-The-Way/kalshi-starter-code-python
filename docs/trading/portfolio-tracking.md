@@ -1,7 +1,7 @@
 # Portfolio Tracking (Explanation)
 
-The portfolio module syncs your actual Kalshi positions and trades, calculates P&L using FIFO cost basis, and tracks
-performance over time.
+The portfolio module syncs your actual Kalshi positions, fills (trades), and settlement records, calculates P&L using
+FIFO cost basis, and tracks performance over time.
 
 This is where research meets reality - you can compare your actual trading results to your thesis predictions.
 
@@ -22,11 +22,11 @@ Kalshi API (authenticated)
          ▼
   PortfolioSyncer
          │
-    ┌────┴────┐
-    ▼         ▼
-Positions   Fills (trades)
-    │           │
-    └─────┬─────┘
+    ┌────┼──────────┐
+    ▼    ▼          ▼
+Positions  Fills   Settlements
+    │      │          │
+    └──────┴─────┬────┘
           ▼
     SQLite (portfolio tables)
           │
@@ -55,38 +55,11 @@ The CLI loads `.env` automatically.
 
 ## Data Model
 
-### Position
+Data is stored in SQLite via SQLAlchemy models in `src/kalshi_research/portfolio/models.py`:
 
-Current open position in a market:
-
-```python
-@dataclass
-class Position:
-    ticker: str              # Market ticker
-    side: str                # "yes" or "no"
-    quantity: int            # Number of contracts
-    average_cost: float      # Average entry price (cents)
-    market_price: float      # Current mark price
-    unrealized_pnl: float    # Paper P&L
-    thesis_id: str | None    # Optional link to thesis
-```
-
-### Trade
-
-A filled order:
-
-```python
-@dataclass
-class Trade:
-    id: str                  # Kalshi trade ID
-    ticker: str
-    side: str                # "yes" or "no"
-    action: str              # "buy" or "sell"
-    price: float             # Fill price (cents)
-    quantity: int
-    timestamp: datetime
-    fees: float
-```
+- `Position` (`positions`): current and historical positions with `avg_price_cents`, mark prices, and unrealized P&L.
+- `Trade` (`trades`): fills from `GET /portfolio/fills` (cents-denominated prices).
+- `PortfolioSettlement` (`portfolio_settlements`): settlement records from `GET /portfolio/settlements`.
 
 ## FIFO Cost Basis
 
@@ -115,17 +88,17 @@ Different methods give different P&L:
 | LIFO   | Sell newest first | Can defer gains |
 | Average | Use average cost | Simpler but less precise |
 
-We use FIFO because it's the standard and Kalshi uses it for tax reporting.
+We use FIFO because it's a standard accounting method and works well for local cost basis estimation.
 
 ## Sync Process
 
 When you run `kalshi portfolio sync`:
 
-1. **Fetch fills**: Get all trades from Kalshi API
-2. **Upsert trades**: Store in SQLite (idempotent)
-3. **Calculate positions**: Aggregate trades per ticker
-4. **Mark to market**: Fetch current prices (optional)
-5. **Compute P&L**: FIFO calculation
+1. **Fetch fills**: `GET /portfolio/fills`
+2. **Fetch settlements**: `GET /portfolio/settlements`
+3. **Fetch positions**: `GET /portfolio/positions`
+4. **Compute cost basis**: estimate `avg_price_cents` from synced trades (FIFO)
+5. **Mark to market**: fetch current prices (optional) to compute unrealized P&L
 
 ```bash
 uv run kalshi portfolio sync --db data/kalshi.db
@@ -147,7 +120,7 @@ uv run kalshi portfolio balance --env demo
 
 ### Sync
 
-Sync positions and trades from Kalshi:
+Sync positions, fills, and settlements from Kalshi:
 
 ```bash
 uv run kalshi portfolio sync --db data/kalshi.db
@@ -172,14 +145,13 @@ uv run kalshi portfolio pnl --db data/kalshi.db
 Output:
 
 ```text
-Portfolio P&L Summary
-─────────────────────
+P&L Summary (Synced History)
 Realized P&L:    +$45.20
 Unrealized P&L:  +$12.50
 Total P&L:       +$57.70
 
-Fees Paid:       $8.30
-Net P&L:         +$49.40
+Total Trades:    42
+Win Rate:        55.0%
 ```
 
 ### Trade History
@@ -204,33 +176,11 @@ This lets you answer: "How did my actual trades perform vs my thesis predictions
 
 ## Database Schema
 
-Portfolio tables (in `src/kalshi_research/portfolio/models.py`):
+The schema is managed by Alembic migrations. The key portfolio tables are:
 
-```sql
--- positions table
-CREATE TABLE positions (
-    ticker TEXT PRIMARY KEY,
-    side TEXT,
-    quantity INTEGER,
-    average_cost REAL,
-    market_price REAL,
-    unrealized_pnl REAL,
-    thesis_id TEXT,
-    updated_at TIMESTAMP
-);
-
--- trades table
-CREATE TABLE trades (
-    id TEXT PRIMARY KEY,
-    ticker TEXT,
-    side TEXT,
-    action TEXT,
-    price REAL,
-    quantity INTEGER,
-    timestamp TIMESTAMP,
-    fees REAL
-);
-```
+- `positions`
+- `trades`
+- `portfolio_settlements`
 
 ## P&L Calculation Details
 
@@ -261,10 +211,8 @@ unrealized_pnl = sum(
 When markets settle:
 
 ```python
-if outcome == "yes":
-    pnl = (100 - cost) * quantity  # YES paid 100c
-else:
-    pnl = (0 - cost) * quantity    # YES paid 0c (you lost)
+# Settlement P&L is computed directly from Kalshi’s settlement record:
+settlement_pnl_cents = revenue - yes_total_cost - no_total_cost - fee_cost_cents
 ```
 
 ## Performance Metrics

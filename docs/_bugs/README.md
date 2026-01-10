@@ -4,22 +4,24 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-| ID | Title | Status |
-|---|---|---|
-| (none) | All critical bugs resolved | ✅ |
+| ID | Title | Priority | Status |
+|---|---|---|---|
+| *(none)* | *(none)* | *(none)* | ✅ |
+
+### Recently Closed Dependency Chain (Resolved)
+
+```
+BUG-057 (FIFO fix)
+    └── introduced BUG-058 (crash on incomplete history)
+            └── root cause: BUG-059 (missing settlements)
+            └── allowed by: BUG-061 (missing tests)
+```
+
+**Fix order used:** BUG-061 → BUG-059 → BUG-058
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-058**
-
----
-
-## Recently Resolved (2026-01-10)
-
-| ID | Title | Status |
-|---|---|---|
-| **[BUG-057](BUG-057-portfolio-pnl-integrity.md)** | Portfolio P&L integrity (FIFO realized P&L + unknown handling) | ✅ Fixed |
-| **[BUG-056](BUG-056-deep-audit.md)** | Deep Codebase Audit: Financial & Safety Risks (P0/P1) | ✅ Fixed |
+**BUG-062**
 
 ---
 
@@ -29,10 +31,16 @@ All resolved bug reports are stored in
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
 
-### Recently Resolved (2026-01-10)
+### Recently Archived (2026-01-10)
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-061** | Test suite missing FIFO edge case coverage | ✅ Fixed |
+| **BUG-060** | Duplicate realized P&L computation (ignores Kalshi's value) | 🟡 Closed |
+| **BUG-059** | Missing portfolio settlements sync | ✅ Fixed |
+| **BUG-058** | FIFO P&L crashes on incomplete trade history | ✅ Fixed |
+| **BUG-057** | Portfolio P&L integrity (FIFO realized P&L + unknown handling) | ✅ Fixed |
+| **BUG-056** | Deep Codebase Audit: Financial & Safety Risks (P0/P1) | ✅ Fixed |
 | **BUG-054** | Portfolio CLI crashes on fresh/empty DB (missing tables) | ✅ Fixed |
 | **BUG-053** | Data sync is not concurrency-safe (IntegrityError on upsert) | ✅ Fixed |
 

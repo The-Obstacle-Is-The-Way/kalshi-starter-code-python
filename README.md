@@ -65,6 +65,7 @@ See `kalshi --help` for all commands.
 
 ## Documentation
 
+- Hosted docs (GitHub Pages): https://the-obstacle-is-the-way.github.io/kalshi-starter-code-python/
 - [docs/index.md](docs/index.md) - Docs index (Diataxis)
 - [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md) - Quickstart
 - [docs/getting-started/usage.md](docs/getting-started/usage.md) - Usage workflows
