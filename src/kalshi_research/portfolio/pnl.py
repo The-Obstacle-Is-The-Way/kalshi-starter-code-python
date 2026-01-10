@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
-from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class PnLSummary:
     avg_loss_cents: int
     profit_factor: float
     unrealized_positions_unknown: int = 0
-    orphan_sells_skipped: int = 0
+    orphan_sell_qty_skipped: int = 0
 
 
 class PnLCalculator:
@@ -40,7 +40,7 @@ class PnLCalculator:
     @dataclass
     class _FifoResult:
         closed_pnls: list[int]
-        orphan_sells_skipped: int
+        orphan_sell_qty_skipped: int
 
     def calculate_unrealized(self, position: Position, current_price_cents: int) -> int:
         """
@@ -68,7 +68,7 @@ class PnLCalculator:
             ticker_side_trades.setdefault(key, []).append(trade)
 
         closed_pnls: list[int] = []
-        orphan_sells_skipped = 0
+        orphan_sell_qty_skipped = 0
 
         for group_trades in ticker_side_trades.values():
             sorted_trades = sorted(group_trades, key=lambda t: t.executed_at)
@@ -94,7 +94,7 @@ class PnLCalculator:
 
                     while remaining_to_sell > 0:
                         if not lots:
-                            orphan_sells_skipped += remaining_to_sell
+                            orphan_sell_qty_skipped += remaining_to_sell
                             break
 
                         lot = lots[0]
@@ -126,7 +126,7 @@ class PnLCalculator:
 
         return PnLCalculator._FifoResult(
             closed_pnls=closed_pnls,
-            orphan_sells_skipped=orphan_sells_skipped,
+            orphan_sell_qty_skipped=orphan_sell_qty_skipped,
         )
 
     def calculate_realized(self, trades: list[Trade]) -> int:
@@ -140,11 +140,14 @@ class PnLCalculator:
 
     def calculate_total(self, positions: list[Position]) -> PnLSummary:
         """Calculate total P&L summary across all positions."""
+        open_positions = [pos for pos in positions if pos.closed_at is None and pos.quantity > 0]
         unrealized_positions_unknown = sum(
-            1 for pos in positions if pos.unrealized_pnl_cents is None
+            1 for pos in open_positions if pos.unrealized_pnl_cents is None
         )
         unrealized = sum(
-            pos.unrealized_pnl_cents for pos in positions if pos.unrealized_pnl_cents is not None
+            pos.unrealized_pnl_cents
+            for pos in open_positions
+            if pos.unrealized_pnl_cents is not None
         )
         realized = sum(pos.realized_pnl_cents for pos in positions)
         total = unrealized + realized
@@ -172,11 +175,14 @@ class PnLCalculator:
         settlements: list[PortfolioSettlement] | None = None,
     ) -> PnLSummary:
         """Calculate complete P&L summary including trade statistics."""
+        open_positions = [pos for pos in positions if pos.closed_at is None and pos.quantity > 0]
         unrealized_positions_unknown = sum(
-            1 for pos in positions if pos.unrealized_pnl_cents is None
+            1 for pos in open_positions if pos.unrealized_pnl_cents is None
         )
         unrealized = sum(
-            pos.unrealized_pnl_cents for pos in positions if pos.unrealized_pnl_cents is not None
+            pos.unrealized_pnl_cents
+            for pos in open_positions
+            if pos.unrealized_pnl_cents is not None
         )
         fifo_result = self._get_closed_trade_pnls_fifo(trades)
 
@@ -186,7 +192,7 @@ class PnLCalculator:
                 try:
                     fee_cents = int(
                         (Decimal(settlement.fee_cost_dollars) * 100).to_integral_value(
-                            rounding=ROUND_HALF_UP
+                            rounding=ROUND_HALF_EVEN
                         )
                     )
                 except (InvalidOperation, ValueError):
@@ -220,7 +226,7 @@ class PnLCalculator:
             realized_pnl_cents=realized,
             total_pnl_cents=total,
             unrealized_positions_unknown=unrealized_positions_unknown,
-            orphan_sells_skipped=fifo_result.orphan_sells_skipped,
+            orphan_sell_qty_skipped=fifo_result.orphan_sell_qty_skipped,
             total_trades=total_trades,
             winning_trades=winning_trades,
             losing_trades=losing_trades,

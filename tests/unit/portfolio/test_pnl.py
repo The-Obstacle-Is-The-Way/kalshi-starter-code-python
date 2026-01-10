@@ -109,7 +109,7 @@ class TestPnLCalculatorRealized:
 
         assert summary.realized_pnl_cents == 0
         assert summary.total_trades == 0
-        assert summary.orphan_sells_skipped == 10
+        assert summary.orphan_sell_qty_skipped == 10
 
     def test_summary_with_trades_does_not_use_positions_realized_pnl_for_totals(self) -> None:
         """Total realized P&L is computed from synced history (fills + settlements)."""
@@ -466,6 +466,42 @@ class TestPnLCalculatorSummary:
         assert summary.unrealized_pnl_cents == 1050  # 700 + 350
         assert summary.realized_pnl_cents == 500
         assert summary.total_pnl_cents == 1550  # 1050 + 500
+        assert summary.unrealized_positions_unknown == 0
+
+    def test_summary_with_trades_ignores_closed_positions_for_unrealized(self) -> None:
+        """Closed positions must never contribute to unrealized P&L."""
+        now = datetime.now(UTC)
+        open_position = Position(
+            ticker="OPEN",
+            side="yes",
+            quantity=10,
+            avg_price_cents=50,
+            current_price_cents=60,
+            unrealized_pnl_cents=100,  # (60-50) * 10
+            realized_pnl_cents=0,
+            opened_at=now,
+            last_synced=now,
+        )
+        closed_position = Position(
+            ticker="CLOSED",
+            side="yes",
+            quantity=0,
+            avg_price_cents=50,
+            current_price_cents=60,
+            unrealized_pnl_cents=None,
+            realized_pnl_cents=0,
+            opened_at=now,
+            closed_at=now,
+            last_synced=now,
+        )
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(
+            positions=[open_position, closed_position],
+            trades=[],
+        )
+
+        assert summary.unrealized_pnl_cents == 100
         assert summary.unrealized_positions_unknown == 0
 
     def test_summary_with_none_values(self):

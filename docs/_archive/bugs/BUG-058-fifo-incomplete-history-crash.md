@@ -69,7 +69,7 @@ KXNCAAFSPREAD-26JAN09OREIND-IND3|yes|sell|37|2026-01-10
 
 When sells exceed available FIFO lots:
 1. Skip those sells for realized P&L calculation
-2. Track `orphan_sells_skipped` count
+2. Track `orphan_sell_qty_skipped` count (contracts, not number of trades)
 3. Warn user that trade stats are partial due to incomplete history
 4. Never crash—always return *something* useful
 
@@ -96,8 +96,8 @@ This is semantically correct but adds complexity.
 
 - [x] `kalshi portfolio pnl` runs without crashing on incomplete history
 - [x] Unmatched sells are skipped and counted (no exception)
-- [x] `PnLSummary` includes `orphan_sells_skipped: int` for transparency
-- [x] CLI surfaces `orphan_sells_skipped` and notes trade stats are partial
+- [x] `PnLSummary` includes `orphan_sell_qty_skipped: int` for transparency
+- [x] CLI surfaces `orphan_sell_qty_skipped` and notes trade stats are partial
 - [x] Unit test covers incomplete history edge case
 - [x] `uv run pre-commit run --all-files` passes
 

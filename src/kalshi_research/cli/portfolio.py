@@ -297,8 +297,8 @@ def portfolio_pnl(  # noqa: PLR0915
 
         if summary.unrealized_positions_unknown:
             table.add_row("Unknown unrealized rows:", str(summary.unrealized_positions_unknown))
-        if summary.orphan_sells_skipped:
-            table.add_row("Orphan sells skipped:", str(summary.orphan_sells_skipped))
+        if summary.orphan_sell_qty_skipped:
+            table.add_row("Orphan sell qty skipped:", str(summary.orphan_sell_qty_skipped))
             table.add_row(
                 "Note:",
                 "[yellow]Trade history incomplete; trade stats are partial.[/yellow]",

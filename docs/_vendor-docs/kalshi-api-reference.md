@@ -282,9 +282,7 @@ Implementation note: `KalshiClient.get_positions()` consumes `market_positions` 
 | `created_time` | string | RFC3339 timestamp |
 
 > **⚠️ Data Retention:** Kalshi does NOT document how far back fills history is retained. Do not assume complete history exists.
-
 > **⚠️ Cross-Side Closing:** The `side` field is **literal** (the side you traded), NOT the effective position side. Selling YES to close a NO position shows `side=yes`, which can confuse FIFO calculations.
-
 > **Note:** Market settlements appear in `/portfolio/settlements`, NOT `/portfolio/fills`. For complete P&L, you need both endpoints.
 
 ---
@@ -736,12 +734,12 @@ New `include_volume` query parameter on `GET /series` endpoints. When set, retur
 
 | Resource | URL |
 |----------|-----|
-| Official Docs | https://docs.kalshi.com/welcome |
-| LLMs.txt (AI Discovery) | https://docs.kalshi.com/llms.txt |
-| OpenAPI Spec | https://docs.kalshi.com/openapi.yaml |
-| API Changelog | https://docs.kalshi.com/changelog |
-| Help Center | https://help.kalshi.com/kalshi-api |
+| Official Docs | <https://docs.kalshi.com/welcome> |
+| LLMs.txt (AI Discovery) | <https://docs.kalshi.com/llms.txt> |
+| OpenAPI Spec | <https://docs.kalshi.com/openapi.yaml> |
+| API Changelog | <https://docs.kalshi.com/changelog> |
+| Help Center | <https://help.kalshi.com/kalshi-api> |
 | Discord | `#dev` channel |
-| Demo Portal | https://demo.kalshi.co |
+| Demo Portal | <https://demo.kalshi.co> |
 
 > **Tip:** The `llms.txt` file is a standard LLM navigation file that lists all documentation pages. Useful for AI agents exploring the API.
