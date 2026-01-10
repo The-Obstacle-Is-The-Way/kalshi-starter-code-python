@@ -42,6 +42,9 @@
 
 These have zero usage paths and provide no value.
 
+> **Update (2026-01-10):** All TIER 1 items have been deleted under DEBT-008. The snippets below are
+> preserved as historical analyzer output.
+
 #### `analysis/edge.py` - EdgeDetector (246 lines)
 ```
 src/kalshi_research/analysis/edge.py:76: unused method 'detect_thesis_edge'
@@ -49,7 +52,7 @@ src/kalshi_research/analysis/edge.py:123: unused method 'detect_spread_edge'
 src/kalshi_research/analysis/edge.py:163: unused method 'detect_volume_edge'
 src/kalshi_research/analysis/edge.py:210: unused method 'detect_volatility_edge'
 ```
-**Action:** Delete entire `EdgeDetector` class. Keep only `Edge` dataclass if used by notebooks.
+**Action:** ✅ Deleted in DEBT-008 (`cc01a04`). Kept `Edge` dataclass for notebook usage.
 
 #### ~~`alerts/notifiers.py` - Unused Notifiers~~ → MOVED TO TIER 3
 
@@ -62,7 +65,7 @@ with `--output-file` and `--webhook-url` options.
 src/kalshi_research/research/thesis.py:41: unused class 'TemporalValidator'
 src/kalshi_research/research/thesis.py:56: unused method 'validate'
 ```
-**Action:** Delete `TemporalValidator` class entirely.
+**Action:** ✅ Deleted in DEBT-008 (`654cf50`).
 
 #### Unused Analysis Methods
 ```
@@ -72,7 +75,7 @@ src/kalshi_research/analysis/metrics.py:171: unused method 'compute_volume_profi
 src/kalshi_research/analysis/liquidity.py:438: unused method 'max_safe_buy_size'
 src/kalshi_research/analysis/scanner.py:390: unused method 'scan_all'
 ```
-**Action:** Delete these unused methods.
+**Action:** ✅ Deleted in DEBT-008 (`612e66f`, `1658a7b`, `237d52b`).
 
 ### TIER 2: Intentionally Reserved (Keep with Documentation)
 
@@ -125,7 +128,7 @@ src/kalshi_research/data/repositories/prices.py:92: unused method 'delete_older_
 src/kalshi_research/data/repositories/settlements.py:55: unused method 'get_by_result'
 src/kalshi_research/data/repositories/settlements.py:71: unused method 'count_by_result'
 ```
-**Decision:** Delete unused repository methods unless they're part of an upcoming feature.
+**Decision:** ✅ Deleted in DEBT-008 (`f4921e5`).
 
 ---
 

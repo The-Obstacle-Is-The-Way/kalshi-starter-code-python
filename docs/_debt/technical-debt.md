@@ -13,13 +13,6 @@
 **Summary:** Close confidence gaps in runtime schema upgrades, scheduled live API contract validation, DB invariants, and trade safety harness (CI runs mocked E2E; pre-commit is unit-only).
 **Plan:** `docs/_debt/DEBT-007-a-plus-engineering-robustness-delta.md`
 
-### DEBT-008: Dead Code Cleanup (True Slop)
-
-**Priority:** P2
-**Status:** 🔴 Active
-**Summary:** Delete ~400 LOC of verified unused code (`EdgeDetector`, `TemporalValidator`, etc.) identified in the bloat audit.
-**Plan:** `docs/_debt/DEBT-008-dead-code-cleanup.md`
-
 ### DEBT-009: Finish Halfway Implementations
 
 **Priority:** P3
@@ -109,6 +102,7 @@ src/kalshi_research/
 
 | Item | Resolution |
 |------|------------|
+| [DEBT-008](../_archive/debt/DEBT-008-dead-code-cleanup.md) | Deleted ~400 LOC of verified unused code and removed the dedicated unit tests |
 | [DEBT-006](../_archive/debt/DEBT-006-price-snapshot-insert-batching.md) | Avoid per-row flush/refresh; restore batching intent for snapshot ingestion |
 | [DEBT-005](../_archive/debt/DEBT-005-price-snapshot-liquidity-dead-column.md) | Dropped dead `price_snapshots.liquidity` column and stopped writing it |
 
