@@ -153,7 +153,7 @@ Only these count against **write** limits:
 
 **Note:** Timestamp filters are mutually exclusive. Only one status filter allowed.
 
-### Market Response Settlement Fields (Dec 19, 2025+)
+### Market Response Settlement Fields (Dec 25, 2025+)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -162,7 +162,7 @@ Only these count against **write** limits:
 | `settlement_value_dollars` | string | Settlement value in dollars (e.g., `"1.00"`) |
 | `settlement_timer_seconds` | int | Duration before market settles after determination |
 
-> **Note:** `settlement_ts` is the **actual** settlement time. Prior to this field, `expiration_time` was used as a proxy, which was inaccurate for markets that settled early (event resolved before expiration) or late (disputes, delays).
+> **Note:** `settlement_ts` is the **actual** settlement time (changelog entry Dec 19, 2025; release date Dec 25, 2025). Prior to this field, `expiration_time` was used as a proxy, which was inaccurate for markets that settled early (event resolved before expiration) or late (disputes, delays).
 
 ### Market status gotcha (filter vs response)
 

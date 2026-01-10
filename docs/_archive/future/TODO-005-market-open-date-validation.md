@@ -1,9 +1,9 @@
 # TODO-005: Market Open Date Validation for Research Recommendations
 
 **Priority**: High
-**Status**: PARTIAL - 1/3 criteria complete
+**Status**: COMPLETE - 3/3 criteria complete
 **Created**: 2026-01-09
-**Spec**: [SPEC-025: Market Open Time Display](../_specs/SPEC-025-market-open-time-display.md)
+**Spec**: [SPEC-025: Market Open Time Display](../specs/SPEC-025-market-open-time-display.md)
 
 ## Problem Statement
 
@@ -52,7 +52,7 @@ The `market get` command now displays:
 - `created_time` - when market was created (if present)
 - `close_time` - market expiration
 
-### 2. Research Workflow: Temporal Validation ❌ NOT STARTED
+### 2. Research Workflow: Temporal Validation ✅ COMPLETE
 
 **File**: `src/kalshi_research/research/thesis.py`
 
@@ -84,7 +84,7 @@ def validate_research_temporal_alignment(
     return TemporalValidationResult(valid=True)
 ```
 
-### 3. Documentation: Add Warning to GOTCHAS.md ❌ NOT STARTED
+### 3. Documentation: Add Warning to GOTCHAS.md ✅ COMPLETE
 
 **File**: `.claude/skills/kalshi-cli/GOTCHAS.md`
 
@@ -115,8 +115,8 @@ opened Jan 2026. S5 doesn't count - market is asking about S6 or beyond.
 
 - `src/kalshi_research/cli/market.py` - market display commands ✅
 - `src/kalshi_research/api/client.py` - API data fetching
-- `src/kalshi_research/research/thesis.py` - research tools ❌
-- `.claude/skills/kalshi-cli/GOTCHAS.md` - gotchas documentation ❌
+- `src/kalshi_research/research/thesis.py` - research tools ✅
+- `.claude/skills/kalshi-cli/GOTCHAS.md` - gotchas documentation ✅
 
 ## Acceptance Criteria
 

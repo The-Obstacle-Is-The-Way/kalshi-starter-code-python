@@ -11,7 +11,7 @@
 
 ## Summary
 
-Add support for the `settlement_ts` field that Kalshi added to the API on Dec 19, 2025. Currently, we use `expiration_time` as a proxy for settlement time, which is semantically incorrect.
+Add support for the `settlement_ts` field that Kalshi added to the API (changelog entry Dec 19, 2025; release date Dec 25, 2025). Currently, we use `expiration_time` as a proxy for settlement time, which is semantically incorrect.
 
 ---
 
@@ -30,7 +30,7 @@ def _api_market_to_settlement(self, api_market: APIMarket) -> DBSettlement | Non
 
 **Problem:** Markets can settle early (event resolved before expiration) or late (disputes, delays).
 
-### API Update (Dec 19, 2025)
+### API Update (changelog entry Dec 19, 2025; release date Dec 25, 2025)
 
 Kalshi added `settlement_ts` to `GET /markets` and `GET /markets/{ticker}` responses:
 
@@ -96,7 +96,7 @@ def _api_market_to_settlement(self, api_market: APIMarket) -> DBSettlement | Non
 Add to Market Response Fields section:
 
 ```markdown
-### Settlement Fields (Dec 19, 2025+)
+### Settlement Fields (Dec 25, 2025+)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -122,7 +122,7 @@ Update the settlements table documentation:
 | `settled_at` | DATETIME | **Actual** settlement timestamp (from API `settlement_ts`) |
 | `result` | TEXT | Outcome: yes, no, void |
 
-**Note:** For markets settled before Dec 19, 2025, `settled_at` may use `expiration_time` as a proxy.
+**Note:** For markets settled before Dec 25, 2025, `settled_at` may use `expiration_time` as a proxy.
 ```
 
 ### 5. Add Tests
@@ -197,7 +197,7 @@ def test_api_market_to_settlement_prefers_settlement_ts():
 
 This was originally tracked as DEBT-004 (technical debt), but it's actually a **feature gap**:
 
-1. The API provides `settlement_ts` (since Dec 19, 2025)
+1. The API provides `settlement_ts` (changelog entry Dec 19, 2025; release date Dec 25, 2025)
 2. Our model doesn't consume it
 3. Our docs don't mention it
 4. Users cannot access accurate settlement timing
@@ -208,6 +208,6 @@ Technical debt implies "code that works but could be better." This is "code that
 
 ## References
 
-- [Kalshi API Changelog - settlement_ts (Dec 19, 2025)](https://docs.kalshi.com/changelog)
+- [Kalshi API Changelog - settlement_ts (entry Dec 19, 2025; release date Dec 25, 2025)](https://docs.kalshi.com/changelog)
 - [Get Market API](https://docs.kalshi.com/api-reference/market/get-market)
 - DEBT-004 (superseded by this spec)

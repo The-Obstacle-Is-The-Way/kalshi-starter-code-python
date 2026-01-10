@@ -115,7 +115,7 @@ Resolved market outcomes for calibration analysis.
 | `yes_payout` | INTEGER | YES payout (cents) |
 | `no_payout` | INTEGER | NO payout (cents) |
 
-> **Note:** `settled_at` uses the API's `settlement_ts` field (added Dec 19, 2025). For markets synced before this date, `expiration_time` was used as a proxy.
+> **Note:** `settled_at` uses the API's `settlement_ts` field (changelog entry Dec 19, 2025; release date Dec 25, 2025). For markets synced before this change, `expiration_time` was used as a proxy.
 
 ### positions
 Synced portfolio positions from Kalshi API.

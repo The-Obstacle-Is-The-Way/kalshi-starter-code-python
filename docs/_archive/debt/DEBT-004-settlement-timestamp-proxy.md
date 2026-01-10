@@ -46,7 +46,7 @@ def _api_market_to_settlement(self, api_market: APIMarket) -> DBSettlement | Non
 
 When this code was written, the Kalshi API did not expose a `settlement_ts` field in the public markets endpoint.
 
-**Update (Dec 19, 2025):** Kalshi added a `settlement_ts` field to `GET /markets` and `GET /markets/{ticker}` responses.
+**Update (changelog entry Dec 19, 2025; release date Dec 25, 2025):** Kalshi added a `settlement_ts` field to `GET /markets` and `GET /markets/{ticker}` responses.
 
 Source: [Kalshi API Changelog](https://docs.kalshi.com/changelog)
 

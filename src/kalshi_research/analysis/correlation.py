@@ -28,7 +28,8 @@ def _is_priced(market: Market) -> bool:
 
     This module relies on bid/ask midpoints. If either side is missing
     (commonly represented as `yes_bid == 0` or `yes_ask == 100`), the midpoint
-    is not meaningful and can create noisy signals.
+    is not meaningful and can create noisy signals. Kalshi prices are quoted in
+    cents of a $1 payout (0-100), so `100` represents $1.00, not $100.00.
 
     Args:
         market: Market to check

@@ -42,7 +42,7 @@ All resolved debt items are stored in
 
 ---
 
-## Remaining Debt
+## Debt Transitions (Historical)
 
 None. All debt items resolved or elevated to specs.
 

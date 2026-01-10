@@ -27,6 +27,10 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
+    # If the column contains NULLs after the upgrade, making it non-nullable will fail.
+    # Since this downgrade restores the previous schema shape, coerce NULLs to a
+    # reasonable default before tightening the constraint.
+    op.execute("UPDATE price_snapshots SET liquidity = 0 WHERE liquidity IS NULL")
     # SQLite requires batch mode to alter column nullability
     with op.batch_alter_table("price_snapshots", schema=None) as batch_op:
         batch_op.alter_column("liquidity", existing_type=sa.INTEGER(), nullable=False)
