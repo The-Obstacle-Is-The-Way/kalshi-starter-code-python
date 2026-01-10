@@ -1,10 +1,10 @@
 # SPEC-034: TradeExecutor Safety Harness (Budgeted, Safe-by-Default)
 
-**Status:** Draft
+**Status:** Partially Implemented (Phase 1)
 **Priority:** P2 (Blocked until agent trading is desired)
 **Created:** 2026-01-10
 **Owner:** Solo
-**Effort:** ~2–6 days (Phase 1), ongoing hardening
+**Effort:** Phase 1 implemented; Phase 2 hardening TBD
 
 ---
 
@@ -18,8 +18,31 @@ Create a `TradeExecutor` service that wraps authenticated Kalshi trading operati
 - liquidity-aware sizing (integrate SPEC-026 liquidity analysis),
 - structured audit logging.
 
-This is the missing “agent harness” described in `docs/_archive/future/TODO-008-agent-safety-rails.md` and
-`docs/_future/TODO-00B-trade-executor-phase2.md`.
+Phase 1 is implemented in `src/kalshi_research/execution/`. This spec now tracks the remaining Phase 2
+hardening work.
+
+---
+
+## Implementation Status
+
+### Implemented (Phase 1)
+
+- `src/kalshi_research/execution/executor.py`: `TradeExecutor` with:
+  - safe-by-default (`live=False` ⇒ `dry_run=True`)
+  - kill switch (`KALSHI_TRADE_KILL_SWITCH=1`)
+  - environment gating (production blocked unless `allow_production=True`)
+  - confirmation gate for live trades (callback injection)
+  - per-order risk cap and per-day live order cap
+- `src/kalshi_research/execution/audit.py`: append-only JSONL audit logger
+- `tests/unit/execution/test_executor.py`: unit tests for dry-run default, confirmation, and price bounds
+
+### Not Yet Implemented (Phase 2)
+
+- Fat-finger guard (midpoint deviation check)
+- Daily budgets / daily loss tracking
+- Position caps (requires portfolio state)
+- Liquidity-aware sizing gates (SPEC-026 integration)
+- TradeExecutor wrappers for `cancel_order` / `amend_order`
 
 ---
 
@@ -168,9 +191,10 @@ Integration tests (optional, require Kalshi write keys):
 
 ## Acceptance Criteria
 
-- [ ] It is impossible to hit Kalshi write endpoints without explicitly setting `live=True`.
-- [ ] Every order attempt (dry-run or live) emits one audit log event.
-- [ ] Violations of risk checks fail fast with actionable error messages and do not place orders.
+- [x] `TradeExecutor` cannot call `KalshiClient.create_order(..., dry_run=False)` without `live=True`.
+- [x] Every order attempt (dry-run or live) emits one audit log event.
+- [x] Violations of risk checks fail fast with actionable error messages and do not place orders.
+- [ ] Phase 2 safety rails implemented (fat-finger, budgets, position caps, liquidity-aware sizing).
 
 ---
 

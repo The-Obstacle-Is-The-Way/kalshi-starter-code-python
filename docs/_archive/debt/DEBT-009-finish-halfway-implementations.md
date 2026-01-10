@@ -6,7 +6,7 @@
 **Created:** 2026-01-10
 **Last Verified:** 2026-01-10
 **Resolved:** 2026-01-10
-**Audit Source:** [`bloat.md`](bloat.md)
+**Audit Source:** [`bloat.md`](../../_debt/bloat.md)
 
 ## Summary
 

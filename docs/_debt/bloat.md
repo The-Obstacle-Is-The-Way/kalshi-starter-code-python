@@ -11,24 +11,32 @@
 
 | Metric | Value | Grade |
 |--------|-------|-------|
-| Total Python files | 82 | - |
-| Total source LOC | 15,059 | - |
-| Test LOC | 15,644 | **A** (good coverage) |
-| Unused methods/functions/classes | ~64 (verified true positives) | **C** (needs cleanup) |
-| Total deadcode items | 343 (raw count) | C |
-| Average cyclomatic complexity | 2.9 | **A** |
+| Total Python files (src/) | 86 | - |
+| Total source LOC (src/) | 15,257 | - |
+| Test LOC (tests/) | 15,350 | **A** (good coverage) |
+| Tier 1 dead code items | 0 (resolved via DEBT-008) | **A** |
+| Vulture findings (60% confidence, raw) | 322 (218 vars, 58 funcs, 36 methods) | triage |
+| Average cyclomatic complexity | 2.98 | **A** |
 | Maintainability index | All files A | **A** |
-| **Overall Grade** | | **B-** |
+| **Overall Grade** | | **A-** |
+
+**Repro (2026-01-10):**
+- `find src -name '*.py' | wc -l` → Python file count
+- `find src -name '*.py' -print0 | xargs -0 wc -l | tail -1` → source LOC
+- `find tests -name '*.py' -print0 | xargs -0 wc -l | tail -1` → test LOC
+- `uv run vulture src/kalshi_research --min-confidence 60` → raw unused candidates
+- `uv run radon cc -a src/kalshi_research` / `uv run radon mi -s src/kalshi_research` → complexity/MI
 
 ### Verdict
 
-**Julian's criticism has merit.** There is measurable bloat:
-- **116** raw unused candidates (Vulture 60% confidence) -> **~64 verified true positives**
-- Multiple dead modules (EdgeDetector, TemporalValidator, etc.) and several halfway implementations (e.g. alert notifiers)
-  - ✅ Resolved: DEBT-008 removed the verified-dead code
-- Boilerplate duplication (16 `create_tables()` calls)
-  - ✅ Resolved: DEBT-010 consolidated to `open_db()` in `src/kalshi_research/cli/db.py`
-- Three data modeling patterns (dataclasses + Pydantic + SQLAlchemy)
+**Julian's criticism had merit at the time of the initial audit.** The high-signal bloat has now been addressed:
+- ✅ DEBT-008 deleted the verified Tier 1 dead code.
+- ✅ DEBT-009 wired legitimate halfway implementations into the CLI (or explicitly marked as reserved).
+- ✅ DEBT-010 consolidated CLI DB boilerplate to `open_db()` / `open_db_session()`.
+
+**Important:** Vulture/deadcode raw output includes many known false positives (Pydantic model fields like
+`model_config`, dataclass fields, and intentionally reserved features). Treat tool output as a triage list,
+not “debt” without first-principles verification.
 
 **However:**
 - Some "unused" code is intentional (notebook support, future trading features)
@@ -169,7 +177,7 @@ Each item traced against official Kalshi/Exa API docs to determine TRUE dead cod
 | `compute_volatility` | **TRUE SLOP** | Called in tests/docs only, never in app logic |
 | `compute_volume_profile` | **TRUE SLOP** | Called in tests/docs only, never in app logic |
 | `scan_all` | **TRUE SLOP** | Convenience method, never used |
-| `verify_market_open` | ✅ WIRED | Supports exchange halt checks when provided |
+| `verify_market_open` | ⚠️ UNUSED | Scanner uses `filter_tradeable_markets` (which includes exchange-wide halt checks) |
 | `max_safe_buy_size` | **TRUE SLOP** | Redundant wrapper: safe sizing is already exposed via `max_safe_order_size` and `kalshi market liquidity` |
 
 ### Research Module
