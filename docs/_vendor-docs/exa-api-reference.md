@@ -1,10 +1,13 @@
 # Exa API Reference (2026)
 
-**Source:** [docs.exa.ai](https://docs.exa.ai)
-**OpenAPI Spec:** [exa-openapi-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-openapi-spec.yaml)
+**Source:** [docs.exa.ai](https://docs.exa.ai) → redirects to [exa.ai/docs](https://exa.ai/docs)
+**LLM Discovery:** [exa.ai/docs/llms.txt](https://exa.ai/docs/llms.txt) (150+ pages)
+**OpenAPI Specs:**
+- Search API: [exa-openapi-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-openapi-spec.yaml)
+- Websets API: [exa-websets-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-websets-spec.yaml)
 **Python SDK:** `pip install exa-py` / `pip install exa_py` (module: `exa_py`)
 **Last Verified:** 2026-01-10
-**Verified Against:** OpenAPI spec v1.2.0, `exa-py` v2.0.2
+**Verified Against:** Official docs via llms.txt, OpenAPI specs (August 2025)
 
 ---
 
@@ -579,6 +582,50 @@ Research API uses consumption-based billing. You're only charged for tasks that 
 
 ---
 
+## Rate Limits
+
+| Endpoint | Limit |
+|----------|-------|
+| `/search` | 5 QPS |
+| `/contents` | 50 QPS |
+| `/answer` | 5 QPS |
+| `/findSimilar` | 5 QPS (assumed, not documented) |
+| `/research/v1` | 15 concurrent tasks |
+
+> **Note:** QPS = Queries Per Second. Research API uses concurrent task limits for long-running operations. Contact hello@exa.ai for Enterprise rate limit increases.
+
+---
+
+## Error Codes
+
+### HTTP Status Errors
+
+| Code | Meaning | Action |
+|------|---------|--------|
+| 400 | Invalid request parameters, malformed JSON | Validate request format |
+| 401 | Missing or invalid API key | Verify credentials |
+| 403 | Valid key but insufficient permissions or rate exceeded | Check account/throttle |
+| 404 | Resource not found | Confirm resource exists |
+| 409 | Resource already exists (Websets) | Use different identifier |
+| 429 | Rate limit exceeded | Implement exponential backoff |
+| 500 | Server error | Retry after delay |
+| 502 | Upstream server issue | Retry after delay |
+| 503 | Service temporarily down | Wait and retry |
+
+### Contents Endpoint Status Tags
+
+Errors in `/contents` appear in the `statuses` field:
+
+| Tag | HTTP Code | Meaning |
+|-----|-----------|---------|
+| `CRAWL_NOT_FOUND` | 404 | URL content unavailable |
+| `CRAWL_TIMEOUT` | 408 | Fetch operation timed out |
+| `CRAWL_LIVECRAWL_TIMEOUT` | 408 | Live crawl timed out |
+| `SOURCE_NOT_AVAILABLE` | 403 | Access denied or paywalled |
+| `CRAWL_UNKNOWN_ERROR` | 500+ | Other crawling failures |
+
+---
+
 ## Tool Use with Claude (Manual)
 
 For custom tool definitions (or when you need fine-grained control):
@@ -708,6 +755,35 @@ results = exa.search(
     },
 )
 ```
+
+---
+
+## Websets API (Overview)
+
+The Websets API enables programmatic web data discovery and processing at scale. This is a separate API with its own OpenAPI spec.
+
+**OpenAPI Spec:** [exa-websets-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-websets-spec.yaml)
+
+### Key Concepts
+
+| Concept | Description |
+|---------|-------------|
+| Websets | Collections of web data organized around specific searches or imports |
+| Items | Individual results within a Webset |
+| Searches | Query operations that can be reused or modified |
+| Enrichments | AI-generated additional data columns added to results |
+| Imports | User-uploaded datasets for deduplication or enrichment |
+| Monitors | Scheduled operations to keep Websets updated |
+| Webhooks | Integration hooks for external systems |
+
+### Use Cases
+
+- **Data Collection:** Gather web content at scale using natural language criteria
+- **Data Enhancement:** Add structured information via AI-powered enrichment
+- **Continuous Monitoring:** Keep Websets updated on scheduled intervals
+- **CRM Integration:** Connect results with external systems via webhooks
+
+> **Note:** Websets API is documented separately from the core Search/Contents APIs. See the [Websets documentation](https://exa.ai/docs/websets/overview) for full details.
 
 ---
 
