@@ -158,3 +158,26 @@ def test_market_liquidity(mock_client_cls: MagicMock) -> None:
     assert result.exit_code == 0
     assert "Liquidity Analysis" in result.stdout
     assert "Score" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_liquidity_renders_zero_prices(mock_client_cls: MagicMock) -> None:
+    """Ensure 0c best prices render as numbers (not treated as falsey)."""
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    mock_market = MagicMock()
+    mock_market.volume_24h = 7000
+    mock_market.open_interest = 3000
+    mock_client.get_market.return_value = mock_market
+
+    # NO bid at 100c implies a YES ask at 0c; this is a valid numeric best price.
+    mock_client.get_orderbook.return_value = Orderbook(yes=[(0, 500)], no=[(100, 500)])
+
+    result = runner.invoke(app, ["market", "liquidity", "TEST-MARKET", "--depth", "5"])
+
+    assert result.exit_code == 0
+    assert "Liquidity Analysis" in result.stdout
+    assert "N/A" not in result.stdout

@@ -202,18 +202,27 @@ def market_liquidity(
                 if slip.remaining_unfilled == 0
                 else f"{slip.fillable_quantity:,} (rem {slip.remaining_unfilled:,})"
             )
+            avg_fill = f"{slip.avg_fill_price:.1f}¢" if slip.fillable_quantity > 0 else "N/A"
             slippage_table.add_row(
                 f"{qty:,}",
                 f"{slip.slippage_cents:.1f}¢ ({slip.slippage_pct:.1f}%)",
-                f"{slip.avg_fill_price:.1f}¢" if slip.best_price else "N/A",
+                avg_fill,
                 fillable,
                 f"{slip.levels_crossed}",
             )
 
         console.print(slippage_table)
 
-        optimal = f"{timing.optimal_hours_utc[0]}:00-{timing.optimal_hours_utc[-1]}:00 UTC"
-        avoid = f"{timing.avoid_hours_utc[0]}:00-{timing.avoid_hours_utc[-1]}:00 UTC"
+        optimal = (
+            f"{timing.optimal_hours_utc[0]}:00-{timing.optimal_hours_utc[-1]}:00 UTC"
+            if timing.optimal_hours_utc
+            else "N/A"
+        )
+        avoid = (
+            f"{timing.avoid_hours_utc[0]}:00-{timing.avoid_hours_utc[-1]}:00 UTC"
+            if timing.avoid_hours_utc
+            else "N/A"
+        )
         console.print(
             "\nExecution Timing:",
             f"[green]optimal[/green] {optimal}, [yellow]avoid[/yellow] {avoid}",
