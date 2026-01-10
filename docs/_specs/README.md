@@ -41,7 +41,7 @@ build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive s
 |---|---|---|
 | SPEC-027 | [Settlement Timestamp Support](../_archive/specs/SPEC-027-settlement-timestamp.md) | ✅ Implemented |
 | SPEC-026 | [Liquidity Analysis](../_archive/specs/SPEC-026-liquidity-analysis.md) | ✅ Implemented |
-| SPEC-025 | Market Open Time Display | ✅ Implemented |
+| SPEC-025 | [Market Open Time Display](../_archive/specs/SPEC-025-market-open-time-display.md) | ✅ Implemented |
 | SPEC-023 | Exa-Thesis Integration | ✅ Implemented |
 | SPEC-022 | Exa News & Sentiment Pipeline | ✅ Implemented |
 | SPEC-021 | Exa-Powered Market Research | ✅ Implemented |
