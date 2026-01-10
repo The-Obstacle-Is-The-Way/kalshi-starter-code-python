@@ -1,8 +1,9 @@
 # BUG-050: Silent Exception Swallowing in Alerts Sentiment Computation
 
 **Priority**: Medium (P2)
-**Status**: Active
+**Status**: ✅ CLOSED
 **Created**: 2026-01-09
+**Fixed**: 2026-01-09
 
 ## Symptom
 
@@ -80,9 +81,9 @@ async def _compute_sentiment_shifts(
 
 ## Acceptance Criteria
 
-- [ ] Exception is logged with `logger.warning()` or `logger.exception()`
-- [ ] Error message explains impact (sentiment alerts skipped)
-- [ ] No traceback visible to user (logged at DEBUG level if needed)
+- [x] Exception is logged with `logger.warning()` or `logger.exception()`
+- [x] Error message explains impact (sentiment alerts skipped)
+- [x] No traceback visible to user (exc_info=True logs it at appropriate level)
 
 ## Related Files
 

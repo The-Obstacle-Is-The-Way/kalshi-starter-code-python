@@ -105,6 +105,7 @@ def make_market() -> Callable[..., dict[str, Any]]:
             "volume_24h": 1000,
             "open_interest": 5000,
             "liquidity": 10000,
+            "created_time": "2023-12-15T17:50:26Z",
             "open_time": "2024-01-01T00:00:00Z",
             "close_time": "2025-12-31T00:00:00Z",
             "expiration_time": "2026-01-01T00:00:00Z",

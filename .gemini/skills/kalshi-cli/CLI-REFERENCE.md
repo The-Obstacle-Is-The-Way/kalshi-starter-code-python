@@ -129,11 +129,13 @@ uv run kalshi market list [OPTIONS]
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--status`, `-s` | `open` | Filter by status: open, closed, etc. |
+| `--status`, `-s` | `open` | Filter by status: `unopened`, `open`, `paused`, `closed`, `settled` |
 | `--event`, `-e` | None | Filter by event ticker |
 | `--limit`, `-n` | `20` | Maximum number of results |
 
 **IMPORTANT**: There is NO `--search` or `--query` option. Use database queries instead.
+
+Note: `active` is a **response** status (not a filter). The CLI treats `--status active` as `open` with a warning.
 
 ### market orderbook
 Fetch orderbook for a market.
@@ -146,6 +148,19 @@ uv run kalshi market orderbook TICKER [OPTIONS]
 |-----------------|---------|-------------|
 | `TICKER` | Required | Market ticker |
 | `--depth`, `-d` | `5` | Orderbook depth (levels) |
+
+### market liquidity
+Analyze liquidity using orderbook depth + slippage estimates.
+
+```bash
+uv run kalshi market liquidity TICKER [OPTIONS]
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `TICKER` | Required | Market ticker |
+| `--depth`, `-d` | `25` | Orderbook depth levels to fetch for analysis |
+| `--max-slippage-cents` | `3` | Max slippage (cents) for the "max safe size" calculation |
 
 ---
 
@@ -165,6 +180,9 @@ uv run kalshi scan opportunities [OPTIONS]
 | `--min-volume` | `0` | Minimum 24h volume (close-race only) |
 | `--max-spread` | `100` | Maximum bid-ask spread in cents (close-race only) |
 | `--max-pages` | None | Pagination safety limit |
+| `--min-liquidity` | None | Minimum liquidity score (0-100); fetches orderbooks for candidates |
+| `--show-liquidity` | False | Show liquidity score column; fetches orderbooks for displayed markets |
+| `--liquidity-depth` | `25` | Orderbook depth levels for liquidity scoring |
 
 ### scan arbitrage
 Find arbitrage opportunities from correlated markets.

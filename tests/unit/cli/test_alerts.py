@@ -155,8 +155,7 @@ def test_alerts_monitor_once_exits(
     mock_market = MagicMock()
     mock_market.ticker = "TEST-TICKER"
     mock_market.title = "Test Market"
-    mock_market.yes_bid = 50
-    mock_market.yes_ask = 52
+    mock_market.midpoint = 51.0
     mock_market.volume = 1000
 
     async def market_gen(status=None, max_pages: int | None = None):
@@ -199,8 +198,7 @@ def test_alerts_monitor_continuous_shows_ctrl_c(
     mock_market = MagicMock()
     mock_market.ticker = "TEST-TICKER"
     mock_market.title = "Test Market"
-    mock_market.yes_bid = 50
-    mock_market.yes_ask = 52
+    mock_market.midpoint = 51.0
     mock_market.volume = 1000
 
     async def market_gen(status=None, max_pages: int | None = None):

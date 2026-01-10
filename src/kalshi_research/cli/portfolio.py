@@ -340,7 +340,11 @@ def portfolio_balance(
     rate_tier_override = _resolve_rate_tier_override(rate_tier)
 
     async def _balance() -> None:
-        balance: dict[str, Any] | None = None
+        from kalshi_research.api.models.portfolio import (  # noqa: TC001
+            PortfolioBalance,
+        )
+
+        balance: PortfolioBalance | None = None
         try:
             async with KalshiClient(
                 key_id=key_id,
@@ -365,7 +369,9 @@ def portfolio_balance(
         table = Table(title="Account Balance")
         table.add_column("Field", style="cyan")
         table.add_column("Value", style="green")
-        for k, v in sorted(balance.items()):
+        # Convert Pydantic model to dict for display
+        balance_dict = balance.model_dump()
+        for k, v in sorted(balance_dict.items()):
             table.add_row(str(k), str(v))
         console.print(table)
 
@@ -456,20 +462,20 @@ def portfolio_link(
         db = DatabaseManager(db_path)
         try:
             async with db.session_factory() as session:
-                # Find open position
-                query = select(Position).where(
-                    Position.ticker == ticker, Position.closed_at.is_(None)
-                )
-                result = await session.execute(query)
-                position = result.scalar_one_or_none()
+                async with session.begin():
+                    # Find open position
+                    query = select(Position).where(
+                        Position.ticker == ticker, Position.closed_at.is_(None)
+                    )
+                    result = await session.execute(query)
+                    position = result.scalar_one_or_none()
 
-                if not position:
-                    console.print(f"[yellow]No open position found for {ticker}[/yellow]")
-                    return
+                    if not position:
+                        console.print(f"[yellow]No open position found for {ticker}[/yellow]")
+                        return
 
-                # Update thesis_id
-                position.thesis_id = thesis
-                await session.commit()
+                    # Update thesis_id
+                    position.thesis_id = thesis
 
                 console.print(f"[green]✓[/green] Position {ticker} linked to thesis {thesis}")
         finally:

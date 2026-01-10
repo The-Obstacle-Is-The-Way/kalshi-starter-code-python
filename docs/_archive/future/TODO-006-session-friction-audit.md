@@ -29,7 +29,7 @@ This document captures all friction points encountered during a research session
 **Related TODO**: [TODO-005](TODO-005-market-open-date-validation.md)
 
 **Required Fixes**:
-- [ ] Add `open_time` and `created_time` to `market get` CLI output
+- [x] Add `open_time` and `created_time` to `market get` CLI output (completed in TODO-005a)
 - [x] Research workflow must check market open time BEFORE researching (documented workflow)
 - [x] Add skill guidance: "If market price seems too easy, verify timing"
 
@@ -240,6 +240,21 @@ The `kalshi-cli` skill now includes a research workflow, but it must be explicit
 5. **Database schema must be clear** - Which table has what data
 
 ---
+
+## Acceptance Criteria
+
+### Documentation Updates (All Complete)
+- [x] WORKFLOWS.md: Add "Research Workflow" with temporal validation
+- [x] WORKFLOWS.md: Add "Ticker Discovery" workflow
+- [x] GOTCHAS.md: Add "Price as Signal" heuristic
+- [x] GOTCHAS.md: Add "Market Timing" gotcha (open_time matters)
+- [x] GOTCHAS.md: Add "Portfolio-Aware Research" guidance
+- [x] DATABASE.md: Clarify markets vs price_snapshots schema
+
+### Code Fixes (Delegated to Other Tasks)
+- [x] Add `open_time` and `created_time` to `market get` output (TODO-005a)
+- [x] Fix BUG-048: Negative liquidity validation
+- [x] Investigate BUG-047: Portfolio sync discrepancy
 
 ## Related Files
 

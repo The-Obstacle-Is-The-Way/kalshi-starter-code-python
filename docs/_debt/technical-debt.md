@@ -1,23 +1,51 @@
 # Technical Debt Register
 
-**Last Audit:** 2026-01-09
+**Last Audit:** 2026-01-09 (Ralph Wiggum Cleanup)
 
 ---
 
 ## Outstanding Debt
 
-| ID | Description |
-|----|-------------|
-| `Settlement.expiration_time` proxy | `Settlement` model uses `expiration_time` as `settled_at`. Inaccurate for early/late settlements. |
-| [DEBT-001](DEBT-001-api-client-typing.md) | Inconsistent API Client return types (raw dicts vs Pydantic models). |
-| [DEBT-002](DEBT-002-magic-numbers-analysis.md) | Hardcoded magic numbers in analysis/scanner logic. (Phase 1 comments in progress) |
-| [DEBT-003](DEBT-003-loose-db-transactions.md) | Inconsistent database transaction boundaries (manual commit vs context manager). |
+**None.** All debt items resolved or elevated to specs.
+
+| ID | Status | Resolution |
+|----|--------|------------|
+| DEBT-004 | Implemented via Spec | [SPEC-027](../_archive/specs/SPEC-027-settlement-timestamp.md) |
+
+---
+
+## Won't Fix (Principled Closures)
+
+### DEBT-002 Phase 2-3 (Strategy Configuration) - CLOSED
+
+**Decision:** Won't Fix
+**Date:** 2026-01-09
+**Rationale:** First-principles analysis using Clean Code (Robert C. Martin) and SOLID principles.
+
+**Why this is NOT a problem:**
+1. Current defaults are **named parameters** (not magic numbers): `high_volume_threshold=10000`
+2. Current pattern uses **constructor injection** (proper Dependency Inversion)
+3. Values are **typed**, **documented**, and **injectable**
+4. CLI already provides override flags (`--min-volume`, `--max-spread`)
+5. Adding `AnalysisConfig` would be **premature abstraction** (YAGNI violation)
+
+**What Uncle Bob would say:** The code follows DIP - high-level modules (CLI) inject values into low-level modules (Scanner). This IS the pattern.
+
+**Re-open if:**
+- Adding config file (YAML/TOML) support for user customization
+- 10+ analysis classes need shared defaults
+- Runtime config reloading required
+
+**Sources:**
+- [Clean Code Principles - Uncle Bob](https://gist.github.com/wojteklu/73c6914cc446146b8b533c0988cf8d29)
+- [SOLID Principles - DigitalOcean](https://www.digitalocean.com/community/conceptual-articles/s-o-l-i-d-the-first-five-principles-of-object-oriented-design)
+- [Python DI Best Practices - ArjanCodes](https://arjancodes.com/blog/python-dependency-injection-best-practices/)
 
 ---
 
 ## Deferred (Low Priority)
 
-### 1. No `interfaces/` or `ports/` package
+### No `interfaces/` or `ports/` package
 
 **Priority:** Low
 **Status:** Acceptable for research platform
@@ -37,7 +65,17 @@ src/kalshi_research/
 
 ---
 
-## Resolved
+## Resolved (Ralph Wiggum Cleanup - 2026-01-09)
+
+| Item | Resolution |
+|------|------------|
+| [DEBT-003](../_archive/debt/DEBT-003-loose-db-transactions.md) | Added `session.begin()` transaction boundaries across 7 files |
+| [DEBT-002 Phase 1](../_archive/debt/DEBT-002-magic-numbers-analysis.md) | Added explanatory comments for platform constants (200.0, 1000, 1-99) |
+| [DEBT-001](../_archive/debt/DEBT-001-api-client-typing.md) | Created Pydantic models for all portfolio methods |
+
+---
+
+## Previously Resolved
 
 | Item | Resolution |
 |------|------------|
@@ -69,7 +107,7 @@ src/kalshi_research/
 
 | File | Lines | Status |
 |------|-------|--------|
-| `api/client.py` | 711 | Acceptable |
+| `api/client.py` | ~750 | Acceptable |
 | `analysis/correlation.py` | 394 | Acceptable |
 | `portfolio/syncer.py` | 355 | Acceptable |
 | `data/fetcher.py` | 344 | Acceptable |

@@ -6,22 +6,32 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-| **BUG-047** | Portfolio sync shows 0 positions despite portfolio_value > 0 | Medium | Investigating |
-| **BUG-048** | Negative liquidity validation error crashes market scan | Medium | Active |
-| **BUG-049** | Asymmetrical rate limiting (reads unprotected) | High | Active |
-| **BUG-050** | Silent exception swallowing in alerts sentiment computation | Medium | Active |
+| *None* | All bugs resolved | - | - |
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-051**
+**BUG-053**
 
 ---
 
-## 🗄️ Archive (Resolved)
+## Archive (Resolved)
 All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
+### Recently Resolved (Ralph Wiggum Cleanup - 2026-01-09)
+
+| ID | Title | Status |
+|---|---|---|
+| **BUG-052** | `market list --status active` traceback (invalid filter) | ✅ Fixed |
+| **BUG-051** | Cancel order response schema mismatch | ✅ Fixed |
+| **BUG-050** | Silent exception swallowing in alerts sentiment computation | ✅ Fixed |
+| **BUG-049** | Asymmetrical rate limiting (reads unprotected) | ✅ Fixed |
+| **BUG-048** | Negative liquidity validation error crashes market scan | ✅ Fixed |
+| **BUG-047** | Portfolio sync shows 0 positions (response key mismatch) | ✅ Fixed |
+
+### Previously Resolved
 
 | ID | Title | Status |
 |---|---|---|

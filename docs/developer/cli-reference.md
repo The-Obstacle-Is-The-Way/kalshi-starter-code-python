@@ -60,13 +60,16 @@ Notes:
 
 ## `kalshi market`
 
-- `kalshi market list [--status open] [--event EVT] [--limit N]`
+- `kalshi market list [--status unopened|open|paused|closed|settled] [--event EVT] [--limit N]`
 - `kalshi market get <TICKER>`
 - `kalshi market orderbook <TICKER> [--depth N]`
+- `kalshi market liquidity <TICKER> [--depth N] [--max-slippage-cents N]`
+
+Note: Kalshi's **response** `status` values (e.g. `active`) differ from the `/markets` **filter** values. The CLI maps `--status active` → `open` with a warning.
 
 ## `kalshi scan`
 
-- `kalshi scan opportunities [--filter close-race|high-volume|wide-spread|expiring-soon] [--top N] [--max-pages N]`
+- `kalshi scan opportunities [--filter close-race|high-volume|wide-spread|expiring-soon] [--top N] [--max-pages N] [--min-liquidity N] [--show-liquidity] [--liquidity-depth N]`
   - close-race-only: `--min-volume INT`, `--max-spread INT`
 - `kalshi scan movers --db PATH [--period 1h|6h|24h] [--top N] [--max-pages N]`
 - `kalshi scan arbitrage --db PATH [--threshold FLOAT] [--top N] [--tickers-limit N] [--max-pages N]`

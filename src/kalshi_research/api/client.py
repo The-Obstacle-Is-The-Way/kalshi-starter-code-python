@@ -22,6 +22,13 @@ from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market, MarketFilterStatus
 from kalshi_research.api.models.order import OrderAction, OrderResponse, OrderSide
 from kalshi_research.api.models.orderbook import Orderbook
+from kalshi_research.api.models.portfolio import (
+    CancelOrderResponse,
+    FillPage,
+    OrderPage,
+    PortfolioBalance,
+    PortfolioPosition,
+)
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.api.rate_limiter import RateLimiter, RateTier
 
@@ -57,6 +64,7 @@ class KalshiPublicClient:
         environment: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 5,
+        rate_tier: str | RateTier = RateTier.BASIC,
     ) -> None:
         config = get_config()
         if environment:
@@ -68,6 +76,11 @@ class KalshiPublicClient:
             headers={"Accept": "application/json"},
         )
         self._max_retries = max_retries
+
+        # Initialize rate limiter for read operations
+        if isinstance(rate_tier, str):
+            rate_tier = RateTier(rate_tier)
+        self._rate_limiter = RateLimiter(tier=rate_tier)
 
     async def __aenter__(self) -> KalshiPublicClient:
         return self
@@ -87,6 +100,9 @@ class KalshiPublicClient:
         Returns:
             JSON response as dictionary.
         """
+        # Acquire rate limit for READ
+        await self._rate_limiter.acquire("GET", path)
+
         async for attempt in AsyncRetrying(
             retry=retry_if_exception_type(
                 (
@@ -143,6 +159,7 @@ class KalshiPublicClient:
         Filter: unopened, open, closed, settled
         Response: active, closed, determined, finalized
         """
+        # 1000 is Kalshi API max limit per page (see docs/_vendor-docs/kalshi-api-reference.md)
         params: dict[str, Any] = {"limit": min(limit, 1000)}
         if status:
             params["status"] = status.value if isinstance(status, MarketFilterStatus) else status
@@ -255,6 +272,7 @@ class KalshiPublicClient:
         max_ts: int | None = None,
     ) -> list[Trade]:
         """Fetch public trade history."""
+        # 1000 is Kalshi API max limit per page (see docs/_vendor-docs/kalshi-api-reference.md)
         params: dict[str, Any] = {"limit": min(limit, 1000)}
         if ticker:
             params["ticker"] = ticker
@@ -482,6 +500,9 @@ class KalshiClient(KalshiPublicClient):
 
         CRITICAL: Auth signing uses the FULL path including /trade-api/v2 prefix.
         """
+        # Acquire rate limit for READ
+        await self._rate_limiter.acquire("GET", path)
+
         # Sign with full path (e.g., /trade-api/v2/portfolio/balance)
         full_path = self.API_PATH + path
         headers = self._auth.get_headers("GET", full_path)
@@ -521,21 +542,26 @@ class KalshiClient(KalshiPublicClient):
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 
-    async def get_balance(self) -> dict[str, Any]:
+    async def get_balance(self) -> PortfolioBalance:
         """Get account balance."""
-        return await self._auth_get("/portfolio/balance")
+        data = await self._auth_get("/portfolio/balance")
+        return PortfolioBalance.model_validate(data)
 
-    async def get_positions(self) -> list[dict[str, Any]]:
-        """Get current positions."""
+    async def get_positions(self) -> list[PortfolioPosition]:
+        """Get current market positions."""
         data = await self._auth_get("/portfolio/positions")
-        positions: list[dict[str, Any]] = data.get("positions", [])
-        return positions
+        # NOTE: Kalshi returns `market_positions` (and `event_positions`). Older docs/examples may
+        # reference `positions`, so keep a fallback for compatibility.
+        raw = data.get("market_positions") or data.get("positions") or []
+        if not isinstance(raw, list):
+            return []
+        return [PortfolioPosition.model_validate(pos) for pos in raw]
 
     async def get_orders(
         self,
         ticker: str | None = None,
         status: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> OrderPage:
         """Get order history."""
         params: dict[str, Any] = {}
         if ticker:
@@ -543,8 +569,7 @@ class KalshiClient(KalshiPublicClient):
         if status:
             params["status"] = status
         data = await self._auth_get("/portfolio/orders", params or None)
-        orders: list[dict[str, Any]] = data.get("orders", [])
-        return orders
+        return OrderPage.model_validate(data)
 
     async def get_fills(
         self,
@@ -553,7 +578,7 @@ class KalshiClient(KalshiPublicClient):
         max_ts: int | None = None,
         limit: int = 100,
         cursor: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> FillPage:
         """
         Fetch matched trades (fills) from the portfolio.
 
@@ -574,7 +599,8 @@ class KalshiClient(KalshiPublicClient):
         if cursor:
             params["cursor"] = cursor
 
-        return await self._auth_get("/portfolio/fills", params)
+        data = await self._auth_get("/portfolio/fills", params)
+        return FillPage.model_validate(data)
 
     # ==================== Trading ====================
 
@@ -587,6 +613,7 @@ class KalshiClient(KalshiPublicClient):
         price: int,
         client_order_id: str | None = None,
         expiration_ts: int | None = None,
+        dry_run: bool = False,
     ) -> OrderResponse:
         """
         Create a new limit order.
@@ -599,10 +626,13 @@ class KalshiClient(KalshiPublicClient):
             price: Limit price in CENTS (1-99)
             client_order_id: Optional unique ID (generated if not provided)
             expiration_ts: Optional Unix timestamp for expiration
+            dry_run: If True, validate and log order but do not execute
 
         Returns:
             OrderResponse with order_id and status
         """
+        # 1-99 is Kalshi's valid trading range (0 and 100 are settled states)
+        # See docs/_vendor-docs/kalshi-api-reference.md (Binary market math)
         if price < 1 or price > 99:
             raise ValueError("Price must be between 1 and 99 cents")
 
@@ -623,6 +653,23 @@ class KalshiClient(KalshiPublicClient):
         }
         if expiration_ts:
             payload["expiration_ts"] = expiration_ts
+
+        # Handle dry run mode
+        if dry_run:
+            logger.info(
+                "DRY RUN: create_order - order validated but not executed",
+                ticker=ticker,
+                side=side if isinstance(side, str) else side.value,
+                action=action if isinstance(action, str) else action.value,
+                count=count,
+                price=price,
+                client_order_id=client_order_id,
+                expiration_ts=expiration_ts,
+            )
+            return OrderResponse(
+                order_id=f"dry-run-{client_order_id}",
+                order_status="simulated",
+            )
 
         # Acquire rate limit for WRITE
         await self._rate_limiter.acquire("POST", "/portfolio/orders")
@@ -656,7 +703,7 @@ class KalshiClient(KalshiPublicClient):
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 
-    async def cancel_order(self, order_id: str) -> dict[str, Any]:
+    async def cancel_order(self, order_id: str) -> CancelOrderResponse:
         """Cancel an existing order."""
         path = f"/portfolio/orders/{order_id}"
         full_path = self.API_PATH + path
@@ -685,8 +732,17 @@ class KalshiClient(KalshiPublicClient):
                 if response.status_code >= 400:
                     raise KalshiAPIError(response.status_code, response.text)
 
-                result: dict[str, Any] = response.json()
-                return result
+                data = response.json()
+                payload_obj = data.get("order", data) if isinstance(data, dict) else data
+                if not isinstance(payload_obj, dict):
+                    raise KalshiAPIError(
+                        response.status_code,
+                        "Unexpected cancel order response shape (expected object).",
+                    )
+
+                payload = dict(payload_obj)
+                payload.setdefault("order_id", order_id)
+                return CancelOrderResponse.model_validate(payload)
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 

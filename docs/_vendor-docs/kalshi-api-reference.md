@@ -153,6 +153,17 @@ Only these count against **write** limits:
 
 **Note:** Timestamp filters are mutually exclusive. Only one status filter allowed.
 
+### Market Response Settlement Fields (Dec 25, 2025+)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `settlement_ts` | datetime (RFC3339) | Actual settlement timestamp. **Only populated for settled markets.** |
+| `settlement_value` | int | Settlement value in cents for YES side |
+| `settlement_value_dollars` | string | Settlement value in dollars (e.g., `"1.00"`) |
+| `settlement_timer_seconds` | int | Duration before market settles after determination |
+
+> **Note:** `settlement_ts` is the **actual** settlement time (changelog entry Dec 19, 2025; release date Dec 25, 2025). Prior to this field, `expiration_time` was used as a proxy, which was inaccurate for markets that settled early (event resolved before expiration) or late (disputes, delays).
+
 ### Market status gotcha (filter vs response)
 
 - Query filter (`GET /markets?status=...`): `unopened`, `open`, `paused`, `closed`, `settled`
@@ -182,9 +193,48 @@ Only these count against **write** limits:
 | `GET /portfolio/fills` | Trade history |
 | `GET /portfolio/settlements` | Settlement records (includes trade fees, event ticker) |
 
+### `GET /portfolio/positions` response keys
+
+Kalshi returns both market-level and event-level aggregates:
+
+```json
+{
+  "cursor": null,
+  "market_positions": [
+    {
+      "ticker": "KX...",
+      "position": 34,
+      "market_exposure": 952,
+      "realized_pnl": 0,
+      "fees_paid": 48
+    }
+  ],
+  "event_positions": [
+    {
+      "event_ticker": "KX...",
+      "event_exposure": 952,
+      "realized_pnl": 0,
+      "fees_paid": 48
+    }
+  ]
+}
+```
+
+Implementation note: `KalshiClient.get_positions()` consumes `market_positions` (fallback: legacy `positions`).
+
 ---
 
-## Orderbook Response Format
+## Orderbook Endpoint
+
+### GET /markets/{ticker}/orderbook
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `depth` | integer | 0 | Depth of orderbook (0 or negative = all levels, 1-100 for specific depth) |
+
+### Response Format
 
 ```json
 {
@@ -199,8 +249,12 @@ Only these count against **write** limits:
 
 - **Integer fields:** Cents (0-100 scale, $0.00-$1.00)
 - **Dollar fields:** String format like `"0.1500"`
+- **Levels:** Sorted best-to-worst price (highest bid first)
+- **Empty sides:** Arrays omitted when no orders exist
 
 **Binary market math:** A YES bid at price X = NO ask at price (100-X)
+
+> **Note:** The orderbook shows **bids only** for both sides. YES asks are implied from NO bids (and vice versa). A yes bid at 7¢ = no ask at 93¢.
 
 ---
 
@@ -249,6 +303,60 @@ Other commands: `unsubscribe`, `list_subscriptions`, `update_subscription`
 | `fill` | Private | Your order fills (market filter ignored) |
 | `market_positions` | Private | Your position updates |
 | `communications` | Private | RFQ and quote notifications |
+
+### orderbook_delta Channel Details
+
+**Subscription:**
+```json
+{
+  "id": 2,
+  "cmd": "subscribe",
+  "params": {
+    "channels": ["orderbook_delta"],
+    "market_tickers": ["KXBTC-26JAN15-T100000"]
+  }
+}
+```
+
+**Initial Snapshot (sent first):**
+```json
+{
+  "type": "orderbook_snapshot",
+  "sid": 2,
+  "seq": 2,
+  "msg": {
+    "market_ticker": "KXBTC-26JAN15-T100000",
+    "yes": [[47, 300], [46, 150]],
+    "yes_dollars": [["0.470", 300], ["0.460", 150]],
+    "no": [[53, 200], [54, 100]],
+    "no_dollars": [["0.530", 200], ["0.540", 100]]
+  }
+}
+```
+
+**Delta Updates (incremental):**
+```json
+{
+  "type": "orderbook_delta",
+  "sid": 2,
+  "seq": 3,
+  "msg": {
+    "market_ticker": "KXBTC-26JAN15-T100000",
+    "price": 47,
+    "price_dollars": "0.470",
+    "delta": -50,
+    "side": "yes"
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `seq` | Sequence number for ordering and gap detection |
+| `delta` | Change in quantity (positive = add, negative = remove) |
+| `side` | `"yes"` or `"no"` |
+
+**Applying deltas:** Update quantity at price level. Remove level when quantity reaches 0. Track `seq` to detect missed messages.
 
 ### Price/Value Units
 
@@ -302,10 +410,32 @@ For institutional traders and high-frequency operations:
 
 ### Market response field removals (release Jan 15, 2026)
 
+> **⚠️ IMMINENT:** These fields are being removed in 6 days (Jan 15, 2026).
+
 Cent-denominated fields being removed from **Market** responses:
 - `response_price_units`, `notional_value`, `yes_bid`, `yes_ask`, `no_bid`, `no_ask`, `last_price`,
   `previous_yes_bid`, `previous_yes_ask`, `previous_price`, `liquidity` → Use `*_dollars` equivalents.
 - `tick_size` → Use `price_level_structure` and `price_ranges`.
+
+**Known edge case:** The `liquidity` field can return **negative values** (e.g., `-170750`) in some markets.
+This is likely a calculation artifact or sentinel value. Since the field is deprecated, treat negative
+values as `None`/unknown rather than crashing on validation.
+
+**Dollar replacements (these REMAIN in API):**
+
+| REMOVED (Jan 15) | REMAINS (Use This) | Format |
+|------------------|-------------------|--------|
+| `yes_bid` | `yes_bid_dollars` | String like `"0.4500"` |
+| `yes_ask` | `yes_ask_dollars` | String like `"0.5500"` |
+| `no_bid` | `no_bid_dollars` | String like `"0.5500"` |
+| `no_ask` | `no_ask_dollars` | String like `"0.4500"` |
+| `last_price` | `last_price_dollars` | String |
+| `previous_price` | `previous_price_dollars` | String |
+| `liquidity` | `liquidity_dollars` | String (current offer value) |
+| `notional_value` | `notional_value_dollars` | String |
+| `tick_size` | `price_level_structure`, `price_ranges` | Object structure |
+
+> **Clarification:** The `*_dollars` fields are the **replacements that survive**. They are NOT being deprecated - they are the new standard. Only the cent-denominated integer fields are being removed.
 
 ### Market response field removals (release Jan 8, 2026)
 

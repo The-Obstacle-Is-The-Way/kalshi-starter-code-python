@@ -6,7 +6,15 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from kalshi_research.analysis.scanner import MarketScanner, ScanFilter, ScanResult
+import pytest
+
+from kalshi_research.analysis.scanner import (
+    MarketClosedError,
+    MarketScanner,
+    MarketStatusVerifier,
+    ScanFilter,
+    ScanResult,
+)
 from kalshi_research.api.models.market import Market, MarketStatus
 
 
@@ -16,6 +24,7 @@ def make_market(
     yes_ask: int = 55,
     volume_24h: int = 5000,
     close_time: datetime | None = None,
+    status: MarketStatus = MarketStatus.ACTIVE,
 ) -> Market:
     """Helper to create test markets."""
     if close_time is None:
@@ -24,7 +33,7 @@ def make_market(
         ticker=ticker,
         event_ticker="EVENT-1",
         title=f"Test Market {ticker}",
-        status=MarketStatus.ACTIVE,
+        status=status,
         yes_bid=yes_bid,
         yes_ask=yes_ask,
         no_bid=100 - yes_ask,
@@ -37,6 +46,100 @@ def make_market(
         expiration_time=close_time,
         liquidity=50000,
     )
+
+
+class TestMarketStatusVerifier:
+    """Test MarketStatusVerifier class."""
+
+    def test_is_market_tradeable_active_and_open(self) -> None:
+        """Active market before close_time is tradeable."""
+        verifier = MarketStatusVerifier()
+        market = make_market(
+            "TEST",
+            status=MarketStatus.ACTIVE,
+            close_time=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+        assert verifier.is_market_tradeable(market) is True
+
+    def test_is_market_tradeable_closed_status(self) -> None:
+        """Market with CLOSED status is not tradeable."""
+        verifier = MarketStatusVerifier()
+        market = make_market(
+            "TEST",
+            status=MarketStatus.CLOSED,
+            close_time=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+        assert verifier.is_market_tradeable(market) is False
+
+    def test_is_market_tradeable_past_close_time(self) -> None:
+        """Market past close_time is not tradeable."""
+        verifier = MarketStatusVerifier()
+        market = make_market(
+            "TEST",
+            status=MarketStatus.ACTIVE,
+            close_time=datetime.now(UTC) - timedelta(hours=1),
+        )
+
+        assert verifier.is_market_tradeable(market) is False
+
+    def test_verify_market_open_raises_on_closed_status(self) -> None:
+        """verify_market_open raises MarketClosedError for non-active status."""
+        verifier = MarketStatusVerifier()
+        market = make_market(
+            "TEST",
+            status=MarketStatus.CLOSED,
+            close_time=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+        with pytest.raises(MarketClosedError, match="has status closed"):
+            verifier.verify_market_open(market)
+
+    def test_verify_market_open_raises_on_past_close_time(self) -> None:
+        """verify_market_open raises MarketClosedError for past close_time."""
+        verifier = MarketStatusVerifier()
+        market = make_market(
+            "TEST",
+            status=MarketStatus.ACTIVE,
+            close_time=datetime.now(UTC) - timedelta(hours=1),
+        )
+
+        with pytest.raises(MarketClosedError, match="closed at"):
+            verifier.verify_market_open(market)
+
+    def test_verify_market_open_succeeds_for_tradeable(self) -> None:
+        """verify_market_open succeeds for tradeable market."""
+        verifier = MarketStatusVerifier()
+        market = make_market(
+            "TEST",
+            status=MarketStatus.ACTIVE,
+            close_time=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+        # Should not raise
+        verifier.verify_market_open(market)
+
+    def test_filter_tradeable_markets(self) -> None:
+        """filter_tradeable_markets filters out non-tradeable markets."""
+        verifier = MarketStatusVerifier()
+        now = datetime.now(UTC)
+        markets = [
+            make_market("ACTIVE", status=MarketStatus.ACTIVE, close_time=now + timedelta(hours=1)),
+            make_market("CLOSED", status=MarketStatus.CLOSED, close_time=now + timedelta(hours=1)),
+            make_market(
+                "PAST_CLOSE",
+                status=MarketStatus.ACTIVE,
+                close_time=now - timedelta(hours=1),
+            ),
+            make_market("ACTIVE2", status=MarketStatus.ACTIVE, close_time=now + timedelta(hours=2)),
+        ]
+
+        tradeable = verifier.filter_tradeable_markets(markets)
+
+        assert len(tradeable) == 2
+        assert tradeable[0].ticker == "ACTIVE"
+        assert tradeable[1].ticker == "ACTIVE2"
 
 
 class TestScanResult:
@@ -140,6 +243,34 @@ class TestCloseRaceScan:
         tickers = {r.ticker for r in results}
         assert "TIGHT" in tickers
         assert "WIDE" not in tickers
+
+    def test_excludes_closed_markets(self) -> None:
+        """Closed markets should never appear in close race results."""
+        scanner = MarketScanner()
+        now = datetime.now(UTC)
+        markets = [
+            make_market("OPEN", yes_bid=48, yes_ask=52, close_time=now + timedelta(hours=1)),
+            make_market(
+                "CLOSED_STATUS",
+                yes_bid=48,
+                yes_ask=52,
+                status=MarketStatus.CLOSED,
+                close_time=now + timedelta(hours=1),
+            ),
+            make_market(
+                "PAST_CLOSE",
+                yes_bid=48,
+                yes_ask=52,
+                close_time=now - timedelta(minutes=5),
+            ),
+        ]
+
+        results = scanner.scan_close_races(markets, top_n=10)
+
+        tickers = {r.ticker for r in results}
+        assert "OPEN" in tickers
+        assert "CLOSED_STATUS" not in tickers
+        assert "PAST_CLOSE" not in tickers  # This was the bug - closed 5 minutes ago!
 
 
 class TestHighVolumeScan:

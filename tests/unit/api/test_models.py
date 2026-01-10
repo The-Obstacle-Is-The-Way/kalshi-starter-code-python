@@ -65,13 +65,43 @@ class TestMarketModel:
             )
             assert market.status == expected_enum
 
-    def test_market_rejects_negative_liquidity(self, make_market: Any) -> None:
-        """Liquidity must be non-negative per Kalshi API spec."""
-        from pydantic import ValidationError
-
+    def test_market_negative_liquidity_becomes_none(self, make_market: Any) -> None:
+        """Negative liquidity values are converted to None (deprecated field)."""
         data = make_market(liquidity=-170750)
-        with pytest.raises(ValidationError, match="greater than or equal to 0"):
-            Market.model_validate(data)
+        market = Market.model_validate(data)
+        # Validator converts negative to None (field deprecated Jan 15, 2026)
+        assert market.liquidity is None
+
+    def test_market_liquidity_optional(self, make_market: Any) -> None:
+        """Liquidity field is optional (deprecated, may be absent)."""
+        data = make_market()
+        data.pop("liquidity", None)  # Remove liquidity field
+        market = Market.model_validate(data)
+        assert market.liquidity is None
+
+    def test_market_positive_liquidity_preserved(self, make_market: Any) -> None:
+        """Positive liquidity values are preserved until field removal."""
+        data = make_market(liquidity=50000)
+        market = Market.model_validate(data)
+        assert market.liquidity == 50000
+
+    def test_market_settlement_ts_parses(self, make_market: Any) -> None:
+        """Market model parses settlement_ts when present."""
+        data = make_market(
+            status="finalized",
+            result="yes",
+            settlement_ts="2025-12-31T12:00:00Z",
+            expiration_time="2026-01-01T00:00:00Z",
+        )
+        market = Market.model_validate(data)
+
+        assert market.settlement_ts is not None
+        assert market.settlement_ts < market.expiration_time
+
+    def test_market_settlement_ts_optional(self, make_market: Any) -> None:
+        """Market model accepts missing settlement_ts for unsettled/legacy markets."""
+        market = Market.model_validate(make_market())
+        assert market.settlement_ts is None
 
     def test_market_immutability(self, make_market: Any) -> None:
         """Market model is frozen (immutable)."""

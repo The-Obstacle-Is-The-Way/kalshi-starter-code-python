@@ -2,7 +2,8 @@
 
 ## Status
 - **Priority**: High (Safety)
-- **Status**: Proposed
+- **Status**: ✅ Phase 1 Complete (dry_run implemented)
+- **Updated**: 2026-01-09
 - **Owner**: TBD
 
 ## Context
@@ -37,6 +38,6 @@ Create a wrapper service `src/kalshi_research/execution/executor.py` that acts a
     *   **Audit Log**: Log all agent-initiated actions to a separate `trade_audit.log`.
 
 ## Definition of Done
-- [ ] `KalshiClient.create_order` accepts `dry_run=True`.
-- [ ] `TradeExecutor` implemented with budget limits.
-- [ ] Integration tests verify `dry_run` does not hit the API.
+- [x] `KalshiClient.create_order` accepts `dry_run=True` ✅ (2026-01-09)
+- [ ] `TradeExecutor` implemented with budget limits (Phase 2 - future)
+- [x] Integration tests verify `dry_run` does not hit the API ✅ (test_create_order_dry_run)

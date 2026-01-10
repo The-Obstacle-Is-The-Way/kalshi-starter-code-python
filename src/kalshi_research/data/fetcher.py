@@ -106,15 +106,19 @@ class DataFetcher:
     def _api_market_to_snapshot(
         self, api_market: APIMarket, snapshot_time: datetime
     ) -> PriceSnapshot:
-        """Convert API market to price snapshot."""
+        """Convert API market to price snapshot.
+
+        Uses computed properties that prefer new dollar fields over legacy cent fields.
+        Database continues to store cents for backwards compatibility.
+        """
         return PriceSnapshot(
             ticker=api_market.ticker,
             snapshot_time=snapshot_time,
-            yes_bid=api_market.yes_bid,
-            yes_ask=api_market.yes_ask,
-            no_bid=api_market.no_bid,
-            no_ask=api_market.no_ask,
-            last_price=api_market.last_price,
+            yes_bid=api_market.yes_bid_cents,
+            yes_ask=api_market.yes_ask_cents,
+            no_bid=api_market.no_bid_cents,
+            no_ask=api_market.no_ask_cents,
+            last_price=api_market.last_price_cents,
             volume=api_market.volume,
             volume_24h=api_market.volume_24h,
             open_interest=api_market.open_interest,
@@ -125,16 +129,17 @@ class DataFetcher:
         """Convert a settled API market to a settlement row.
 
         Notes:
-            Kalshi's public markets endpoint exposes `result` but does not provide a clear
-            `settled_at` timestamp. We use `expiration_time` as an explicit proxy for `settled_at`.
+            Prefer `settlement_ts` (added Dec 19, 2025) when available. Fall back to
+            `expiration_time` for historical data or older synced markets.
         """
         if not api_market.result:
             return None
 
+        settled_at = api_market.settlement_ts or api_market.expiration_time
         return DBSettlement(
             ticker=api_market.ticker,
             event_ticker=api_market.event_ticker,
-            settled_at=api_market.expiration_time,
+            settled_at=settled_at,
             result=api_market.result,
         )
 
@@ -178,7 +183,7 @@ class DataFetcher:
         logger.info("Starting market sync", status=status)
         count = 0
 
-        async with self._db.session_factory() as session:
+        async with self._db.session_factory() as session, session.begin():
             market_repo = MarketRepository(session)
             event_repo = EventRepository(session)
 
@@ -198,12 +203,10 @@ class DataFetcher:
                 await market_repo.upsert(db_market)
                 count += 1
 
-                # Commit in batches to avoid long transactions
+                # Flush in batches to avoid memory issues (still within transaction)
                 if count % 100 == 0:
-                    await session.commit()
+                    await session.flush()
                     logger.info("Synced markets so far", count=count)
-
-            await session.commit()
 
         logger.info("Synced total markets", count=count)
         return count
@@ -225,7 +228,7 @@ class DataFetcher:
         count = 0
         skipped = 0
 
-        async with self._db.session_factory() as session:
+        async with self._db.session_factory() as session, session.begin():
             settlement_repo = SettlementRepository(session)
             market_repo = MarketRepository(session)
             event_repo = EventRepository(session)
@@ -254,12 +257,10 @@ class DataFetcher:
                 await settlement_repo.upsert(settlement)
                 count += 1
 
-                # Commit in batches to avoid long transactions
+                # Flush in batches to avoid memory issues (still within transaction)
                 if count % 100 == 0:
-                    await session.commit()
+                    await session.flush()
                     logger.info("Synced settlements so far", count=count)
-
-            await session.commit()
 
         logger.info("Synced total settlements", count=count, skipped=skipped)
         return count
@@ -285,7 +286,7 @@ class DataFetcher:
         logger.info("Taking price snapshot", snapshot_time=snapshot_time.isoformat())
         count = 0
 
-        async with self._db.session_factory() as session:
+        async with self._db.session_factory() as session, session.begin():
             price_repo = PriceRepository(session)
             market_repo = MarketRepository(session)
             event_repo = EventRepository(session)
@@ -311,12 +312,10 @@ class DataFetcher:
                 await price_repo.add(snapshot)
                 count += 1
 
-                # Commit in batches
+                # Flush in batches to avoid memory issues (still within transaction)
                 if count % 100 == 0:
-                    await session.commit()
+                    await session.flush()
                     logger.debug("Took snapshots so far", count=count)
-
-            await session.commit()
 
         logger.info("Took price snapshots", count=count)
         return count

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import structlog
 from sqlalchemy import select
@@ -104,10 +104,20 @@ class PortfolioSyncer:
         """
         logger.info("Syncing positions")
         api_positions = await self.client.get_positions()
+        logger.debug("API positions response", count=len(api_positions), positions=api_positions)
+
+        if not api_positions:
+            logger.warning(
+                "API returned empty market positions list. "
+                "If you expect open positions, confirm you're using the correct environment "
+                "(demo vs prod). Note: /portfolio/positions returns market-level positions; "
+                "/portfolio/balance may reflect pending settlement value."
+            )
+
         synced_count = 0
         now = datetime.now(UTC)
 
-        async with self.db.session_factory() as session:
+        async with self.db.session_factory() as session, session.begin():
             # Get existing open positions to handle closures
             result = await session.execute(
                 select(Position).where(Position.quantity > 0, Position.closed_at.is_(None))
@@ -116,11 +126,10 @@ class PortfolioSyncer:
             seen_tickers = set()
 
             for pos_data in api_positions:
-                # API returns position dictionaries with keys like:
-                # ticker, position, market_exposure, realized_pnl, fees_paid.
-                ticker = pos_data["ticker"]
-                quantity = abs(int(pos_data["position"]))
-                side = "yes" if pos_data["position"] > 0 else "no"
+                # API returns PortfolioPosition Pydantic models
+                ticker = pos_data.ticker
+                quantity = abs(int(pos_data.position))
+                side = "yes" if pos_data.position > 0 else "no"
                 seen_tickers.add(ticker)
 
                 # Compute cost basis from trades using FIFO
@@ -138,7 +147,7 @@ class PortfolioSyncer:
                     existing.quantity = quantity
                     existing.side = side
                     existing.avg_price_cents = avg_price_cents
-                    existing.realized_pnl_cents = int(pos_data.get("realized_pnl", 0))
+                    existing.realized_pnl_cents = pos_data.realized_pnl or 0
                     existing.last_synced = now
                 else:
                     # Create new
@@ -148,7 +157,7 @@ class PortfolioSyncer:
                         quantity=quantity,
                         avg_price_cents=avg_price_cents,
                         current_price_cents=None,  # Updated by update_mark_prices()
-                        realized_pnl_cents=int(pos_data.get("realized_pnl", 0)),
+                        realized_pnl_cents=pos_data.realized_pnl or 0,
                         opened_at=now,  # Approximation for new sync
                         last_synced=now,
                     )
@@ -164,8 +173,6 @@ class PortfolioSyncer:
                     pos.last_synced = now
                     logger.info("Marked position as closed", ticker=ticker)
 
-            await session.commit()
-
         logger.info("Synced positions", count=synced_count)
         return synced_count
 
@@ -179,42 +186,42 @@ class PortfolioSyncer:
         Returns:
             Number of trades synced
         """
+        from kalshi_research.api.models.portfolio import Fill  # noqa: PLC0415, TC001
+
         logger.info("Syncing trades")
         min_ts = int(since.timestamp()) if since else None
 
         # Paginate through fills
-        fills: list[dict[str, Any]] = []
+        fills: list[Fill] = []
         cursor = None
 
         while True:
             response = await self.client.get_fills(min_ts=min_ts, limit=100, cursor=cursor)
-            page_fills = response.get("fills", [])
-            if not page_fills:
+            if not response.fills:
                 break
 
-            fills.extend(page_fills)
-            cursor = response.get("cursor")
+            fills.extend(response.fills)
+            cursor = response.cursor
             if not cursor:
                 break
 
         synced_count = 0
         now = datetime.now(UTC)
 
-        async with self.db.session_factory() as session:
+        async with self.db.session_factory() as session, session.begin():
             # Check for existing trades to avoid duplicates
             # Using kalshi_trade_id for idempotency
             existing_ids_result = await session.execute(select(Trade.kalshi_trade_id))
             existing_ids = set(existing_ids_result.scalars().all())
 
             for fill in fills:
-                # Fill dictionaries contain keys like:
-                # trade_id, ticker, yes_price, no_price, count, action, side, created_time.
-                trade_id = fill["trade_id"]
+                # Fill is now a Pydantic model with typed fields
+                trade_id = fill.trade_id
                 if trade_id in existing_ids:
                     continue
 
-                executed_at = datetime.fromisoformat(fill["created_time"].replace("Z", "+00:00"))
-                side_raw = str(fill.get("side", "yes")).lower()
+                executed_at = datetime.fromisoformat(fill.created_time.replace("Z", "+00:00"))
+                side_raw = (fill.side or "yes").lower()
                 if side_raw not in {"yes", "no"}:
                     logger.warning(
                         "Unknown fill side; skipping",
@@ -223,7 +230,7 @@ class PortfolioSyncer:
                     )
                     continue
 
-                action_raw = str(fill.get("action", "buy")).lower()
+                action_raw = (fill.action or "buy").lower()
                 if action_raw not in {"buy", "sell"}:
                     logger.warning(
                         "Unknown fill action; skipping",
@@ -232,17 +239,17 @@ class PortfolioSyncer:
                     )
                     continue
 
-                yes_price = int(fill["yes_price"])
+                yes_price = fill.yes_price
                 if side_raw == "yes":
                     price = yes_price
                 else:
-                    no_price = fill.get("no_price")
-                    price = int(no_price) if no_price is not None else 100 - yes_price
-                quantity = int(fill["count"])
+                    no_price = fill.no_price
+                    price = no_price if no_price is not None else 100 - yes_price
+                quantity = fill.count
 
                 trade = Trade(
                     kalshi_trade_id=trade_id,
-                    ticker=fill["ticker"],
+                    ticker=fill.ticker,
                     side=side_raw,
                     action=action_raw,
                     quantity=quantity,
@@ -255,11 +262,9 @@ class PortfolioSyncer:
                 session.add(trade)
                 synced_count += 1
 
-                # Check 1000 item flush
+                # Flush in batches to avoid memory issues (still within transaction)
                 if synced_count % 1000 == 0:
-                    await session.commit()
-
-            await session.commit()
+                    await session.flush()
 
         logger.info("Synced new trades", count=synced_count)
         return synced_count
@@ -295,7 +300,7 @@ class PortfolioSyncer:
         logger.info("Updating mark prices")
         updated_count = 0
 
-        async with self.db.session_factory() as session:
+        async with self.db.session_factory() as session, session.begin():
             # Get all open positions
             result = await session.execute(
                 select(Position).where(Position.quantity > 0, Position.closed_at.is_(None))
@@ -313,13 +318,13 @@ class PortfolioSyncer:
 
                     # Compute mark price as midpoint (in cents)
                     # Handle unpriced markets (0/0 or 0/100) - skip update
-                    if market.yes_bid == 0 and market.yes_ask == 0:
+                    if market.yes_bid_cents == 0 and market.yes_ask_cents == 0:
                         logger.warning(
                             "Market has no quotes; skipping mark price update",
                             ticker=pos.ticker,
                         )
                         continue
-                    if market.yes_bid == 0 and market.yes_ask == 100:
+                    if market.yes_bid_cents == 0 and market.yes_ask_cents == 100:
                         logger.warning(
                             "Market has placeholder quotes; skipping mark price update",
                             ticker=pos.ticker,
@@ -328,10 +333,10 @@ class PortfolioSyncer:
 
                     # Mark price = midpoint of bid/ask
                     if pos.side == "yes":
-                        mark_price = (market.yes_bid + market.yes_ask) // 2
+                        mark_price = int(market.midpoint)
                     else:
                         # For NO positions, use NO side midpoint
-                        mark_price = (market.no_bid + market.no_ask) // 2
+                        mark_price = (market.no_bid_cents + market.no_ask_cents) // 2
 
                     pos.current_price_cents = mark_price
 
@@ -352,8 +357,6 @@ class PortfolioSyncer:
                         error=str(e),
                     )
                     continue
-
-            await session.commit()
 
         logger.info("Updated mark prices", count=updated_count)
         return updated_count

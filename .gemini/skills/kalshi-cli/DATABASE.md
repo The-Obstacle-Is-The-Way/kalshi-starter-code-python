@@ -108,12 +108,14 @@ Resolved market outcomes for calibration analysis.
 |--------|------|-------------|
 | `ticker` | VARCHAR (PK/FK) | Market ticker |
 | `event_ticker` | VARCHAR | Parent event |
-| `settled_at` | DATETIME | Settlement timestamp |
+| `settled_at` | DATETIME | Actual settlement timestamp (from API `settlement_ts`) |
 | `result` | VARCHAR | `yes`, `no`, or `void` |
 | `final_yes_price` | INTEGER | Final YES price (cents) |
 | `final_no_price` | INTEGER | Final NO price (cents) |
 | `yes_payout` | INTEGER | YES payout (cents) |
 | `no_payout` | INTEGER | NO payout (cents) |
+
+> **Note:** `settled_at` uses the API's `settlement_ts` field (changelog entry Dec 19, 2025; release date Dec 25, 2025). For markets synced before this change, `expiration_time` was used as a proxy.
 
 ### positions
 Synced portfolio positions from Kalshi API.

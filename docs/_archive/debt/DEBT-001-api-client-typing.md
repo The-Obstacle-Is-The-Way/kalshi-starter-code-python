@@ -27,3 +27,15 @@ The `KalshiClient` exhibits a "split-brain" typing strategy. Market data methods
 1. Create Pydantic models in `src/kalshi_research/api/models/portfolio.py`.
 2. Update `KalshiClient` methods to validate and return these models.
 3. Update tests in `tests/unit/api/test_client.py` to assert model types.
+
+## Acceptance Criteria
+- [x] `PortfolioBalance` Pydantic model created
+- [x] `PortfolioPosition` Pydantic model created
+- [x] `Order` Pydantic model created
+- [x] `Fill` Pydantic model created
+- [x] `get_balance()` returns `PortfolioBalance` model
+- [x] `get_positions()` returns `list[PortfolioPosition]`
+- [x] `get_orders()` returns `list[Order]`
+- [x] `get_fills()` returns appropriate model
+- [x] Tests updated to verify model types
+- [x] All quality gates pass

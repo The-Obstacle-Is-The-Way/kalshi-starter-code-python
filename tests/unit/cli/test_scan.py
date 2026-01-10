@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from typer.testing import CliRunner
 
+from kalshi_research.api.models.market import Market
+from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.cli import app
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 runner = CliRunner()
 
@@ -138,3 +144,193 @@ def test_scan_arbitrage_warns_when_tickers_truncated(
 
     assert result.exit_code == 0
     assert "Limiting correlation analysis to first 1 tickers" in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_scan_opportunities_does_not_fetch_orderbooks_by_default(
+    mock_client_cls: MagicMock,
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    high_liquidity = Market.model_validate(
+        make_market(
+            ticker="HIGH-LIQ",
+            yes_bid=50,
+            yes_ask=51,
+            volume_24h=10_000,
+            open_interest=5_000,
+            close_time="2099-12-31T00:00:00Z",
+            expiration_time="2100-01-01T00:00:00Z",
+        )
+    )
+    low_liquidity = Market.model_validate(
+        make_market(
+            ticker="LOW-LIQ",
+            yes_bid=50,
+            yes_ask=51,
+            volume_24h=0,
+            open_interest=0,
+            close_time="2099-12-31T00:00:00Z",
+            expiration_time="2100-01-01T00:00:00Z",
+        )
+    )
+
+    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
+        _ = status, max_pages
+        yield high_liquidity
+        yield low_liquidity
+
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+    mock_client.get_orderbook = AsyncMock()
+
+    result = runner.invoke(app, ["scan", "opportunities", "--filter", "close-race", "--top", "2"])
+
+    assert result.exit_code == 0
+    assert "HIGH-LIQ" in result.stdout
+    assert "LOW-LIQ" in result.stdout
+    assert "Liquidity" not in result.stdout
+    mock_client.get_orderbook.assert_not_awaited()
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_scan_opportunities_show_liquidity_fetches_orderbooks_with_depth(
+    mock_client_cls: MagicMock,
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    high_liquidity = Market.model_validate(
+        make_market(
+            ticker="HIGH-LIQ",
+            yes_bid=50,
+            yes_ask=51,
+            volume_24h=10_000,
+            open_interest=5_000,
+            close_time="2099-12-31T00:00:00Z",
+            expiration_time="2100-01-01T00:00:00Z",
+        )
+    )
+    low_liquidity = Market.model_validate(
+        make_market(
+            ticker="LOW-LIQ",
+            yes_bid=50,
+            yes_ask=51,
+            volume_24h=0,
+            open_interest=0,
+            close_time="2099-12-31T00:00:00Z",
+            expiration_time="2100-01-01T00:00:00Z",
+        )
+    )
+
+    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
+        _ = status, max_pages
+        yield high_liquidity
+        yield low_liquidity
+
+    async def orderbook_for_ticker(ticker: str, *, depth: int):
+        _ = depth
+        if ticker == "HIGH-LIQ":
+            return Orderbook(yes=[(50, 5_000)], no=[(49, 5_000)])
+        return Orderbook(yes=None, no=None)
+
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+    mock_client.get_orderbook = AsyncMock(side_effect=orderbook_for_ticker)
+
+    result = runner.invoke(
+        app,
+        [
+            "scan",
+            "opportunities",
+            "--filter",
+            "close-race",
+            "--top",
+            "2",
+            "--show-liquidity",
+            "--liquidity-depth",
+            "7",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Liquidity" in result.stdout
+    assert "HIGH-LIQ" in result.stdout
+    assert "LOW-LIQ" in result.stdout
+    assert "100" in result.stdout
+    mock_client.get_orderbook.assert_any_await("HIGH-LIQ", depth=7)
+    mock_client.get_orderbook.assert_any_await("LOW-LIQ", depth=7)
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_scan_opportunities_min_liquidity_filters_results(
+    mock_client_cls: MagicMock,
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    high_liquidity = Market.model_validate(
+        make_market(
+            ticker="HIGH-LIQ",
+            yes_bid=50,
+            yes_ask=51,
+            volume_24h=10_000,
+            open_interest=5_000,
+            close_time="2099-12-31T00:00:00Z",
+            expiration_time="2100-01-01T00:00:00Z",
+        )
+    )
+    low_liquidity = Market.model_validate(
+        make_market(
+            ticker="LOW-LIQ",
+            yes_bid=50,
+            yes_ask=51,
+            volume_24h=0,
+            open_interest=0,
+            close_time="2099-12-31T00:00:00Z",
+            expiration_time="2100-01-01T00:00:00Z",
+        )
+    )
+
+    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
+        _ = status, max_pages
+        yield high_liquidity
+        yield low_liquidity
+
+    async def orderbook_for_ticker(ticker: str, *, depth: int):
+        _ = depth
+        if ticker == "HIGH-LIQ":
+            return Orderbook(yes=[(50, 5_000)], no=[(49, 5_000)])
+        return Orderbook(yes=None, no=None)
+
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+    mock_client.get_orderbook = AsyncMock(side_effect=orderbook_for_ticker)
+
+    result = runner.invoke(
+        app,
+        [
+            "scan",
+            "opportunities",
+            "--filter",
+            "close-race",
+            "--top",
+            "2",
+            "--min-liquidity",
+            "50",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "HIGH-LIQ" in result.stdout
+    assert "LOW-LIQ" not in result.stdout
+    assert "Liquidity" in result.stdout
+    mock_client.get_orderbook.assert_any_await("HIGH-LIQ", depth=25)
+    mock_client.get_orderbook.assert_any_await("LOW-LIQ", depth=25)

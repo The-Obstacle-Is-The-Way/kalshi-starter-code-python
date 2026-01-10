@@ -92,9 +92,9 @@ def data_sync_settlements(
     """Sync settled market outcomes from Kalshi API to database.
 
     Notes:
-        The public markets endpoint provides a `result` but does not expose a clear settlement
-        timestamp.
-        We store `Settlement.settled_at` using `Market.expiration_time` as a documented proxy.
+        Kalshi exposes `settlement_ts` (added Dec 19, 2025) for settled markets.
+        We store `Settlement.settled_at` using `Market.settlement_ts` when available, falling back
+        to `Market.expiration_time` for historical/legacy data.
     """
     from kalshi_research.data import DatabaseManager, DataFetcher
 

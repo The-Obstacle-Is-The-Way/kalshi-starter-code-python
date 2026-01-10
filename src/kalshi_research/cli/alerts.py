@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any
 
+import structlog
 import typer
 from rich.table import Table
 
@@ -16,6 +17,8 @@ from kalshi_research.cli.utils import (
     load_json_storage_file,
 )
 from kalshi_research.paths import DEFAULT_ALERT_LOG, DEFAULT_ALERTS_PATH
+
+logger = structlog.get_logger()
 
 app = typer.Typer(help="Alert management commands.")
 
@@ -114,7 +117,12 @@ async def _compute_sentiment_shifts(
                 summary = await aggregator.get_market_summary(ticker, days=7, compare_previous=True)
                 if summary and summary.score_change is not None:
                     shifts[ticker] = summary.score_change
-    except Exception:
+    except Exception as e:
+        logger.warning(
+            "Failed to compute sentiment shifts; sentiment alerts will be skipped",
+            error=str(e),
+            exc_info=True,
+        )
         return {}
     return shifts
 

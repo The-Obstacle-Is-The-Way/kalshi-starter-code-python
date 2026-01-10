@@ -14,7 +14,7 @@ exclude_docs: |
 # Keep tracker detail pages in the build but hide them from nav.
 not_in_nav: |
   _bugs/BUG-*.md
-  _todo/TODO-*.md
+  _future/TODO-*.md
   _debt/DEBT-*.md
   _debt/security-audit.md
 
@@ -57,6 +57,7 @@ nav:
       - Overview: architecture/overview.md
       - CLI Design: architecture/cli.md
       - Data Pipeline: architecture/data-pipeline.md
+      - Evolution Plan: architecture/architecture-evolution-plan.md
   - Research:
       - Thesis System: research/thesis-system.md
       - Backtesting: research/backtesting.md
@@ -76,13 +77,14 @@ nav:
   - Internal:
       - Specs:
           - Index: _specs/README.md
-          - SPEC-024: _specs/SPEC-024-exa-research-agent.md
-          - SPEC-025: _specs/SPEC-025-market-open-time-display.md
+      - Future:
+          - Index: _future/README.md
+          - FUTURE-001: _future/FUTURE-001-exa-research-agent.md
+          - TODO-00A: _future/TODO-00A-api-verification-post-deadline.md
+          - TODO-00B: _future/TODO-00B-trade-executor-phase2.md
       - Bug Tracker: _bugs/README.md
-      - Todo Index: _todo/README.md
       - Debt Overview: _debt/README.md
       - Technical Debt: _debt/technical-debt.md
       - Code Audit Checklist: _debt/code-audit-checklist.md
+      - Security Audit: _debt/security-audit.md
       - Ralph Wiggum Protocol: _ralph-wiggum/protocol.md
-      - Ralph Wiggum Prompt: _ralph-wiggum/prompt.md
-      - Ralph Wiggum Progress: _ralph-wiggum/progress.md

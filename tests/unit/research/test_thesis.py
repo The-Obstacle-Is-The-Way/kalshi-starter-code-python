@@ -5,11 +5,19 @@ Tests for research thesis framework - uses REAL objects.
 from __future__ import annotations
 
 import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from kalshi_research.research.thesis import Thesis, ThesisEvidence, ThesisStatus, ThesisTracker
+from kalshi_research.api.models.market import Market, MarketStatus
+from kalshi_research.research.thesis import (
+    TemporalValidator,
+    Thesis,
+    ThesisEvidence,
+    ThesisStatus,
+    ThesisTracker,
+)
 
 
 class TestThesis:
@@ -436,3 +444,74 @@ class TestThesisTracker:
         tracker.remove("to-remove")
 
         assert tracker.get("to-remove") is None
+
+
+class TestTemporalValidator:
+    """Test temporal validation for research workflow."""
+
+    def _make_market(self, open_time: datetime) -> Market:
+        """Helper to create a market with specific open time."""
+        return Market(
+            ticker="KXTEST-01JAN01",
+            event_ticker="KXTEST",
+            title="Test market",
+            status=MarketStatus.ACTIVE,
+            open_time=open_time,
+            close_time=datetime(2027, 1, 1, tzinfo=UTC),
+            expiration_time=datetime(2027, 1, 1, tzinfo=UTC),
+            volume=1000,
+            volume_24h=100,
+            open_interest=500,
+        )
+
+    def test_event_after_market_opens_is_valid(self) -> None:
+        """Event occurring after market opens is valid."""
+        market = self._make_market(open_time=datetime(2026, 1, 5, 20, 0, 0, tzinfo=UTC))
+        event_date = datetime(2026, 1, 10, 12, 0, 0, tzinfo=UTC)
+
+        validator = TemporalValidator()
+        result = validator.validate(market=market, event_date=event_date)
+
+        assert result.valid is True
+        assert result.warning is None
+
+    def test_event_before_market_opens_is_invalid(self) -> None:
+        """Event occurring before market opens triggers warning."""
+        market = self._make_market(open_time=datetime(2026, 1, 5, 20, 0, 0, tzinfo=UTC))
+        event_date = datetime(2025, 12, 31, 12, 0, 0, tzinfo=UTC)
+
+        validator = TemporalValidator()
+        result = validator.validate(market=market, event_date=event_date)
+
+        assert result.valid is False
+        assert result.warning is not None
+        assert "predates market open" in result.warning
+        assert "2025-12-31" in result.warning
+        assert "2026-01-05" in result.warning
+
+    def test_event_same_time_as_market_opens_is_valid(self) -> None:
+        """Event at exact market open time is considered valid."""
+        open_time = datetime(2026, 1, 5, 20, 0, 0, tzinfo=UTC)
+        market = self._make_market(open_time=open_time)
+        event_date = open_time
+
+        validator = TemporalValidator()
+        result = validator.validate(market=market, event_date=event_date)
+
+        assert result.valid is True
+        assert result.warning is None
+
+    def test_stranger_things_scenario(self) -> None:
+        """Test the actual Stranger Things market scenario from TODO-005."""
+        # Market opened Jan 5, 2026
+        market = self._make_market(open_time=datetime(2026, 1, 5, 20, 0, 0, tzinfo=UTC))
+        # S5 finale was Dec 31, 2025
+        s5_finale_date = datetime(2025, 12, 31, 23, 59, 0, tzinfo=UTC)
+
+        validator = TemporalValidator()
+        result = validator.validate(market=market, event_date=s5_finale_date)
+
+        # This should flag as invalid - S5 doesn't count!
+        assert result.valid is False
+        assert result.warning is not None
+        assert "predates market open" in result.warning
