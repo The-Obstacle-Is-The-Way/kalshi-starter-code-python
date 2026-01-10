@@ -104,6 +104,52 @@ uv run pytest -m "not integration and not slow"  # fast local suite (CI-like)
 - Public endpoints work without creds; portfolio features/integration tests require `KALSHI_KEY_ID` plus a key (`KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`).
 - Exa-powered commands require `EXA_API_KEY`.
 
+## Runtime Environment & API Access
+
+**Agents CAN and SHOULD read `.env`** to understand the configured environment. While `.env` is gitignored (never commit it), reading it is necessary to:
+
+- Determine if `KALSHI_ENVIRONMENT` is set to `prod` or `demo`
+- Verify API credentials are configured before running authenticated commands
+- Avoid confusion about which environment is active
+
+### Environment Behavior
+
+| `KALSHI_ENVIRONMENT` | API Base URL                 | Real Money? |
+|----------------------|------------------------------|-------------|
+| `prod` (default)     | `api.elections.kalshi.com`   | **YES**     |
+| `demo`               | `demo-api.kalshi.co`         | No (paper)  |
+
+### Safe Operations (READ-ONLY)
+
+These commands are safe to run anytime - they only read data:
+
+```bash
+uv run kalshi market list              # Public endpoint, no auth needed
+uv run kalshi market get TICKER        # Public endpoint, no auth needed
+uv run kalshi scan opportunities       # Public endpoint, no auth needed
+uv run kalshi portfolio sync           # Authenticated READ from Kalshi API
+uv run kalshi portfolio positions      # Reads local DB cache (run sync first!)
+uv run kalshi portfolio pnl            # Reads local DB cache
+```
+
+**Important:** `portfolio positions` reads from the **local database cache**, not the live API. Always run `portfolio sync` first to pull the latest data from Kalshi.
+
+### Cost-Incurring Operations (USE CAUTION)
+
+These operations may incur real costs:
+
+- **Order placement** (`create_order`) - Real money on prod environment
+- **Exa API calls** (`research context`, `research topic`, `news collect`) - Exa API usage costs
+
+### Pre-flight Checklist for Authenticated Commands
+
+Before running portfolio or authenticated commands:
+
+1. Read `.env` to confirm `KALSHI_ENVIRONMENT` is set correctly
+2. Verify `KALSHI_KEY_ID` and `KALSHI_PRIVATE_KEY_PATH` are configured
+3. Run `uv run kalshi portfolio sync` to populate local DB
+4. Then run read commands like `portfolio positions`
+
 ## Database Safety (Do Not Destroy State)
 
 - **NEVER delete `data/kalshi.db`** to "fix" issues (e.g. `database disk image is malformed`).
