@@ -10,7 +10,8 @@ Things that can trip you up when using the Kalshi Research Platform.
 
 **ALWAYS check `open_time` before researching time-sensitive markets.**
 
-A market asking "Will X happen before Y?" only counts events AFTER the market opened. If you research an event that happened BEFORE the market opened, your recommendation will be WRONG.
+A market asking "Will X happen before Y?" only counts events AFTER the market opened. If you research an event
+that happened BEFORE the market opened, your recommendation will be WRONG.
 
 **Example of catastrophic failure**:
 - Market: "Will a new Stranger Things episode release before Jan 1, 2027?"
@@ -22,19 +23,16 @@ A market asking "Will X happen before Y?" only counts events AFTER the market op
 
 **How to avoid**:
 ```bash
-# ALWAYS check open_time FIRST
-# NOTE: `market get` does not currently display open_time (SPEC-025 is planned).
-
-# Ensure market metadata is current
-uv run kalshi data sync-markets
-
-# Fetch current prices/volume
+# Market API view (shows Open Time / Close Time / etc.)
 uv run kalshi market get TICKER
 
-# Get timing fields from SQLite
+# If you are using the local DB for discovery, ensure it's current:
+uv run kalshi data sync-markets
+
+# Cross-check timing fields from SQLite (optional)
 sqlite3 data/kalshi.db "SELECT open_time, created_at, close_time FROM markets WHERE ticker = 'TICKER'"
 
-# If open_time is recent (e.g., last few weeks), ask:
+# If open_time is recent, ask:
 # "Did the researched event happen AFTER this date?"
 ```
 
@@ -116,7 +114,7 @@ Avoid relying on “ticker patterns” — they are not stable.
 
 - `kalshi market list --status` expects filter values like `open` (see `kalshi market list --help`).
 - The API/DB `Market.status` uses lifecycle values like `active`.
-- `uv run kalshi market list --status active` returns a 400 (`invalid status filter`) and currently prints a full traceback.
+- `uv run kalshi market list --status active` is a common mistake; `active` is a response status, not a valid filter. The CLI warns and treats it as `open`.
 
 **Workaround**:
 ```bash
@@ -175,14 +173,16 @@ WHERE NOT (yes_bid = 0 AND yes_ask = 100)
 
 ### Negative Liquidity from API (BUG-048)
 
-Kalshi API sometimes returns negative liquidity values (e.g., `-170750`). Our Pydantic model validates `liquidity >= 0` and will crash.
+Kalshi may return negative garbage values for the deprecated `liquidity` field (e.g., `-170750`).
+Our `Market` model logs a warning and treats this as `None`, and liquidity analysis ignores this field
+(liquidity scoring uses orderbook depth + volume/open interest).
 
-**Workaround**: Use `--max-pages` to limit pagination when scanning:
+**No action required.** Use `--max-pages` only as a runtime safety limit (pagination cap):
 ```bash
-# This may crash without --max-pages
+# Raw scans can be slow/unbounded; cap pagination while exploring
 uv run kalshi scan opportunities --filter close-race
 
-# This is safer
+# Safer exploration
 uv run kalshi scan opportunities --filter close-race --max-pages 5
 ```
 

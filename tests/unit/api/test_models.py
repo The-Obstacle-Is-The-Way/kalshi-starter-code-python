@@ -230,8 +230,8 @@ class TestOrderbookModel:
         # Midpoint = (45 + 46) / 2 = 45.5
         assert orderbook.midpoint == Decimal("45.5")
 
-    def test_orderbook_legacy_cents_preferred_over_dollars(self) -> None:
-        """When both legacy and dollar fields present, prefer legacy cents."""
+    def test_orderbook_dollars_preferred_over_legacy_cents(self) -> None:
+        """When both dollar and legacy fields present, prefer dollars (forward-compatible)."""
         orderbook = Orderbook(
             yes=[(45, 100)],  # Legacy cents
             no=[(54, 100)],  # Legacy cents
@@ -239,9 +239,9 @@ class TestOrderbookModel:
             no_dollars=[("0.01", 100)],  # Different dollar value
         )
 
-        # Should use legacy cents, not dollar fields
-        assert orderbook.best_yes_bid == 45
-        assert orderbook.best_no_bid == 54
+        # Should use dollars, not legacy cents
+        assert orderbook.best_yes_bid == 99
+        assert orderbook.best_no_bid == 1
 
     def test_orderbook_dollar_precision(self) -> None:
         """Dollar string conversion handles various precision values."""
@@ -300,7 +300,7 @@ class TestOrderbookModel:
         assert orderbook.no_levels == []
 
     def test_orderbook_levels_prefer_legacy_over_dollars(self) -> None:
-        """Level accessors prefer legacy cents when both present."""
+        """Level accessors prefer dollars when both present (forward-compatible)."""
         orderbook = Orderbook(
             yes=[(45, 100)],
             no=[(54, 100)],
@@ -308,9 +308,9 @@ class TestOrderbookModel:
             no_dollars=[("0.01", 100)],  # Different value
         )
 
-        # Should use legacy, not dollar
-        assert orderbook.yes_levels == [(45, 100)]
-        assert orderbook.no_levels == [(54, 100)]
+        # Should use dollars, not legacy
+        assert orderbook.yes_levels == [(99, 100)]
+        assert orderbook.no_levels == [(1, 100)]
 
 
 class TestTradeModel:

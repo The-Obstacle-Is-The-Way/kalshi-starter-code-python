@@ -44,13 +44,17 @@ class Orderbook(BaseModel):
         """
         YES bid levels as [(price_cents, quantity), ...].
 
-        Prefers legacy `yes` field if present, falls back to `yes_dollars`.
+        Prefers dollar-denominated `yes_dollars` when provided, falls back to legacy `yes`.
         Use this instead of accessing `yes` directly for forward compatibility.
         """
-        if self.yes:
+        if self.yes_dollars is not None:
+            if self.yes_dollars:
+                return [(_dollar_to_cents(price), qty) for price, qty in self.yes_dollars]
+            if self.yes is not None:
+                return list(self.yes)
+            return []
+        if self.yes is not None:
             return list(self.yes)
-        if self.yes_dollars:
-            return [(_dollar_to_cents(price), qty) for price, qty in self.yes_dollars]
         return []
 
     @property
@@ -58,13 +62,17 @@ class Orderbook(BaseModel):
         """
         NO bid levels as [(price_cents, quantity), ...].
 
-        Prefers legacy `no` field if present, falls back to `no_dollars`.
+        Prefers dollar-denominated `no_dollars` when provided, falls back to legacy `no`.
         Use this instead of accessing `no` directly for forward compatibility.
         """
-        if self.no:
+        if self.no_dollars is not None:
+            if self.no_dollars:
+                return [(_dollar_to_cents(price), qty) for price, qty in self.no_dollars]
+            if self.no is not None:
+                return list(self.no)
+            return []
+        if self.no is not None:
             return list(self.no)
-        if self.no_dollars:
-            return [(_dollar_to_cents(price), qty) for price, qty in self.no_dollars]
         return []
 
     @property
@@ -72,7 +80,7 @@ class Orderbook(BaseModel):
         """
         Best YES bid price in cents.
 
-        Prefers legacy `yes` field if present, falls back to `yes_dollars`.
+        Prefers dollar-denominated `yes_dollars` when provided, falls back to legacy `yes`.
         """
         levels = self.yes_levels
         if levels:
@@ -84,7 +92,7 @@ class Orderbook(BaseModel):
         """
         Best NO bid price in cents.
 
-        Prefers legacy `no` field if present, falls back to `no_dollars`.
+        Prefers dollar-denominated `no_dollars` when provided, falls back to legacy `no`.
         """
         levels = self.no_levels
         if levels:

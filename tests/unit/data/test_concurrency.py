@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sqlite3
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -63,6 +64,13 @@ async def test_concurrent_sync_markets_is_idempotent(tmp_path) -> None:
         results = await asyncio.gather(run_once(), run_once(), return_exceptions=True)
         assert all(r is None for r in results), results
 
+    with sqlite3.connect(db_path) as conn:
+        events = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+        markets = conn.execute("SELECT COUNT(*) FROM markets").fetchone()[0]
+
+    assert events == 1
+    assert markets == 1
+
 
 @pytest.mark.asyncio
 async def test_concurrent_sync_settlements_is_idempotent(tmp_path) -> None:
@@ -105,3 +113,12 @@ async def test_concurrent_sync_settlements_is_idempotent(tmp_path) -> None:
 
         results = await asyncio.gather(run_once(), run_once(), return_exceptions=True)
         assert all(r is None for r in results), results
+
+    with sqlite3.connect(db_path) as conn:
+        events = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+        markets = conn.execute("SELECT COUNT(*) FROM markets").fetchone()[0]
+        settlements = conn.execute("SELECT COUNT(*) FROM settlements").fetchone()[0]
+
+    assert events == 1
+    assert markets == 1
+    assert settlements == 1

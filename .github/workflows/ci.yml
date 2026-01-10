@@ -50,15 +50,17 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
       - name: Install dependencies
         run: uv sync --all-extras
-      - name: Run tests
+      - name: Run tests (fast)
+        if: matrix.python-version != '3.11'
+        run: uv run pytest tests/unit tests/e2e -m "not integration and not slow"
+      - name: Run tests (coverage, includes integration + e2e)
+        if: matrix.python-version == '3.11'
         run: |
-          uv run pytest tests/unit \
+          uv run pytest tests/unit tests/integration tests/e2e \
             --cov=kalshi_research \
             --cov-report=xml \
             --cov-report=term-missing \
-            -m "not integration and not slow"
-      - name: Run e2e tests (mocked)
-        run: uv run pytest tests/e2e -m "not integration and not slow"
+            -m "not slow"
       - name: Upload coverage (Codecov)
         uses: codecov/codecov-action@v5
         if: matrix.python-version == '3.11'

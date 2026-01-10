@@ -358,6 +358,7 @@ usable without LLM keys.
 ## Acceptance Criteria
 
 - [ ] `kalshi agent analyze TICKER --json` returns valid `AgentRunResult` JSON and never prints stack traces for expected failures (missing Exa key, empty research, etc.).
+- [ ] Agent output (JSON and `--human`) never prints secrets (`.env` contents, API keys/tokens, private key material); sensitive values must be redacted in logs/output.
 - [ ] Verification failures are explicit in `VerificationReport` and do not silently pass.
 - [ ] Escalation is off by default or gated; multi-agent is never automatically run without meeting policy triggers.
 - [ ] Unit tests cover:

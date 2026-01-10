@@ -501,6 +501,18 @@ class TestTemporalValidator:
         assert result.valid is True
         assert result.warning is None
 
+    def test_naive_event_date_is_invalid(self) -> None:
+        """Naive datetimes fail safely instead of raising during comparisons."""
+        market = self._make_market(open_time=datetime(2026, 1, 5, 20, 0, 0, tzinfo=UTC))
+        event_date = datetime(2026, 1, 10, 12, 0, 0)  # naive
+
+        validator = TemporalValidator()
+        result = validator.validate(market=market, event_date=event_date)
+
+        assert result.valid is False
+        assert result.warning is not None
+        assert "Cannot compare naive and aware datetimes" in result.warning
+
     def test_stranger_things_scenario(self) -> None:
         """Test the actual Stranger Things market scenario from TODO-005."""
         # Market opened Jan 5, 2026

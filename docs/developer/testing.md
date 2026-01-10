@@ -55,7 +55,9 @@ uv run pytest tests/e2e
 Current CI configuration is in `.github/workflows/ci.yml`:
 
 - `lint` job: `ruff`, `mypy`, `mkdocs build --strict`
-- `test` job: unit tests (coverage) + mocked E2E tests (runs on Python 3.11/3.12/3.13 matrix)
+- `test` job (Python matrix):
+  - Python 3.12/3.13: unit + mocked E2E (fast)
+  - Python 3.11: unit + integration + mocked E2E with coverage upload to Codecov
 - `integration` job: runs `tests/integration/` **only on push to `main`**
   - Live tests are still skipped unless explicitly enabled via env vars.
 
@@ -101,7 +103,7 @@ EXA_API_KEY="your-exa-api-key" uv run pytest tests/integration/exa/test_exa_rese
 
 ## Recommended cadence (A+ practice)
 
-- **Every PR:** lint + unit + mocked E2E (no live network).
+- **Every PR:** lint + unit + mocked E2E; include mocked integration at least once (CI does this on Python 3.11).
 - **Daily or on merge to main:** mocked integration tests (DB/migrations/CLI) to catch wiring drift early.
 - **Scheduled (nightly/weekly):** live API contract checks (Kalshi public/authenticated; Exa) using canary
   credentials and explicit budgets/limits.
@@ -109,5 +111,5 @@ EXA_API_KEY="your-exa-api-key" uv run pytest tests/integration/exa/test_exa_rese
 ## Coverage
 
 ```bash
-uv run pytest tests/unit --cov=kalshi_research --cov-report=term-missing --cov-report=xml
+uv run pytest tests/unit tests/integration tests/e2e --cov=kalshi_research --cov-report=term-missing --cov-report=xml
 ```
