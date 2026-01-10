@@ -40,18 +40,43 @@ class Orderbook(BaseModel):
     no_dollars: list[tuple[str, int]] | None = None
 
     @property
+    def yes_levels(self) -> list[tuple[int, int]]:
+        """
+        YES bid levels as [(price_cents, quantity), ...].
+
+        Prefers legacy `yes` field if present, falls back to `yes_dollars`.
+        Use this instead of accessing `yes` directly for forward compatibility.
+        """
+        if self.yes:
+            return list(self.yes)
+        if self.yes_dollars:
+            return [(_dollar_to_cents(price), qty) for price, qty in self.yes_dollars]
+        return []
+
+    @property
+    def no_levels(self) -> list[tuple[int, int]]:
+        """
+        NO bid levels as [(price_cents, quantity), ...].
+
+        Prefers legacy `no` field if present, falls back to `no_dollars`.
+        Use this instead of accessing `no` directly for forward compatibility.
+        """
+        if self.no:
+            return list(self.no)
+        if self.no_dollars:
+            return [(_dollar_to_cents(price), qty) for price, qty in self.no_dollars]
+        return []
+
+    @property
     def best_yes_bid(self) -> int | None:
         """
         Best YES bid price in cents.
 
         Prefers legacy `yes` field if present, falls back to `yes_dollars`.
         """
-        # Prefer legacy cents field if available
-        if self.yes:
-            return max(price for price, _ in self.yes)
-        # Fallback to dollar field (post Jan 15, 2026)
-        if self.yes_dollars:
-            return max(_dollar_to_cents(price) for price, _ in self.yes_dollars)
+        levels = self.yes_levels
+        if levels:
+            return max(price for price, _ in levels)
         return None
 
     @property
@@ -61,12 +86,9 @@ class Orderbook(BaseModel):
 
         Prefers legacy `no` field if present, falls back to `no_dollars`.
         """
-        # Prefer legacy cents field if available
-        if self.no:
-            return max(price for price, _ in self.no)
-        # Fallback to dollar field (post Jan 15, 2026)
-        if self.no_dollars:
-            return max(_dollar_to_cents(price) for price, _ in self.no_dollars)
+        levels = self.no_levels
+        if levels:
+            return max(price for price, _ in levels)
         return None
 
     @property

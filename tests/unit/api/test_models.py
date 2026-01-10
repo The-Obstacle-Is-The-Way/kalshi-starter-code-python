@@ -253,6 +253,65 @@ class TestOrderbookModel:
         assert orderbook.best_yes_bid == 50
         assert orderbook.best_no_bid == 1
 
+    # === Level accessor tests (forward-compatible API) ===
+
+    def test_orderbook_yes_levels_from_legacy(self) -> None:
+        """yes_levels returns legacy cents when available."""
+        orderbook = Orderbook(
+            yes=[(45, 100), (44, 200)],
+            no=[(54, 100)],
+        )
+
+        assert orderbook.yes_levels == [(45, 100), (44, 200)]
+
+    def test_orderbook_no_levels_from_legacy(self) -> None:
+        """no_levels returns legacy cents when available."""
+        orderbook = Orderbook(
+            yes=[(45, 100)],
+            no=[(54, 100), (55, 200)],
+        )
+
+        assert orderbook.no_levels == [(54, 100), (55, 200)]
+
+    def test_orderbook_yes_levels_from_dollars(self) -> None:
+        """yes_levels falls back to dollar conversion when legacy is None."""
+        orderbook = Orderbook(
+            yes=None,
+            yes_dollars=[("0.45", 100), ("0.44", 200)],
+        )
+
+        # Should convert dollar strings to cents
+        assert orderbook.yes_levels == [(45, 100), (44, 200)]
+
+    def test_orderbook_no_levels_from_dollars(self) -> None:
+        """no_levels falls back to dollar conversion when legacy is None."""
+        orderbook = Orderbook(
+            no=None,
+            no_dollars=[("0.54", 100), ("0.55", 200)],
+        )
+
+        assert orderbook.no_levels == [(54, 100), (55, 200)]
+
+    def test_orderbook_levels_empty_when_none(self) -> None:
+        """Level accessors return empty list when both fields are None."""
+        orderbook = Orderbook()
+
+        assert orderbook.yes_levels == []
+        assert orderbook.no_levels == []
+
+    def test_orderbook_levels_prefer_legacy_over_dollars(self) -> None:
+        """Level accessors prefer legacy cents when both present."""
+        orderbook = Orderbook(
+            yes=[(45, 100)],
+            no=[(54, 100)],
+            yes_dollars=[("0.99", 100)],  # Different value
+            no_dollars=[("0.01", 100)],  # Different value
+        )
+
+        # Should use legacy, not dollar
+        assert orderbook.yes_levels == [(45, 100)]
+        assert orderbook.no_levels == [(54, 100)]
+
 
 class TestTradeModel:
     """Test Trade model with REAL instances."""

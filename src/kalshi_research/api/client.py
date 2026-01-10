@@ -725,7 +725,7 @@ class KalshiClient(KalshiPublicClient):
                 order_id=order_id,
             )
             return CancelOrderResponse(
-                order_id=order_id,
+                order_id=f"dry-run-{order_id}",
                 status="simulated",
             )
 

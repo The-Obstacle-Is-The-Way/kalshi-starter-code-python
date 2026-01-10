@@ -225,9 +225,11 @@ The following issues from the original audit have been verified as FIXED:
 
 | ID | Issue | Status | Fix Location |
 |----|-------|--------|--------------|
-| P0-1 | Orderbook dollar field fallback | ✅ FIXED | `api/models/orderbook.py:10-70` |
+| P0-1 | Orderbook dollar field fallback | ✅ FIXED | `api/models/orderbook.py:10-92` |
+| P0-1b | Orderbook consumer code (Jan 15 breakage) | ✅ FIXED | `analysis/liquidity.py`, `cli/market.py` |
 | P0-2 | Integer precision in cost basis | ✅ FIXED | `portfolio/syncer.py:76-80`, `portfolio/pnl.py:96-100` |
 | P1-3 | dry_run for amend/cancel | ✅ FIXED | `api/client.py:710-812` |
+| P1-3b | dry_run prefix consistency | ✅ FIXED | `api/client.py:728` |
 | P1-4 | Cold start cost basis warning | ✅ FIXED | `portfolio/syncer.py:146-155` |
 | P2-5 | exc_info in syncer.py | ✅ FIXED | `portfolio/syncer.py:373` |
 | P2-6 | Exa subpage controls | ✅ RECLASSIFIED | Tracked via `SPEC-030` (enhancement) |
@@ -240,6 +242,13 @@ The following issues from the original audit have been verified as FIXED:
 - Updated `best_yes_bid` and `best_no_bid` properties to fallback to `*_dollars` fields
 - Tests added: `test_orderbook_dollar_fallback_*`
 
+**P0-1b: Orderbook Consumer Code (CodeRabbit review finding)**
+- Added `yes_levels` and `no_levels` accessor properties to Orderbook model
+- These provide normalized `list[tuple[int, int]]` with automatic dollar-to-cents fallback
+- Updated `liquidity.py` to use `orderbook.yes_levels` / `orderbook.no_levels` instead of deprecated fields
+- Updated `cli/market.py` to use new accessor properties
+- Tests added: `test_orderbook_yes_levels_*`, `test_orderbook_no_levels_*`
+
 **P0-2: Integer Precision Fix**
 - Changed `//` (floor division) to `round(total_cost / total_qty)` in `syncer.py`
 - Also fixed in `pnl.py` FIFO partial lot consumption (found during post-fix audit)
@@ -250,6 +259,10 @@ The following issues from the original audit have been verified as FIXED:
 - Added `dry_run: bool = False` parameter to `cancel_order()` and `amend_order()`
 - Returns simulated response when dry_run=True
 - Logs validation without executing API call
+
+**P1-3b: dry_run Prefix Consistency (CodeRabbit review finding)**
+- Fixed inconsistency: `cancel_order` now prefixes order_id with "dry-run-" in dry_run mode
+- Matches `amend_order` behavior for consistent API predictability
 
 **P1-4: Cold Start Detection**
 - Added warning when position exists but no local trades found
