@@ -134,6 +134,46 @@ class TestPnLCalculatorRealized:
         # FIFO sells the first lot: buy 40 -> sell 70 = +30
         assert realized == 30
 
+    def test_realized_fifo_partial_lot_no_floor_bias(self) -> None:
+        """FIFO partial lot cost should round, not floor (BUG-056 audit fix)."""
+        # Setup: buy 3 contracts at 101 cents total (33.67c each)
+        # Then sell 1 at 50c
+        # Floor: cost_basis = 101 * 1 // 3 = 33 → P&L = 50 - 33 = +17 (WRONG)
+        # Round: cost_basis = round(101 * 1 / 3) = 34 → P&L = 50 - 34 = +16 (CORRECT)
+        trades = [
+            Trade(
+                kalshi_trade_id="trade_1",
+                ticker="TEST-TICKER",
+                side="yes",
+                action="buy",
+                quantity=3,
+                price_cents=34,  # avg ~33.67
+                total_cost_cents=101,  # total cost is 101c
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+            Trade(
+                kalshi_trade_id="trade_2",
+                ticker="TEST-TICKER",
+                side="yes",
+                action="sell",
+                quantity=1,
+                price_cents=50,
+                total_cost_cents=50,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 2, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+        ]
+
+        calculator = PnLCalculator()
+        realized = calculator.calculate_realized(trades)
+
+        # Should use round() not floor: round(101 * 1 / 3) = 34
+        # P&L = 50 - 34 = 16
+        assert realized == 16  # NOT 17 (which would indicate floor division bias)
+
     def test_realized_simple_buy_sell(self):
         """Test realized P&L from a simple buy-sell cycle."""
         trades = [

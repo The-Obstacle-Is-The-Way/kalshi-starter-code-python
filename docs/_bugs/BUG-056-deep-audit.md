@@ -226,7 +226,7 @@ The following issues from the original audit have been verified as FIXED:
 | ID | Issue | Status | Fix Location |
 |----|-------|--------|--------------|
 | P0-1 | Orderbook dollar field fallback | ✅ FIXED | `api/models/orderbook.py:10-70` |
-| P0-2 | Integer precision in cost basis | ✅ FIXED | `portfolio/syncer.py:76-80` |
+| P0-2 | Integer precision in cost basis | ✅ FIXED | `portfolio/syncer.py:76-80`, `portfolio/pnl.py:96-100` |
 | P1-3 | dry_run for amend/cancel | ✅ FIXED | `api/client.py:710-812` |
 | P1-4 | Cold start cost basis warning | ✅ FIXED | `portfolio/syncer.py:146-155` |
 | P2-5 | exc_info in syncer.py | ✅ FIXED | `portfolio/syncer.py:373` |
@@ -241,9 +241,10 @@ The following issues from the original audit have been verified as FIXED:
 - Tests added: `test_orderbook_dollar_fallback_*`
 
 **P0-2: Integer Precision Fix**
-- Changed `//` (floor division) to `round(total_cost / total_qty)`
+- Changed `//` (floor division) to `round(total_cost / total_qty)` in `syncer.py`
+- Also fixed in `pnl.py` FIFO partial lot consumption (found during post-fix audit)
 - Uses banker's rounding (round half to even) for unbiased averaging
-- Tests added: `test_compute_fifo_cost_basis_precision_loss_fixed`
+- Tests added: `test_compute_fifo_cost_basis_precision_loss_fixed`, `test_realized_fifo_partial_lot_no_floor_bias`
 
 **P1-3: dry_run for Order Modification**
 - Added `dry_run: bool = False` parameter to `cancel_order()` and `amend_order()`

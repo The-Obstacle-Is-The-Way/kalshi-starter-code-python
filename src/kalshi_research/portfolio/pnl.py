@@ -93,8 +93,10 @@ class PnLCalculator:
 
                         lot = lots[0]
                         consume_qty = min(lot.qty_remaining, remaining_to_sell)
-                        consume_cost_cents = (
-                            lot.cost_remaining_cents * consume_qty // lot.qty_remaining
+                        # Use round() to avoid systematic downward bias from floor division
+                        # This matches the pattern in syncer.py:compute_fifo_cost_basis
+                        consume_cost_cents = round(
+                            lot.cost_remaining_cents * consume_qty / lot.qty_remaining
                         )
                         cost_basis_cents += consume_cost_cents
 
