@@ -46,6 +46,7 @@ All phases 1-8 are complete. See Work Log below for history.
 
 ## Work Log
 
+- 2026-01-10: Fixed portfolio P&L integrity (FIFO realized P&L + unknown handling), updated BUG-056/057, ran `uv run pre-commit run --all-files` and `uv run mkdocs build --strict`
 - 2026-01-10: Skills refactor - created `kalshi-ralph-wiggum` skill, simplified `kalshi-codebase`, enhanced PROMPT.md with SPEC-* self-review protocol, verified SPEC-029/032 against SSOT
 - 2026-01-10: Prep for spec implementation (audited SPEC-028..034, added `kalshi-codebase` skill, updated Ralph prompt/protocol)
 - 2026-01-09: Phase 1-8 complete (all bugs, debt, TODOs resolved)

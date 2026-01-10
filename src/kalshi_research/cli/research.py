@@ -386,18 +386,20 @@ def research_thesis_show(  # noqa: PLR0915
                     pos_table.add_column("P&L", justify="right")
 
                     for pos in positions:
-                        pnl = pos.unrealized_pnl_cents or 0
-                        pnl_str = f"${pnl / 100:.2f}"
-                        if pnl > 0:
-                            pnl_str = f"[green]+{pnl_str}[/green]"
-                        elif pnl < 0:
-                            pnl_str = f"[red]{pnl_str}[/red]"
+                        pnl_str = "-"
+                        if pos.unrealized_pnl_cents is not None:
+                            pnl = pos.unrealized_pnl_cents
+                            pnl_str = f"${pnl / 100:.2f}"
+                            if pnl > 0:
+                                pnl_str = f"[green]+{pnl_str}[/green]"
+                            elif pnl < 0:
+                                pnl_str = f"[red]{pnl_str}[/red]"
 
                         pos_table.add_row(
                             pos.ticker,
                             pos.side.upper(),
                             str(pos.quantity),
-                            f"{pos.avg_price_cents}¢",
+                            "-" if pos.avg_price_cents == 0 else f"{pos.avg_price_cents}¢",
                             pnl_str,
                         )
 

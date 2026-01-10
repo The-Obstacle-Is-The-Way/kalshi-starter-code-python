@@ -1,14 +1,14 @@
 # Deep Codebase Audit: Financial & Safety Risks
 
 **Date:** 2026-01-10
-**Status:** FIXED
+**Status:** ✅ Fixed (P0/P1) • ⚠️ Deferred (P3)
 **Severity:** Critical (P0)
 **Last Verified:** 2026-01-10 (against current codebase)
-**Fixed:** 2026-01-10 (all P0, P1, and P2 issues resolved)
+**Fixed:** 2026-01-10 (all P0/P1 issues resolved; P2-6 reclassified; P3 deferred)
 
 ## Executive Summary
 
-A deep, adversarial audit of the `kalshi-starter-code-python` codebase has validated critical financial integrity risks and imminent breaking changes. The most urgent issues are the **broken Orderbook model** (which will fail on Jan 15, 2026) and **integer precision loss** in P&L calculations.
+A deep, adversarial audit of the `kalshi-starter-code-python` codebase validated critical financial integrity risks and imminent breaking changes. The most urgent issues were the **Orderbook dollar-field migration** (Jan 15, 2026) and **systematic precision loss** in cost-basis averaging.
 
 **Note:** Some issues from the original audit (BUG-049, BUG-050) have since been fixed. This document reflects the current verified state.
 
@@ -36,11 +36,8 @@ def best_yes_bid(self) -> int | None:
 
 The model DOES have `yes_dollars` and `no_dollars` fields defined (lines 24-25), but the computed properties DO NOT use them as fallback.
 
-**Impact:**
-On Jan 15, 2026, `best_yes_bid`, `best_no_bid`, `midpoint`, and `spread` will all return `None`. This will cause **silent failures** or crashes in:
-- `MarketScanner` (relies on `midpoint` for probability)
-- `Liquidity` analysis (relies on `spread` and depth)
-- `Visualization` tools
+**Impact (pre-fix):**
+On Jan 15, 2026, `best_yes_bid`, `best_no_bid`, `midpoint`, and `spread` would return `None`, causing downstream failures in scanner/liquidity logic.
 
 **Recommendation:**
 - Update `Orderbook` properties to check `yes_dollars` / `no_dollars` if `yes` / `no` are missing.
@@ -75,8 +72,8 @@ avg_price_cents: Mapped[int] = mapped_column(Integer, nullable=False)
 4. Calculated Avg Price = `101 // 2` = **50c**.
 5. Actual Avg Price = **50.5c**.
 
-**Impact:**
-Permanent, cumulative errors in P&L tracking. Realized P&L will be incorrect. In the scenario above, selling at 51c yields a reported profit of 2c instead of the actual 1c (100% error).
+**Impact (pre-fix):**
+Systematic downward bias in cost basis (floor division), which can compound into incorrect unrealized P&L.
 
 **Recommendation:**
 - Option A: Change `avg_price_cents` to `Float` or `Numeric` in the database schema
@@ -130,10 +127,12 @@ avg_price_cents = compute_fifo_cost_basis(trades, side)
 
 If the local database is fresh (partial history) but the account has existing positions, the cost basis calculation will be incorrect (missing earlier trades). `compute_fifo_cost_basis` returns 0 when there are no trades.
 
-**Recommendation:**
-- Detect "Cold Start": If `Position` exists on API but local history is insufficient
-- Fallback to API-provided average cost (if available) or flag for manual entry
-- Add warning when cost basis is computed from incomplete history
+**Status:**
+Mitigated by:
+- syncing trades before positions in `kalshi portfolio sync`
+- warning on “cold start” (position exists but no local trades)
+
+Kalshi’s positions payload does not provide a reliable avg-cost field, so a true “fallback” is not always possible; instead the system must detect/report unknown cost basis and avoid emitting misleading P&L.
 
 ---
 
@@ -165,25 +164,26 @@ except Exception as e:
 
 ---
 
-### 6. Missing Exa Search Parameters
+### 6. Exa Subpage Controls (P2 - Reclassified)
 
 **Location:** `src/kalshi_research/exa/models/search.py`
 **Verified:** 2026-01-10 - CONFIRMED
 
-**Issue:**
-The `SearchRequest` model lacks `subpages` and `subpageTarget` parameters, preventing deep research (e.g., "search within this specific domain's subpages").
+**Clarification (SSOT):**
+This was originally described as a `SearchRequest` schema gap. In the current codebase:
+- `ContentsRequest` already models `subpages` and `subpageTarget` (shared across `/search`, `/findSimilar`, `/contents`)
+- `SearchRequest` supports `contents: ContentsRequest`
 
-The response model `SearchResult` CAN receive subpages (line 79), but there's no way to REQUEST them.
+The remaining limitation is ergonomic/API-surface: `ExaClient.search()` and `ExaClient.get_contents()` do not currently expose `subpages` / `subpage_target` in their function signatures, so callers can’t request subpages without constructing and passing a `ContentsRequest` directly.
 
-**Recommendation:**
-- Update `SearchRequest` to include `subpages: int | None` and `subpage_target: int | None` parameters
-- Update `ExaClient.search` to pass these to the API
+**Resolution:**
+Reclassified as a capability enhancement tracked by `docs/_specs/SPEC-030-exa-endpoint-strategy.md` (not a production bug).
 
 ---
 
 ## Minor Findings (P3 - Technical Debt)
 
-### 7. Magic Numbers in Analysis
+### 7. Magic Numbers in Analysis (P3 - Technical Debt)
 
 **Location:** `src/kalshi_research/analysis/scanner.py`
 **Verified:** 2026-01-10 - PARTIALLY ADDRESSED
@@ -230,7 +230,7 @@ The following issues from the original audit have been verified as FIXED:
 | P1-3 | dry_run for amend/cancel | ✅ FIXED | `api/client.py:710-812` |
 | P1-4 | Cold start cost basis warning | ✅ FIXED | `portfolio/syncer.py:146-155` |
 | P2-5 | exc_info in syncer.py | ✅ FIXED | `portfolio/syncer.py:373` |
-| P2-6 | Exa subpages parameters | ⏳ DEFERRED | Future enhancement |
+| P2-6 | Exa subpage controls | ✅ RECLASSIFIED | Tracked via `SPEC-030` (enhancement) |
 | P3-7 | Magic number constants | ⏳ DEFERRED | Low priority tech debt |
 
 ### Implementation Details

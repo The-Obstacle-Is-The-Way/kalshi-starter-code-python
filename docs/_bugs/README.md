@@ -10,7 +10,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-057**
+**BUG-058**
 
 ---
 
@@ -18,6 +18,7 @@ Use this ID for the next bug report you create:
 
 | ID | Title | Status |
 |---|---|---|
+| **[BUG-057](BUG-057-portfolio-pnl-integrity.md)** | Portfolio P&L integrity (FIFO realized P&L + unknown handling) | ✅ Fixed |
 | **[BUG-056](BUG-056-deep-audit.md)** | Deep Codebase Audit: Financial & Safety Risks (P0/P1) | ✅ Fixed |
 
 ---

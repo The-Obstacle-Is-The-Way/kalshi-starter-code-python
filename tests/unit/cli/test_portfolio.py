@@ -252,3 +252,37 @@ def test_portfolio_positions_shows_zero_mark_price(mock_db_cls: MagicMock) -> No
 
     assert result.exit_code == 0
     assert "0¢" in result.stdout
+
+
+@patch("kalshi_research.data.DatabaseManager")
+def test_portfolio_positions_shows_unknown_unrealized_pnl(mock_db_cls: MagicMock) -> None:
+    mock_position = MagicMock()
+    mock_position.ticker = "TEST-TICKER"
+    mock_position.side = "yes"
+    mock_position.quantity = 1
+    mock_position.avg_price_cents = 0  # Unknown cost basis
+    mock_position.current_price_cents = None  # Mark price not synced
+    mock_position.unrealized_pnl_cents = None  # Unknown P&L
+    mock_position.closed_at = None
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = [mock_position]
+
+    mock_session = AsyncMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value = mock_session
+
+    mock_db = AsyncMock()
+    mock_db.session_factory = mock_session_factory
+    mock_db.close = AsyncMock()
+    mock_db_cls.return_value = mock_db
+
+    result = runner.invoke(app, ["portfolio", "positions"])
+
+    assert result.exit_code == 0
+    assert "Total Unrealized P&L (known only)" in result.stdout
+    assert "unknown unrealized p&l" in result.stdout.lower()

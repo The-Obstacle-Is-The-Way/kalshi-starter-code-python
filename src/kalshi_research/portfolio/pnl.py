@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -23,10 +24,16 @@ class PnLSummary:
     avg_win_cents: int
     avg_loss_cents: int
     profit_factor: float
+    unrealized_positions_unknown: int = 0
 
 
 class PnLCalculator:
     """Calculate profit/loss on positions and trades."""
+
+    @dataclass
+    class _Lot:
+        qty_remaining: int
+        cost_remaining_cents: int
 
     def calculate_unrealized(self, position: Position, current_price_cents: int) -> int:
         """
@@ -40,6 +47,70 @@ class PnLCalculator:
         else:
             return (position.avg_price_cents - current_price_cents) * position.quantity
 
+    def _get_closed_trade_pnls_fifo(self, trades: list[Trade]) -> list[int]:
+        """
+        Compute per-sell realized P&L in cents using FIFO lots (integer arithmetic).
+
+        Trades are grouped by (ticker, side) and processed in executed_at order.
+        Fees are handled as:
+        - Buy fees are included in cost basis by storing lot-level total cost (price * qty + fee).
+        - Sell fees reduce proceeds directly.
+        """
+        ticker_side_trades: dict[tuple[str, str], list[Trade]] = {}
+        for trade in trades:
+            key = (trade.ticker, trade.side)
+            ticker_side_trades.setdefault(key, []).append(trade)
+
+        closed_pnls: list[int] = []
+
+        for group_trades in ticker_side_trades.values():
+            sorted_trades = sorted(group_trades, key=lambda t: t.executed_at)
+            lots: deque[PnLCalculator._Lot] = deque()
+
+            for trade in sorted_trades:
+                if trade.quantity <= 0:
+                    raise ValueError("Trade quantity must be positive")
+
+                if trade.action == "buy":
+                    lots.append(
+                        PnLCalculator._Lot(
+                            qty_remaining=trade.quantity,
+                            cost_remaining_cents=trade.total_cost_cents + trade.fee_cents,
+                        )
+                    )
+                    continue
+
+                if trade.action == "sell":
+                    remaining_to_sell = trade.quantity
+                    cost_basis_cents = 0
+
+                    while remaining_to_sell > 0:
+                        if not lots:
+                            raise ValueError(
+                                "Sell trade exceeds available FIFO lots; trade history is "
+                                "incomplete"
+                            )
+
+                        lot = lots[0]
+                        consume_qty = min(lot.qty_remaining, remaining_to_sell)
+                        consume_cost_cents = (
+                            lot.cost_remaining_cents * consume_qty // lot.qty_remaining
+                        )
+                        cost_basis_cents += consume_cost_cents
+
+                        lot.cost_remaining_cents -= consume_cost_cents
+                        lot.qty_remaining -= consume_qty
+                        remaining_to_sell -= consume_qty
+
+                        if lot.qty_remaining == 0:
+                            lots.popleft()
+
+                    net_proceeds_cents = trade.total_cost_cents - trade.fee_cents
+                    closed_pnls.append(net_proceeds_cents - cost_basis_cents)
+                    continue
+
+        return closed_pnls
+
     def calculate_realized(self, trades: list[Trade]) -> int:
         """
         Calculate realized P&L from a list of trades.
@@ -47,48 +118,16 @@ class PnLCalculator:
         Realized P&L is calculated from closed positions (matched buy/sell pairs).
         Groups by (ticker, side) to handle YES/NO positions separately.
         """
-        # Group trades by ticker AND side (consistent with _get_closed_trades)
-        ticker_side_trades: dict[tuple[str, str], list[Trade]] = {}
-        for trade in trades:
-            key = (trade.ticker, trade.side)
-            if key not in ticker_side_trades:
-                ticker_side_trades[key] = []
-            ticker_side_trades[key].append(trade)
-
-        total_realized = 0
-
-        for group_trades in ticker_side_trades.values():
-            # Sort by execution time
-            sorted_trades = sorted(group_trades, key=lambda t: t.executed_at)
-
-            # Track position for this ticker+side
-            position_qty = 0
-            position_cost = 0
-
-            for trade in sorted_trades:
-                if trade.action == "buy":
-                    # Add to position
-                    position_qty += trade.quantity
-                    position_cost += trade.total_cost_cents + trade.fee_cents
-                elif trade.action == "sell":
-                    # Close position (FIFO)
-                    if position_qty > 0:
-                        # Calculate average cost per contract
-                        avg_cost = position_cost / position_qty if position_qty > 0 else 0
-                        # Realized gain/loss from this sale
-                        realized = trade.total_cost_cents - (avg_cost * trade.quantity)
-                        realized -= trade.fee_cents  # Subtract fees
-                        total_realized += int(realized)
-
-                        # Update position
-                        position_qty -= trade.quantity
-                        position_cost -= int(avg_cost * trade.quantity)
-
-        return total_realized
+        return sum(self._get_closed_trade_pnls_fifo(trades))
 
     def calculate_total(self, positions: list[Position]) -> PnLSummary:
         """Calculate total P&L summary across all positions."""
-        unrealized = sum(pos.unrealized_pnl_cents or 0 for pos in positions)
+        unrealized_positions_unknown = sum(
+            1 for pos in positions if pos.unrealized_pnl_cents is None
+        )
+        unrealized = sum(
+            pos.unrealized_pnl_cents for pos in positions if pos.unrealized_pnl_cents is not None
+        )
         realized = sum(pos.realized_pnl_cents for pos in positions)
         total = unrealized + realized
 
@@ -98,6 +137,7 @@ class PnLCalculator:
             unrealized_pnl_cents=unrealized,
             realized_pnl_cents=realized,
             total_pnl_cents=total,
+            unrealized_positions_unknown=unrealized_positions_unknown,
             total_trades=0,
             winning_trades=0,
             losing_trades=0,
@@ -111,12 +151,16 @@ class PnLCalculator:
         self, positions: list[Position], trades: list[Trade]
     ) -> PnLSummary:
         """Calculate complete P&L summary including trade statistics."""
-        unrealized = sum(pos.unrealized_pnl_cents or 0 for pos in positions)
-        realized = self.calculate_realized(trades)
+        unrealized_positions_unknown = sum(
+            1 for pos in positions if pos.unrealized_pnl_cents is None
+        )
+        unrealized = sum(
+            pos.unrealized_pnl_cents for pos in positions if pos.unrealized_pnl_cents is not None
+        )
+        closed_trades = self._get_closed_trade_pnls_fifo(trades)
+        realized = sum(closed_trades)
         total = unrealized + realized
 
-        # Calculate trade statistics
-        closed_trades = self._get_closed_trades(trades)
         winning = [t for t in closed_trades if t > 0]
         losing = [t for t in closed_trades if t < 0]
 
@@ -132,6 +176,7 @@ class PnLCalculator:
             unrealized_pnl_cents=unrealized,
             realized_pnl_cents=realized,
             total_pnl_cents=total,
+            unrealized_positions_unknown=unrealized_positions_unknown,
             total_trades=total_trades,
             winning_trades=winning_trades,
             losing_trades=losing_trades,
@@ -142,36 +187,5 @@ class PnLCalculator:
         )
 
     def _get_closed_trades(self, trades: list[Trade]) -> list[int]:
-        """Extract P&L from closed positions (matched buy/sell pairs)."""
-        # Group trades by ticker and side
-        ticker_sides: dict[tuple[str, str], list[Trade]] = {}
-        for trade in trades:
-            key = (trade.ticker, trade.side)
-            if key not in ticker_sides:
-                ticker_sides[key] = []
-            ticker_sides[key].append(trade)
-
-        closed_pnl: list[int] = []
-
-        for side_trades in ticker_sides.values():
-            sorted_trades = sorted(side_trades, key=lambda t: t.executed_at)
-
-            position_qty = 0
-            position_cost = 0
-
-            for trade in sorted_trades:
-                if trade.action == "buy":
-                    position_qty += trade.quantity
-                    position_cost += trade.total_cost_cents + trade.fee_cents
-                elif trade.action == "sell":
-                    if position_qty > 0:
-                        avg_cost = position_cost / position_qty
-                        pnl = int(
-                            trade.total_cost_cents - (avg_cost * trade.quantity) - trade.fee_cents
-                        )
-                        closed_pnl.append(pnl)
-
-                        position_qty -= trade.quantity
-                        position_cost -= int(avg_cost * trade.quantity)
-
-        return closed_pnl
+        """Extract per-sell realized P&L values (FIFO)."""
+        return self._get_closed_trade_pnls_fifo(trades)
