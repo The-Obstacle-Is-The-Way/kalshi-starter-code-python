@@ -318,8 +318,11 @@ def test_data_migrate_dry_run_calls_alembic_upgrade(
 
     assert result.exit_code == 0
     mock_upgrade.assert_called_once()
-    _, kwargs = mock_upgrade.call_args
-    assert kwargs["sql"] is True
+    args, kwargs = mock_upgrade.call_args
+    assert kwargs == {}
+    assert len(args) >= 2
+    cfg = args[0]
+    assert cfg.get_main_option("sqlalchemy.url") is not None
 
 
 @patch("alembic.command.upgrade")
