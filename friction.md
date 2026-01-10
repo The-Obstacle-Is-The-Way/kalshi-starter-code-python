@@ -80,7 +80,88 @@ FROM trades GROUP BY ticker, side HAVING net > 0;
 - `KXNCAAFSPREAD-*` - College football spreads
 
 ### Good Query for Non-Sports Markets
+
 ```bash
 # Use mve_filter=exclude to skip multivariate parlays
 GET /markets?status=open&limit=500&mve_filter=exclude
 ```
+
+---
+
+## Metacognitive Reflection: Exa Integration Gap (2026-01-09)
+
+### The Core Problem (Session Evidence)
+
+In this session, the user asked: "Find mispriced markets and give me top 3 trade recommendations."
+
+**What I (Claude) did:**
+
+1. Queried Kalshi API for markets
+2. Scanned for volume, spreads, prices
+3. Found interesting markets (Fed Chair, Bitcoin, Trump cabinet)
+4. **Gave probability estimates and trade recommendations**
+
+**What I did NOT do:**
+
+- Use Exa to research ANY of the markets
+- Validate probability estimates with real-time news/sources
+- Ground my recommendations in actual research
+
+**Result:** My "recommendations" were based on vibes from training data, NOT structured research.
+
+### Why This Matters
+
+The user's whole thesis is: "Beat vibes-only gamblers with actual signal."
+
+But in this session, I WAS the vibes-only gambler. I gave recommendations like:
+
+- "OpenAI IPO at 34% seems mispriced because..." (no research, just training data)
+- "Pete Hegseth departure at 32% seems low because..." (no news search, just vibes)
+
+This is the EXACT problem the user identified in prior brainstorming:
+
+> "Claude Code is doing all that. And as it does that, it's putting in information that it gleans into its context... I think it just has a hard time parsing all that information."
+
+### Architectural Gap
+
+**Current state:**
+
+```
+User query → Claude Code → runs CLI → gets market data → Claude synthesizes (VIBES)
+```
+
+**Needed state:**
+
+```
+User query → Claude Code → runs CLI → gets market data → Exa research → Structured synthesis → Validated output
+```
+
+### Exa Integration Questions (Unresolved)
+
+1. **Is Exa wired into CLI?** - Need to check if `kalshi research context` or `kalshi news` commands use Exa
+2. **Did I have access to Exa MCP?** - Unclear if Exa MCP was available in this session
+3. **Why didn't I use it?** - Either not available, not prompted, or I defaulted to training data
+
+### Open Questions for Architecture
+
+From user's brainstorming with Deep Research agent:
+
+> "Should Exa be:
+> (A) A CLI command that Claude Code calls and gets raw results?
+> (B) Integrated directly into a 'Research Agent' that handles search + summarization?
+> (C) Called via MCP so any agent harness can use it natively?"
+
+### Next Steps
+
+- [ ] Verify Exa integration status in codebase
+- [ ] Test `kalshi research context TICKER` command
+- [ ] Test `kalshi news collect` command
+- [ ] Determine if Exa MCP is configured
+- [ ] Design structured synthesis pipeline per DeepMind paper recommendations
+
+### Key Insight
+
+The friction is NOT in the Kalshi API integration (that works well).
+The friction is in the **research → synthesis → structured output** pipeline.
+
+Without this, Claude just vibes on market data - which defeats the entire purpose of the tool.
