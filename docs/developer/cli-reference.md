@@ -4,8 +4,8 @@ This file is a **reference index** for the current CLI.
 
 SSOT is always:
 
-- `kalshi --help`
-- `kalshi <command> --help`
+- `uv run kalshi --help`
+- `uv run kalshi <command> --help`
 
 If you haven’t installed the `kalshi` entrypoint globally, use `uv run kalshi ...`.
 
@@ -15,6 +15,7 @@ This is the “where to find it in code” map for CLI commands:
 
 ```text
 kalshi
+├─ (status, version) -> src/kalshi_research/cli/__init__.py
 ├─ data       -> src/kalshi_research/cli/data.py
 ├─ market     -> src/kalshi_research/cli/market.py
 ├─ scan       -> src/kalshi_research/cli/scan.py
@@ -33,6 +34,7 @@ Notes:
 
 - Global option: `--env/-e` (defaults to `KALSHI_ENVIRONMENT` or `prod`; invalid values exit with an error)
 - `kalshi version`
+- `kalshi status [--json]`
 - `kalshi data ...`
 - `kalshi market ...`
 - `kalshi scan ...`
@@ -44,19 +46,23 @@ Notes:
 
 ## Common patterns
 
-- DB-backed commands default to `data/kalshi.db` and accept `--db PATH`.
-- Public API iterators support `--max-pages N` as a safety cap.
+- DB-backed commands default to `data/kalshi.db` and accept `--db/-d PATH`.
+- Public API iterators support `--max-pages N` as a safety cap (omit for full iteration).
   - If the cap is reached with a next cursor present, the client logs a warning (data may be incomplete).
 
 ## `kalshi data`
 
 - `kalshi data init`
+- `kalshi data migrate [--dry-run|--apply]`
 - `kalshi data sync-markets [--status open] [--max-pages N]`
 - `kalshi data sync-settlements [--max-pages N]`
+- `kalshi data sync-trades [--ticker TICKER] [--limit N] [--min-ts TS] [--max-ts TS] [--output FILE] [--json]`
 - `kalshi data snapshot [--status open] [--max-pages N]`
-- `kalshi data collect [--interval MIN] [--once] [--max-pages N]`
+- `kalshi data collect [--interval MINUTES] [--once] [--max-pages N]`
 - `kalshi data export [--format parquet|csv] [--output DIR]`
 - `kalshi data stats`
+- `kalshi data prune [--snapshots-older-than-days N] [--news-older-than-days N] [--dry-run|--apply]`
+- `kalshi data vacuum`
 
 ## `kalshi market`
 
@@ -64,25 +70,27 @@ Notes:
 - `kalshi market get <TICKER>`
 - `kalshi market orderbook <TICKER> [--depth N]`
 - `kalshi market liquidity <TICKER> [--depth N] [--max-slippage-cents N]`
+- `kalshi market history <TICKER> [--series SERIES] [--interval 1m|1h|1d] [--days N] [--start-ts TS] [--end-ts TS] [--json]`
 
 Note: Kalshi's **response** `status` values (e.g. `active`) differ from the `/markets` **filter** values. The CLI maps `--status active` → `open` with a warning.
 
 ## `kalshi scan`
 
-- `kalshi scan opportunities [--filter close-race|high-volume|wide-spread|expiring-soon] [--top N] [--max-pages N] [--min-liquidity N] [--show-liquidity] [--liquidity-depth N]`
+- `kalshi scan opportunities [--filter close-race|high-volume|wide-spread|expiring-soon] [--top N] [--max-pages N]`
   - close-race-only: `--min-volume INT`, `--max-spread INT`
+  - optional liquidity scoring: `--min-liquidity INT`, `--show-liquidity`, `--liquidity-depth INT`
 - `kalshi scan movers --db PATH [--period 1h|6h|24h] [--top N] [--max-pages N]`
 - `kalshi scan arbitrage --db PATH [--threshold FLOAT] [--top N] [--tickers-limit N] [--max-pages N]`
 
 ## `kalshi alerts`
 
 - `kalshi alerts list`
-- `kalshi alerts add <price|volume|spread|sentiment> <TICKER> --above FLOAT`
-  - price-only: `--below FLOAT` is supported
-  - sentiment-only: `--below` is rejected (only absolute shifts are supported)
+- `kalshi alerts add <price|volume|spread|sentiment> <TICKER> (--above FLOAT | --below FLOAT)`
+  - `volume`, `spread`, and `sentiment` support `--above` only (no `--below`)
 - `kalshi alerts remove <ALERT_ID_PREFIX>`
-- `kalshi alerts monitor [--once] [--interval SEC] [--max-pages N] [--daemon]`
+- `kalshi alerts monitor [--once] [--interval SEC] [--max-pages N] [--daemon] [--output-file PATH] [--webhook-url URL]`
   - `--daemon` starts a detached background process and writes logs to `data/alert_monitor.log`.
+- `kalshi alerts trim-log [--log PATH] [--max-mb N] [--keep-mb N] [--dry-run|--apply]`
 
 Alerts are stored locally at `data/alerts.json`.
 
@@ -94,9 +102,12 @@ Alerts are stored locally at `data/alerts.json`.
 
 ## `kalshi research`
 
-- `kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH] [--thesis THESIS_ID_PREFIX]`
+- `kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH] [--thesis THESIS_ID_PREFIX]` (`--end` is inclusive)
 - `kalshi research context <TICKER> [--max-news N] [--max-papers N] [--days N] [--json]`
 - `kalshi research topic <TOPIC> [--no-summary] [--json]`
+- `kalshi research similar <URL> [--num-results N] [--json]`
+- `kalshi research deep <TOPIC> [--model exa-research|exa-research-pro] [--wait] [--schema FILE] [--json]`
+- `kalshi research cache clear [--all] [--cache-dir DIR]`
 - `kalshi research thesis create <TITLE> --markets T1,T2 --your-prob P --market-prob P --confidence P [--bull TEXT] [--bear TEXT]`
   - optional: `--with-research` (requires `EXA_API_KEY`)
 - `kalshi research thesis list`

@@ -11,13 +11,13 @@ Research tools for Kalshi prediction market analysis.
 
 ## Features
 
-- **Data pipeline** - Sync markets/events, take price snapshots, export to Parquet/CSV
+- **Data pipeline** - Sync markets/events/settlements, take price snapshots, export to Parquet/CSV, run DB migrations
 - **Scanning** - Opportunities, movers, and basic arbitrage signals
 - **Analysis** - Metrics, calibration (Brier score), and correlation (DB-backed)
-- **Alerts** - Local alert conditions + monitoring loop
-- **Portfolio (authenticated)** - Sync trades/positions and compute FIFO cost basis + P&L
+- **Alerts** - Local alert conditions + monitoring loop (console/file/webhook), daemon mode + log trimming
+- **Portfolio (authenticated)** - Sync positions/fills/settlements, compute FIFO cost basis + P&L (realized + unrealized)
 - **Thesis tracking** - Create/list/show/resolve theses (local JSON)
-- **Exa (optional)** - Market context research, thesis evidence/invalidation, news tracking + sentiment
+- **Exa (optional)** - Market context/topic research, find similar pages, deep research, news tracking + sentiment
 - **Notebooks** - Jupyter templates for exploration
 
 Notes:
@@ -40,8 +40,14 @@ pip install -e ".[dev,research]"
 ## Quick Start
 
 ```bash
+# Show exchange status (public)
+uv run kalshi status
+
 # Initialize database
 uv run kalshi data init
+
+# Validate/apply schema migrations (safe dry-run by default)
+uv run kalshi data migrate
 
 # Sync markets from Kalshi (start small)
 uv run kalshi data sync-markets --max-pages 1
@@ -52,7 +58,7 @@ uv run kalshi scan opportunities --filter close-race --max-pages 1
 # Get market details
 uv run kalshi market get TICKER-NAME
 
-# Start continuous data collection
+# Start continuous data collection (interval is in minutes)
 uv run kalshi data collect --interval 15
 
 # (Optional) Exa-powered research
@@ -61,7 +67,7 @@ uv run kalshi data collect --interval 15
 
 ## CLI Reference
 
-See `kalshi --help` for all commands.
+See `uv run kalshi --help` for all commands.
 
 ## Documentation
 

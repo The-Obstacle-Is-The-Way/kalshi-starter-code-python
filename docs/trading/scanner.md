@@ -23,7 +23,8 @@ uv run kalshi scan opportunities --filter close-race --top 10
 **Filter logic:**
 
 ```python
-is_close_race = 0.40 <= yes_price <= 0.60
+mid_prob = (yes_bid_cents + yes_ask_cents) / 200.0
+is_close_race = 0.40 <= mid_prob <= 0.60
 ```
 
 ### 2. High Volume
@@ -43,8 +44,9 @@ uv run kalshi scan opportunities --filter high-volume --top 10
 **Filter logic:**
 
 ```python
-# Top N by 24h volume
-sorted_by_volume = sorted(markets, key=lambda m: m.volume_24h, reverse=True)
+# Default threshold (not currently configurable via CLI): volume_24h >= 10,000
+high_volume = [m for m in markets if m.volume_24h >= 10_000]
+sorted_by_volume = sorted(high_volume, key=lambda m: m.volume_24h, reverse=True)
 ```
 
 ### 3. Wide Spread
@@ -65,7 +67,7 @@ uv run kalshi scan opportunities --filter wide-spread --top 10
 
 ```python
 spread = yes_ask - yes_bid
-is_wide_spread = spread >= threshold  # default: 5 cents
+is_wide_spread = spread >= threshold  # default: 5 cents (fixed in code today)
 ```
 
 ### 4. Expiring Soon
@@ -168,6 +170,9 @@ Scanner results include:
 --max-spread 10      # Maximum spread in cents
 --max-pages 10       # Limit API pagination (safety cap)
 --top 10             # Number of results to show
+--min-liquidity 50   # Minimum liquidity score (0-100; fetches orderbooks)
+--show-liquidity     # Show liquidity score column (fetches orderbooks)
+--liquidity-depth 25 # Orderbook depth for liquidity scoring
 ```
 
 ### Examples
@@ -178,6 +183,7 @@ uv run kalshi scan opportunities \
   --filter close-race \
   --min-volume 1000 \
   --max-spread 10 \
+  --min-liquidity 50 \
   --top 10
 
 # Big movers in the last hour

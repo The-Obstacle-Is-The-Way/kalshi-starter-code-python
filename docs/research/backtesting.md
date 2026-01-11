@@ -154,7 +154,12 @@ The current implementation uses fixed sizing for simplicity.
 
 ## Spread Costs
 
-The `include_spreads` parameter (default: False) can simulate bid-ask spread costs. When enabled, it adjusts entry prices to account for the spread you'd pay to get filled.
+The current backtester does **not** model spread/slippage costs. Entry prices use:
+
+- `thesis.market_probability` (when no snapshots are available), or
+- the closest snapshot midpoint (`(yes_bid + yes_ask) / 2`) when snapshots are available.
+
+Note: `ThesisBacktester` has an `include_spreads` flag, but it is not currently applied in the simulation logic.
 
 ## Price Snapshots for Timing
 

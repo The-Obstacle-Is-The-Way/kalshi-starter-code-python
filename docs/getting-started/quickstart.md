@@ -19,6 +19,7 @@ Run the CLI without installing globally:
 ```bash
 uv run kalshi version
 uv run kalshi --help
+uv run kalshi status
 ```
 
 ## 1) Create a database
@@ -28,6 +29,13 @@ uv run kalshi data init
 ```
 
 Default DB path is `data/kalshi.db` (override with `--db` on any DB-backed command).
+
+If you're upgrading an existing DB (or pulling new migrations), validate/apply schema upgrades with:
+
+```bash
+uv run kalshi data migrate          # dry-run default
+uv run kalshi data migrate --apply  # apply to your DB
+```
 
 ## 2) Sync markets/events (start small)
 

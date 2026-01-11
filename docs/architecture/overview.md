@@ -60,7 +60,9 @@ Default runtime paths (configurable via CLI flags):
 - SQLite: `data/kalshi.db`
 - Alerts JSON: `data/alerts.json`
 - Theses JSON: `data/theses.json`
+- Exa cache: `data/exa_cache/` (optional)
 - Exports: `data/exports/`
+- Alerts daemon log: `data/alert_monitor.log`
 
 ### Database Schema (where tables live)
 
@@ -71,7 +73,7 @@ Tables are split across modules but share a single SQLAlchemy `Base`:
 - News/sentiment tables: `src/kalshi_research/data/models.py`
   - `tracked_items`, `news_articles`, `news_article_markets`, `news_article_events`, `news_sentiments`
 - Portfolio tables: `src/kalshi_research/portfolio/models.py`
-  - `positions`, `trades`
+  - `positions`, `trades`, `portfolio_settlements`
 
 `DatabaseManager` imports `kalshi_research.portfolio.models` to ensure those tables are registered in
 `Base.metadata` (so `create_tables()` creates everything).

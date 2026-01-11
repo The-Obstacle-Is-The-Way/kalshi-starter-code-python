@@ -36,7 +36,7 @@ Market data tables:
 
 Portfolio tables (optional/authenticated):
 
-- `positions`, `trades` (`src/kalshi_research/portfolio/models.py`)
+- `positions`, `trades`, `portfolio_settlements` (`src/kalshi_research/portfolio/models.py`)
 
 News/sentiment tables (optional, Exa-powered):
 
@@ -71,3 +71,9 @@ Exports are generated from the SQLite database and written under `data/exports/`
 - CSV: `events.csv`, `markets.csv`, `settlements.csv`, `price_snapshots.csv`
 
 The CLI entrypoint for exports is `kalshi data export` (see `docs/developer/cli-reference.md`).
+
+## Migrations and maintenance
+
+- Schema migrations: `kalshi data migrate` (dry-run by default; `--apply` to execute).
+- Data retention controls: `kalshi data prune` (dry-run by default; `--apply` to delete old rows).
+- Space reclaim: `kalshi data vacuum` (manual SQLite `VACUUM` after large deletes).

@@ -201,7 +201,7 @@ Integrate Exa as a strict boundary:
   - One-step: synthesize directly from snippets (simple, cheaper).
   - Two-step: summarize into factors first, then synthesize (more calls, potentially better quality).
 - Implement robust error handling and caching.
-- Design so the same Exa function can be called via CLI today and registered as an agent tool later (direct call or via MCP).
+- Design so the same Exa function can be called via CLI today and registered as an agent tool later (direct call).
 
 ## Observability & Validation (Error Handling)
 
