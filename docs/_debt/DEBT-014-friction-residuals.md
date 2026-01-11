@@ -49,10 +49,10 @@ backwards-compatibility.md into a single source of truth.
 |------|------|--------|
 | A1 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
 | A2 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
-| A3 | 🟡 Medium | ⏳ Pending (verify before remove) |
-| A4 | 🟡 Medium | ⏳ Pending (verify empirically) |
+| A3 | ⬜ N/A | ✅ VERIFIED CORRECT (2026-01-11) - NOT debt, keep as-is |
+| A4 | 🟡 Medium | ⏳ Pending (needs empirical WebSocket testing) |
 | A5 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
-| A6 | 🟢 Safe | ⏳ Pending (comment-only change) |
+| A6 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
 
 ---
 
@@ -97,43 +97,32 @@ raw = data.get("market_positions") or data.get("positions") or []
 
 ---
 
-### A3. Settlement Time Fallback [P2] - VERIFY BEFORE REMOVE
+### A3. Settlement Time Fallback [P2] - ✅ VERIFIED CORRECT (NOT DEBT)
 
 **Source:** `backwards-compatibility.md` Category 2.3
 **Location:** `src/kalshi_research/data/fetcher.py:138`
 
-**Problem:**
+**Code:**
 ```python
 settled_at = api_market.settlement_ts or api_market.expiration_time
 ```
 
-**Why it's debt:** Fallback for "historical data" that may not exist.
+**Status:** ✅ **VERIFIED CORRECT** (2026-01-11) - This is NOT debt, it's correct behavior.
 
-**⚠️ CAUTION (2026-01-11):** This fallback may be LEGITIMATELY NEEDED.
+**Verification performed:**
 
-Kalshi OpenAPI spec says:
-> `settlement_ts`: "Timestamp when the market was settled. Only filled for settled markets."
-> Type: `string | null` (nullable)
+1. Kalshi OpenAPI spec confirms `settlement_ts` is nullable: `string | null`
+2. Test `test_api_market_to_settlement_falls_back_to_expiration_time` explicitly verifies fallback
+3. The fallback handles unsettled markets correctly
 
-The fallback exists because:
-1. `settlement_ts` field was added Dec 19, 2025
-2. Historical data synced before that date won't have `settlement_ts`
-3. Function only runs for settled markets (`if not api_market.result: return None`)
+**Why this is CORRECT behavior (not debt):**
 
-**Verification steps before removal:**
+- `settlement_ts` is only filled for settled markets per Kalshi API spec
+- For active/unsettled markets, `settlement_ts` is `null`
+- The fallback to `expiration_time` is the documented proxy
+- Removing the fallback would break the function for null settlement timestamps
 
-1. [ ] Query local DB: `SELECT COUNT(*) FROM settlements WHERE settled_at IS NULL`
-2. [ ] Check if any settlements use `expiration_time` instead of `settlement_ts`
-3. [ ] If ALL settlements have proper `settlement_ts`, then safe to remove
-4. [ ] If some are missing, the fallback is NEEDED - do NOT remove
-
-**Fix (conditional):** Only remove if verification confirms no historical data needs the fallback.
-
-**Rollback:** Re-add fallback if any settlement timestamps become NULL.
-
-**Risk level:** 🟡 Medium - verify carefully before removal
-
-**Effort:** 20 minutes (query + verify + conditional remove)
+**Conclusion:** Keep this code as-is. No action required.
 
 ---
 
@@ -185,21 +174,22 @@ channel = data.get("type") or data.get("channel")
 
 ---
 
-### A6. Clarify "DB Stores Cents" Comment [P3] - RENAME COMMENT
+### A6. Clarify "DB Stores Cents" Comment [P3] - ✅ COMPLETED
 
 **Source:** `backwards-compatibility.md` Category 3.1
 **Location:** `src/kalshi_research/data/fetcher.py:112-113`
 
-**Problem:** The snapshot conversion comment says:
+**Problem:** The snapshot conversion comment said:
 
 > "Database continues to store cents for backwards compatibility."
 
-This is misleading. Storing cents is primarily a **precision** decision (avoid float issues), not a
+This was misleading. Storing cents is primarily a **precision** decision (avoid float issues), not a
 compatibility layer.
 
-**Fix:** Update the comment to say we store cents for precision / integer math.
+**Status:** ✅ **COMPLETED** (2026-01-11, commit TBD)
+- Updated comment to: "Database stores cents (integers) for precision - avoids floating-point rounding issues."
 
-**Effort:** 10 minutes
+**Effort:** 5 minutes
 
 ---
 
@@ -383,12 +373,12 @@ Options to address:
 
 | ID | Item | Impact | Effort | Priority | Status |
 |----|------|--------|--------|----------|--------|
-| A1 | Thesis legacy dict format | Low | 10 min | **P0** | Can fix NOW |
-| A2 | Portfolio positions fallback | Low | 15 min | P2 | Can fix NOW |
-| A3 | Settlement time fallback | Low | 15 min | P2 | Can fix NOW |
-| A4 | WebSocket channel fallback | Low | 15 min | P2 | Can fix NOW |
-| A5 | Data sync mve-filter | Low | 30 min | P3 | Can fix NOW |
-| A6 | Clarify DB cents comment | Low | 10 min | P3 | Can fix NOW |
+| A1 | Thesis legacy dict format | Low | 10 min | **P0** | ✅ COMPLETED |
+| A2 | Portfolio positions fallback | Low | 15 min | P2 | ✅ COMPLETED |
+| A3 | Settlement time fallback | N/A | N/A | N/A | ✅ VERIFIED CORRECT (not debt) |
+| A4 | WebSocket channel fallback | Low | 15 min | P2 | ⏳ Needs empirical testing |
+| A5 | Data sync mve-filter | Low | 30 min | P3 | ✅ COMPLETED |
+| A6 | Clarify DB cents comment | Low | 5 min | P3 | ✅ COMPLETED |
 | B1 | Exa research pipeline | High | Large | P1 | ⏸️ Blocked (FUTURE-001) |
 | B2 | Adversarial research | High | Medium | P1 | ⏸️ Blocked (FUTURE-001) |
 | B3 | New market alerts | Medium | Medium | P2 | 📋 Needs spec |
@@ -399,22 +389,34 @@ Options to address:
 
 ## Next Steps
 
-### Immediate (Can do now)
-1. **A1**: Delete thesis legacy dict format (~10 min)
-2. **A2-A4**: Verify and remove fallbacks (~45 min total)
-3. **A5**: Wire `--mve-filter` to sync-markets (~30 min)
-4. **A6**: Clarify DB cents storage comment (~10 min)
+### Section A Summary (2026-01-11)
+
+| Item | Outcome |
+|------|---------|
+| A1 | ✅ DONE - Deleted legacy dict parsing |
+| A2 | ✅ DONE - Removed positions fallback |
+| A3 | ✅ CLOSED - Verified CORRECT (not debt) |
+| A4 | ⏳ OPEN - Needs empirical WebSocket testing |
+| A5 | ✅ DONE - Added `--mve-filter` CLI option |
+| A6 | ✅ DONE - Fixed misleading comment |
+
+### Remaining Work
+
+1. **A4**: Empirically verify WebSocket message format before removing fallback
+   - Run `kalshi alerts monitor` and log message structure
+   - Determine if `type` or `channel` key is used
+   - Remove fallback only after confirmation
 
 ### Blocked (Waiting on FUTURE-001)
-4. **B1**: Implement `ResearchAgent` from FUTURE-001 spec
-5. **B2**: Included in FUTURE-001 (bull/bear case generation)
+2. **B1**: Implement `ResearchAgent` from FUTURE-001 spec
+3. **B2**: Included in FUTURE-001 (bull/bear case generation)
 
 ### Needs Spec
-6. **B3**: Create SPEC-0XX for new market alerts (see liquidity concern below)
+4. **B3**: Create SPEC-037 for new market alerts
 
 ### Scheduled
-7. **C2**: Wait for Jan 15, 2026, then cleanup
-8. **C1**: React when Kalshi removes `Event.category`
+5. **C2**: Wait for Jan 15, 2026, then cleanup
+6. **C1**: React when Kalshi removes `Event.category`
 
 ---
 

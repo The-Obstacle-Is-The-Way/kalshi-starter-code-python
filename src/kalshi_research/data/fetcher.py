@@ -110,7 +110,7 @@ class DataFetcher:
         """Convert API market to price snapshot.
 
         Uses computed properties that prefer new dollar fields over legacy cent fields.
-        Database continues to store cents for backwards compatibility.
+        Database stores cents (integers) for precision - avoids floating-point rounding issues.
         """
         return PriceSnapshot(
             ticker=api_market.ticker,
