@@ -184,7 +184,11 @@ uv run kalshi market list [OPTIONS]
 |--------|---------|-------------|
 | `--status`, `-s` | `open` | Filter by status: `unopened`, `open`, `paused`, `closed`, `settled` |
 | `--event`, `-e` | None | Filter by event ticker |
+| `--category`, `-c` | None | Filter by category (e.g. Politics, Economics, 'Science and Technology'); aliases: `pol`, `econ`, `tech`, `ai`, `crypto`, `climate` |
+| `--exclude-category`, `-X` | None | Exclude a category (e.g. `--exclude-category Sports`) |
+| `--event-prefix` | None | Filter by event ticker prefix (e.g. `KXFED`) |
 | `--limit`, `-n` | `20` | Maximum number of results |
+| `--full`, `-F` | False | Show full tickers/titles without truncation |
 
 **IMPORTANT**: There is NO `--search` or `--query` option. Use database queries instead.
 
@@ -229,13 +233,17 @@ uv run kalshi scan opportunities [OPTIONS]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--filter`, `-f` | None | Filter type: `close-race`, `high-volume`, `wide-spread`, `expiring-soon` |
+| `--category`, `-c` | None | Filter by category |
+| `--no-sports` | False | Exclude Sports category markets |
+| `--event-prefix` | None | Filter by event ticker prefix (e.g. `KXFED`) |
 | `--top`, `-n` | `10` | Number of results |
 | `--min-volume` | `0` | Minimum 24h volume (close-race only) |
 | `--max-spread` | `100` | Maximum bid-ask spread in cents (close-race only) |
-| `--max-pages` | None | Pagination safety limit |
+| `--max-pages` | None | Optional pagination safety limit (None = full) |
 | `--min-liquidity` | None | Minimum liquidity score (0-100); fetches orderbooks for candidates |
 | `--show-liquidity` | False | Show liquidity score column; fetches orderbooks for displayed markets |
 | `--liquidity-depth` | `25` | Orderbook depth levels for liquidity scoring |
+| `--full`, `-F` | False | Show full tickers/titles without truncation |
 
 ### scan arbitrage
 Find arbitrage opportunities from correlated markets.
@@ -251,6 +259,7 @@ uv run kalshi scan arbitrage [OPTIONS]
 | `--top`, `-n` | `10` | Number of results |
 | `--tickers-limit` | `50` | Limit correlation analysis to N tickers (0 = all) |
 | `--max-pages` | None | Pagination safety limit |
+| `--full`, `-F` | False | Show full tickers/relationships without truncation |
 
 ### scan movers
 Show biggest price movers over a time period.
@@ -265,6 +274,7 @@ uv run kalshi scan movers [OPTIONS]
 | `--period`, `-p` | `24h` | Time period: `1h`, `6h`, `24h` |
 | `--top`, `-n` | `10` | Number of results |
 | `--max-pages` | None | Pagination safety limit |
+| `--full`, `-F` | False | Show full titles without truncation |
 
 ---
 
@@ -384,8 +394,12 @@ uv run kalshi research thesis create "TITLE" [OPTIONS]
 List all theses.
 
 ```bash
-uv run kalshi research thesis list
+uv run kalshi research thesis list [OPTIONS]
 ```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--full`, `-F` | False | Show full thesis IDs/titles without truncation |
 
 ### research thesis show
 Show details of a thesis.

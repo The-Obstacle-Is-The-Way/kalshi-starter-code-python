@@ -53,7 +53,7 @@ uv run kalshi data migrate
 uv run kalshi data sync-markets --max-pages 1
 
 # Scan for opportunities
-uv run kalshi scan opportunities --filter close-race --max-pages 1
+uv run kalshi scan opportunities --filter close-race --max-pages 1 --full
 
 # Get market details
 uv run kalshi market get TICKER-NAME

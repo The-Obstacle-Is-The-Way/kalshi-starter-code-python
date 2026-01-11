@@ -187,16 +187,22 @@ Scanner commands print tables (exact columns depend on the command).
 
 ## CLI Options
 
+Add `--full/-F` to disable truncation in table output.
+
 ### Opportunities
 
 ```bash
 --min-volume 1000    # Minimum 24h volume
 --max-spread 10      # Maximum spread in cents
---max-pages 10       # Limit API pagination (safety cap)
+--max-pages 10       # Optional pagination safety limit (omit for full)
 --top 10             # Number of results to show
+--category ai        # Filter by category (e.g. Politics, Economics, AI)
+--no-sports          # Exclude Sports markets
+--event-prefix KXFED # Filter by event ticker prefix
 --min-liquidity 50   # Minimum liquidity score (0-100; fetches orderbooks)
 --show-liquidity     # Show liquidity score column (fetches orderbooks)
 --liquidity-depth 25 # Orderbook depth for liquidity scoring
+--full               # Show full tickers/titles without truncation
 ```
 
 ### Arbitrage
@@ -206,7 +212,8 @@ Scanner commands print tables (exact columns depend on the command).
 --threshold 0.10         # Min divergence to flag (0-1)
 --tickers-limit 50       # Correlation analysis cap (0 = analyze all tickers)
 --top 10                 # Number of results to show
---max-pages 10           # Limit API pagination (safety cap)
+--max-pages 10           # Optional pagination safety limit (omit for full)
+--full                   # Show full tickers/relationships without truncation
 ```
 
 ### Examples
@@ -218,6 +225,7 @@ uv run kalshi scan opportunities \
   --min-volume 1000 \
   --max-spread 10 \
   --min-liquidity 50 \
+  --full \
   --top 10
 
 # Big movers in the last hour

@@ -164,7 +164,7 @@ uv run kalshi research thesis create "My prediction" \
   --yes
 
 # List all theses
-uv run kalshi research thesis list
+uv run kalshi research thesis list --full
 
 # View details
 uv run kalshi research thesis show <ID_PREFIX>

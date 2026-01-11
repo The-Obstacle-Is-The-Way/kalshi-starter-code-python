@@ -110,8 +110,11 @@ uv run kalshi data vacuum --db data/kalshi.db
 ## Market lookup (public)
 
 ```bash
-uv run kalshi market list --status open --limit 20
+uv run kalshi market list --status open --limit 20 --full
 uv run kalshi market list --event <EVENT_TICKER> --limit 20
+uv run kalshi market list --event-prefix KXFED --limit 20
+uv run kalshi market list --category Politics --limit 20
+uv run kalshi market list --exclude-category Sports --limit 20
 uv run kalshi market get <TICKER>
 uv run kalshi market orderbook <TICKER> --depth 5
 uv run kalshi market liquidity <TICKER> --depth 25
@@ -126,6 +129,7 @@ uv run kalshi market history <TICKER> --interval 1h --days 7
 
 ```bash
 uv run kalshi scan opportunities --filter close-race --top 10 --min-volume 1000 --max-spread 10 --max-pages 10
+uv run kalshi scan opportunities --filter close-race --category ai --top 10 --min-volume 1000 --max-spread 10 --max-pages 10 --full
 uv run kalshi scan opportunities --filter high-volume --top 10 --max-pages 10
 uv run kalshi scan opportunities --filter wide-spread --top 10 --max-pages 10
 uv run kalshi scan opportunities --filter expiring-soon --top 10 --max-pages 10
@@ -134,13 +138,13 @@ uv run kalshi scan opportunities --filter expiring-soon --top 10 --max-pages 10
 ### Movers (requires snapshots in your DB)
 
 ```bash
-uv run kalshi scan movers --db data/kalshi.db --period 1h --top 10 --max-pages 10
+uv run kalshi scan movers --db data/kalshi.db --period 1h --top 10 --max-pages 10 --full
 ```
 
 ### Arbitrage
 
 ```bash
-uv run kalshi scan arbitrage --db data/kalshi.db --threshold 0.10 --top 10 --tickers-limit 50 --max-pages 10
+uv run kalshi scan arbitrage --db data/kalshi.db --threshold 0.10 --top 10 --tickers-limit 50 --max-pages 10 --full
 ```
 
 ---

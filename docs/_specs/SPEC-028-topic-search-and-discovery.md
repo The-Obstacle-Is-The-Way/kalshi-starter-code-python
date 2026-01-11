@@ -29,7 +29,7 @@ This spec exists because:
 1. **Fast keyword search** across markets and events (sub-100ms on a warm cache for typical queries).
 2. **Simple filters** that match how humans think:
    - status (`open`, `closed`, etc.)
-   - category (via `events.category`, since our current market API model does not include market-level categories)
+   - category (via `markets.category` which stores denormalized `events.category`)
    - time windows (close/settle)
    - “quality” filters (min volume, max spread) via latest snapshot join
 3. **Deterministic, testable behavior** (no LLM dependence).
@@ -51,17 +51,19 @@ This spec exists because:
 
 ### 1) CLI has no keyword search
 
-- `uv run kalshi market list` hits the API and supports only `--status`, `--event`, `--limit`
+- `uv run kalshi market list` hits the API and supports structured filters like `--status`, `--event`,
+  `--event-prefix`, `--category`, `--exclude-category`, `--limit`, `--full`
   (SSOT: `src/kalshi_research/cli/market.py`).
 - The `kalshi-cli` skill explicitly warns: “NO `--search` option exists” (SSOT: `.codex/skills/kalshi-cli/SKILL.md`).
 
 ### 2) Database has markets/events but no search index
 
 - Tables: `events`, `markets`, `price_snapshots`, … (SSOT: `src/kalshi_research/data/models.py`).
-- `Market.category` / `Market.subcategory` exist in the DB schema but are currently written as `None`
-  (SSOT: `src/kalshi_research/data/fetcher.py`).
+- `markets.category` is populated during `data sync-markets` by denormalizing `events.category` onto markets when
+  missing (SSOT: `src/kalshi_research/data/fetcher.py`).
+- `markets.subcategory` exists but is currently unused (still `NULL`).
 - Market responses (as represented by our `Market` API model) do not include market-level `category` fields, so
-  the reliable “category” is `events.category` (SSOT: `src/kalshi_research/api/models/market.py`).
+  we treat `events.category` (and its denormalized copy in `markets.category`) as the canonical category.
 
 ### 3) Price filters require joining latest snapshots
 
@@ -264,7 +266,7 @@ uv run kalshi market search "bitcoin ETF" --db data/kalshi.db --status open --ca
 
 - `--db PATH` (default: `data/kalshi.db`)
 - `--status unopened|open|paused|closed|settled|any` (default: `open`)
-- `--category TEXT` (matches `events.category`, case-insensitive)
+- `--category TEXT` (matches `markets.category` / denormalized `events.category`, case-insensitive)
 - `--event TICKER` (exact `event_ticker`)
 - `--series TICKER` (exact `series_ticker`)
 - `--min-volume INT` (uses latest snapshot `volume_24h`)
@@ -315,7 +317,7 @@ uv run kalshi market topics delete "crypto"
 ## Acceptance Criteria
 
 - [ ] Keyword searching works via CLI without requiring raw SQL.
-- [ ] Filtering by `events.category` is supported (and documented) since market category is not in the API.
+- [ ] Filtering by denormalized event categories (`markets.category`) is supported (and documented).
 - [ ] Search returns stable JSON when requested.
 - [ ] If FTS5 is unavailable, commands still work via LIKE fallback (with a warning).
 - [ ] `uv run mkdocs build --strict` passes after docs updates that accompany implementation.

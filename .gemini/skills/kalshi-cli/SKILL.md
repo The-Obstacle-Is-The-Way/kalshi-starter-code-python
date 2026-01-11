@@ -63,15 +63,15 @@ uv run kalshi data stats                   # Show statistics
 ### market - Market Lookup
 ```bash
 uv run kalshi market get TICKER            # Fetch single market
-uv run kalshi market list [-n 20]          # List markets (NO --search!)
+uv run kalshi market list [--status open] [--event EVT] [--event-prefix PREFIX] [--category TEXT] [--exclude-category TEXT] [--limit N] [--full]  # List markets (NO --search!)
 uv run kalshi market orderbook TICKER      # Get orderbook
 ```
 
 ### scan - Opportunity Scanning
 ```bash
-uv run kalshi scan opportunities [--filter close-race] [--top 10] [--max-pages N]
-uv run kalshi scan arbitrage [--threshold 0.1] [--top 10] [--max-pages N]
-uv run kalshi scan movers [--period 24h] [--top 10] [--max-pages N]
+uv run kalshi scan opportunities [--filter close-race] [--category TEXT] [--no-sports] [--event-prefix PREFIX] [--top 10] [--max-pages N] [--full]
+uv run kalshi scan arbitrage [--threshold 0.1] [--top 10] [--max-pages N] [--full]
+uv run kalshi scan movers [--period 24h] [--top 10] [--max-pages N] [--full]
 ```
 
 ### portfolio - Portfolio Tracking (Requires Auth)
@@ -91,7 +91,7 @@ uv run kalshi research context TICKER          # Exa: market context research
 uv run kalshi research topic "TOPIC"           # Exa: topic research / ideation
 uv run kalshi research cache clear [--all]     # Exa cache maintenance (expired-only default)
 uv run kalshi research thesis create "TITLE" -m TICKER --your-prob 0.7 --market-prob 0.5 --confidence 0.8
-uv run kalshi research thesis list
+uv run kalshi research thesis list [--full]
 uv run kalshi research thesis show ID [--with-positions]
 uv run kalshi research thesis resolve ID --outcome yes|no|void
 uv run kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD
@@ -127,7 +127,7 @@ uv run kalshi analysis correlation [--min 0.5]
 ## Critical Rules
 
 1. **NO `--search` option exists** on any command. Query database directly instead.
-2. **Use exact tickers** - CLI display truncates with `...`; get full tickers from database.
+2. **Use `--full/-F`** to disable CLI truncation; if you still need exact tickers, query the database.
 3. **Always use `uv run kalshi`** prefix - commands require virtual environment.
 4. **Check `--help`** before assuming options exist.
 5. **`news track` defaults to 2 queries** (title + title + "news"), so `news collect` usually makes 2 Exa calls per tracked item.

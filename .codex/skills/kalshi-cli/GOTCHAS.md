@@ -78,14 +78,15 @@ sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE title LIKE '%Sup
 
 ### Truncated Tickers in CLI Output
 
-CLI display truncates long tickers with `...`:
+Some table commands truncate long tickers/titles with `...` by default.
 
 ```text
 KXFEDCHAIRNOM-29-...  # Displayed
 KXFEDCHAIRNOM-29-KW   # Actual
 ```
 
-Always get full tickers from database before using them.
+Use `--full/-F` to disable truncation (supported by `market list`, `scan opportunities`, `scan arbitrage`,
+`scan movers`, and `research thesis list`). If you still need the exact ticker (e.g. narrow terminal), query the DB.
 
 ### Ticker Discovery Is Hard
 
