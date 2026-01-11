@@ -4,14 +4,16 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**0 active debt items.** (All known debt items resolved or archived unless listed below.)
+**1 active debt item.**
 
-No active debt items.
+| ID | Title | Priority | Status |
+|---|---|---|---|
+| **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (Needs Design) |
 
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-014**
+**DEBT-015**
 
 ---
 
