@@ -45,42 +45,39 @@ backwards-compatibility.md into a single source of truth.
 
 **Risk assessment:**
 
-| Item | Risk | Reason |
+| Item | Risk | Status |
 |------|------|--------|
-| A1 | 🟢 Safe | Format was never used (greenfield project) |
-| A2 | 🟢 Safe | OpenAPI confirms `market_positions` is correct |
-| A3 | 🟡 Medium | Fallback may be needed for historical data |
-| A4 | 🟡 Medium | WebSocket spec not documented, verify empirically |
-| A5 | 🟢 Safe | Additive change (wiring existing parameter) |
-| A6 | 🟢 Safe | Comment-only change (clarifies intent) |
+| A1 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
+| A2 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
+| A3 | 🟡 Medium | ⏳ Pending (verify before remove) |
+| A4 | 🟡 Medium | ⏳ Pending (verify empirically) |
+| A5 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
+| A6 | 🟢 Safe | ⏳ Pending (comment-only change) |
 
 ---
 
 ## Section A: Can Fix NOW (No Blockers)
 
-### A1. Thesis Legacy Dict Format [P0] - DELETE NOW
+### A1. Thesis Legacy Dict Format [P0] - ✅ COMPLETED
 
 **Source:** `backwards-compatibility.md` Category 2.1
 **Location:** `src/kalshi_research/research/thesis.py:324`
 
 **Problem:** Legacy dict format parsing exists for a format that was never used in production.
 
-```python
-# Legacy dict format: {"<id>": {...}, ...}
-```
-
-**Why it's debt:** ~20 lines of parsing code for hypothetical migration. Greenfield project = no users.
-
-**Fix:** Delete the legacy parsing code block entirely.
+**Status:** ✅ **COMPLETED** (2026-01-11, commit 12657bb)
+- Verified `data/theses.json` uses new `{"theses": [...]}` format
+- Deleted ~20 lines of legacy dict parsing code
+- Simplified error message for unknown schema
 
 **Effort:** 10 minutes
 
 ---
 
-### A2. Portfolio Positions Fallback [P2] - VERIFY & REMOVE
+### A2. Portfolio Positions Fallback [P2] - ✅ COMPLETED
 
 **Source:** `backwards-compatibility.md` Category 2.2, `hacks.md` 2.3
-**Location:** `src/kalshi_research/api/client.py:582`
+**Location:** `src/kalshi_research/api/client.py:581`
 
 **Problem:**
 ```python
@@ -89,21 +86,14 @@ raw = data.get("market_positions") or data.get("positions") or []
 
 **Why it's debt:** Fallback to `positions` based on "older docs" - may never trigger.
 
-**✅ VERIFIED (2026-01-11):** Kalshi OpenAPI spec confirms response field is `market_positions`.
-The `positions` fallback is unnecessary.
-
-**Verification steps before removal:**
-
-1. [x] Check Kalshi OpenAPI spec → Confirmed: `GetPositionsResponse` uses `market_positions`
-2. [ ] Add temporary logging: `if "positions" in data: logger.warning("Legacy positions key found")`
-3. [ ] Run `kalshi portfolio sync` several times over 1-2 days
-4. [ ] If warning never triggers, safe to remove
-
-**Fix:** Remove `or data.get("positions")` fallback.
+**Status:** ✅ **COMPLETED** (2026-01-11, commit 12657bb)
+- Verified Kalshi OpenAPI spec uses `market_positions`
+- Removed `or data.get("positions")` fallback
+- Updated test to verify new behavior (returns empty for legacy key)
 
 **Rollback:** If Kalshi ever returns `positions` key, re-add the fallback.
 
-**Effort:** 15 minutes (verify + remove)
+**Effort:** 15 minutes
 
 ---
 
@@ -179,21 +169,17 @@ channel = data.get("type") or data.get("channel")
 
 ---
 
-### A5. Data Sync MVE Filter [P3] - WIRE EXISTING PARAM
+### A5. Data Sync MVE Filter [P3] - ✅ COMPLETED
 
 **Source:** `friction.md` - "Database Sync Sports Dominated"
 
 **Problem:** `kalshi data sync-markets` doesn't expose `--mve-filter` flag.
 
-**Current state:**
-- API client supports `mve_filter` parameter ✅
-- `DataFetcher.sync_markets()` does not pass `mve_filter` through ❌
-- CLI doesn't expose it ❌
-
-**Fix:** Plumb `mve_filter` end-to-end:
-1. Add optional `mve_filter` param to `DataFetcher.sync_markets()`
-2. Thread it into `self.client.get_all_markets(..., mve_filter=mve_filter)`
-3. Add `--mve-filter` option to `kalshi data sync-markets` that passes through
+**Status:** ✅ **COMPLETED** (2026-01-11, commit 12657bb)
+- Added `mve_filter` parameter to `DataFetcher.sync_markets()`
+- Passed through to `self.client.get_all_markets(..., mve_filter=...)`
+- Added `--mve-filter` CLI option to `kalshi data sync-markets`
+- Usage: `kalshi data sync-markets --mve-filter exclude` (skip sports parlays)
 
 **Effort:** 30 minutes
 
