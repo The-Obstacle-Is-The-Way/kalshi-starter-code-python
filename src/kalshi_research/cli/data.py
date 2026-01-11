@@ -163,7 +163,7 @@ def data_sync_markets(
     ] = None,
 ) -> None:
     """Sync markets from Kalshi API to database."""
-    from typing import Literal
+    from typing import Literal, cast
 
     from kalshi_research.cli.db import open_db
     from kalshi_research.data import DataFetcher
@@ -176,7 +176,7 @@ def data_sync_markets(
                 f"[red]Error:[/red] --mve-filter must be 'only' or 'exclude', got '{mve_filter}'"
             )
             raise typer.Exit(1)
-        mve_filter_typed = mve_filter  # type: ignore[assignment]
+        mve_filter_typed = cast("Literal['only', 'exclude']", mve_filter)
 
     async def _sync() -> None:
         async with open_db(db_path) as db, DataFetcher(db) as fetcher:
