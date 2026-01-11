@@ -54,6 +54,7 @@ def _spawn_alert_monitor_daemon(
     output_file: Path | None,
     webhook_url: str | None,
 ) -> tuple[int, Path]:
+    import errno
     import os
 
     args = [
@@ -80,6 +81,19 @@ def _spawn_alert_monitor_daemon(
 
     _ALERT_MONITOR_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _ALERT_MONITOR_LOG_PATH.open("a") as log_file:
+        if sys.platform != "win32":
+            import fcntl
+
+            try:
+                fcntl.flock(log_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as exc:
+                if exc.errno in (errno.EACCES, errno.EAGAIN):
+                    raise RuntimeError(
+                        "Alert monitor daemon appears to already be running (log file is locked): "
+                        f"{_ALERT_MONITOR_LOG_PATH}"
+                    ) from None
+                raise
+
         popen_kwargs: dict[str, Any] = {
             "stdin": subprocess.DEVNULL,
             "stdout": log_file,
@@ -425,6 +439,7 @@ def alerts_trim_log(
     ] = True,
 ) -> None:
     """Trim the alerts monitor log to keep disk usage bounded."""
+    import errno
     import os
 
     if max_mb <= 0:
@@ -457,6 +472,20 @@ def alerts_trim_log(
         return
 
     with log_path.open("r+b") as f:
+        if sys.platform != "win32":
+            import fcntl
+
+            try:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as exc:
+                if exc.errno in (errno.EACCES, errno.EAGAIN):
+                    console.print(
+                        "[red]Error:[/red] Log file is locked. Stop the alert monitor daemon "
+                        "before trimming."
+                    )
+                    raise typer.Exit(2) from None
+                raise
+
         if keep_bytes <= 0:
             f.truncate(0)
         else:

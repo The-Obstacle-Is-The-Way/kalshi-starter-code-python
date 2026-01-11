@@ -412,7 +412,7 @@ def market_list(
             async with KalshiPublicClient() as client:
                 request_limit = limit
                 if event is None and (category or exclude_category or event_prefix):
-                    request_limit = 1000
+                    request_limit = max(limit, 1000)
                 markets = await client.get_markets(
                     status=status_filter,
                     event_ticker=event,

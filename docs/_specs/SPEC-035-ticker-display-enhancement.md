@@ -13,7 +13,7 @@
 CLI commands truncate long tickers making them unreadable and requiring database queries to see full values.
 
 **Example friction from `friction.md`:**
-```
+```text
 Some CLI tables truncated long tickers/titles (e.g. `KXNFLAFCCHAMP-25-…`) and required extra DB
 queries to recover the full value.
 ```

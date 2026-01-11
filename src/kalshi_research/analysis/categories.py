@@ -10,6 +10,7 @@ Category names match Kalshi's official categories as observed on the Events endp
 from __future__ import annotations
 
 OTHER_CATEGORY = "Other"
+SPORTS_CATEGORY = "Sports"
 
 # Keys match Kalshi's official category names from GET /events.
 CATEGORY_PATTERNS: dict[str, list[str]] = {
@@ -38,7 +39,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
     ],
     "Financials": ["KXBTC", "KXETH", "KXCRYPTO", "KXBITCOIN"],
     "Science and Technology": ["KXOAI", "KXANTH", "KXGOOGLE", "KXAI", "KXCHATGPT"],
-    "Sports": [
+    SPORTS_CATEGORY: [
         "KXNFL",
         "KXNBA",
         "KXMLB",
@@ -55,6 +56,9 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
     "World": ["KXWAR", "KXCONFLICT", "KXGEOPOL", "KXELONMARS", "KXNEWPOPE"],
 }
 
+# Lowercase → canonical official category name.
+_OFFICIAL_BY_LOWER: dict[str, str] = {name.lower(): name for name in CATEGORY_PATTERNS}
+
 # CLI-friendly aliases (case-insensitive).
 CATEGORY_ALIASES: dict[str, str] = {
     "politics": "Politics",
@@ -67,7 +71,7 @@ CATEGORY_ALIASES: dict[str, str] = {
     "tech": "Science and Technology",
     "science": "Science and Technology",
     "ai": "Science and Technology",
-    "sports": "Sports",
+    "sports": SPORTS_CATEGORY,
     "entertainment": "Entertainment",
     "climate": "Climate and Weather",
     "weather": "Climate and Weather",
@@ -77,8 +81,13 @@ CATEGORY_ALIASES: dict[str, str] = {
 
 def normalize_category(user_input: str) -> str:
     """Normalize user input to an official Kalshi category name."""
-    lower = user_input.strip().lower()
-    return CATEGORY_ALIASES.get(lower, user_input)
+    stripped = user_input.strip()
+    lower = stripped.lower()
+    if lower in CATEGORY_ALIASES:
+        return CATEGORY_ALIASES[lower]
+    if lower in _OFFICIAL_BY_LOWER:
+        return _OFFICIAL_BY_LOWER[lower]
+    return stripped
 
 
 def classify_by_event_ticker(event_ticker: str) -> str:

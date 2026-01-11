@@ -127,6 +127,8 @@ uv run kalshi alerts trim-log          # dry-run default
 uv run kalshi alerts trim-log --apply  # execute trimming
 ```
 
+Note: `trim-log` refuses to run while the daemon is actively writing to the log; stop the daemon first.
+
 ## Notifiers
 
 When an alert triggers, notifiers handle the output:

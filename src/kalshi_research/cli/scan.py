@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, TypedDict
 
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -21,6 +21,15 @@ if TYPE_CHECKING:
     from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.models.market import Market
     from kalshi_research.data.models import PriceSnapshot
+
+
+class MoverRow(TypedDict):
+    ticker: str
+    title: str
+    price_change: float
+    old_price: float
+    new_price: float
+    volume: int
 
 
 def _select_opportunity_results(
@@ -120,7 +129,10 @@ def _render_opportunities_table(
 
     table = Table(title=title)
     table.add_column("Ticker", style="cyan", no_wrap=True)
-    table.add_column("Title", style="white")
+    if full:
+        table.add_column("Title", style="white")
+    else:
+        table.add_column("Title", style="white", overflow="ellipsis", max_width=50)
     table.add_column("Probability", style="green")
     table.add_column("Spread", style="yellow")
     table.add_column("Volume", style="magenta")
@@ -130,7 +142,7 @@ def _render_opportunities_table(
     for m in results:
         row = [
             m.ticker,
-            m.title if full else m.title[:50],
+            m.title,
             f"{m.market_prob:.1%}",
             f"{m.spread}¢",
             f"{m.volume_24h:,}",
@@ -187,6 +199,7 @@ def _filter_markets_by_category(
         return markets
 
     from kalshi_research.analysis.categories import (
+        SPORTS_CATEGORY,
         classify_by_event_ticker,
         normalize_category,
     )
@@ -200,7 +213,7 @@ def _filter_markets_by_category(
             continue
 
         derived_category = classify_by_event_ticker(market.event_ticker)
-        if no_sports and derived_category == "Sports":
+        if no_sports and derived_category == SPORTS_CATEGORY:
             continue
         if include_category and derived_category != include_category:
             continue
@@ -489,19 +502,24 @@ def _render_arbitrage_opportunities_table(
     from rich.console import Console
 
     table = Table(title="Arbitrage Opportunities")
-    table.add_column("Tickers", style="cyan", no_wrap=True)
+    if full:
+        table.add_column("Tickers", style="cyan", no_wrap=True)
+    else:
+        table.add_column("Tickers", style="cyan", no_wrap=True, overflow="ellipsis", max_width=30)
     table.add_column("Type", style="yellow")
-    table.add_column("Expected", style="dim")
+    if full:
+        table.add_column("Expected", style="dim")
+    else:
+        table.add_column("Expected", style="dim", overflow="ellipsis", max_width=40)
     table.add_column("Divergence", style="red")
     table.add_column("Confidence", style="green")
 
     for opp in opportunities:
         tickers_str = ", ".join(opp.tickers[:2])
-        expected_relationship = opp.expected_relationship
         table.add_row(
-            tickers_str if full else tickers_str[:30],
+            tickers_str,
             opp.opportunity_type,
-            expected_relationship if full else expected_relationship[:40],
+            opp.expected_relationship,
             f"{opp.divergence:.2%}",
             f"{opp.confidence:.2f}",
         )
@@ -640,7 +658,7 @@ def scan_movers(  # noqa: PLR0915
         market_lookup = {m.ticker: m for m in markets}
 
         # Get historical prices
-        movers: list[dict[str, Any]] = []
+        movers: list[MoverRow] = []
         async with DatabaseManager(db_path) as db, db.session_factory() as session:
             price_repo = PriceRepository(session)
 
@@ -696,7 +714,10 @@ def scan_movers(  # noqa: PLR0915
         # Display results
         table = Table(title=f"Biggest Movers ({period})")
         table.add_column("Ticker", style="cyan", no_wrap=True)
-        table.add_column("Title", style="white")
+        if full:
+            table.add_column("Title", style="white")
+        else:
+            table.add_column("Title", style="white", overflow="ellipsis", max_width=40)
         table.add_column("Change", style="yellow")
         table.add_column("Old → New", style="dim")
         table.add_column("Volume", style="magenta")
@@ -708,7 +729,7 @@ def scan_movers(  # noqa: PLR0915
 
             table.add_row(
                 m["ticker"],
-                m["title"] if full else m["title"][:40],
+                m["title"],
                 f"[{color}]{arrow} {abs(change_pct):.1%}[/{color}]",
                 f"{m['old_price']:.1%} → {m['new_price']:.1%}",
                 f"{m['volume']:,}",

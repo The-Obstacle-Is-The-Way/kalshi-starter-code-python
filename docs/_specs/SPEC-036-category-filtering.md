@@ -22,7 +22,8 @@ Implemented category filtering + denormalized categories with:
   - `tests/unit/cli/test_scan.py`
 
 **DB note:** We reuse the existing `markets.category` column to store the *event category* (denormalized).
-No schema migration was required.
+Most deployments need no schema migration: `events.category` and `markets.category` are already present in the
+Alembic schema. If your local DB predates these columns, run `uv run kalshi data migrate --apply` first.
 
 ---
 
@@ -31,7 +32,7 @@ No schema migration was required.
 The market scanner is overwhelmed by sports parlay markets, making it hard to find interesting political/economics/AI markets.
 
 **From `friction.md`:**
-```
+```text
 ### Scanner Shows Illiquid Garbage
 - `kalshi scan opportunities` returns multivariate sports markets with 0 volume and 98¢ spreads
 - Need better filtering to exclude KXMVE (multivariate) markets
@@ -58,7 +59,7 @@ The market scanner is overwhelmed by sports parlay markets, making it hard to fi
 **From `docs/_vendor-docs/kalshi-api-reference.md`:**
 
 ### Breaking Change (Jan 8, 2026)
-```
+```text
 ### Market response field removals (release Jan 8, 2026)
 - `category`, `risk_limit_cents` removed from Market responses.
 ```
@@ -281,7 +282,7 @@ async def sync_events(self, max_pages: int = 10) -> int:
 **Status:** ✅ Complete
 
 We reuse the existing `markets.category` column to store the parent event's category (denormalized).
-No migration required.
+No new schema migration required (see DB note above).
 
 ### Phase 3: CLI Filter Support
 
@@ -469,17 +470,15 @@ kalshi market list --event-prefix KXFED
 
 ---
 
-## Database Schema Changes
+## Database Backfill (Optional)
 
 ```sql
--- Add category to events table (if not exists)
-ALTER TABLE events ADD COLUMN category TEXT;
-
--- Populate from events
+-- If you have existing rows with NULL category, backfill markets from events.
 UPDATE markets
 SET category = (
     SELECT category FROM events WHERE events.ticker = markets.event_ticker
-);
+)
+WHERE category IS NULL;
 ```
 
 ---

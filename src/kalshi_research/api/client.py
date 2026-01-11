@@ -196,13 +196,25 @@ class KalshiPublicClient:
         Filter: unopened, open, closed, settled
         Response: active, closed, determined, finalized
         """
-        markets, _ = await self.get_markets_page(
-            status=status,
-            event_ticker=event_ticker,
-            series_ticker=series_ticker,
-            limit=limit,
-            mve_filter=mve_filter,
-        )
+        if limit <= 0:
+            return []
+
+        markets: list[Market] = []
+        cursor: str | None = None
+        while len(markets) < limit:
+            remaining = limit - len(markets)
+            page_markets, cursor = await self.get_markets_page(
+                status=status,
+                event_ticker=event_ticker,
+                series_ticker=series_ticker,
+                limit=min(remaining, 1000),
+                cursor=cursor,
+                mve_filter=mve_filter,
+            )
+            markets.extend(page_markets)
+            if cursor is None or not page_markets:
+                break
+
         return markets
 
     async def get_all_markets(
