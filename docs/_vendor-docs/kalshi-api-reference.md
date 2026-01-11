@@ -124,8 +124,10 @@ Only these count against **write** limits:
 | `GET /markets/{ticker}/candlesticks` | OHLC candlestick data |
 | `GET /markets/candlesticks` | Batch candlesticks (multiple markets) |
 | `GET /markets/trades` | Historical trades (paginated) |
-| `GET /series` | List series templates |
+| `GET /series` | List series templates (supports `category`, `tags` filters) |
 | `GET /series/{ticker}` | Single series details |
+| `GET /search/tags_by_categories` | Get tags organized by category (for discovery) |
+| `GET /search/filters_by_sport` | Get sports-specific filters |
 | `GET /events` | List events (**excludes multivariate**) |
 | `GET /events/multivariate` | Multivariate events only |
 | `GET /events/{ticker}` | Single event details |
@@ -155,6 +157,23 @@ Only these count against **write** limits:
 | `min_settled_ts` / `max_settled_ts` | int | Settlement time filters |
 
 **Note:** Timestamp filters are mutually exclusive. Only one status filter allowed.
+
+### GET /series Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `category` | string | Filter by category (e.g., "Politics", "Economics", "Sports") |
+| `tags` | string | Filter by tags |
+| `include_product_metadata` | boolean | Include product metadata (default: false) |
+| `include_volume` | boolean | Include total volume across all events (default: false) |
+
+**Category Discovery Pattern:** Use `GET /search/tags_by_categories` to discover available categories and their tags, then use `GET /series?category=...` to find series in that category, then `GET /markets?series_ticker=...` to get markets.
+
+### GET /search/tags_by_categories
+
+Returns a mapping of categories to their associated tags. Useful for building category filter UIs.
+
+**Response:** `{ "tags_by_categories": { "Politics": ["elections", ...], "Sports": [...], ... } }`
 
 ### Market Response Settlement Fields (Dec 25, 2025+)
 
