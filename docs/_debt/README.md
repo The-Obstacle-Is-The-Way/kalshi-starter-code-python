@@ -19,9 +19,23 @@ Use this ID for the next debt item:
 
 ## Files
 
-- `docs/_debt/code-audit-checklist.md`: Periodic audit checklist / runbook (reference doc).
-- `docs/_debt/technical-debt.md`: Living register of known debt (add new items here).
-- `docs/_debt/security-audit.md`: Deep security audit findings (Agent Safety, Injection Risks).
+| File | Purpose |
+|------|---------|
+| `DEBT-014-friction-residuals.md` | **Active debt SSOT** - all actionable items |
+| `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
+| `technical-debt.md` | Living register with historical context |
+| `security-audit.md` | Deep security audit findings (Agent Safety, Injection Risks) |
+
+## Archived Source Documents (2026-01-11)
+
+The following documents were consolidated into DEBT-014 and archived:
+
+| Document | Archive Location | Notes |
+|----------|------------------|-------|
+| `friction.md` | `_archive/debt/friction.md` | User friction log - all items captured in DEBT-014 |
+| `hacks.md` | `_archive/debt/hacks.md` | Hacky implementations - all P1/P2 items in DEBT-014 |
+| `backwards-compatibility.md` | `_archive/debt/backwards-compatibility.md` | Compat code inventory - all items in DEBT-014 |
+| `bloat.md` | `_archive/debt/bloat.md` | Bloat analysis - fully resolved (DEBT-008/009/010) |
 
 ## Workflow
 

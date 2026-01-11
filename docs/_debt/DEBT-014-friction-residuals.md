@@ -121,7 +121,18 @@ channel = data.get("type") or data.get("channel")
 
 ## Section B: Needs Design Decisions
 
+> **User Decision (2026-01-11):**
+> - B1: Yes, always research first (auto-research before recommendations)
+> - B2: Yes, always show both sides (bull AND bear case required)
+> - B3: Yes, alert on new markets
+>
+> **Status:** B1 and B2 are **BLOCKED BY FUTURE-001** implementation. The design is already
+> specified in `docs/_future/FUTURE-001-exa-research-agent.md`. When FUTURE-001 is implemented,
+> B1 and B2 become default behavior.
+
 ### B1. Exa Integration Gap (Research Pipeline Architecture)
+
+**Status:** ⏸️ **BLOCKED BY FUTURE-001**
 
 **Problem:** Claude agents give "vibes-based" recommendations from training data instead of grounded research.
 
@@ -130,21 +141,18 @@ channel = data.get("type") or data.get("channel")
 - But agents don't automatically use them before making recommendations
 - No forcing function for research-before-recommendation
 
-**Design questions:**
-1. Should Exa be called automatically for any market analysis?
-2. Should there be a "pre-flight checklist" prompt engineering pattern?
-3. Should there be a dedicated Research Agent that handles search + summarization?
-4. Should Exa be exposed via MCP for any agent harness to use natively?
+**Design decision:** Auto-research ALWAYS before recommendations.
 
-**From friction.md:**
-> "The friction is NOT in the Kalshi API integration (that works well). The friction is in the
-> **research → synthesis → structured output** pipeline."
+**Implementation:** See `docs/_future/FUTURE-001-exa-research-agent.md` - the `ResearchAgent` class
+already specifies this behavior with budget controls and depth levels.
 
-**Effort:** Large (architectural decision + implementation)
+**Effort:** Large (implement FUTURE-001)
 
 ---
 
 ### B2. Adversarial Research Pattern (Agent Safety)
+
+**Status:** ⏸️ **BLOCKED BY FUTURE-001**
 
 **Problem:** When asked "Is X a good bet?", agents only research the bull case, creating confirmation bias.
 
@@ -153,22 +161,23 @@ channel = data.get("type") or data.get("channel")
 - Failed to surface: Indiana was undefeated, Oregon's recent performance
 - No adversarial check was performed
 
-**Design questions:**
-1. Should every thesis require both `bull_case` AND `bear_case` populated?
-2. Should there be a dedicated Adversarial Agent that argues AGAINST every recommendation?
-3. Should there be a "basic facts gate" - surface 3-5 key facts before any recommendation?
-4. Should agents refuse to recommend on domains with stale training data (sports, breaking news)?
+**Design decision:** ALWAYS show both sides (bull_case AND bear_case required).
 
-**From friction.md:**
-> "FORCE both bull AND bear research on EVERY recommendation"
+**Implementation:** Already specified in FUTURE-001. The `ResearchResult` dataclass includes both
+`bull_case` and `bear_case` fields. The `ResearchAgent._generate_cases()` method explicitly
+searches for both bullish AND bearish signals.
 
-**Effort:** Medium (prompt engineering + possibly new agent role)
+**Effort:** Included in FUTURE-001 implementation
 
 ---
 
 ### B3. New Market Alert System (Information Arbitrage)
 
+**Status:** 📋 **NEEDS SPEC** (not covered by FUTURE-001)
+
 **Problem:** Best edge exists on newly opened markets where crowd hasn't priced in information yet.
+
+**Design decision:** Yes, alert on new markets matching user interests (politics, AI, tech).
 
 **Current state:**
 - No alerting for new markets
@@ -181,11 +190,24 @@ kalshi scan new-markets --hours 24 --categories politics,ai,tech --research
 ```
 
 **Design questions:**
-1. How to detect "new" markets (created_time field)?
+1. How to detect "new" markets (`created_time` field)?
 2. Should this auto-trigger Exa research?
 3. What's the signal-to-noise threshold?
 
+**⚠️ CONCERN (2026-01-11): Liquidity Filtering**
+
+New markets may have LOW LIQUIDITY by definition (they just opened). Need to verify that our
+current scanner filters (`--min-volume`, spread thresholds) don't inappropriately exclude new
+markets that have information arbitrage potential but haven't built liquidity yet.
+
+**TODO (post-compaction):** Search codebase to understand:
+1. What liquidity/volume filters exist in `scan opportunities`?
+2. Are new markets being filtered out inappropriately?
+3. Should new market alerts have different filter thresholds?
+
 **Effort:** Medium (new scan filter + optional Exa integration)
+
+**Next step:** Create SPEC-0XX for new market alerts with appropriate filter logic
 
 ---
 
@@ -253,9 +275,9 @@ kalshi scan new-markets --hours 24 --categories politics,ai,tech --research
 | A3 | Settlement time fallback | Low | 15 min | P2 | Can fix NOW |
 | A4 | WebSocket channel fallback | Low | 15 min | P2 | Can fix NOW |
 | A5 | Data sync mve-filter | Low | 30 min | P3 | Can fix NOW |
-| B1 | Exa research pipeline | High | Large | P1 | Needs design |
-| B2 | Adversarial research | High | Medium | P1 | Needs design |
-| B3 | New market alerts | Medium | Medium | P2 | Needs design |
+| B1 | Exa research pipeline | High | Large | P1 | ⏸️ Blocked (FUTURE-001) |
+| B2 | Adversarial research | High | Medium | P1 | ⏸️ Blocked (FUTURE-001) |
+| B3 | New market alerts | Medium | Medium | P2 | 📋 Needs spec |
 | C1 | `/series` endpoint | Low | Medium | P3 | Blocked |
 | C2 | Jan 15 cleanup | Medium | Small | P2 | Scheduled |
 
@@ -268,13 +290,16 @@ kalshi scan new-markets --hours 24 --categories politics,ai,tech --research
 2. **A2-A4**: Verify and remove fallbacks (~45 min total)
 3. **A5**: Wire `--mve-filter` to sync-markets (~30 min)
 
-### Design Required
-4. **B1**: Decide on Exa research pipeline architecture (see `FUTURE-001`)
-5. **B2-B3**: Design depends on B1
+### Blocked (Waiting on FUTURE-001)
+4. **B1**: Implement `ResearchAgent` from FUTURE-001 spec
+5. **B2**: Included in FUTURE-001 (bull/bear case generation)
+
+### Needs Spec
+6. **B3**: Create SPEC-0XX for new market alerts (see liquidity concern below)
 
 ### Scheduled
-6. **C2**: Wait for Jan 15, 2026, then cleanup
-7. **C1**: React when Kalshi removes `Event.category`
+7. **C2**: Wait for Jan 15, 2026, then cleanup
+8. **C1**: React when Kalshi removes `Event.category`
 
 ---
 
@@ -282,9 +307,37 @@ kalshi scan new-markets --hours 24 --categories politics,ai,tech --research
 
 | Document | Purpose | Relationship |
 |----------|---------|--------------|
-| `docs/_debt/friction.md` | Original friction log | Source (historical) |
-| `docs/_debt/hacks.md` | Hacky implementations | Source (audit findings) |
-| `docs/_debt/backwards-compatibility.md` | Compat code inventory | Source (audit findings) |
-| `docs/_future/FUTURE-001-exa-research-agent.md` | Exa agent spec | Blocks B1 design |
+| `docs/_archive/debt/friction.md` | Original friction log | Source (archived 2026-01-11) |
+| `docs/_archive/debt/hacks.md` | Hacky implementations | Source (archived 2026-01-11) |
+| `docs/_archive/debt/backwards-compatibility.md` | Compat code inventory | Source (archived 2026-01-11) |
+| `docs/_future/FUTURE-001-exa-research-agent.md` | Exa agent spec | **Blocks B1/B2** |
 | `docs/_future/TODO-00A-api-verification-post-deadline.md` | Jan 15 verification | Related to C2 |
 | `docs/_future/TODO-00B-trade-executor-phase2.md` | TradeExecutor | Separate track |
+
+---
+
+## Post-Compaction Review Notes (2026-01-11)
+
+> **For future Claude sessions after context compaction:**
+>
+> This document was audited on 2026-01-11. All source documents (friction.md, hacks.md,
+> backwards-compatibility.md) have been archived to `docs/_archive/debt/`.
+>
+> **Key decisions made:**
+> - B1: Auto-research always → BLOCKED BY FUTURE-001
+> - B2: Always show bull/bear → BLOCKED BY FUTURE-001
+> - B3: Alert on new markets → NEEDS SPEC
+>
+> **Open concern (B3):**
+> New markets may have low liquidity. Before implementing new market alerts, SEARCH the codebase
+> to understand current scanner filter logic (`--min-volume`, spread thresholds) and ensure we're
+> not inappropriately excluding high-value new markets.
+>
+> **Review checklist:**
+> - [ ] Search `scan opportunities` for volume/liquidity filters
+> - [ ] Check if `created_time` field is available on Market model
+> - [ ] Verify Section A items (A1-A5) are still accurate
+> - [ ] Check if Jan 15, 2026 has passed (C2 trigger)
+>
+> **If you're reading this post-compaction:** Re-read this document and FUTURE-001 before
+> implementing anything. The design decisions are already made.
