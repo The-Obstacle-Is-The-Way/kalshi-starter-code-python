@@ -129,22 +129,67 @@ def market_list(
 - Not exhaustive (new patterns need updates)
 - User must know patterns
 
-**Pattern Library (from `friction.md`):**
+**Pattern Library (aligned with Kalshi's actual category names from API):**
+
+**Verified Kalshi categories (from `GET /events`):**
+- `World`
+- `Climate and Weather`
+- `Science and Technology`
+- `Politics`
+- `Economics`
+- `Financials`
+- `Sports`
+- `Entertainment`
+
 ```python
-CATEGORY_PATTERNS = {
-    "politics": ["KXTRUMP", "KXBIDEN", "KXCONGRESS", "KXSENATE", "KXHOUSE", "KXGOV"],
-    "economics": ["KXFED", "KXCPI", "KXGDP", "KXJOBS", "KXUNEMPLOY", "KXRECESSION"],
-    "crypto": ["KXBTC", "KXETH", "KXCRYPTO"],
-    "ai": ["KXOAI", "KXANTH", "KXGOOGLE", "KXAI"],
-    "sports": ["KXNFL", "KXNBA", "KXMLB", "KXNCAA", "KXSB", "KXMVE"],
-    "entertainment": ["KXOSCAR", "KXEMMY", "KXGOLDEN"],
+# Keys match Kalshi's official category names exactly
+CATEGORY_PATTERNS: dict[str, list[str]] = {
+    "Politics": ["KXTRUMP", "KXBIDEN", "KXCONGRESS", "KXSENATE", "KXHOUSE", "KXGOV", "KXELECT"],
+    "Economics": ["KXFED", "KXCPI", "KXGDP", "KXJOBS", "KXUNEMPLOY", "KXRECESSION", "KXRATE"],
+    "Financials": ["KXBTC", "KXETH", "KXCRYPTO", "KXBITCOIN"],
+    "Science and Technology": ["KXOAI", "KXANTH", "KXGOOGLE", "KXAI", "KXCHATGPT"],
+    "Sports": [
+        "KXNFL", "KXNBA", "KXMLB", "KXNCAA", "KXSB", "KXMVE",
+        "KXNHL", "KXSOCCER", "KXTENNIS", "KXGOLF",
+    ],
+    "Entertainment": ["KXOSCAR", "KXEMMY", "KXGOLDEN", "KXMOVIE"],
+    "Climate and Weather": ["KXWEATHER", "KXHURRICANE", "KXTEMP", "KXWARMING"],
+    "World": ["KXWAR", "KXCONFLICT", "KXGEOPOL", "KXELONMARS", "KXNEWPOPE"],
 }
 
-def categorize_market(event_ticker: str) -> str:
+# Aliases for CLI convenience (case-insensitive lookup)
+CATEGORY_ALIASES: dict[str, str] = {
+    "politics": "Politics",
+    "pol": "Politics",
+    "economics": "Economics",
+    "econ": "Economics",
+    "financials": "Financials",
+    "finance": "Financials",
+    "crypto": "Financials",
+    "tech": "Science and Technology",
+    "science": "Science and Technology",
+    "ai": "Science and Technology",
+    "sports": "Sports",
+    "entertainment": "Entertainment",
+    "climate": "Climate and Weather",
+    "weather": "Climate and Weather",
+    "world": "World",
+}
+
+
+def normalize_category(user_input: str) -> str:
+    """Normalize user input to official Kalshi category name."""
+    lower = user_input.lower()
+    return CATEGORY_ALIASES.get(lower, user_input)
+
+
+def classify_by_event_ticker(event_ticker: str) -> str:
+    """Classify market category by event ticker pattern."""
+    upper = event_ticker.upper()
     for category, patterns in CATEGORY_PATTERNS.items():
-        if any(event_ticker.startswith(p) for p in patterns):
+        if any(upper.startswith(p) for p in patterns):
             return category
-    return "other"
+    return "Other"
 ```
 
 ---
@@ -182,17 +227,21 @@ def categorize_market(event_ticker: str) -> str:
 
 **File:** `src/kalshi_research/data/fetcher.py`
 
+**API Client Reference:**
+- `get_events(limit=N)` → `list[Event]` (single page, no pagination)
+- `get_events_page(cursor=X, limit=N)` → `tuple[list[Event], str | None]` (for manual pagination)
+- `get_all_events(max_pages=N)` → `AsyncIterator[Event]` (auto-pagination)
+
 ```python
 async def sync_events(self, max_pages: int = 10) -> int:
     """Sync events with category data."""
-    events = []
+    events: list[Event] = []
     async with KalshiPublicClient() as client:
-        cursor = None
-        for _ in range(max_pages):
-            page, cursor = await client.get_events(cursor=cursor)
-            events.extend(page)
-            if not cursor:
-                break
+        # Use get_all_events() for automatic pagination
+        page_count = 0
+        async for event in client.get_all_events(limit=200, max_pages=max_pages):
+            events.append(event)
+            # Note: get_all_events handles pagination internally
 
     # Store events with category
     async with self.db.session() as session:
@@ -227,6 +276,8 @@ class Market(Base):
 **File:** `src/kalshi_research/cli/market.py`
 
 ```python
+from kalshi_research.analysis.categories import normalize_category, list_categories
+
 @app.command("list")
 def market_list(
     # ... existing params ...
@@ -234,34 +285,51 @@ def market_list(
         str | None,
         typer.Option(
             "--category", "-c",
-            help="Filter by category: politics, economics, crypto, ai, sports, entertainment"
+            help="Filter by category. Accepts: Politics, Economics, Financials, "
+                 "'Science and Technology', Sports, Entertainment, 'Climate and Weather', World. "
+                 "Aliases: pol, econ, tech, ai, crypto, climate"
         ),
     ] = None,
     exclude_category: Annotated[
         str | None,
         typer.Option(
             "--exclude-category", "-X",
-            help="Exclude category (e.g., --exclude-category sports)"
+            help="Exclude category (e.g., --exclude-category Sports)"
         ),
     ] = None,
 ) -> None:
+    # Normalize user input to official category name
+    if category:
+        category = normalize_category(category)
+    if exclude_category:
+        exclude_category = normalize_category(exclude_category)
+    # ... rest of implementation
 ```
 
 **File:** `src/kalshi_research/cli/scan.py`
 
 ```python
+from kalshi_research.analysis.categories import normalize_category
+
 @app.command("opportunities")
 def scan_opportunities(
     # ... existing params ...
     category: Annotated[
         str | None,
-        typer.Option("--category", "-c", help="Filter by category"),
+        typer.Option(
+            "--category", "-c",
+            help="Filter by category (e.g., --category ai, --category Politics)"
+        ),
     ] = None,
     no_sports: Annotated[
         bool,
-        typer.Option("--no-sports", help="Exclude sports markets"),
+        typer.Option("--no-sports", help="Exclude Sports category markets"),
     ] = False,
 ) -> None:
+    # Normalize and apply filters
+    if category:
+        category = normalize_category(category)
+    # ... rest of implementation
 ```
 
 ### Phase 4: Pattern-Based Quick Filter
@@ -269,29 +337,59 @@ def scan_opportunities(
 **File:** `src/kalshi_research/analysis/categories.py` (new)
 
 ```python
-"""Market category classification."""
+"""Market category classification.
+
+Category names match Kalshi's official API exactly.
+Aliases provide CLI convenience for common shorthand.
+"""
 
 from __future__ import annotations
 
+# Keys match Kalshi's official category names from GET /events
 CATEGORY_PATTERNS: dict[str, list[str]] = {
-    "politics": [
+    "Politics": [
         "KXTRUMP", "KXBIDEN", "KXCONGRESS", "KXSENATE", "KXHOUSE",
         "KXGOV", "KXPRES", "KXELECT", "KXPOTUS", "KXVP",
     ],
-    "economics": [
+    "Economics": [
         "KXFED", "KXCPI", "KXGDP", "KXJOBS", "KXUNEMPLOY",
         "KXRECESSION", "KXRATE", "KXINFLATION", "KXSP500",
     ],
-    "crypto": ["KXBTC", "KXETH", "KXCRYPTO", "KXBITCOIN"],
-    "ai": ["KXOAI", "KXANTH", "KXGOOGLE", "KXAI", "KXCHATGPT"],
-    "sports": [
+    "Financials": ["KXBTC", "KXETH", "KXCRYPTO", "KXBITCOIN"],
+    "Science and Technology": ["KXOAI", "KXANTH", "KXGOOGLE", "KXAI", "KXCHATGPT"],
+    "Sports": [
         "KXNFL", "KXNBA", "KXMLB", "KXNCAA", "KXSB", "KXMVE",
         "KXNHL", "KXSOCCER", "KXTENNIS", "KXGOLF",
     ],
-    "entertainment": ["KXOSCAR", "KXEMMY", "KXGOLDEN", "KXMOVIE"],
-    "tech": ["KXAPPL", "KXGOOG", "KXMETA", "KXMSFT", "KXTSLA"],
-    "weather": ["KXWEATHER", "KXHURRICANE", "KXTEMP"],
+    "Entertainment": ["KXOSCAR", "KXEMMY", "KXGOLDEN", "KXMOVIE"],
+    "Climate and Weather": ["KXWEATHER", "KXHURRICANE", "KXTEMP", "KXWARMING"],
+    "World": ["KXWAR", "KXCONFLICT", "KXGEOPOL", "KXELONMARS", "KXNEWPOPE"],
 }
+
+# CLI-friendly aliases (case-insensitive)
+CATEGORY_ALIASES: dict[str, str] = {
+    "politics": "Politics",
+    "pol": "Politics",
+    "economics": "Economics",
+    "econ": "Economics",
+    "financials": "Financials",
+    "finance": "Financials",
+    "crypto": "Financials",
+    "tech": "Science and Technology",
+    "science": "Science and Technology",
+    "ai": "Science and Technology",
+    "sports": "Sports",
+    "entertainment": "Entertainment",
+    "climate": "Climate and Weather",
+    "weather": "Climate and Weather",
+    "world": "World",
+}
+
+
+def normalize_category(user_input: str) -> str:
+    """Normalize user input to official Kalshi category name."""
+    lower = user_input.lower()
+    return CATEGORY_ALIASES.get(lower, user_input)
 
 
 def classify_by_event_ticker(event_ticker: str) -> str:
@@ -300,16 +398,17 @@ def classify_by_event_ticker(event_ticker: str) -> str:
     for category, patterns in CATEGORY_PATTERNS.items():
         if any(upper.startswith(p) for p in patterns):
             return category
-    return "other"
+    return "Other"
 
 
 def get_category_patterns(category: str) -> list[str]:
-    """Get event ticker patterns for a category."""
-    return CATEGORY_PATTERNS.get(category.lower(), [])
+    """Get event ticker patterns for a category (normalized)."""
+    normalized = normalize_category(category)
+    return CATEGORY_PATTERNS.get(normalized, [])
 
 
 def list_categories() -> list[str]:
-    """List available categories."""
+    """List available categories (official Kalshi names)."""
     return list(CATEGORY_PATTERNS.keys())
 ```
 
