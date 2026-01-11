@@ -24,7 +24,7 @@ backwards-compatibility.md into a single source of truth.
 
 ## Audit Log (2026-01-11)
 
-**Code locations verified:**
+**Pre-fix code locations verified (before Section A changes):**
 
 | Item | Location | Verified |
 |------|----------|----------|
@@ -138,7 +138,7 @@ channel = data.get("type") or data.get("channel")
 
 **Why it was debt:** Unclear which key Kalshi uses. Created ambiguity.
 
-**Status:** ✅ **COMPLETED** (2026-01-11, commit TBD)
+**Status:** ✅ **COMPLETED** (2026-01-11, commit 2dc41ba)
 
 **Verification performed:**
 
@@ -195,7 +195,7 @@ Added documentation reference comment in code.
 This was misleading. Storing cents is primarily a **precision** decision (avoid float issues), not a
 compatibility layer.
 
-**Status:** ✅ **COMPLETED** (2026-01-11, commit TBD)
+**Status:** ✅ **COMPLETED** (2026-01-11, commit ad3ab73)
 - Updated comment to: "Database stores cents (integers) for precision - avoids floating-point rounding issues."
 
 **Effort:** 5 minutes
