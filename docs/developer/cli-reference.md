@@ -66,7 +66,7 @@ Notes:
 
 ## `kalshi market`
 
-- `kalshi market list [--status unopened|open|paused|closed|settled] [--event EVT] [--limit N]`
+- `kalshi market list [--status unopened|open|paused|closed|settled] [--event EVT] [--event-prefix PREFIX] [--category TEXT] [--exclude-category TEXT] [--limit N] [--full]`
 - `kalshi market get <TICKER>`
 - `kalshi market orderbook <TICKER> [--depth N]`
 - `kalshi market liquidity <TICKER> [--depth N] [--max-slippage-cents N]`
@@ -76,11 +76,11 @@ Note: Kalshi's **response** `status` values (e.g. `active`) differ from the `/ma
 
 ## `kalshi scan`
 
-- `kalshi scan opportunities [--filter close-race|high-volume|wide-spread|expiring-soon] [--top N] [--max-pages N]`
+- `kalshi scan opportunities [--filter close-race|high-volume|wide-spread|expiring-soon] [--category TEXT] [--no-sports] [--event-prefix PREFIX] [--top N] [--max-pages N] [--full]`
   - close-race-only: `--min-volume INT`, `--max-spread INT`
   - optional liquidity scoring: `--min-liquidity INT`, `--show-liquidity`, `--liquidity-depth INT`
-- `kalshi scan movers --db PATH [--period 1h|6h|24h] [--top N] [--max-pages N]`
-- `kalshi scan arbitrage --db PATH [--threshold FLOAT] [--top N] [--tickers-limit N] [--max-pages N]`
+- `kalshi scan movers --db PATH [--period 1h|6h|24h] [--top N] [--max-pages N] [--full]`
+- `kalshi scan arbitrage --db PATH [--threshold FLOAT] [--top N] [--tickers-limit N] [--max-pages N] [--full]`
 
 ## `kalshi alerts`
 
@@ -110,7 +110,7 @@ Alerts are stored locally at `data/alerts.json`.
 - `kalshi research cache clear [--all] [--cache-dir DIR]`
 - `kalshi research thesis create <TITLE> --markets T1,T2 --your-prob P --market-prob P --confidence P [--bull TEXT] [--bear TEXT]`
   - optional: `--with-research` (requires `EXA_API_KEY`)
-- `kalshi research thesis list`
+- `kalshi research thesis list [--full]`
 - `kalshi research thesis show <THESIS_ID_PREFIX>`
 - `kalshi research thesis resolve <THESIS_ID_PREFIX> --outcome yes|no|void`
 - `kalshi research thesis check-invalidation <THESIS_ID_PREFIX> [--hours N]`

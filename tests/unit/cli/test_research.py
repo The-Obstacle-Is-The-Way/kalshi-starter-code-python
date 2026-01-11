@@ -723,3 +723,36 @@ def test_research_thesis_show_with_positions(mock_db_cls: MagicMock) -> None:
     assert result.exit_code == 0
     assert "Test Thesis" in result.stdout
     assert "position" in result.stdout.lower() or "TEST-TICKER" in result.stdout
+
+
+def test_research_thesis_list_full_flag_disables_truncation() -> None:
+    title_suffix = "TAILTITLE"
+    long_title = f"{'A' * 55}{title_suffix}"
+    id_suffix = "TAILID"
+    thesis_id = f"12345678-{'X' * 10}{id_suffix}"
+
+    theses = {
+        "theses": [
+            {
+                "id": thesis_id,
+                "title": long_title,
+                "your_probability": 0.7,
+                "market_probability": 0.5,
+                "status": "active",
+            }
+        ]
+    }
+
+    with patch("kalshi_research.cli.research._load_theses", return_value=theses):
+        result_default = runner.invoke(app, ["research", "thesis", "list"])
+
+    assert result_default.exit_code == 0
+    assert title_suffix not in result_default.stdout
+    assert id_suffix not in result_default.stdout
+
+    with patch("kalshi_research.cli.research._load_theses", return_value=theses):
+        result_full = runner.invoke(app, ["research", "thesis", "list", "--full"])
+
+    assert result_full.exit_code == 0
+    assert title_suffix in result_full.stdout
+    assert id_suffix in result_full.stdout

@@ -284,7 +284,12 @@ def research_thesis_create(
 
 
 @thesis_app.command("list")
-def research_thesis_list() -> None:
+def research_thesis_list(
+    full: Annotated[
+        bool,
+        typer.Option("--full", "-F", help="Show full thesis IDs/titles without truncation."),
+    ] = False,
+) -> None:
     """List all theses."""
     data = _load_theses()
     theses = data.get("theses", [])
@@ -302,14 +307,17 @@ def research_thesis_list() -> None:
     for thesis in theses:
         edge = (thesis["your_probability"] - thesis["market_probability"]) * 100
         table.add_row(
-            thesis["id"][:8],
-            thesis["title"][:40],
+            thesis["id"] if full else thesis["id"][:8],
+            thesis["title"] if full else thesis["title"][:40],
             thesis["status"],
             f"{edge:+.1f}%",
         )
 
-    console.print(table)
-    console.print(f"\n[dim]Total: {len(theses)} theses[/dim]")
+    from rich.console import Console
+
+    output_console = console if not full else Console(width=200)
+    output_console.print(table)
+    output_console.print(f"\n[dim]Total: {len(theses)} theses[/dim]")
 
 
 @thesis_app.command("show")

@@ -1,9 +1,28 @@
 # SPEC-036: Category Filtering for Markets
 
-**Status:** Draft
+**Status:** ✅ Implemented
 **Priority:** P2 (Research Quality)
 **Created:** 2026-01-10
+**Implemented:** 2026-01-11
 **Source:** `friction.md` - "Missing Category Filter"
+
+---
+
+## Implementation (SSOT)
+
+Implemented category filtering + denormalized categories with:
+
+- `src/kalshi_research/analysis/categories.py` (category aliases + event-ticker classification)
+- `src/kalshi_research/cli/market.py` (`--category/-c`, `--exclude-category/-X`, `--event-prefix`)
+- `src/kalshi_research/cli/scan.py` (`--category/-c`, `--no-sports`, `--event-prefix`)
+- `src/kalshi_research/data/fetcher.py` (`sync_markets()` denormalizes `Event.category` onto `Market.category`)
+- Tests:
+  - `tests/unit/analysis/test_categories.py`
+  - `tests/unit/cli/test_market.py`
+  - `tests/unit/cli/test_scan.py`
+
+**DB note:** We reuse the existing `markets.category` column to store the *event category* (denormalized).
+No schema migration was required.
 
 ---
 
@@ -93,10 +112,10 @@ async def sync_events(client: KalshiPublicClient) -> dict[str, str]:
     return {e.event_ticker: e.category or "Unknown" for e in events}
 
 # 2. Apply to markets in DB
-# Add event_category to markets table (denormalized for query speed)
+# Reuse existing markets.category column to store the parent event's category (denormalized).
 class Market(Base):
     # ... existing fields ...
-    event_category: Mapped[str | None]  # Populated from parent event
+    category: Mapped[str | None]  # Populated from parent event
 
 # 3. CLI filter
 @app.command("list")
@@ -259,17 +278,10 @@ async def sync_events(self, max_pages: int = 10) -> int:
 
 ### Phase 2: Add Category Column to Markets (Denormalized)
 
-**File:** `src/kalshi_research/data/models.py`
+**Status:** ✅ Complete
 
-```python
-class Market(Base):
-    # ... existing fields ...
-
-    # Denormalized from parent event for fast filtering
-    event_category: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
-```
-
-**Migration:** `alembic revision --autogenerate -m "add market event_category"`
+We reuse the existing `markets.category` column to store the parent event's category (denormalized).
+No migration required.
 
 ### Phase 3: CLI Filter Support
 
@@ -414,28 +426,21 @@ def list_categories() -> list[str]:
 
 ### Phase 5: Sync Integration
 
-**File:** `src/kalshi_research/cli/data.py`
+**Status:** ✅ Complete
 
-```python
-@app.command("sync-events")
-def sync_events(
-    db_path: Annotated[Path, ...] = DEFAULT_DB_PATH,
-    max_pages: Annotated[int, ...] = 10,
-) -> None:
-    """Sync events with category data."""
-    # ... implementation ...
-```
+Events are already synced as part of `kalshi data sync-markets` (it runs `sync_events()` before
+`sync_markets()`), and market categories are denormalized in `DataFetcher.sync_markets()`.
 
-Update `sync-markets` to also populate `event_category`:
+Denormalize `Event.category` onto `Market.category` during market sync:
 ```python
 async def _sync_markets():
     # After syncing markets, join with events to populate category
     await session.execute(
         update(Market)
-        .where(Market.event_category.is_(None))
+        .where(Market.category.is_(None))
         .values(
-            event_category=select(Event.category)
-            .where(Event.event_ticker == Market.event_ticker)
+            category=select(Event.category)
+            .where(Event.ticker == Market.event_ticker)
             .scalar_subquery()
         )
     )
@@ -470,14 +475,10 @@ kalshi market list --event-prefix KXFED
 -- Add category to events table (if not exists)
 ALTER TABLE events ADD COLUMN category TEXT;
 
--- Add denormalized category to markets table
-ALTER TABLE markets ADD COLUMN event_category TEXT;
-CREATE INDEX ix_markets_event_category ON markets(event_category);
-
 -- Populate from events
 UPDATE markets
-SET event_category = (
-    SELECT category FROM events WHERE events.event_ticker = markets.event_ticker
+SET category = (
+    SELECT category FROM events WHERE events.ticker = markets.event_ticker
 );
 ```
 
@@ -499,12 +500,9 @@ SET event_category = (
 | File | Action |
 |------|--------|
 | `analysis/categories.py` | **Create** - Category patterns and classification |
-| `data/models.py` | Add `event_category` to Market model |
-| `data/fetcher.py` | Enhance event sync with category |
-| `cli/data.py` | Add `sync-events` command |
+| `data/fetcher.py` | Denormalize `Event.category` onto `Market.category` during market sync |
 | `cli/market.py` | Add `--category`, `--exclude-category` |
-| `cli/scan.py` | Add `--category`, `--no-sports` |
-| `alembic/versions/` | Migration for new column |
+| `cli/scan.py` | Add `--category`, `--no-sports`, `--event-prefix` |
 | `tests/unit/analysis/test_categories.py` | **Create** - Category tests |
 | `tests/unit/cli/test_market.py` | Add filter tests |
 | `tests/unit/cli/test_scan.py` | Add filter tests |

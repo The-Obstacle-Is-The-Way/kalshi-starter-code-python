@@ -368,10 +368,37 @@ def market_list(
         str | None,
         typer.Option("--event", "-e", help="Filter by event ticker."),
     ] = None,
+    category: Annotated[
+        str | None,
+        typer.Option(
+            "--category",
+            "-c",
+            help=(
+                "Filter by category (e.g. Politics, Economics, 'Science and Technology'). "
+                "Aliases: pol, econ, tech, ai, crypto, climate."
+            ),
+        ),
+    ] = None,
+    exclude_category: Annotated[
+        str | None,
+        typer.Option(
+            "--exclude-category",
+            "-X",
+            help="Exclude a category (e.g. --exclude-category Sports).",
+        ),
+    ] = None,
+    event_prefix: Annotated[
+        str | None,
+        typer.Option("--event-prefix", help="Filter by event ticker prefix (e.g. KXFED)."),
+    ] = None,
     limit: Annotated[
         int,
         typer.Option("--limit", "-n", help="Maximum number of results."),
     ] = 20,
+    full: Annotated[
+        bool,
+        typer.Option("--full", "-F", help="Show full tickers/titles without truncation."),
+    ] = False,
 ) -> None:
     """List markets with optional filters."""
     from kalshi_research.api import KalshiPublicClient
@@ -383,10 +410,13 @@ def market_list(
 
         try:
             async with KalshiPublicClient() as client:
+                request_limit = limit
+                if event is None and (category or exclude_category or event_prefix):
+                    request_limit = 1000
                 markets = await client.get_markets(
                     status=status_filter,
                     event_ticker=event,
-                    limit=limit,
+                    limit=request_limit,
                 )
         except KalshiAPIError as e:
             console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
@@ -394,6 +424,30 @@ def market_list(
         except Exception as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None
+
+        if category or exclude_category or event_prefix:
+            from kalshi_research.analysis.categories import (
+                classify_by_event_ticker,
+                normalize_category,
+            )
+
+            include_category = normalize_category(category) if category else None
+            exclude_normalized = normalize_category(exclude_category) if exclude_category else None
+            prefix_upper = event_prefix.upper() if event_prefix else None
+
+            filtered = []
+            for market in markets:
+                if prefix_upper and not market.event_ticker.upper().startswith(prefix_upper):
+                    continue
+
+                derived_category = classify_by_event_ticker(market.event_ticker)
+                if include_category and derived_category != include_category:
+                    continue
+                if exclude_normalized and derived_category == exclude_normalized:
+                    continue
+                filtered.append(market)
+
+            markets = filtered
 
         if not markets:
             console.print("[yellow]No markets found.[/yellow]")
@@ -407,15 +461,20 @@ def market_list(
         table.add_column("Volume", justify="right")
 
         for m in markets[:limit]:
+            ticker = m.ticker if full else m.ticker[:30]
+            title = m.title if full else (m.title[:40] + ("..." if len(m.title) > 40 else ""))
             table.add_row(
-                m.ticker[:30],
-                m.title[:40] + ("..." if len(m.title) > 40 else ""),
+                ticker,
+                title,
                 m.status.value,
                 f"{m.yes_bid_cents}¢",
                 f"{m.volume_24h:,}",
             )
 
-        console.print(table)
-        console.print(f"\n[dim]Showing {len(markets)} markets[/dim]")
+        from rich.console import Console
+
+        output_console = console if not full else Console(width=200)
+        output_console.print(table)
+        output_console.print(f"\n[dim]Showing {len(markets)} markets[/dim]")
 
     asyncio.run(_list())

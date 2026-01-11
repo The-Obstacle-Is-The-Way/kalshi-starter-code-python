@@ -1,8 +1,9 @@
 # SPEC-035: Ticker Display Enhancement
 
-**Status:** Draft
+**Status:** ✅ Implemented
 **Priority:** P3 (UX Polish)
 **Created:** 2026-01-10
+**Implemented:** 2026-01-11
 **Source:** `friction.md` - "Ticker Truncation"
 
 ---
@@ -13,8 +14,8 @@ CLI commands truncate long tickers making them unreadable and requiring database
 
 **Example friction from `friction.md`:**
 ```
-portfolio history truncates long tickers with `...`
-Example: `KXNFLAFCCHAMP-25-…` should be queried from `trades` table
+Some CLI tables truncated long tickers/titles (e.g. `KXNFLAFCCHAMP-25-…`) and required extra DB
+queries to recover the full value.
 ```
 
 **Current truncation patterns found in codebase:**
@@ -36,7 +37,7 @@ Example: `KXNFLAFCCHAMP-25-…` should be queried from `trades` table
 **How it works:**
 1. Add `no_wrap=True` to ticker columns in Rich Tables
 2. Add `--full` / `-F` flag to disable ALL truncation (removing slicing operations entirely)
-3. Let terminal handle horizontal scrolling naturally
+3. In `--full` mode, render with a wider Rich console so long cells are not cropped by table layout.
 
 **Pros:**
 - Minimal code changes
@@ -182,11 +183,13 @@ Add tests verifying:
 
 ## Success Criteria
 
-1. `kalshi portfolio history --full` shows complete tickers
-2. `kalshi market list --full` shows complete tickers and titles
-3. `kalshi scan opportunities --full` shows complete titles
-4. Default behavior unchanged (maintains backwards compatibility)
-5. All quality gates pass
+1. `kalshi market list --full` shows complete tickers and titles
+2. `kalshi scan opportunities --full` shows complete titles
+3. `kalshi scan arbitrage --full` shows complete tickers and relationships
+4. `kalshi scan movers --full` shows complete titles
+5. `kalshi research thesis list --full` shows complete IDs/titles
+6. Default behavior unchanged (maintains backwards compatibility)
+7. All quality gates pass
 
 ---
 
@@ -208,12 +211,13 @@ Maximum observed: 60+ chars. Display width logic must be robust to extreme lengt
 
 | File | Action |
 |------|--------|
-| `cli/portfolio.py` | Add `no_wrap=True`, add `--full` to `history` |
+| `cli/portfolio.py` | Add `no_wrap=True` to ticker columns |
 | `cli/market.py` | Add `--full` to `list` |
 | `cli/scan.py` | Add `--full` to `opportunities`, `arbitrage`, `movers` |
 | `cli/research.py` | Add `--full` to `thesis list` |
 | `tests/unit/cli/test_market.py` | Add truncation tests |
-| `tests/unit/cli/test_portfolio.py` | Add truncation tests |
+| `tests/unit/cli/test_scan.py` | Add truncation tests |
+| `tests/unit/cli/test_research.py` | Add truncation tests |
 
 ---
 

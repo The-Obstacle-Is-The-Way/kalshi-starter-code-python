@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import structlog
+from sqlalchemy import select, update
 
 from kalshi_research.api import KalshiPublicClient
 from kalshi_research.api.models.market import MarketFilterStatus
@@ -207,6 +208,18 @@ class DataFetcher:
                 if count % 100 == 0:
                     await session.flush()
                     logger.info("Synced markets so far", count=count)
+
+            # Denormalize event categories onto markets for offline filtering. Market responses no
+            # longer include category data, so we derive it from the parent event when available.
+            await session.execute(
+                update(DBMarket)
+                .where(DBMarket.category.is_(None))
+                .values(
+                    category=select(DBEvent.category)
+                    .where(DBEvent.ticker == DBMarket.event_ticker)
+                    .scalar_subquery()
+                )
+            )
 
         logger.info("Synced total markets", count=count)
         return count
