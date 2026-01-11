@@ -22,13 +22,15 @@ This directory contains **active** design specifications - work happening NOW.
 | SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft |
 | SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft |
 | SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft |
+| SPEC-035 | [Ticker Display Enhancement (Full Tickers in CLI)](SPEC-035-ticker-display-enhancement.md) | 📝 Draft |
+| SPEC-036 | [Category Filtering for Markets](SPEC-036-category-filtering.md) | 📝 Draft |
 
 ---
 
 ## Next ID Tracker
 
 Use this ID for the next specification:
-**SPEC-035**
+**SPEC-037**
 
 ---
 
