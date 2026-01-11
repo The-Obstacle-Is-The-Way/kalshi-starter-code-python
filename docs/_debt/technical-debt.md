@@ -6,7 +6,17 @@
 
 ## Outstanding Debt
 
-No outstanding debt.
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| [DEBT-014](DEBT-014-friction-residuals.md) | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (Needs Design) |
+
+See [DEBT-014](DEBT-014-friction-residuals.md) for details on remaining items:
+1. Data sync `--mve-filter` CLI gap (P3)
+2. Exa research pipeline architecture (P1)
+3. Adversarial research pattern (P1)
+4. New market alert system (P2)
+5. Missing `/series` endpoint (P3)
+6. Jan 15, 2026 deprecation cleanup (P2, scheduled)
 
 ---
 
