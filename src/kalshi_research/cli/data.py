@@ -154,10 +154,29 @@ def data_sync_markets(
             help="Optional pagination safety limit. None = iterate until exhausted.",
         ),
     ] = None,
+    mve_filter: Annotated[
+        str | None,
+        typer.Option(
+            "--mve-filter",
+            help="Filter multivariate events: 'exclude' (skip sports parlays) or 'only'.",
+        ),
+    ] = None,
 ) -> None:
     """Sync markets from Kalshi API to database."""
+    from typing import Literal
+
     from kalshi_research.cli.db import open_db
     from kalshi_research.data import DataFetcher
+
+    # Validate mve_filter value
+    mve_filter_typed: Literal["only", "exclude"] | None = None
+    if mve_filter is not None:
+        if mve_filter not in ("only", "exclude"):
+            console.print(
+                f"[red]Error:[/red] --mve-filter must be 'only' or 'exclude', got '{mve_filter}'"
+            )
+            raise typer.Exit(1)
+        mve_filter_typed = mve_filter  # type: ignore[assignment]
 
     async def _sync() -> None:
         async with open_db(db_path) as db, DataFetcher(db) as fetcher:
@@ -171,7 +190,9 @@ def data_sync_markets(
                 progress.update(task1, description=f"Synced {events} events")
 
                 progress.add_task("Syncing markets...", total=None)
-                markets = await fetcher.sync_markets(status=status, max_pages=max_pages)
+                markets = await fetcher.sync_markets(
+                    status=status, max_pages=max_pages, mve_filter=mve_filter_typed
+                )
 
         console.print(f"[green]✓[/green] Synced {events} events and {markets} markets")
 

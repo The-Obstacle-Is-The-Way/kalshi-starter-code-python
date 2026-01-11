@@ -577,9 +577,8 @@ class KalshiClient(KalshiPublicClient):
     async def get_positions(self) -> list[PortfolioPosition]:
         """Get current market positions."""
         data = await self._auth_get("/portfolio/positions")
-        # NOTE: Kalshi returns `market_positions` (and `event_positions`). Older docs/examples may
-        # reference `positions`, so keep a fallback for compatibility.
-        raw = data.get("market_positions") or data.get("positions") or []
+        # Kalshi returns `market_positions` (and `event_positions` for event-level aggregation)
+        raw = data.get("market_positions", [])
         if not isinstance(raw, list):
             return []
         return [PortfolioPosition.model_validate(pos) for pos in raw]

@@ -321,28 +321,11 @@ class ThesisTracker:
                 self.theses = loaded_from_list
                 return
 
-            # Legacy dict format: {"<id>": {...}, ...}
-            loaded_from_mapping: dict[str, Thesis] = {}
-            for key, value in raw.items():
-                if not isinstance(value, dict):
-                    continue
-                thesis_dict = dict(value)
-                thesis_dict.setdefault("id", key)
-                try:
-                    thesis = Thesis.from_dict(thesis_dict)
-                except (KeyError, TypeError, ValueError) as e:
-                    raise ValueError(
-                        f"Theses file contains an invalid thesis under key '{key}': "
-                        f"{self.storage_path}"
-                    ) from e
-                loaded_from_mapping[thesis.id] = thesis
-
-            if loaded_from_mapping:
-                self.theses = loaded_from_mapping
-                return
-
-            logger.warning("Theses file has no loadable theses", path=str(self.storage_path))
-            raise ValueError(f"Theses file has an unexpected schema: {self.storage_path}")
+            # No "theses" key found - reject unknown schema
+            raise ValueError(
+                f"Theses file has an unexpected schema: {self.storage_path}. "
+                f'Expected format: {{"theses": [...]}}'
+            )
 
     def _save(self) -> None:
         """Save theses to storage."""

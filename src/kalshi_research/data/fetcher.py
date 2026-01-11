@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import structlog
 from sqlalchemy import select, update
@@ -171,25 +171,34 @@ class DataFetcher:
         logger.info("Synced events", count=count)
         return count
 
-    async def sync_markets(self, status: str | None = None, *, max_pages: int | None = None) -> int:
+    async def sync_markets(
+        self,
+        status: str | None = None,
+        *,
+        max_pages: int | None = None,
+        mve_filter: Literal["only", "exclude"] | None = None,
+    ) -> int:
         """
         Sync markets from API to database.
 
         Args:
             status: Optional filter for market status (open, closed, etc.)
             max_pages: Optional pagination safety limit. None = iterate until exhausted.
+            mve_filter: Filter for multivariate events ("only" or "exclude").
 
         Returns:
             Number of markets synced
         """
-        logger.info("Starting market sync", status=status)
+        logger.info("Starting market sync", status=status, mve_filter=mve_filter)
         count = 0
 
         async with self._db.session_factory() as session, session.begin():
             market_repo = MarketRepository(session)
             event_repo = EventRepository(session)
 
-            async for api_market in self.client.get_all_markets(status=status, max_pages=max_pages):
+            async for api_market in self.client.get_all_markets(
+                status=status, max_pages=max_pages, mve_filter=mve_filter
+            ):
                 # Ensure event exists first (FK robustness) without racing other writers.
                 await event_repo.insert_ignore(
                     DBEvent(

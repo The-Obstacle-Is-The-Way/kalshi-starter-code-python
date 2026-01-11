@@ -19,9 +19,12 @@ class StubSingleMarketClient:
         self._market = market
 
     async def get_all_markets(
-        self, status: object | None = None, max_pages: int | None = None
+        self,
+        status: object | None = None,
+        max_pages: int | None = None,
+        mve_filter: object | None = None,
     ) -> AsyncIterator[Market]:
-        del status, max_pages
+        del status, max_pages, mve_filter
         yield self._market
 
 

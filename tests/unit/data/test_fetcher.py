@@ -133,7 +133,7 @@ async def test_sync_markets(data_fetcher, mock_client, mock_db):
     mock_market.expiration_time = "2025-01-01T00:00:00Z"
 
     # Correctly mock async generator
-    async def market_gen(status=None, max_pages: int | None = None):
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
         yield mock_market
 
     # REPLACE the AsyncMock method with a MagicMock that returns the generator
