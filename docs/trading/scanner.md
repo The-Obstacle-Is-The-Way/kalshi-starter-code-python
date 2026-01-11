@@ -118,27 +118,39 @@ percent_move = abs_move / historical_price
 
 ### 6. Arbitrage
 
-Inverse market pairs that don't sum to 100% - free money (in theory).
+Flags potential consistency / divergence opportunities across related markets.
 
 **Why this matters:**
 
-- Two markets should sum to 100% if they're true inverses
-- If TRUMP-YES + TRUMP-NO < 100%, you can buy both
-- Profit = 100% - (cost of YES + cost of NO)
+- Related markets often move together (or sum to ~100% when they represent two outcomes).
+- If they diverge, it can signal mispricing or stale quotes.
 
 ```bash
 uv run kalshi scan arbitrage --threshold 0.10 --top 10
 ```
 
-**Filter logic:**
+This command does **not** place trades. It:
+
+1. Uses historical **price snapshots** (if available in your DB) to find correlated market pairs and flags:
+   - `divergence`: positively correlated pairs whose midpoint probabilities differ by more than `--threshold`.
+   - `inverse_sum`: negatively correlated pairs whose midpoint probabilities no longer sum to ~100% within
+     `--threshold`.
+2. Always checks events with **exactly two priced markets** and flags `inverse_sum` when their midpoint probabilities
+   deviate from 100% by more than `--threshold`.
+
+Use `--tickers-limit` to bound how many tickers are included in the historical correlation analysis.
+
+**Filter logic (simplified):**
 
 ```python
-# Find inverse pairs (e.g., TRUMP-WIN vs TRUMP-LOSE)
-for ticker_a, ticker_b in inverse_pairs:
-    combined_cost = price_a + (1 - price_b)  # Cost to buy both YES
-    if combined_cost < (1 - threshold):
-        # Arbitrage opportunity: you pay less than 100%
-        edge = 1 - combined_cost
+if corr_type == "positive" and abs(price_a - price_b) > threshold:
+    opportunity_type = "divergence"
+
+if corr_type == "negative" and abs((price_a + price_b) - 1.0) > threshold:
+    opportunity_type = "inverse_sum"
+
+if event_has_exactly_two_priced_markets and abs((p1 + p2) - 1.0) > threshold:
+    opportunity_type = "inverse_sum"
 ```
 
 **Caveats:**
@@ -149,21 +161,33 @@ for ticker_a, ticker_b in inverse_pairs:
 
 ## Output Format
 
-Scanner results include:
+Scanner commands print tables (exact columns depend on the command).
+
+### Opportunities
 
 ```text
-┌──────────────────┬───────┬────────┬────────┬──────────┐
-│ Ticker           │ Price │ Volume │ Spread │ Score    │
-├──────────────────┼───────┼────────┼────────┼──────────┤
-│ TRUMP-2024       │ 52¢   │ 50,000 │ 2¢     │ 0.85     │
-│ BIDEN-RESIGN     │ 48¢   │ 25,000 │ 3¢     │ 0.72     │
-│ ...              │ ...   │ ...    │ ...    │ ...      │
-└──────────────────┴───────┴────────┴────────┴──────────┘
+┌──────────────────┬──────────────────────┬─────────────┬────────┬─────────┐
+│ Ticker           │ Title                │ Probability  │ Spread │ Volume  │
+├──────────────────┼──────────────────────┼─────────────┼────────┼─────────┤
+│ TRUMP-2024       │ ...                  │ 52.0%        │ 2¢     │ 50,000  │
+│ ...              │ ...                  │ ...          │ ...    │ ...     │
+└──────────────────┴──────────────────────┴─────────────┴────────┴─────────┘
+```
+
+### Arbitrage
+
+```text
+┌────────────────────────────┬────────────┬─────────────────────────┬───────────┬────────────┐
+│ Tickers                     │ Type       │ Expected                │ Divergence │ Confidence │
+├────────────────────────────┼────────────┼─────────────────────────┼───────────┼────────────┤
+│ AAA, BBB                    │ divergence │ Move together (r=0.72)  │ 12.00%     │ 0.72       │
+│ ...                         │ ...        │ ...                     │ ...        │ ...        │
+└────────────────────────────┴────────────┴─────────────────────────┴───────────┴────────────┘
 ```
 
 ## CLI Options
 
-### Common Filters
+### Opportunities
 
 ```bash
 --min-volume 1000    # Minimum 24h volume
@@ -173,6 +197,16 @@ Scanner results include:
 --min-liquidity 50   # Minimum liquidity score (0-100; fetches orderbooks)
 --show-liquidity     # Show liquidity score column (fetches orderbooks)
 --liquidity-depth 25 # Orderbook depth for liquidity scoring
+```
+
+### Arbitrage
+
+```bash
+--db data/kalshi.db      # DB used for historical correlation analysis (optional)
+--threshold 0.10         # Min divergence to flag (0-1)
+--tickers-limit 50       # Correlation analysis cap (0 = analyze all tickers)
+--top 10                 # Number of results to show
+--max-pages 10           # Limit API pagination (safety cap)
 ```
 
 ### Examples

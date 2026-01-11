@@ -186,8 +186,9 @@ from kalshi_research.research.thesis import ThesisTracker
 tracker = ThesisTracker()
 resolved = tracker.list_resolved()
 
-forecasts = [t.your_probability for t in resolved]
-outcomes = [1 if t.actual_outcome == "yes" else 0 for t in resolved]
+scored = [t for t in resolved if t.actual_outcome in {"yes", "no"}]
+forecasts = [t.your_probability for t in scored]
+outcomes = [1 if t.actual_outcome == "yes" else 0 for t in scored]
 
 analyzer = CalibrationAnalyzer(n_bins=5)  # Fewer bins for small samples
 result = analyzer.compute_calibration(forecasts, outcomes)
