@@ -3,10 +3,10 @@
 **Priority:** Mixed (P0-P3)
 **Status:** Open
 **Found:** 2026-01-11
-**Sources:**
-- `docs/_debt/friction.md` - User friction items
-- `docs/_debt/hacks.md` - Hacky implementations and missing APIs
-- `docs/_debt/backwards-compatibility.md` - Unnecessary compat code
+**Sources:** (archived 2026-01-11)
+- `docs/_archive/debt/friction.md` - User friction items
+- `docs/_archive/debt/hacks.md` - Hacky implementations and missing APIs
+- `docs/_archive/debt/backwards-compatibility.md` - Unnecessary compat code
 
 ---
 
@@ -19,6 +19,38 @@ backwards-compatibility.md into a single source of truth.
 - **Section A**: Can fix NOW (no blockers)
 - **Section B**: Needs design decisions
 - **Section C**: Blocked/Scheduled (external dependencies)
+
+---
+
+## Audit Log (2026-01-11)
+
+**Code locations verified:**
+
+| Item | Location | Verified |
+|------|----------|----------|
+| A1 | `thesis.py:324-342` | ✅ Legacy dict parsing exists |
+| A2 | `client.py:582` | ✅ `data.get("market_positions") or data.get("positions")` exists |
+| A3 | `fetcher.py:138` | ✅ `settlement_ts or expiration_time` exists |
+| A4 | `websocket/client.py:222` | ✅ `data.get("type") or data.get("channel")` exists |
+| A5 | `cli/data.py:140-178` | ✅ `sync-markets` command lacks `--mve-filter` |
+
+**API verification (Kalshi OpenAPI spec):**
+
+| Item | Finding |
+|------|---------|
+| A2 | ✅ Confirmed: `GetPositionsResponse` uses `market_positions` (not `positions`) |
+| A3 | ⚠️ `settlement_ts` is nullable, only filled for settled markets - fallback may be needed |
+| A4 | ❓ WebSocket not in OpenAPI spec - needs empirical verification |
+
+**Risk assessment:**
+
+| Item | Risk | Reason |
+|------|------|--------|
+| A1 | 🟢 Safe | Format was never used (greenfield project) |
+| A2 | 🟢 Safe | OpenAPI confirms `market_positions` is correct |
+| A3 | 🟡 Medium | Fallback may be needed for historical data |
+| A4 | 🟡 Medium | WebSocket spec not documented, verify empirically |
+| A5 | 🟢 Safe | Additive change (wiring existing parameter) |
 
 ---
 
@@ -55,15 +87,25 @@ raw = data.get("market_positions") or data.get("positions") or []
 
 **Why it's debt:** Fallback to `positions` based on "older docs" - may never trigger.
 
-**Fix:**
-1. Verify Kalshi OpenAPI spec uses `market_positions`
-2. If confirmed, remove `or data.get("positions")` fallback
+**✅ VERIFIED (2026-01-11):** Kalshi OpenAPI spec confirms response field is `market_positions`.
+The `positions` fallback is unnecessary.
+
+**Verification steps before removal:**
+
+1. [x] Check Kalshi OpenAPI spec → Confirmed: `GetPositionsResponse` uses `market_positions`
+2. [ ] Add temporary logging: `if "positions" in data: logger.warning("Legacy positions key found")`
+3. [ ] Run `kalshi portfolio sync` several times over 1-2 days
+4. [ ] If warning never triggers, safe to remove
+
+**Fix:** Remove `or data.get("positions")` fallback.
+
+**Rollback:** If Kalshi ever returns `positions` key, re-add the fallback.
 
 **Effort:** 15 minutes (verify + remove)
 
 ---
 
-### A3. Settlement Time Fallback [P2] - VERIFY & REMOVE
+### A3. Settlement Time Fallback [P2] - VERIFY BEFORE REMOVE
 
 **Source:** `backwards-compatibility.md` Category 2.3
 **Location:** `src/kalshi_research/data/fetcher.py:138`
@@ -75,11 +117,31 @@ settled_at = api_market.settlement_ts or api_market.expiration_time
 
 **Why it's debt:** Fallback for "historical data" that may not exist.
 
-**Fix:**
-1. Check if any historical data uses expiration_time instead of settlement_ts
-2. If none, remove fallback
+**⚠️ CAUTION (2026-01-11):** This fallback may be LEGITIMATELY NEEDED.
 
-**Effort:** 15 minutes
+Kalshi OpenAPI spec says:
+> `settlement_ts`: "Timestamp when the market was settled. Only filled for settled markets."
+> Type: `string | null` (nullable)
+
+The fallback exists because:
+1. `settlement_ts` field was added Dec 19, 2025
+2. Historical data synced before that date won't have `settlement_ts`
+3. Function only runs for settled markets (`if not api_market.result: return None`)
+
+**Verification steps before removal:**
+
+1. [ ] Query local DB: `SELECT COUNT(*) FROM settlements WHERE settled_at IS NULL`
+2. [ ] Check if any settlements use `expiration_time` instead of `settlement_ts`
+3. [ ] If ALL settlements have proper `settlement_ts`, then safe to remove
+4. [ ] If some are missing, the fallback is NEEDED - do NOT remove
+
+**Fix (conditional):** Only remove if verification confirms no historical data needs the fallback.
+
+**Rollback:** Re-add fallback if any settlement timestamps become NULL.
+
+**Risk level:** 🟡 Medium - verify carefully before removal
+
+**Effort:** 20 minutes (query + verify + conditional remove)
 
 ---
 
@@ -95,11 +157,23 @@ channel = data.get("type") or data.get("channel")
 
 **Why it's debt:** Unclear which key Kalshi uses. Creates ambiguity.
 
-**Fix:**
-1. Verify Kalshi WebSocket spec uses `type`
-2. If confirmed, remove `or data.get("channel")` fallback
+**⚠️ NOTE (2026-01-11):** WebSocket API is NOT in OpenAPI spec. Need separate verification.
 
-**Effort:** 15 minutes
+**Verification steps before removal:**
+
+1. [ ] Check Kalshi WebSocket docs: https://docs.kalshi.com/websocket
+2. [ ] Add temporary logging: `logger.debug(f"WS message keys: {data.keys()}")`
+3. [ ] Run `kalshi alerts monitor` and observe actual message structure
+4. [ ] Confirm whether messages use `type` or `channel` key
+5. [ ] If always `type`, safe to remove `or data.get("channel")`
+
+**Fix:** Remove `or data.get("channel")` fallback after verification.
+
+**Rollback:** If Kalshi ever sends `channel` key, re-add the fallback.
+
+**Risk level:** 🟡 Medium - WebSocket not documented in OpenAPI, verify empirically
+
+**Effort:** 20 minutes (check docs + observe + remove)
 
 ---
 
