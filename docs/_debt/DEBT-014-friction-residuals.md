@@ -50,7 +50,7 @@ backwards-compatibility.md into a single source of truth.
 | A1 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
 | A2 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
 | A3 | ⬜ N/A | ✅ VERIFIED CORRECT (2026-01-11) - NOT debt, keep as-is |
-| A4 | 🟡 Medium | ⏳ Pending (needs empirical WebSocket testing) |
+| A4 | 🟢 Safe | ✅ COMPLETED (2026-01-11) - Verified via Kalshi docs |
 | A5 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
 | A6 | 🟢 Safe | ✅ COMPLETED (2026-01-11) |
 
@@ -126,7 +126,7 @@ settled_at = api_market.settlement_ts or api_market.expiration_time
 
 ---
 
-### A4. WebSocket Channel Fallback [P2] - VERIFY & REMOVE
+### A4. WebSocket Channel Fallback [P2] - ✅ COMPLETED
 
 **Source:** `backwards-compatibility.md` Category 2.4
 **Location:** `src/kalshi_research/api/websocket/client.py:222`
@@ -136,25 +136,34 @@ settled_at = api_market.settlement_ts or api_market.expiration_time
 channel = data.get("type") or data.get("channel")
 ```
 
-**Why it's debt:** Unclear which key Kalshi uses. Creates ambiguity.
+**Why it was debt:** Unclear which key Kalshi uses. Created ambiguity.
 
-**⚠️ NOTE (2026-01-11):** WebSocket API is NOT in OpenAPI spec. Need separate verification.
+**Status:** ✅ **COMPLETED** (2026-01-11, commit TBD)
 
-**Verification steps before removal:**
+**Verification performed:**
 
-1. [ ] Check Kalshi WebSocket docs: https://docs.kalshi.com/websocket
-2. [ ] Add temporary logging: `logger.debug(f"WS message keys: {data.keys()}")`
-3. [ ] Run `kalshi alerts monitor` and observe actual message structure
-4. [ ] Confirm whether messages use `type` or `channel` key
-5. [ ] If always `type`, safe to remove `or data.get("channel")`
+1. [x] Checked Kalshi WebSocket docs: https://docs.kalshi.com/websockets/
+2. [x] Verified message structures for all channel types:
+   - `orderbook_snapshot` / `orderbook_delta` → uses `"type"`
+   - `ticker` → uses `"type"`
+   - `trade` → uses `"type"`
+   - Control messages (subscribed, error, ok) → uses `"type"`
+3. [x] Confirmed existing test `test_message_routing` uses `"type": "ticker"`
+4. [x] Removed `or data.get("channel")` fallback
+5. [x] All WebSocket tests pass (5/5)
 
-**Fix:** Remove `or data.get("channel")` fallback after verification.
+**Fix applied:**
+```python
+# Before
+channel = data.get("type") or data.get("channel")
 
-**Rollback:** If Kalshi ever sends `channel` key, re-add the fallback.
+# After
+channel = data.get("type")
+```
 
-**Risk level:** 🟡 Medium - WebSocket not documented in OpenAPI, verify empirically
+Added documentation reference comment in code.
 
-**Effort:** 20 minutes (check docs + observe + remove)
+**Rollback:** If Kalshi ever changes to `channel` key, re-add the fallback.
 
 ---
 
@@ -376,7 +385,7 @@ Options to address:
 | A1 | Thesis legacy dict format | Low | 10 min | **P0** | ✅ COMPLETED |
 | A2 | Portfolio positions fallback | Low | 15 min | P2 | ✅ COMPLETED |
 | A3 | Settlement time fallback | N/A | N/A | N/A | ✅ VERIFIED CORRECT (not debt) |
-| A4 | WebSocket channel fallback | Low | 15 min | P2 | ⏳ Needs empirical testing |
+| A4 | WebSocket channel fallback | Low | 15 min | P2 | ✅ COMPLETED |
 | A5 | Data sync mve-filter | Low | 30 min | P3 | ✅ COMPLETED |
 | A6 | Clarify DB cents comment | Low | 5 min | P3 | ✅ COMPLETED |
 | B1 | Exa research pipeline | High | Large | P1 | ⏸️ Blocked (FUTURE-001) |
@@ -396,16 +405,15 @@ Options to address:
 | A1 | ✅ DONE - Deleted legacy dict parsing |
 | A2 | ✅ DONE - Removed positions fallback |
 | A3 | ✅ CLOSED - Verified CORRECT (not debt) |
-| A4 | ⏳ OPEN - Needs empirical WebSocket testing |
+| A4 | ✅ DONE - Removed channel fallback (verified via Kalshi docs) |
 | A5 | ✅ DONE - Added `--mve-filter` CLI option |
 | A6 | ✅ DONE - Fixed misleading comment |
 
+**🎉 SECTION A COMPLETE** - All items resolved (2026-01-11)
+
 ### Remaining Work
 
-1. **A4**: Empirically verify WebSocket message format before removing fallback
-   - Run `kalshi alerts monitor` and log message structure
-   - Determine if `type` or `channel` key is used
-   - Remove fallback only after confirmation
+None for Section A.
 
 ### Blocked (Waiting on FUTURE-001)
 2. **B1**: Implement `ResearchAgent` from FUTURE-001 spec

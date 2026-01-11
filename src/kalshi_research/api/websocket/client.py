@@ -219,10 +219,11 @@ class KalshiWebSocket:
         """Parse and route message."""
         try:
             data = json.loads(raw_message)
-            channel = data.get("type") or data.get("channel")
+            # Kalshi WebSocket messages use "type" field per official docs
+            # See: https://docs.kalshi.com/websockets/
+            channel = data.get("type")
 
             # Skip non-data messages (subscription confirmations, etc)
-            # Kalshi messages usually have 'type' corresponding to channel
 
             if not channel or channel not in self._handlers:
                 return
