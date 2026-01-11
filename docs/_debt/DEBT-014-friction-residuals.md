@@ -33,6 +33,7 @@ backwards-compatibility.md into a single source of truth.
 | A3 | `fetcher.py:138` | ✅ `settlement_ts or expiration_time` exists |
 | A4 | `websocket/client.py:222` | ✅ `data.get("type") or data.get("channel")` exists |
 | A5 | `cli/data.py:140-178` | ✅ `sync-markets` command lacks `--mve-filter` |
+| A6 | `fetcher.py:112-113` | ✅ Snapshot comment frames cents as "backwards compatibility" |
 
 **API verification (Kalshi OpenAPI spec):**
 
@@ -51,6 +52,7 @@ backwards-compatibility.md into a single source of truth.
 | A3 | 🟡 Medium | Fallback may be needed for historical data |
 | A4 | 🟡 Medium | WebSocket spec not documented, verify empirically |
 | A5 | 🟢 Safe | Additive change (wiring existing parameter) |
+| A6 | 🟢 Safe | Comment-only change (clarifies intent) |
 
 ---
 
@@ -185,11 +187,33 @@ channel = data.get("type") or data.get("channel")
 
 **Current state:**
 - API client supports `mve_filter` parameter ✅
+- `DataFetcher.sync_markets()` does not pass `mve_filter` through ❌
 - CLI doesn't expose it ❌
 
-**Fix:** Add `--mve-filter` option to `data sync-markets` command.
+**Fix:** Plumb `mve_filter` end-to-end:
+1. Add optional `mve_filter` param to `DataFetcher.sync_markets()`
+2. Thread it into `self.client.get_all_markets(..., mve_filter=mve_filter)`
+3. Add `--mve-filter` option to `kalshi data sync-markets` that passes through
 
 **Effort:** 30 minutes
+
+---
+
+### A6. Clarify "DB Stores Cents" Comment [P3] - RENAME COMMENT
+
+**Source:** `backwards-compatibility.md` Category 3.1
+**Location:** `src/kalshi_research/data/fetcher.py:112-113`
+
+**Problem:** The snapshot conversion comment says:
+
+> "Database continues to store cents for backwards compatibility."
+
+This is misleading. Storing cents is primarily a **precision** decision (avoid float issues), not a
+compatibility layer.
+
+**Fix:** Update the comment to say we store cents for precision / integer math.
+
+**Effort:** 10 minutes
 
 ---
 
@@ -378,6 +402,7 @@ Options to address:
 | A3 | Settlement time fallback | Low | 15 min | P2 | Can fix NOW |
 | A4 | WebSocket channel fallback | Low | 15 min | P2 | Can fix NOW |
 | A5 | Data sync mve-filter | Low | 30 min | P3 | Can fix NOW |
+| A6 | Clarify DB cents comment | Low | 10 min | P3 | Can fix NOW |
 | B1 | Exa research pipeline | High | Large | P1 | ⏸️ Blocked (FUTURE-001) |
 | B2 | Adversarial research | High | Medium | P1 | ⏸️ Blocked (FUTURE-001) |
 | B3 | New market alerts | Medium | Medium | P2 | 📋 Needs spec |
@@ -392,6 +417,7 @@ Options to address:
 1. **A1**: Delete thesis legacy dict format (~10 min)
 2. **A2-A4**: Verify and remove fallbacks (~45 min total)
 3. **A5**: Wire `--mve-filter` to sync-markets (~30 min)
+4. **A6**: Clarify DB cents storage comment (~10 min)
 
 ### Blocked (Waiting on FUTURE-001)
 4. **B1**: Implement `ResearchAgent` from FUTURE-001 spec
@@ -441,7 +467,7 @@ Options to address:
 > **Review checklist:**
 > - [x] Search `scan opportunities` for volume/liquidity filters ✅ Done (see B3)
 > - [x] Check if `created_time` field is available on Market model ✅ Yes (`market.py:84`)
-> - [ ] Verify Section A items (A1-A5) are still accurate (last verified: 2026-01-11)
+> - [ ] Verify Section A items (A1-A6) are still accurate (last verified: 2026-01-11)
 > - [ ] Check if Jan 15, 2026 has passed (C2 trigger)
 >
 > **If you're reading this post-compaction:** Re-read this document and FUTURE-001 before
