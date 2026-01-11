@@ -475,6 +475,9 @@ def market_list(
 
         output_console = console if not full else Console(width=200)
         output_console.print(table)
-        output_console.print(f"\n[dim]Showing {len(markets)} markets[/dim]")
+        n, total = min(len(markets), limit), len(markets)
+        output_console.print(
+            f"\n[dim]Showing {n}{f' of {total}' if total > limit else ''} markets[/dim]"
+        )
 
     asyncio.run(_list())

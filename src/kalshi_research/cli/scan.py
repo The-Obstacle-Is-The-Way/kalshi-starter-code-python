@@ -128,10 +128,11 @@ def _render_opportunities_table(
     output_console = console if not full else Console(width=200)
 
     table = Table(title=title)
-    table.add_column("Ticker", style="cyan", no_wrap=True)
     if full:
+        table.add_column("Ticker", style="cyan", no_wrap=True)
         table.add_column("Title", style="white")
     else:
+        table.add_column("Ticker", style="cyan", no_wrap=True, overflow="ellipsis", max_width=35)
         table.add_column("Title", style="white", overflow="ellipsis", max_width=50)
     table.add_column("Probability", style="green")
     table.add_column("Spread", style="yellow")
@@ -713,10 +714,13 @@ def scan_movers(  # noqa: PLR0915
 
         # Display results
         table = Table(title=f"Biggest Movers ({period})")
-        table.add_column("Ticker", style="cyan", no_wrap=True)
         if full:
+            table.add_column("Ticker", style="cyan", no_wrap=True)
             table.add_column("Title", style="white")
         else:
+            table.add_column(
+                "Ticker", style="cyan", no_wrap=True, overflow="ellipsis", max_width=35
+            )
             table.add_column("Title", style="white", overflow="ellipsis", max_width=40)
         table.add_column("Change", style="yellow")
         table.add_column("Old → New", style="dim")
