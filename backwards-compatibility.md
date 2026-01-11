@@ -118,24 +118,33 @@ Plus 4 computed properties with fallback logic:
 
 **Location:** `src/kalshi_research/api/models/candlestick.py`
 
-**What's there:**
-```python
-# Integer cents (deprecated)
-open: int | None = None
-high: int | None = None
-low: int | None = None
-close: int | None = None
+**What's there:** OHLC fields exist in **nested models** (`CandleSide`, `CandlePrice`), not directly on `Candlestick`:
 
-# Dollar strings (new)
-open_dollars: str | None = None
-high_dollars: str | None = None
-low_dollars: str | None = None
-close_dollars: str | None = None
+```python
+class CandleSide(BaseModel):  # Used for yes_bid, yes_ask
+    open: int | None = None
+    high: int | None = None
+    low: int | None = None
+    close: int | None = None
+    open_dollars: str | None = None
+    high_dollars: str | None = None
+    low_dollars: str | None = None
+    close_dollars: str | None = None
+
+class CandlePrice(BaseModel):  # Used for price
+    # Same OHLC fields as CandleSide, PLUS:
+    mean: int | None = None
+    mean_dollars: str | None = None
+    min: int | None = None
+    max: int | None = None
+    previous: int | None = None
+    previous_dollars: str | None = None
 ```
 
 **Why it's problematic:**
-- 8 fields for 4 pieces of data (OHLC)
-- No computed properties to normalize - users must check both
+- `CandleSide` has 8 fields for 4 pieces of data (OHLC in cents + dollars)
+- `CandlePrice` has even more (14+ fields for ~7 pieces of data)
+- No computed properties to normalize - users must check both formats
 
 **Recommendation:** After Jan 15, 2026:
 - Remove cent fields, keep only `*_dollars`
@@ -200,12 +209,16 @@ raw = data.get("market_positions") or data.get("positions") or []
 
 #### 2.3 Data Fetcher - Settlement Time Fallback
 
-**Location:** `src/kalshi_research/data/fetcher.py:132-133`
+**Location:** `src/kalshi_research/data/fetcher.py:132-133, 138`
 
 **What's there:**
 ```python
+# Comment (lines 132-133):
 Prefer `settlement_ts` (added Dec 19, 2025) when available. Fall back to
 `Market.expiration_time` for historical/legacy data.
+
+# Actual fallback (line 138):
+settled_at = api_market.settlement_ts or api_market.expiration_time
 ```
 
 **Why it's problematic:**
@@ -215,6 +228,28 @@ Prefer `settlement_ts` (added Dec 19, 2025) when available. Fall back to
 **Recommendation:**
 - If no historical data exists yet, just use `settlement_ts`
 - If historical data exists, migrate it once instead of runtime fallback
+
+---
+
+#### 2.4 WebSocket Channel Key Fallback
+
+**Location:** `src/kalshi_research/api/websocket/client.py:222`
+
+**What's there:**
+```python
+channel = data.get("type") or data.get("channel")
+```
+
+**Why it's there:** Kalshi WebSocket messages use `type` field, but this fallback to `channel` suggests uncertainty about the API response format.
+
+**Why it's problematic:**
+- Unclear which key Kalshi actually uses
+- Creates ambiguity about the expected message format
+
+**Recommendation:**
+- Verify Kalshi's current WebSocket API spec
+- If always `type`, remove fallback
+- If varies, document when each is used
 
 ---
 
@@ -246,16 +281,18 @@ Database continues to store cents for backwards compatibility.
 
 #### 4.1 Livecrawl Fallback Mode
 
-**Location:** `src/kalshi_research/exa/client.py:332`, `src/kalshi_research/exa/models/common.py:15`
+**Location:** `src/kalshi_research/exa/client.py:332`, `src/kalshi_research/exa/models/common.py:11-17`
 
 **What's there:**
 ```python
-class LivecrawlMode(str, Enum):
+class LivecrawlOption(str, Enum):  # NOT LivecrawlMode
+    """Exa livecrawl behavior."""
+    NEVER = "never"
     FALLBACK = "fallback"
     PREFERRED = "preferred"
-    NEVER = "never"
+    ALWAYS = "always"
 
-# Used as default:
+# Used as default in client:
 livecrawl: str = "fallback",
 ```
 
@@ -276,6 +313,7 @@ livecrawl: str = "fallback",
 | Thesis legacy dict format | Internal | **P0** | Remove now (no users) |
 | Portfolio positions fallback | Internal | P2 | Verify and remove |
 | Settlement time fallback | Internal | P2 | Verify and remove |
+| WebSocket channel fallback | Internal | P2 | Verify and remove |
 | DB cents storage | Internal | P3 | Keep (rename comment) |
 
 ---
@@ -287,6 +325,7 @@ livecrawl: str = "fallback",
 - [ ] Remove thesis legacy dict format parsing
 - [ ] Verify portfolio `positions` vs `market_positions` - remove if unused
 - [ ] Verify settlement_ts availability - remove fallback if always present
+- [ ] Verify WebSocket `type` vs `channel` key - remove fallback if unused
 
 ### After Jan 15, 2026 (Kalshi Deprecation Date)
 

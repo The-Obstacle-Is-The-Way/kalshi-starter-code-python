@@ -107,10 +107,10 @@ GET /markets?series_ticker=...     # Get markets for those series
 **Current State:**
 ```python
 # Each level is [price_cents, quantity] - DEPRECATED Jan 15, 2026
-yes: list[list[int]] | None = None
-no: list[list[int]] | None = None
-yes_dollars: list[list[str | int]] | None = None
-no_dollars: list[list[str | int]] | None = None
+yes: list[tuple[int, int]] | None = None
+no: list[tuple[int, int]] | None = None
+yes_dollars: list[tuple[str, int]] | None = None
+no_dollars: list[tuple[str, int]] | None = None
 ```
 
 **Why It's Confusing:** Four fields for the same data, with computed properties that pick the "right" one.
