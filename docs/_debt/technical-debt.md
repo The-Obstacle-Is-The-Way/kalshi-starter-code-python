@@ -1,6 +1,6 @@
 # Technical Debt Register
 
-**Last Audit:** 2026-01-10
+**Last Audit:** 2026-01-11
 
 ---
 
@@ -91,6 +91,14 @@ src/kalshi_research/
 | [DEBT-007](../_archive/debt/DEBT-007-a-plus-engineering-robustness-delta.md) | Added migrations CLI, live contract workflow, TradeExecutor harness, and warning-clean docs |
 | [DEBT-006](../_archive/debt/DEBT-006-price-snapshot-insert-batching.md) | Avoid per-row flush/refresh; restore batching intent for snapshot ingestion |
 | [DEBT-005](../_archive/debt/DEBT-005-price-snapshot-liquidity-dead-column.md) | Dropped dead `price_snapshots.liquidity` column and stopped writing it |
+
+---
+
+## Resolved (2026-01-11)
+
+| Item | Resolution |
+|------|------------|
+| [DEBT-013](../_archive/debt/DEBT-013-category-filtering-events-ssot.md) | Fixed `--category`/`--no-sports` filters to use `/events?with_nested_markets=true` as SSOT (avoid `/markets` pagination traps) |
 
 ---
 

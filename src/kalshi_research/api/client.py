@@ -368,6 +368,8 @@ class KalshiPublicClient:
         series_ticker: str | None = None,
         limit: int = 100,
         cursor: str | None = None,
+        *,
+        with_nested_markets: bool = False,
     ) -> tuple[list[Event], str | None]:
         """Fetch a single page of events and return the next cursor (if any)."""
         # Events endpoint max limit is 200 (not 1000 like markets)
@@ -378,6 +380,8 @@ class KalshiPublicClient:
             params["series_ticker"] = series_ticker
         if cursor:
             params["cursor"] = cursor
+        if with_nested_markets:
+            params["with_nested_markets"] = True
 
         data = await self._get("/events", params)
         events = [Event.model_validate(e) for e in data.get("events", [])]
@@ -388,12 +392,15 @@ class KalshiPublicClient:
         status: MarketFilterStatus | str | None = None,
         series_ticker: str | None = None,
         limit: int = 100,
+        *,
+        with_nested_markets: bool = False,
     ) -> list[Event]:
         """Fetch events with optional filters."""
         events, _ = await self.get_events_page(
             status=status,
             series_ticker=series_ticker,
             limit=limit,
+            with_nested_markets=with_nested_markets,
         )
         return events
 
@@ -403,6 +410,8 @@ class KalshiPublicClient:
         series_ticker: str | None = None,
         limit: int = 200,
         max_pages: int | None = None,
+        *,
+        with_nested_markets: bool = False,
     ) -> AsyncIterator[Event]:
         """
         Iterate through ALL events with automatic pagination.
@@ -427,6 +436,7 @@ class KalshiPublicClient:
                 series_ticker=series_ticker,
                 limit=limit,
                 cursor=cursor,
+                with_nested_markets=with_nested_markets,
             )
 
             for event in events:

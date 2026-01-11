@@ -532,12 +532,22 @@ def test_scan_opportunities_no_sports_excludes_sports_markets(
         )
     )
 
-    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
-        _ = status, max_pages
-        yield econ_market
-        yield sports_market
+    econ_event = MagicMock()
+    econ_event.event_ticker = econ_market.event_ticker
+    econ_event.category = "Economics"
+    econ_event.markets = [econ_market]
 
-    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+    sports_event = MagicMock()
+    sports_event.event_ticker = sports_market.event_ticker
+    sports_event.category = "Sports"
+    sports_event.markets = [sports_market]
+
+    async def event_gen(*args: object, **kwargs: object):
+        _ = args, kwargs
+        yield econ_event
+        yield sports_event
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
 
     result = runner.invoke(
         app,
@@ -592,12 +602,22 @@ def test_scan_opportunities_category_filters_markets(
         )
     )
 
-    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
-        _ = status, max_pages
-        yield econ_market
-        yield sports_market
+    econ_event = MagicMock()
+    econ_event.event_ticker = econ_market.event_ticker
+    econ_event.category = "Economics"
+    econ_event.markets = [econ_market]
 
-    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+    sports_event = MagicMock()
+    sports_event.event_ticker = sports_market.event_ticker
+    sports_event.category = "Sports"
+    sports_event.markets = [sports_market]
+
+    async def event_gen(*args: object, **kwargs: object):
+        _ = args, kwargs
+        yield econ_event
+        yield sports_event
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
 
     result = runner.invoke(
         app,

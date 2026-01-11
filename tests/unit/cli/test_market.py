@@ -171,7 +171,22 @@ def test_market_list_filters_by_category(mock_client_cls: MagicMock) -> None:
     sports_market.yes_bid_cents = 50
     sports_market.volume_24h = 1000
 
-    mock_client.get_markets.return_value = [econ_market, sports_market]
+    econ_event = MagicMock()
+    econ_event.event_ticker = econ_market.event_ticker
+    econ_event.category = "Economics"
+    econ_event.markets = [econ_market]
+
+    sports_event = MagicMock()
+    sports_event.event_ticker = sports_market.event_ticker
+    sports_event.category = "Sports"
+    sports_event.markets = [sports_market]
+
+    async def event_gen(*args: object, **kwargs: object):
+        _ = args, kwargs
+        yield econ_event
+        yield sports_event
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
 
     result = runner.invoke(app, ["market", "list", "--category", "econ"])
 
@@ -203,7 +218,22 @@ def test_market_list_excludes_category(mock_client_cls: MagicMock) -> None:
     sports_market.yes_bid_cents = 50
     sports_market.volume_24h = 1000
 
-    mock_client.get_markets.return_value = [econ_market, sports_market]
+    econ_event = MagicMock()
+    econ_event.event_ticker = econ_market.event_ticker
+    econ_event.category = "Economics"
+    econ_event.markets = [econ_market]
+
+    sports_event = MagicMock()
+    sports_event.event_ticker = sports_market.event_ticker
+    sports_event.category = "Sports"
+    sports_event.markets = [sports_market]
+
+    async def event_gen(*args: object, **kwargs: object):
+        _ = args, kwargs
+        yield econ_event
+        yield sports_event
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
 
     result = runner.invoke(app, ["market", "list", "--exclude-category", "sports"])
 
@@ -235,7 +265,22 @@ def test_market_list_filters_by_event_prefix(mock_client_cls: MagicMock) -> None
     other_market.yes_bid_cents = 50
     other_market.volume_24h = 1000
 
-    mock_client.get_markets.return_value = [fed_market, other_market]
+    fed_event = MagicMock()
+    fed_event.event_ticker = fed_market.event_ticker
+    fed_event.category = "Economics"
+    fed_event.markets = [fed_market]
+
+    other_event = MagicMock()
+    other_event.event_ticker = other_market.event_ticker
+    other_event.category = "Financials"
+    other_event.markets = [other_market]
+
+    async def event_gen(*args: object, **kwargs: object):
+        _ = args, kwargs
+        yield fed_event
+        yield other_event
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
 
     result = runner.invoke(app, ["market", "list", "--event-prefix", "KXFED"])
 

@@ -189,40 +189,6 @@ async def _fetch_exchange_status(
     return None
 
 
-def _filter_markets_by_category(
-    markets: list[Market],
-    *,
-    category: str | None,
-    no_sports: bool,
-    event_prefix: str | None,
-) -> list[Market]:
-    if not (category or no_sports or event_prefix):
-        return markets
-
-    from kalshi_research.analysis.categories import (
-        SPORTS_CATEGORY,
-        classify_by_event_ticker,
-        normalize_category,
-    )
-
-    include_category = normalize_category(category) if category else None
-    prefix_upper = event_prefix.upper() if event_prefix else None
-
-    filtered: list[Market] = []
-    for market in markets:
-        if prefix_upper and not market.event_ticker.upper().startswith(prefix_upper):
-            continue
-
-        derived_category = classify_by_event_ticker(market.event_ticker)
-        if no_sports and derived_category == SPORTS_CATEGORY:
-            continue
-        if include_category and derived_category != include_category:
-            continue
-        filtered.append(market)
-
-    return filtered
-
-
 async def _scan_opportunities_async(
     *,
     filter_type: str | None,
@@ -252,14 +218,40 @@ async def _scan_opportunities_async(
             console=console,
         ) as progress:
             progress.add_task("Fetching markets...", total=None)
-            markets = [m async for m in client.get_all_markets(status="open", max_pages=max_pages)]
+            if category or no_sports or event_prefix:
+                from kalshi_research.analysis.categories import SPORTS_CATEGORY, normalize_category
 
-            markets = _filter_markets_by_category(
-                markets,
-                category=category,
-                no_sports=no_sports,
-                event_prefix=event_prefix,
-            )
+                include_category = normalize_category(category) if category else None
+                include_lower = include_category.strip().lower() if include_category else None
+                prefix_upper = event_prefix.upper() if event_prefix else None
+
+                markets = []
+                async for api_event in client.get_all_events(
+                    status="open",
+                    limit=200,
+                    max_pages=max_pages,
+                    with_nested_markets=True,
+                ):
+                    if prefix_upper and not api_event.event_ticker.upper().startswith(prefix_upper):
+                        continue
+
+                    event_category = api_event.category
+                    if no_sports and (
+                        isinstance(event_category, str)
+                        and event_category.strip().lower() == SPORTS_CATEGORY.lower()
+                    ):
+                        continue
+                    if include_lower and (
+                        not isinstance(event_category, str)
+                        or event_category.strip().lower() != include_lower
+                    ):
+                        continue
+
+                    markets.extend(api_event.markets or [])
+            else:
+                markets = [
+                    m async for m in client.get_all_markets(status="open", max_pages=max_pages)
+                ]
 
             if not markets:
                 console.print("[yellow]No markets found matching category filters.[/yellow]")

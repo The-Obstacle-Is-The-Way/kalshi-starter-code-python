@@ -63,9 +63,23 @@ FROM trades GROUP BY ticker, side HAVING net > 0;
 - **Workaround:** Query API directly with `mve_filter=exclude`
 
 ### Missing Category Filter
-- `markets` table has `category` column but it's empty
-- Cannot filter by Politics/Economics/AI in database
-- Need to use event_ticker patterns (KXFED, KXTRUMP, KXBTC, etc.)
+- ✅ **Resolved (2026-01-11):** Category filtering now works for both:
+  - `kalshi market list --category ...`
+  - `kalshi scan opportunities --category ...` / `--no-sports`
+
+**Root cause (why it looked “impossible”):**
+- `GET /markets` has no server-side category filter, and its pagination is dominated by Sports multivariate markets.
+- Early implementations that fetched “first N markets” + used event_ticker prefix heuristics produced false
+  negatives (e.g., `--category ai` returning no results despite Science/Tech markets existing).
+
+**Fix:**
+- Use `GET /events?with_nested_markets=true` as the SSOT and filter on `Event.category` (case-insensitive),
+  then flatten nested markets.
+- This also avoids the “sports parlay pagination trap” because `/events` excludes multivariate events.
+
+**Residual risk:**
+- Kalshi OpenAPI notes `Event.category` is deprecated in favor of series-level category; if Kalshi removes it,
+  migrate SSOT to `Series.category`.
 
 ---
 

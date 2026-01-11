@@ -11,7 +11,7 @@ No active debt items.
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-013**
+**DEBT-014**
 
 ---
 
@@ -52,6 +52,12 @@ All resolved debt items are stored in
 | **[DEBT-010](../_archive/debt/DEBT-010-reduce-boilerplate.md)** | Reduce Boilerplate & Structural Bloat | ✅ Complete |
 | **[DEBT-009](../_archive/debt/DEBT-009-finish-halfway-implementations.md)** | Finish Halfway Implementations | ✅ Complete |
 | **[DEBT-007](../_archive/debt/DEBT-007-a-plus-engineering-robustness-delta.md)** | A+ Engineering Robustness Delta (Operational Hardening Gaps) | ✅ Complete |
+
+### Recently Resolved (2026-01-11)
+
+| ID | Title | Status |
+|---|---|---|
+| **[DEBT-013](../_archive/debt/DEBT-013-category-filtering-events-ssot.md)** | Category filtering SSOT: use `/events` (avoid `/markets` pagination traps) | ✅ Complete |
 
 ---
 
