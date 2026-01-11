@@ -86,6 +86,9 @@ nav:
       - Bug Tracker: _bugs/README.md
       - Debt Overview: _debt/README.md
       - Technical Debt: _debt/technical-debt.md
+      - Friction Log: _debt/friction.md
+      - Hacks & Workarounds: _debt/hacks.md
+      - Backwards Compatibility: _debt/backwards-compatibility.md
       - Bloat Analysis: _debt/bloat.md
       - Code Audit Checklist: _debt/code-audit-checklist.md
       - Security Audit: _debt/security-audit.md

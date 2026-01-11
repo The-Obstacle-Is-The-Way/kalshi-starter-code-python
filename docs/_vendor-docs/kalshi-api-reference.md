@@ -111,7 +111,7 @@ Only these count against **write** limits:
 | `GET /exchange/status` | Exchange status (`exchange_active`, `trading_active`) |
 | `GET /exchange/announcements` | Exchange-wide announcements |
 | `GET /exchange/schedule` | Trading schedule |
-| `GET /exchange/fee` | Fee change schedule |
+| `GET /series/fee_changes` | Series fee change schedule |
 | `GET /exchange/user_data_timestamp` | User data timestamp |
 
 ### Market Data (No Auth)
@@ -121,19 +121,19 @@ Only these count against **write** limits:
 | `GET /markets` | List markets with filters |
 | `GET /markets/{ticker}` | Single market details |
 | `GET /markets/{ticker}/orderbook` | Current orderbook |
-| `GET /markets/{ticker}/candlesticks` | OHLC candlestick data |
 | `GET /markets/candlesticks` | Batch candlesticks (multiple markets) |
 | `GET /markets/trades` | Historical trades (paginated) |
 | `GET /series` | List series templates (supports `category`, `tags` filters) |
-| `GET /series/{ticker}` | Single series details |
+| `GET /series/{series_ticker}` | Single series details |
+| `GET /series/{series_ticker}/markets/{ticker}/candlesticks` | Market-level candlestick data |
 | `GET /search/tags_by_categories` | Get tags organized by category (for discovery) |
 | `GET /search/filters_by_sport` | Get sports-specific filters |
 | `GET /events` | List events (**excludes multivariate**) |
 | `GET /events/multivariate` | Multivariate events only |
-| `GET /events/{ticker}` | Single event details |
-| `GET /events/{ticker}/metadata` | Event metadata |
-| `GET /events/{ticker}/candlesticks` | Event-level candlestick data |
-| `GET /events/{ticker}/forecast_percentiles_history` | Forecast percentile history |
+| `GET /events/{event_ticker}` | Single event details |
+| `GET /events/{event_ticker}/metadata` | Event metadata |
+| `GET /series/{series_ticker}/events/{ticker}/candlesticks` | Event-level candlestick data |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Event forecast percentile history (auth required) |
 | `GET /structured_targets` | List structured targets (cursor + `page_size`) |
 | `GET /structured_targets/{structured_target_id}` | Structured target details |
 
@@ -157,6 +157,20 @@ Only these count against **write** limits:
 | `min_settled_ts` / `max_settled_ts` | int | Settlement time filters |
 
 **Note:** Timestamp filters are mutually exclusive. Only one status filter allowed.
+
+### GET /events Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `limit` | int | Page size (1-200, default: 200) |
+| `cursor` | string | Pagination cursor |
+| `series_ticker` | string | Filter by series |
+| `status` | enum | `open`, `closed`, `settled` |
+| `min_close_ts` | int | Unix timestamp filter (events with a market closing after this) |
+| `with_nested_markets` | boolean | If `true`, each event includes a `markets` field (list of Market objects) |
+| `with_milestones` | boolean | If `true`, include related milestones alongside events |
+
+**Note:** `GET /events` excludes multivariate events; use `GET /events/multivariate` for MVEs.
 
 ### GET /series Parameters
 
@@ -262,6 +276,8 @@ Kalshi returns both market-level and event-level aggregates:
 ```
 
 Implementation note: `KalshiClient.get_positions()` consumes `market_positions` (fallback: legacy `positions`).
+OpenAPI response keys are `market_positions` and `event_positions`; see [DEBT-014](../_debt/DEBT-014-friction-residuals.md)
+Item A2 to remove the legacy fallback once verified end-to-end.
 
 > **Note:** `realized_pnl` is a market-level “locked in P&L” field (cents) per the OpenAPI schema. Kalshi’s docs do
 > not specify whether `/portfolio/positions` returns closed markets (`position = 0`), so do not assume it is a complete
@@ -555,11 +571,11 @@ Manage groups of orders that can be modified/canceled together:
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /order_groups` | List order groups |
-| `POST /order_groups` | Create order group |
-| `GET /order_groups/{id}` | Get order group details |
-| `DELETE /order_groups/{id}` | Delete order group |
-| `PUT /order_groups/{id}/reset` | Reset order group |
+| `GET /portfolio/order_groups` | List order groups |
+| `POST /portfolio/order_groups/create` | Create order group |
+| `GET /portfolio/order_groups/{order_group_id}` | Get order group details |
+| `DELETE /portfolio/order_groups/{order_group_id}` | Delete order group |
+| `PUT /portfolio/order_groups/{order_group_id}/reset` | Reset order group |
 
 ### Milestones (No Auth)
 
@@ -572,10 +588,10 @@ Manage groups of orders that can be modified/canceled together:
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /live_data/{type}` | Get live data by type |
+| `GET /live_data/{type}/milestone/{milestone_id}` | Get live data for a milestone |
 | `GET /live_data/batch` | Batch live data |
 
-### Incentive Programs (Authenticated)
+### Incentive Programs (No Auth)
 
 | Endpoint | Description |
 |----------|-------------|
@@ -601,8 +617,32 @@ Manage groups of orders that can be modified/canceled together:
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /search/tags` | Search tags |
-| `GET /search/sports_filters` | Sports filter options |
+| `GET /search/tags_by_categories` | Tags organized by category |
+| `GET /search/filters_by_sport` | Sports-specific filters |
+
+### Communications (Authenticated)
+
+RFQs and quotes:
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /communications/id` | Get communications ID |
+| `GET /communications/rfqs` | List RFQs |
+| `GET /communications/rfqs/{rfq_id}` | RFQ details |
+| `GET /communications/quotes` | List quotes |
+| `GET /communications/quotes/{quote_id}` | Quote details |
+| `PUT /communications/quotes/{quote_id}/accept` | Accept quote |
+| `PUT /communications/quotes/{quote_id}/confirm` | Confirm quote |
+
+### Multivariate Event Collections (Mixed Auth)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /multivariate_event_collections` | List multivariate event collections |
+| `GET /multivariate_event_collections/{collection_ticker}` | Collection details (auth required) |
+| `POST /multivariate_event_collections/{collection_ticker}` | Create/update collection (auth required) |
+| `GET /multivariate_event_collections/{collection_ticker}/lookup` | Lookup tickers in a collection (auth required) |
+| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | Update lookup mapping (auth required) |
 
 ### Portfolio Settlements (Authenticated)
 
