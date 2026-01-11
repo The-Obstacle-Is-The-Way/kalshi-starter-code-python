@@ -194,20 +194,49 @@ kalshi scan new-markets --hours 24 --categories politics,ai,tech --research
 2. Should this auto-trigger Exa research?
 3. What's the signal-to-noise threshold?
 
-**⚠️ CONCERN (2026-01-11): Liquidity Filtering**
+**✅ INVESTIGATED (2026-01-11): Liquidity Filtering Analysis**
 
-New markets may have LOW LIQUIDITY by definition (they just opened). Need to verify that our
-current scanner filters (`--min-volume`, spread thresholds) don't inappropriately exclude new
-markets that have information arbitrage potential but haven't built liquidity yet.
+**Finding 1: Default filters are permissive**
 
-**TODO (post-compaction):** Search codebase to understand:
-1. What liquidity/volume filters exist in `scan opportunities`?
-2. Are new markets being filtered out inappropriately?
-3. Should new market alerts have different filter thresholds?
+| Filter | Default | Impact on New Markets |
+|--------|---------|----------------------|
+| `--min-volume` | 0 | No exclusion |
+| `--max-spread` | 100¢ | No exclusion (max range) |
+| `--min-liquidity` | None | Off by default |
+
+**Finding 2: The REAL filter is in `scanner.py:220-224`**
+
+```python
+# SKIP: Unpriced markets (0/0 or 0/100 placeholder quotes)
+if m.yes_bid_cents == 0 and m.yes_ask_cents == 0:
+    continue  # No quotes at all
+if m.yes_bid_cents == 0 and m.yes_ask_cents == 100:
+    continue  # Placeholder: no real price discovery
+```
+
+New markets with NO price discovery (bid=0, ask=100) ARE skipped. This is technically correct
+(can't analyze markets with no prices), but misses the "information arbitrage window."
+
+**Finding 3: `created_time` field EXISTS** (`api/models/market.py:84`)
+
+We CAN detect new markets. The Market model already has this field.
+
+**Recommended B3 implementation:**
+
+```bash
+# Proposed new command/filter
+kalshi scan new-markets --hours 24 --include-unpriced --categories politics,ai,tech
+```
+
+Options to address:
+
+1. `--include-unpriced` flag to show markets even without real price discovery
+2. Label unpriced markets as "NEW (awaiting price discovery)" in results
+3. Different threshold defaults for new market scanning
 
 **Effort:** Medium (new scan filter + optional Exa integration)
 
-**Next step:** Create SPEC-0XX for new market alerts with appropriate filter logic
+**Next step:** Create SPEC-037 for new market alerts with appropriate filter logic
 
 ---
 
@@ -326,17 +355,19 @@ markets that have information arbitrage potential but haven't built liquidity ye
 > **Key decisions made:**
 > - B1: Auto-research always → BLOCKED BY FUTURE-001
 > - B2: Always show bull/bear → BLOCKED BY FUTURE-001
-> - B3: Alert on new markets → NEEDS SPEC
+> - B3: Alert on new markets → NEEDS SPEC (see investigation below)
 >
-> **Open concern (B3):**
-> New markets may have low liquidity. Before implementing new market alerts, SEARCH the codebase
-> to understand current scanner filter logic (`--min-volume`, spread thresholds) and ensure we're
-> not inappropriately excluding high-value new markets.
+> **✅ RESOLVED (B3 Liquidity Concern):**
+> Investigated on 2026-01-11. See B3 section for full findings. Summary:
+> - Default filters are permissive (`--min-volume=0`, `--max-spread=100`)
+> - The REAL filter is unpriced markets (bid=0, ask=100) being skipped in scanner.py:220-224
+> - `created_time` field EXISTS on Market model - we CAN detect new markets
+> - **Next step:** Create SPEC-037 with `--include-unpriced` flag option
 >
 > **Review checklist:**
-> - [ ] Search `scan opportunities` for volume/liquidity filters
-> - [ ] Check if `created_time` field is available on Market model
-> - [ ] Verify Section A items (A1-A5) are still accurate
+> - [x] Search `scan opportunities` for volume/liquidity filters ✅ Done (see B3)
+> - [x] Check if `created_time` field is available on Market model ✅ Yes (`market.py:84`)
+> - [ ] Verify Section A items (A1-A5) are still accurate (last verified: 2026-01-11)
 > - [ ] Check if Jan 15, 2026 has passed (C2 trigger)
 >
 > **If you're reading this post-compaction:** Re-read this document and FUTURE-001 before
