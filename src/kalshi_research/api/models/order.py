@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import AliasChoices, BaseModel, Field, model_validator
 
 
 class OrderSide(str, Enum):
@@ -67,7 +67,7 @@ class OrderResponse(BaseModel):
     """Response from create order."""
 
     order_id: str
-    order_status: str
+    order_status: str = Field(validation_alias=AliasChoices("order_status", "status"))
 
 
 class Order(BaseModel):

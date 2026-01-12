@@ -6,12 +6,14 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Priority | Status | Verified |
 |---|---|---|---|---|
+| **[BUG-069](BUG-069-order-response-status-field-mismatch.md)** | Order response schema mismatch (`status` vs `order_status`) can orphan live orders | P0 | Open | 2026-01-12 |
 | **[BUG-064](BUG-064-missing-order-safety-parameters.md)** | Missing Order Safety Parameters (`reduce_only`, etc.) | P2 | Open | 2026-01-12 |
 | **[BUG-063](BUG-063-missing-dollar-fields-market-model.md)** | Missing Dollar Fields in Market Model | P3 | Open | 2026-01-12 |
 | **[BUG-065](BUG-065-amend-order-missing-required-fields.md)** | `amend_order()` Missing Required Fields (BROKEN) | P2 | Open | 2026-01-12 |
 | **[BUG-066](BUG-066-fill-model-missing-fields.md)** | Fill Model Missing Fields (API Completeness) | P3 | Open | 2026-01-12 |
 | **[BUG-067](BUG-067-order-model-missing-fields.md)** | Order Model Missing Fields (API Completeness) | P3 | Open | 2026-01-12 |
 | **[BUG-068](BUG-068-market-model-missing-structural-fields.md)** | Market Model Missing Structural Fields | P3 | Open | 2026-01-12 |
+| **[BUG-070](BUG-070-cancel-order-drops-reduced-by.md)** | `cancel_order()` drops `reduced_by` from cancel response | P3 | Open | 2026-01-12 |
 
 ### Verification Note (2026-01-12)
 
@@ -38,7 +40,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-069**
+**BUG-071**
 
 ---
 

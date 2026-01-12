@@ -23,46 +23,71 @@ The Market model is missing several structural fields documented in the Kalshi A
 
 **Missing fields by category:**
 
+### Market Typing (Binary vs Scalar)
+
+| Field | Type (OpenAPI) | Description |
+|-------|----------------|-------------|
+| `market_type` | enum | `binary` or `scalar` |
+
+> **Note:** `market_type` is `required` in the live OpenAPI `Market` schema.
+
+### Market Metadata (Required)
+
+| Field | Type (OpenAPI) | Description |
+|-------|----------------|-------------|
+| `yes_sub_title` | string | Shortened title for the YES side |
+| `no_sub_title` | string | Shortened title for the NO side |
+
 ### Market Type & Strike Configuration
 
-| Field | Type | Description |
+| Field | Type (OpenAPI) | Description |
 |-------|------|-------------|
-| `market_type` | enum | `binary` or `scalar` |
 | `strike_type` | enum | `greater`, `greater_or_equal`, `less`, etc. |
-| `floor_strike` | int | Minimum expiration value for YES outcome |
-| `cap_strike` | int | Maximum expiration value for YES outcome |
+| `floor_strike` | number\|null | Minimum expiration value for YES outcome |
+| `cap_strike` | number\|null | Maximum expiration value for YES outcome |
 | `functional_strike` | string | Mapping formula |
-| `custom_strike` | object | Per-target mappings |
+| `custom_strike` | object\|null | Per-target mappings |
 
 ### Price Level Structure (Subpenny Pricing)
 
-| Field | Type | Description |
+| Field | Type (OpenAPI) | Description |
 |-------|------|-------------|
 | `price_level_structure` | string | Pricing rules (e.g., `custom`) |
-| `price_ranges` | array | Allowed price ranges with start, end, step |
+| `price_ranges` | array | Allowed price ranges with start, end, tick size |
+| `tick_size` | int (deprecated) | Deprecated; OpenAPI still includes this field |
 
 ### Time & Settlement
 
-| Field | Type | Description |
+| Field | Type (OpenAPI) | Description |
 |-------|------|-------------|
 | `expected_expiration_time` | datetime | Projected settlement time |
+| `latest_expiration_time` | datetime | Latest possible expiration time |
 | `settlement_timer_seconds` | int | Countdown before settlement |
+| `can_close_early` | bool | Whether the market can close early |
+| `settlement_value` | int\|null | YES payout in cents (post-determination) |
+| `settlement_value_dollars` | string\|null | YES payout in dollars (post-determination) |
+| `expiration_value` | string | Value used for settlement |
+| `rules_primary` | string | Primary rules text |
+| `rules_secondary` | string | Secondary rules text |
 
 ### Other
 
-| Field | Type | Description |
+| Field | Type (OpenAPI) | Description |
 |-------|------|-------------|
 | `is_provisional` | bool | Market may be deleted if no activity |
 | `fee_waiver_expiration_time` | datetime | When promotional fee waiver ends |
-| `early_close_condition` | string | Condition for early close |
-| `primary_participant_key` | string | Primary participant identifier |
+| `early_close_condition` | string\|null | Condition for early close |
+| `primary_participant_key` | string\|null | Primary participant identifier |
+| `mve_collection_ticker` | string | Multivariate collection ticker |
 | `mve_selected_legs` | array | Selected legs in multivariate combination |
 
 ---
 
-## Evidence from Vendor Docs
+## Evidence from Live OpenAPI (2026-01-12)
 
-From `docs/_vendor-docs/kalshi-api-reference.md` lines 229-330.
+Kalshi publishes the canonical schema at `https://docs.kalshi.com/openapi.yaml`.
+The `Market` schema includes these fields (many as `required`), but our Pydantic Market model does not
+currently expose them.
 
 ---
 
@@ -80,7 +105,7 @@ From `docs/_vendor-docs/kalshi-api-reference.md` lines 229-330.
 1. Add missing fields to Market model with appropriate types
 2. Consider adding `market_type` enum
 3. Add `strike_type` enum
-4. Model `price_ranges` as list of dicts or Pydantic model
+4. Model `price_ranges` as a typed list (e.g., `list[PriceRange]`) consistent with OpenAPI
 
 ---
 

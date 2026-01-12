@@ -32,7 +32,7 @@ class TestTrading:
         """Verify create_order sends correct payload."""
         mock_client._client.post.return_value = MagicMock(
             status_code=201,
-            json=lambda: {"order": {"order_id": "oid-123", "order_status": "resting"}},
+            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
         )
 
         await mock_client.create_order(
@@ -64,10 +64,12 @@ class TestTrading:
     async def test_cancel_order_rate_limit(self, mock_client):
         """Verify cancel_order uses DELETE and rate limiter."""
         mock_client._client.delete.return_value = MagicMock(
-            status_code=200, json=lambda: {"order_id": "oid-123", "status": "canceled"}
+            status_code=200,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "canceled"}, "reduced_by": 10},
         )
 
-        await mock_client.cancel_order("oid-123")
+        response = await mock_client.cancel_order("oid-123")
+        assert response.reduced_by == 10
 
         # Check rate limiter call
         mock_client._rate_limiter.acquire.assert_called_with("DELETE", "/portfolio/orders/oid-123")
@@ -82,7 +84,7 @@ class TestTrading:
         """Verify amend_order payload."""
         mock_client._client.post.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"order": {"order_id": "oid-123", "order_status": "executed"}},
+            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
         )
 
         await mock_client.amend_order("oid-123", price=55)

@@ -9,7 +9,12 @@
 
 ## Summary
 
-The Market model has `liquidity: int | None` field but is missing the replacement `liquidity_dollars` and `notional_value_dollars` fields.
+The Market model has `liquidity: int | None` (deprecated) but does not currently expose Kalshi's
+replacement dollar-denominated fields:
+- `liquidity_dollars`
+- `notional_value_dollars`
+
+These fields are present in Kalshi's live OpenAPI spec under the `Market` schema.
 
 **HOWEVER:** After careful verification, the `liquidity` field is **NEVER USED** in the codebase. Our liquidity analysis is computed from orderbook data (spread, depth, volume, open_interest) - NOT from the `market.liquidity` field.
 
@@ -44,17 +49,33 @@ The `market.liquidity` field is **never accessed**.
 - `liquidity: int | None` - Field exists with validator for negative values, but NO CODE uses it
 
 **What we're missing (nice-to-have for completeness):**
-- `liquidity_dollars: str | None` - Kalshi's replacement field
-- `notional_value_dollars: str | None` - Additional market metric
+- `liquidity_dollars: str | None` - Kalshi's replacement field (`FixedPointDollars` in OpenAPI)
+- `notional_value_dollars: str | None` - Contract notional value (`FixedPointDollars` in OpenAPI)
+
+**OpenAPI evidence (2026-01-12):**
+```yaml
+Market:
+  required:
+    - notional_value_dollars
+    - liquidity_dollars
+  properties:
+    liquidity:
+      deprecated: true
+    liquidity_dollars:
+      $ref: '#/components/schemas/FixedPointDollars'
+    notional_value_dollars:
+      $ref: '#/components/schemas/FixedPointDollars'
+```
 
 ---
 
 ## Impact Assessment
 
-**After Jan 15, 2026:**
-- The `liquidity` field will return `None` from the API
-- **NO FUNCTIONALITY BREAKS** - we don't use this field
-- Our liquidity analysis continues to work (orderbook-based)
+**Current + Post-deprecation:**
+- `liquidity` is deprecated in the OpenAPI spec and can be unreliable (we already treat negative values
+  as `None` via `Market.handle_deprecated_liquidity()`).
+- **No functionality breaks** today because we do not use `market.liquidity` anywhere.
+- Our liquidity analysis remains orderbook-based.
 
 **Why P3 instead of P0:**
 - No runtime breakage

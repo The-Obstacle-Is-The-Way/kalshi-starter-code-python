@@ -822,6 +822,8 @@ class KalshiClient(KalshiPublicClient):
                     )
 
                 payload = dict(payload_obj)
+                if isinstance(data, dict) and "reduced_by" in data and "reduced_by" not in payload:
+                    payload["reduced_by"] = data["reduced_by"]
                 payload.setdefault("order_id", order_id)
                 return CancelOrderResponse.model_validate(payload)
 
