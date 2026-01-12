@@ -675,6 +675,19 @@ class KalshiClient(KalshiPublicClient):
         client_order_id: str | None = None,
         expiration_ts: int | None = None,
         dry_run: bool = False,
+        *,
+        reduce_only: bool | None = None,
+        post_only: bool | None = None,
+        time_in_force: Literal[
+            "fill_or_kill",
+            "good_till_canceled",
+            "immediate_or_cancel",
+        ]
+        | None = None,
+        buy_max_cost: int | None = None,
+        cancel_order_on_pause: bool | None = None,
+        self_trade_prevention_type: Literal["taker_at_cross", "maker"] | None = None,
+        order_group_id: str | None = None,
     ) -> OrderResponse:
         """
         Create a new limit order.
@@ -687,6 +700,15 @@ class KalshiClient(KalshiPublicClient):
             price: Limit price in CENTS (1-99)
             client_order_id: Optional unique ID (generated if not provided)
             expiration_ts: Optional Unix timestamp for expiration
+            reduce_only: Optional exchange-enforced safety. When true, only reduces an existing
+                position.
+            post_only: Optional maker-only flag. When true, order will not cross the spread.
+            time_in_force: Optional order persistence (`fill_or_kill`, `good_till_canceled`,
+                `immediate_or_cancel`).
+            buy_max_cost: Optional max cost in cents; enables Fill-or-Kill behavior.
+            cancel_order_on_pause: Optional auto-cancel flag if trading is paused.
+            self_trade_prevention_type: Optional self-trade prevention mode.
+            order_group_id: Optional order group identifier for linked order management.
             dry_run: If True, validate and log order but do not execute
 
         Returns:
@@ -712,8 +734,17 @@ class KalshiClient(KalshiPublicClient):
             "yes_price": price,
             "client_order_id": client_order_id,
         }
-        if expiration_ts:
-            payload["expiration_ts"] = expiration_ts
+        optional_fields: dict[str, object] = {
+            "expiration_ts": expiration_ts,
+            "reduce_only": reduce_only,
+            "post_only": post_only,
+            "time_in_force": time_in_force,
+            "buy_max_cost": buy_max_cost,
+            "cancel_order_on_pause": cancel_order_on_pause,
+            "self_trade_prevention_type": self_trade_prevention_type,
+            "order_group_id": order_group_id,
+        }
+        payload.update({key: value for key, value in optional_fields.items() if value is not None})
 
         # Handle dry run mode
         if dry_run:
@@ -726,6 +757,13 @@ class KalshiClient(KalshiPublicClient):
                 price=price,
                 client_order_id=client_order_id,
                 expiration_ts=expiration_ts,
+                reduce_only=reduce_only,
+                post_only=post_only,
+                time_in_force=time_in_force,
+                buy_max_cost=buy_max_cost,
+                cancel_order_on_pause=cancel_order_on_pause,
+                self_trade_prevention_type=self_trade_prevention_type,
+                order_group_id=order_group_id,
             )
             return OrderResponse(
                 order_id=f"dry-run-{client_order_id}",

@@ -52,6 +52,85 @@ class TestTrading:
         assert payload["client_order_id"] == "cid-1"
 
     @pytest.mark.asyncio
+    async def test_create_order_with_reduce_only(self, mock_client):
+        """Verify reduce_only is passed to API when provided."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            count=10,
+            price=50,
+            reduce_only=True,
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        assert kwargs["json"]["reduce_only"] is True
+
+    @pytest.mark.asyncio
+    async def test_create_order_with_post_only(self, mock_client):
+        """Verify post_only is passed to API when provided."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            count=10,
+            price=50,
+            post_only=True,
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        assert kwargs["json"]["post_only"] is True
+
+    @pytest.mark.asyncio
+    async def test_create_order_with_time_in_force(self, mock_client):
+        """Verify time_in_force is passed to API when provided."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            count=10,
+            price=50,
+            time_in_force="fill_or_kill",
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        assert kwargs["json"]["time_in_force"] == "fill_or_kill"
+
+    @pytest.mark.asyncio
+    async def test_create_order_safety_params_not_sent_when_none(self, mock_client):
+        """Verify optional safety params are NOT sent when not specified."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST", side="yes", action="buy", count=10, price=50
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        payload = kwargs["json"]
+
+        assert "reduce_only" not in payload
+        assert "post_only" not in payload
+        assert "time_in_force" not in payload
+
+    @pytest.mark.asyncio
     async def test_create_order_accepts_legacy_order_status(self, mock_client):
         """Verify OrderResponse accepts legacy `order_status` key."""
         mock_client._client.post.return_value = MagicMock(

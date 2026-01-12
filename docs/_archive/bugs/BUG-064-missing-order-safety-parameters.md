@@ -1,15 +1,16 @@
 # BUG-064: Missing Order Safety Parameters in `create_order()`
 
 **Priority:** P2 (was P1 - downgraded after verification)
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-12
+**Fixed:** 2026-01-12
 **Verified:** 2026-01-12
 
 ---
 
 ## Summary
 
-The `create_order()` method is missing safety parameters documented in the Kalshi API:
+The `create_order()` method was missing server-enforced safety parameters documented in the Kalshi API:
 - `reduce_only`, `post_only`, `time_in_force`, etc.
 
 **CONTEXT:** After verification:
@@ -41,7 +42,7 @@ grep -r "executor\|create_order\|place.*order" src/kalshi_research/cli/
 
 ## Current State
 
-**Location:** `src/kalshi_research/api/client.py:668-720`
+**Location:** `src/kalshi_research/api/client.py:create_order()`
 
 **Currently supported:**
 - `ticker`, `side`, `action`, `count`, `price` (as yes_price in cents)
@@ -49,7 +50,7 @@ grep -r "executor\|create_order\|place.*order" src/kalshi_research/cli/
 - `expiration_ts` (optional)
 - `dry_run` (local-only, doesn't go to API)
 
-**Missing API-level parameters:**
+**Added API-level parameters:**
 
 | Parameter | Type | Purpose | Severity |
 |-----------|------|---------|----------|
@@ -79,33 +80,26 @@ grep -r "executor\|create_order\|place.*order" src/kalshi_research/cli/
 
 ## Fix Required (When Needed)
 
-1. Add missing parameters to `create_order()` signature
-2. Pass them through to API request payload
-3. Add enum types for `time_in_force`, `self_trade_prevention_type`
-4. Update docstrings
+✅ Completed:
+1. Added parameters to `create_order()` signature
+2. Passed them through to the API request payload **only when explicitly set** (not `None`)
+3. Used `Literal[...]` for `time_in_force` and `self_trade_prevention_type` (schema-aligned)
+4. Updated docstrings and unit tests
 
-**Example signature after fix:**
-```python
-async def create_order(
-    self,
-    ticker: str,
-    side: Literal["yes", "no"],
-    action: Literal["buy", "sell"],
-    count: int,
-    price: int,
-    *,
-    client_order_id: str | None = None,
-    expiration_ts: int | None = None,
-    reduce_only: bool = False,
-    post_only: bool = False,
-    time_in_force: Literal["fill_or_kill", "good_till_canceled", "immediate_or_cancel"] | None = None,
-    buy_max_cost: int | None = None,
-    cancel_order_on_pause: bool = False,
-    self_trade_prevention_type: Literal["taker_at_cross", "maker"] | None = None,
-    order_group_id: str | None = None,
-    dry_run: bool = False,
-) -> OrderResponse:
-```
+---
+
+## Fix Implemented
+
+**Code changes:**
+- `src/kalshi_research/api/client.py`
+  - Added optional safety parameters to `create_order(...)`.
+  - Payload now uses an `optional_fields` dict and includes keys only when the value is not `None`
+    (preserves explicit `False`).
+
+**Test coverage:**
+- `tests/unit/api/test_trading.py`
+  - Verifies `reduce_only`, `post_only`, `time_in_force` are passed through when provided.
+  - Verifies safety params are omitted when not specified.
 
 ---
 
@@ -113,15 +107,35 @@ async def create_order(
 
 From `docs/_vendor-docs/kalshi-api-reference.md` lines 857-869.
 
-**OpenAPI Verification (2026-01-12):** All 7 missing parameters confirmed to exist in Kalshi's OpenAPI spec as OPTIONAL fields on `POST /portfolio/orders`. These are pass-through additions - will not break existing code.
+**OpenAPI Verification (2026-01-12):** All 7 parameters confirmed to exist in Kalshi's live OpenAPI
+spec as OPTIONAL fields on `POST /portfolio/orders`.
+
+Example excerpt (from the request schema):
+```yaml
+time_in_force:
+  type: string
+  enum: ['fill_or_kill', 'good_till_canceled', 'immediate_or_cancel']
+buy_max_cost:
+  type: integer
+post_only:
+  type: boolean
+reduce_only:
+  type: boolean
+self_trade_prevention_type:
+  $ref: '#/components/schemas/SelfTradePreventionType'
+order_group_id:
+  type: string
+cancel_order_on_pause:
+  type: boolean
+```
 
 ---
 
 ## Test Plan
 
-- [ ] Add parameters to method signature
-- [ ] Unit test with respx mock
-- [ ] Integration test with demo environment (when trading CLI added)
+- [x] Add parameters to method signature
+- [x] Add unit tests for payload pass-through + omission when unset
+- [ ] Add integration test with demo environment (when trading CLI is added)
 
 ---
 
