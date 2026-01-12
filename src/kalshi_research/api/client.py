@@ -875,6 +875,7 @@ class KalshiClient(KalshiPublicClient):
         action: Literal["buy", "sell"] | OrderAction,
         client_order_id: str,
         updated_client_order_id: str,
+        *,
         price: int | None = None,
         price_dollars: str | None = None,
         count: int | None = None,
