@@ -359,6 +359,21 @@ For multivariate event markets:
 | `GET /portfolio/settlements` | Settlement records (includes trade fees, event ticker) |
 | `GET /portfolio/summary/total_resting_order_value` | Total value of resting orders |
 
+### `GET /portfolio/balance` response keys
+
+Observed response keys:
+
+```json
+{
+  "balance": 10000,
+  "portfolio_value": 25000,
+  "updated_ts": 1768231443
+}
+```
+
+- `balance` and `portfolio_value` are in **cents**
+- `updated_ts` is a **Unix timestamp (seconds)** (observed in production)
+
 ### `GET /portfolio/positions` response keys
 
 Kalshi returns both market-level and event-level aggregates:
@@ -378,7 +393,7 @@ Kalshi returns both market-level and event-level aggregates:
       "total_traded": 34,
       "total_traded_dollars": "14.00",
       "resting_orders_count": 0,
-      "last_updated_ts": 1704067200
+      "last_updated_ts": "2026-01-10T16:11:11.109894Z"
     }
   ],
   "event_positions": [
@@ -425,10 +440,13 @@ OpenAPI response keys are `market_positions` and `event_positions`. The legacy `
 | `fill_id` | string | Unique fill identifier |
 | `trade_id` | string | Legacy field (same as fill_id) |
 | `order_id` | string | Parent order ID |
+| `ts` | int | Unix timestamp (seconds) of fill (observed in production) |
 | `ticker` | string | Market ticker |
+| `market_ticker` | string | Duplicate of `ticker` (legacy; observed in production) |
 | `side` | enum | `yes` or `no` - **literal side, not effective position** |
 | `action` | enum | `buy` or `sell` |
 | `count` | int | Contracts filled |
+| `price` | number | Decimal price representation (deprecated; observed in production) |
 | `yes_price` | int | YES price in cents |
 | `no_price` | int | NO price in cents |
 | `yes_price_fixed` | string | YES price in dollars (e.g., `"0.48"`) |
@@ -469,7 +487,7 @@ OpenAPI response keys are `market_positions` and `event_positions`. The legacy `
 - **Integer fields:** Cents (0-100 scale, $0.00-$1.00)
 - **Dollar fields:** String format like `"0.1500"`
 - **Levels:** Sorted best-to-worst price (highest bid first)
-- **Empty sides:** Arrays omitted when no orders exist
+- **Empty sides:** May be `null` (observed) or omitted when no orders exist
 
 **Binary market math:** A YES bid at price X = NO ask at price (100-X)
 

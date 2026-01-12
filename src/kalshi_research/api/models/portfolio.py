@@ -16,6 +16,9 @@ class PortfolioBalance(BaseModel):
     portfolio_value: int
     """Total portfolio value in cents (balance + value of open positions)."""
 
+    updated_ts: int | None = None
+    """Unix timestamp (seconds) when the balance was last updated (may be absent)."""
+
 
 class PortfolioPosition(BaseModel):
     """Single market position from GET /portfolio/positions (`market_positions`)."""
@@ -31,11 +34,32 @@ class PortfolioPosition(BaseModel):
     market_exposure: int | None = None
     """Current market exposure in cents (may be absent)."""
 
+    market_exposure_dollars: str | None = None
+    """Current market exposure in dollars (fixed-point string, may be absent)."""
+
     realized_pnl: int | None = None
     """Realized profit/loss in cents from closed trades (may be absent)."""
 
+    realized_pnl_dollars: str | None = None
+    """Realized profit/loss in dollars (fixed-point string, may be absent)."""
+
     fees_paid: int | None = None
     """Total fees paid in cents (may be absent)."""
+
+    fees_paid_dollars: str | None = None
+    """Total fees paid in dollars (fixed-point string, may be absent)."""
+
+    total_traded: int | None = None
+    """Total contracts traded (may be absent)."""
+
+    total_traded_dollars: str | None = None
+    """Total traded notional in dollars (fixed-point string, may be absent)."""
+
+    resting_orders_count: int | None = None
+    """Count of currently resting orders (may be absent)."""
+
+    last_updated_ts: str | None = None
+    """RFC3339 timestamp of last position update (may be absent)."""
 
 
 class Fill(BaseModel):
@@ -90,6 +114,9 @@ class Fill(BaseModel):
 
     created_time: str
     """ISO timestamp of when the fill occurred."""
+
+    ts: int | None = None
+    """Unix timestamp (seconds) of the fill (may be absent)."""
 
 
 class FillPage(BaseModel):

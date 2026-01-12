@@ -1,0 +1,10 @@
+{
+  "recorded_at": "2026-01-12T10:24:03.963243",
+  "environment": "prod",
+  "endpoints_recorded": [
+    "public",
+    "authenticated",
+    "trading"
+  ],
+  "golden_dir": "/Users/ray/Desktop/CLARITY-DIGITAL-TWIN/kalshi-starter-code-python/tests/fixtures/golden"
+}

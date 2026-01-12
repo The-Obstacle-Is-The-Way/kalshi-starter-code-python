@@ -1,0 +1,14 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T15:24:03.721250+00:00",
+    "endpoint": "portfolio_balance",
+    "environment": "prod",
+    "note": "Sensitive data replaced with example values",
+    "sanitized": true
+  },
+  "response": {
+    "balance": 10000,
+    "portfolio_value": 25000,
+    "updated_ts": 1768231443
+  }
+}

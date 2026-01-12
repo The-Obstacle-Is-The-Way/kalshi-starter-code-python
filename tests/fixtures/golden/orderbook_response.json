@@ -1,0 +1,17 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T15:24:03.416924+00:00",
+    "endpoint": "orderbook",
+    "environment": "prod",
+    "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA-F7F474937F3",
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "orderbook": {
+      "no": null,
+      "no_dollars": null,
+      "yes": null,
+      "yes_dollars": null
+    }
+  }
+}

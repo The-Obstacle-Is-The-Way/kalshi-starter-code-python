@@ -22,7 +22,7 @@ from kalshi_research.api.models.market import (
     StrikeType,
 )
 from kalshi_research.api.models.orderbook import Orderbook
-from kalshi_research.api.models.portfolio import Fill, Order
+from kalshi_research.api.models.portfolio import Fill, Order, PortfolioBalance, PortfolioPosition
 from kalshi_research.api.models.trade import Trade
 
 
@@ -477,6 +477,7 @@ class TestPortfolioModels:
                 "yes_price_fixed": "0.5500",
                 "no_price_fixed": "0.4500",
                 "is_taker": True,
+                "ts": 1768231443,
                 "created_time": "2026-01-01T00:00:00Z",
             }
         )
@@ -487,6 +488,46 @@ class TestPortfolioModels:
         assert fill.client_order_id == "cid-123"
         assert fill.is_taker is True
         assert fill.yes_price_fixed == "0.5500"
+        assert fill.ts == 1768231443
+
+    def test_portfolio_balance_accepts_updated_ts(self) -> None:
+        balance = PortfolioBalance.model_validate(
+            {
+                "balance": 10000,
+                "portfolio_value": 25000,
+                "updated_ts": 1768231443,
+            }
+        )
+
+        assert balance.balance == 10000
+        assert balance.portfolio_value == 25000
+        assert balance.updated_ts == 1768231443
+
+    def test_portfolio_position_accepts_extended_fields(self) -> None:
+        position = PortfolioPosition.model_validate(
+            {
+                "ticker": "KXTEST",
+                "position": 34,
+                "market_exposure": 952,
+                "market_exposure_dollars": "9.52",
+                "realized_pnl": 0,
+                "realized_pnl_dollars": "0.00",
+                "fees_paid": 48,
+                "fees_paid_dollars": "0.48",
+                "total_traded": 34,
+                "total_traded_dollars": "14.00",
+                "resting_orders_count": 0,
+                "last_updated_ts": "2026-01-10T16:11:11.109894Z",
+            }
+        )
+
+        assert position.market_exposure_dollars == "9.52"
+        assert position.realized_pnl_dollars == "0.00"
+        assert position.fees_paid_dollars == "0.48"
+        assert position.total_traded == 34
+        assert position.total_traded_dollars == "14.00"
+        assert position.resting_orders_count == 0
+        assert position.last_updated_ts == "2026-01-10T16:11:11.109894Z"
 
     def test_order_accepts_openapi_fields(self) -> None:
         order = Order.model_validate(

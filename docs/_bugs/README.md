@@ -33,7 +33,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-071**
+**BUG-075**
 
 ---
 
@@ -47,6 +47,10 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-074** | Deprecated Cent Fields “Direct Usage” (False Positive) | ✅ Closed |
+| **BUG-073** | Vendor Docs Drift vs Production API | ✅ Fixed |
+| **BUG-072** | API SSOT Findings - Raw Responses vs Models vs Docs | ✅ Fixed |
+| **BUG-071** | Mocked Tests Hide API Reality - No SSOT Verification | ✅ Fixed |
 | **BUG-063** | Missing Dollar Fields in Market Model | ✅ Fixed |
 | **BUG-064** | Missing Order Safety Parameters (`reduce_only`, etc.) | ✅ Fixed |
 | **BUG-065** | `amend_order()` Missing Required Fields | ✅ Fixed |
