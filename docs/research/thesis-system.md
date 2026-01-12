@@ -41,6 +41,17 @@ DRAFT ──► ACTIVE ──► RESOLVED
 Each thesis captures:
 
 ```python
+@dataclass(frozen=True)
+class ThesisEvidence:
+    url: str
+    title: str
+    source_domain: str
+    published_date: datetime | None
+    snippet: str
+    supports: str  # bull, bear, neutral
+    relevance_score: float
+    added_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+
 @dataclass
 class Thesis:
     id: str                      # Unique identifier
@@ -59,11 +70,16 @@ class Thesis:
     invalidation_criteria: list[str]  # What would prove you wrong?
 
     # Tracking
-    status: ThesisStatus         # draft, active, resolved, abandoned
-    created_at: datetime
-    resolved_at: datetime | None
-    actual_outcome: str | None   # "yes", "no", or "void"
-    updates: list[dict]          # Timestamped notes
+    status: ThesisStatus = ThesisStatus.DRAFT
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    resolved_at: datetime | None = None
+    actual_outcome: str | None = None   # "yes", "no", or "void"
+    updates: list[dict[str, Any]] = field(default_factory=list)  # Timestamped notes
+
+    # Optional: attached Exa research
+    evidence: list[ThesisEvidence] = field(default_factory=list)
+    research_summary: str | None = None
+    last_research_at: datetime | None = None
 ```
 
 ## Edge Detection
@@ -90,6 +106,8 @@ brier_score = (your_probability - outcome)²
 
 Where outcome is 1.0 for YES, 0.0 for NO.
 
+- If `actual_outcome` is `"void"` (or any non-`yes`/`no` value), `brier_score` is `None` and excluded from averages.
+
 - 0.0 = perfect prediction
 - 0.25 = equivalent to random guessing
 - 1.0 = perfectly wrong
@@ -102,6 +120,8 @@ Simple binary: did your probability correctly predict the direction?
 was_correct = (your_probability > 0.5 and outcome == "yes") or
               (your_probability < 0.5 and outcome == "no")
 ```
+
+If the thesis is unresolved, or resolves as `"void"`, `was_correct` is `None`.
 
 ## Storage
 
@@ -134,8 +154,17 @@ uv run kalshi research thesis create "My prediction" \
   --market-prob 0.55 \
   --confidence 0.8
 
+# Create + attach Exa research evidence (requires EXA_API_KEY)
+uv run kalshi research thesis create "My prediction" \
+  --markets TICK1 \
+  --your-prob 0.65 \
+  --market-prob 0.55 \
+  --confidence 0.8 \
+  --with-research \
+  --yes
+
 # List all theses
-uv run kalshi research thesis list
+uv run kalshi research thesis list --full
 
 # View details
 uv run kalshi research thesis show <ID_PREFIX>

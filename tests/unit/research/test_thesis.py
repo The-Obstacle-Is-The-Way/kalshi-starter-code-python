@@ -146,6 +146,24 @@ class TestThesis:
         # Brier = (0.70 - 1.0)^2 = 0.09
         assert thesis.brier_score == pytest.approx(0.09)
 
+    def test_brier_score_void_returns_none(self) -> None:
+        """Void outcomes should not contribute to Brier scoring."""
+        thesis = Thesis(
+            id="test",
+            title="Test",
+            market_tickers=["TEST"],
+            your_probability=0.70,
+            market_probability=0.50,
+            confidence=0.8,
+            bull_case="",
+            bear_case="",
+            key_assumptions=[],
+            invalidation_criteria=[],
+        )
+        thesis.actual_outcome = "void"
+
+        assert thesis.brier_score is None
+
     def test_resolve_thesis(self) -> None:
         """Resolve sets status and outcome."""
         thesis = Thesis(
@@ -421,6 +439,61 @@ class TestThesisTracker:
         assert summary["total_resolved"] == 3
         assert summary["correct_predictions"] == 2  # First two correct
         assert summary["accuracy"] == pytest.approx(2 / 3)
+
+    def test_performance_summary_ignores_void_outcomes(self, temp_path: Path) -> None:
+        """Void theses should not affect accuracy or Brier score averages."""
+        tracker = ThesisTracker(temp_path)
+
+        thesis_yes = Thesis(
+            id="yes",
+            title="Yes",
+            market_tickers=["TEST"],
+            your_probability=0.70,
+            market_probability=0.50,
+            confidence=0.8,
+            bull_case="",
+            bear_case="",
+            key_assumptions=[],
+            invalidation_criteria=[],
+        )
+        thesis_yes.resolve("yes")
+        tracker.add(thesis_yes)
+
+        thesis_no = Thesis(
+            id="no",
+            title="No",
+            market_tickers=["TEST"],
+            your_probability=0.30,
+            market_probability=0.50,
+            confidence=0.8,
+            bull_case="",
+            bear_case="",
+            key_assumptions=[],
+            invalidation_criteria=[],
+        )
+        thesis_no.resolve("no")
+        tracker.add(thesis_no)
+
+        thesis_void = Thesis(
+            id="void",
+            title="Void",
+            market_tickers=["TEST"],
+            your_probability=0.90,
+            market_probability=0.50,
+            confidence=0.8,
+            bull_case="",
+            bear_case="",
+            key_assumptions=[],
+            invalidation_criteria=[],
+        )
+        thesis_void.resolve("void")
+        tracker.add(thesis_void)
+
+        summary = tracker.performance_summary()
+
+        assert summary["total_resolved"] == 3
+        assert summary["correct_predictions"] == 2
+        assert summary["accuracy"] == pytest.approx(1.0)
 
     def test_remove_thesis(self, temp_path: Path) -> None:
         """Can remove thesis."""

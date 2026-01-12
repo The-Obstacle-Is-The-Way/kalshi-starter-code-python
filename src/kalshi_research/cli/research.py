@@ -2,7 +2,7 @@ import asyncio
 import json
 import uuid
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any
 
@@ -27,6 +27,8 @@ if TYPE_CHECKING:
 app = typer.Typer(help="Research and thesis tracking commands.")
 thesis_app = typer.Typer(help="Thesis management commands.")
 app.add_typer(thesis_app, name="thesis")
+cache_app = typer.Typer(help="Exa cache maintenance commands.")
+app.add_typer(cache_app, name="cache")
 
 
 def _get_thesis_file() -> Path:
@@ -46,21 +48,51 @@ def _save_theses(data: dict[str, Any]) -> None:
     atomic_write_json(thesis_file, data)
 
 
+@cache_app.command("clear")
+def research_cache_clear(
+    clear_all: Annotated[
+        bool,
+        typer.Option(
+            "--all",
+            help="Clear all cache entries (default: clear expired only).",
+        ),
+    ] = False,
+    cache_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--cache-dir",
+            help="Optional override for Exa cache directory (default: data/exa_cache/).",
+        ),
+    ] = None,
+) -> None:
+    """Clear Exa response cache entries on disk."""
+    from kalshi_research.exa.cache import ExaCache
+
+    cache = ExaCache(cache_dir) if cache_dir else ExaCache()
+    removed = cache.clear() if clear_all else cache.clear_expired()
+
+    mode = "all" if clear_all else "expired"
+    console.print(f"[green]✓[/green] Cleared {removed} Exa cache entries ({mode})")
+
+
 def _parse_backtest_dates(start: str, end: str) -> tuple[datetime, datetime]:
     """Parse and validate backtest dates."""
     try:
-        start_dt = datetime.fromisoformat(start)
-        end_dt = datetime.fromisoformat(end)
+        start_date = date.fromisoformat(start)
+        end_date = date.fromisoformat(end)
     except ValueError as e:
         console.print(f"[red]Error:[/red] Invalid date format: {e}")
         console.print("[dim]Use YYYY-MM-DD format.[/dim]")
         raise typer.Exit(1) from None
 
-    if start_dt >= end_dt:
-        console.print("[red]Error:[/red] Start date must be before end date")
+    if start_date > end_date:
+        console.print("[red]Error:[/red] Start date must be on or before end date")
         raise typer.Exit(1)
 
-    return start_dt, end_dt
+    start_dt = datetime.combine(start_date, time.min, tzinfo=UTC)
+    end_dt_exclusive = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=UTC)
+
+    return start_dt, end_dt_exclusive
 
 
 def _display_backtest_results(results: list[Any], start: str, end: str) -> None:
@@ -252,7 +284,12 @@ def research_thesis_create(
 
 
 @thesis_app.command("list")
-def research_thesis_list() -> None:
+def research_thesis_list(
+    full: Annotated[
+        bool,
+        typer.Option("--full", "-F", help="Show full thesis IDs/titles without truncation."),
+    ] = False,
+) -> None:
     """List all theses."""
     data = _load_theses()
     theses = data.get("theses", [])
@@ -270,14 +307,17 @@ def research_thesis_list() -> None:
     for thesis in theses:
         edge = (thesis["your_probability"] - thesis["market_probability"]) * 100
         table.add_row(
-            thesis["id"][:8],
-            thesis["title"][:40],
+            thesis["id"] if full else thesis["id"][:8],
+            thesis["title"] if full else thesis["title"][:40],
             thesis["status"],
             f"{edge:+.1f}%",
         )
 
-    console.print(table)
-    console.print(f"\n[dim]Total: {len(theses)} theses[/dim]")
+    from rich.console import Console
+
+    output_console = console if not full else Console(width=200)
+    output_console.print(table)
+    output_console.print(f"\n[dim]Total: {len(theses)} theses[/dim]")
 
 
 @thesis_app.command("show")
@@ -545,7 +585,7 @@ def research_thesis_suggest(
 @app.command("backtest")
 def research_backtest(
     start: Annotated[str, typer.Option("--start", help="Start date (YYYY-MM-DD)")],
-    end: Annotated[str, typer.Option("--end", help="End date (YYYY-MM-DD)")],
+    end: Annotated[str, typer.Option("--end", help="End date (YYYY-MM-DD, inclusive)")],
     thesis_id: Annotated[
         str | None,
         typer.Option(
@@ -592,7 +632,7 @@ def research_backtest(
 
             console.print(f"[dim]Backtesting from {start} to {end}...[/dim]")
 
-            start_dt, end_dt = _parse_backtest_dates(start, end)
+            start_dt, end_dt_exclusive = _parse_backtest_dates(start, end)
 
             # Load theses
             if thesis_id:
@@ -624,7 +664,7 @@ def research_backtest(
                 result = await session.execute(
                     select(Settlement).where(
                         Settlement.settled_at >= start_dt,
-                        Settlement.settled_at <= end_dt,
+                        Settlement.settled_at < end_dt_exclusive,
                     )
                 )
                 settlements = list(result.scalars().all())

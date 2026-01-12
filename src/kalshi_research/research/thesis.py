@@ -139,7 +139,12 @@ class Thesis:
         if self.actual_outcome is None:
             return None
 
-        outcome = 1.0 if self.actual_outcome == "yes" else 0.0
+        if self.actual_outcome == "yes":
+            outcome = 1.0
+        elif self.actual_outcome == "no":
+            outcome = 0.0
+        else:
+            return None
         return (self.your_probability - outcome) ** 2
 
     def to_dict(self) -> dict[str, Any]:
@@ -316,28 +321,11 @@ class ThesisTracker:
                 self.theses = loaded_from_list
                 return
 
-            # Legacy dict format: {"<id>": {...}, ...}
-            loaded_from_mapping: dict[str, Thesis] = {}
-            for key, value in raw.items():
-                if not isinstance(value, dict):
-                    continue
-                thesis_dict = dict(value)
-                thesis_dict.setdefault("id", key)
-                try:
-                    thesis = Thesis.from_dict(thesis_dict)
-                except (KeyError, TypeError, ValueError) as e:
-                    raise ValueError(
-                        f"Theses file contains an invalid thesis under key '{key}': "
-                        f"{self.storage_path}"
-                    ) from e
-                loaded_from_mapping[thesis.id] = thesis
-
-            if loaded_from_mapping:
-                self.theses = loaded_from_mapping
-                return
-
-            logger.warning("Theses file has no loadable theses", path=str(self.storage_path))
-            raise ValueError(f"Theses file has an unexpected schema: {self.storage_path}")
+            # No "theses" key found - reject unknown schema
+            raise ValueError(
+                f"Theses file has an unexpected schema: {self.storage_path}. "
+                f'Expected format: {{"theses": [...]}}'
+            )
 
     def _save(self) -> None:
         """Save theses to storage."""
@@ -407,14 +395,15 @@ class ThesisTracker:
                 "avg_edge_when_wrong": None,
             }
 
-        correct = [t for t in resolved if t.was_correct]
-        incorrect = [t for t in resolved if t.was_correct is False]
-        brier_scores = [t.brier_score for t in resolved if t.brier_score is not None]
+        scored = [t for t in resolved if t.was_correct is not None]
+        correct = [t for t in scored if t.was_correct]
+        incorrect = [t for t in scored if t.was_correct is False]
+        brier_scores = [t.brier_score for t in scored if t.brier_score is not None]
 
         return {
             "total_resolved": len(resolved),
             "correct_predictions": len(correct),
-            "accuracy": len(correct) / len(resolved) if resolved else None,
+            "accuracy": len(correct) / len(scored) if scored else None,
             "avg_brier_score": sum(brier_scores) / len(brier_scores) if brier_scores else None,
             "avg_edge_when_correct": (
                 sum(t.edge_size for t in correct) / len(correct) if correct else None

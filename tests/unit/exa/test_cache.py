@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import timedelta
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 from kalshi_research.exa.cache import ExaCache
 
@@ -41,7 +42,11 @@ def test_cache_corrupt_entry_is_evicted(tmp_path: Path) -> None:
     assert len(files) == 1
     files[0].write_text("{broken json", encoding="utf-8")
 
-    assert cache.get("search", params) is None
+    with patch("kalshi_research.exa.cache.logger") as mock_logger:
+        assert cache.get("search", params) is None
+
+    mock_logger.warning.assert_called_once()
+    assert mock_logger.warning.call_args.kwargs["exc_info"] is True
     assert not files[0].exists()
 
 

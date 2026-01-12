@@ -2,7 +2,8 @@
 
 **Source:** [docs.kalshi.com](https://docs.kalshi.com/welcome)
 **OpenAPI Spec:** [docs.kalshi.com/openapi.yaml](https://docs.kalshi.com/openapi.yaml)
-**Last Verified:** 2026-01-10
+**Last Verified:** 2026-01-11
+**Changelog RSS:** [docs.kalshi.com/changelog.rss](https://docs.kalshi.com/changelog.rss)
 
 ---
 
@@ -111,7 +112,7 @@ Only these count against **write** limits:
 | `GET /exchange/status` | Exchange status (`exchange_active`, `trading_active`) |
 | `GET /exchange/announcements` | Exchange-wide announcements |
 | `GET /exchange/schedule` | Trading schedule |
-| `GET /exchange/fee` | Fee change schedule |
+| `GET /series/fee_changes` | Series fee change schedule |
 | `GET /exchange/user_data_timestamp` | User data timestamp |
 
 ### Market Data (No Auth)
@@ -121,17 +122,19 @@ Only these count against **write** limits:
 | `GET /markets` | List markets with filters |
 | `GET /markets/{ticker}` | Single market details |
 | `GET /markets/{ticker}/orderbook` | Current orderbook |
-| `GET /markets/{ticker}/candlesticks` | OHLC candlestick data |
-| `GET /markets/candlesticks` | Batch candlesticks (multiple markets) |
+| `GET /markets/candlesticks` | Batch candlesticks (up to 100 markets, 10,000 candlesticks max) |
 | `GET /markets/trades` | Historical trades (paginated) |
-| `GET /series` | List series templates |
-| `GET /series/{ticker}` | Single series details |
+| `GET /series` | List series templates (supports `category`, `tags` filters) |
+| `GET /series/{series_ticker}` | Single series details |
+| `GET /series/{series_ticker}/markets/{ticker}/candlesticks` | Market-level candlestick data |
+| `GET /search/tags_by_categories` | Get tags organized by category (for discovery) |
+| `GET /search/filters_by_sport` | Get sports-specific filters |
 | `GET /events` | List events (**excludes multivariate**) |
 | `GET /events/multivariate` | Multivariate events only |
-| `GET /events/{ticker}` | Single event details |
-| `GET /events/{ticker}/metadata` | Event metadata |
-| `GET /events/{ticker}/candlesticks` | Event-level candlestick data |
-| `GET /events/{ticker}/forecast_percentiles_history` | Forecast percentile history |
+| `GET /events/{event_ticker}` | Single event details |
+| `GET /events/{event_ticker}/metadata` | Event metadata |
+| `GET /series/{series_ticker}/events/{ticker}/candlesticks` | Event-level candlestick data |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Event forecast percentile history (auth required) |
 | `GET /structured_targets` | List structured targets (cursor + `page_size`) |
 | `GET /structured_targets/{structured_target_id}` | Structured target details |
 
@@ -156,6 +159,53 @@ Only these count against **write** limits:
 
 **Note:** Timestamp filters are mutually exclusive. Only one status filter allowed.
 
+### GET /markets/candlesticks (Batch)
+
+Fetch candlesticks for multiple markets in a single request.
+
+**Limits:**
+- Up to **100 tickers** per request
+- Up to **10,000 candlesticks** total in response
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `tickers` | string | Comma-separated market tickers (max 100) |
+| `period_interval` | int | 1 (1 min), 60 (1 hour), 1440 (1 day) |
+| `start_ts` | int | Unix timestamp start |
+| `end_ts` | int | Unix timestamp end |
+| `include_latest_before_start` | boolean | Include most recent candlestick before `start_ts` for price continuity |
+
+### GET /events Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `limit` | int | Page size (1-200, default: 200) |
+| `cursor` | string | Pagination cursor |
+| `series_ticker` | string | Filter by series |
+| `status` | enum | `open`, `closed`, `settled` |
+| `min_close_ts` | int | Unix timestamp filter (events with a market closing after this) |
+| `with_nested_markets` | boolean | If `true`, each event includes a `markets` field (list of Market objects) |
+| `with_milestones` | boolean | If `true`, include related milestones alongside events |
+
+**Note:** `GET /events` excludes multivariate events; use `GET /events/multivariate` for MVEs.
+
+### GET /series Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `category` | string | Filter by category (e.g., "Politics", "Economics", "Sports") |
+| `tags` | string | Filter by tags |
+| `include_product_metadata` | boolean | Include product metadata (default: false) |
+| `include_volume` | boolean | Include total volume across all events (default: false) |
+
+**Category Discovery Pattern:** Use `GET /search/tags_by_categories` to discover available categories and their tags, then use `GET /series?category=...` to find series in that category, then `GET /markets?series_ticker=...` to get markets.
+
+### GET /search/tags_by_categories
+
+Returns a mapping of categories to their associated tags. Useful for building category filter UIs.
+
+**Response:** `{ "tags_by_categories": { "Politics": ["elections", ...], "Sports": [...], ... } }`
+
 ### Market Response Settlement Fields (Dec 25, 2025+)
 
 | Field | Type | Description |
@@ -174,6 +224,110 @@ Only these count against **write** limits:
 | `is_provisional` | bool | If `true`, market will be removed if no trading activity occurs by settlement |
 
 > **Note:** Provisional markets are placeholders that may be deleted. Check this flag before building long-term tracking.
+
+### Market Schema: Complete Field Reference
+
+#### Core Market Identifiers
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ticker` | string | Unique market identifier |
+| `event_ticker` | string | Parent event identifier |
+| `series_ticker` | string | Parent series identifier |
+| `market_type` | enum | `binary` (standard yes/no) or `scalar` (range-based payout) |
+
+> **Note on scalar markets:** Scalar markets have different settlement mechanics where payout depends on where a value lands within a range, not just yes/no outcome.
+
+#### Market Titles (Deprecated)
+
+| Field | Status | Replacement |
+|-------|--------|-------------|
+| `title` | DEPRECATED | Use `yes_sub_title` for YES outcome description |
+| `subtitle` | DEPRECATED | Use `no_sub_title` for NO outcome description |
+
+#### Strike Configuration (for market mechanics)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `strike_type` | enum | Comparison type: `greater`, `greater_or_equal`, `less`, `less_or_equal`, `between`, `functional`, `custom`, `structured` |
+| `floor_strike` | int | Minimum expiration value for YES outcome |
+| `cap_strike` | int | Maximum expiration value for YES outcome |
+| `functional_strike` | string | Mapping formula from expiration values to settlement |
+| `custom_strike` | object | Per-target expiration value mappings |
+
+#### Price Level Structure (Subpenny Pricing)
+
+The `price_level_structure` field defines allowed price levels, critical for upcoming subpenny pricing:
+
+```json
+{
+  "price_level_structure": "custom",
+  "price_ranges": [
+    {"start": "0.0100", "end": "0.1000", "step": "0.0100"},
+    {"start": "0.1000", "end": "0.9000", "step": "0.0100"},
+    {"start": "0.9000", "end": "0.9900", "step": "0.0100"}
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `price_level_structure` | string | Defines pricing rules (e.g., `custom`) |
+| `price_ranges` | array | Allowed price ranges with start, end, step |
+
+> **⚠️ IMPORTANT:** Subpenny pricing migration is underway. Per the Kalshi API changelog: subpenny fields were added to price APIs on Aug 31, 2025, added to WebSocket messages on Sep 9, 2025, and additional quote fields (e.g., `yes_bid_dollars` / `no_bid_dollars`) were added on Nov 21, 2025. All systems should parse `*_dollars` fields now and handle non-integer prices; legacy integer cent fields are deprecated and may be removed.
+
+#### Expiration & Settlement Times
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `created_time` | datetime | When market was created |
+| `open_time` | datetime | When trading opens |
+| `close_time` | datetime | When trading closes |
+| `expiration_time` | datetime | **DEPRECATED** - Use `latest_expiration_time` |
+| `latest_expiration_time` | datetime | Latest possible expiration |
+| `expected_expiration_time` | datetime (nullable) | Projected settlement time (distinct from `latest_expiration_time`) |
+| `settlement_ts` | datetime (nullable) | **Actual** settlement timestamp (only for settled markets) |
+| `settlement_timer_seconds` | int | Countdown before market settles after determination |
+
+#### Fee & Promotion Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fee_waiver_expiration_time` | datetime (nullable) | When promotional fee waiver ends |
+| `early_close_condition` | string (nullable) | Condition under which market can close early |
+
+#### Other Market Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `primary_participant_key` | string (nullable) | Primary participant identifier (internal use) |
+| `is_provisional` | bool | If true, market may be deleted if no activity occurs |
+
+### Multivariate Market Fields
+
+For multivariate event markets:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `mve_selected_legs` | array | Selected legs in a multivariate combination |
+
+```json
+{
+  "mve_selected_legs": [
+    {
+      "event_ticker": "KXEVENT-A",
+      "market_ticker": "KXMARKET-A",
+      "side": "yes"
+    },
+    {
+      "event_ticker": "KXEVENT-B",
+      "market_ticker": "KXMARKET-B",
+      "side": "no"
+    }
+  ]
+}
+```
 
 ### Market status gotcha (filter vs response)
 
@@ -242,7 +396,9 @@ Kalshi returns both market-level and event-level aggregates:
 }
 ```
 
-Implementation note: `KalshiClient.get_positions()` consumes `market_positions` (fallback: legacy `positions`).
+Implementation note: `KalshiClient.get_positions()` consumes `market_positions` only.
+OpenAPI response keys are `market_positions` and `event_positions`. The legacy `positions` key is not supported
+(removed in DEBT-014 Item A2).
 
 > **Note:** `realized_pnl` is a market-level “locked in P&L” field (cents) per the OpenAPI schema. Kalshi’s docs do
 > not specify whether `/portfolio/positions` returns closed markets (`position = 0`), so do not assume it is a complete
@@ -536,11 +692,11 @@ Manage groups of orders that can be modified/canceled together:
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /order_groups` | List order groups |
-| `POST /order_groups` | Create order group |
-| `GET /order_groups/{id}` | Get order group details |
-| `DELETE /order_groups/{id}` | Delete order group |
-| `PUT /order_groups/{id}/reset` | Reset order group |
+| `GET /portfolio/order_groups` | List order groups |
+| `POST /portfolio/order_groups/create` | Create order group |
+| `GET /portfolio/order_groups/{order_group_id}` | Get order group details |
+| `DELETE /portfolio/order_groups/{order_group_id}` | Delete order group |
+| `PUT /portfolio/order_groups/{order_group_id}/reset` | Reset order group |
 
 ### Milestones (No Auth)
 
@@ -549,18 +705,31 @@ Manage groups of orders that can be modified/canceled together:
 | `GET /milestones` | List milestones |
 | `GET /milestones/{id}` | Get milestone details |
 
+**Query Parameters for `GET /milestones`:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `min_start_date` | string | RFC3339 date filter (milestones starting after this date) |
+| `limit` | int | Page size |
+| `cursor` | string | Pagination cursor |
+
+**Linking milestones to events:** Use `with_milestones=true` on `GET /events` to include related milestones.
+
 ### Live Data (No Auth)
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /live_data/{type}` | Get live data by type |
+| `GET /live_data/{type}/milestone/{milestone_id}` | Get live data for a milestone |
 | `GET /live_data/batch` | Batch live data |
 
-### Incentive Programs (Authenticated)
+### Incentive Programs (No Auth)
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /incentive_programs` | List incentive programs |
+| `GET /incentive_programs` | List active incentive/reward programs |
+
+**Response includes:**
+- `series_ticker` field (added Oct 2025) for linking programs to series
 
 ### FCM (Futures Commission Merchant)
 
@@ -582,8 +751,67 @@ Manage groups of orders that can be modified/canceled together:
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /search/tags` | Search tags |
-| `GET /search/sports_filters` | Sports filter options |
+| `GET /search/tags_by_categories` | Tags organized by category |
+| `GET /search/filters_by_sport` | Sports-specific filters |
+
+### Communications / RFQ System (Authenticated)
+
+The Request for Quote (RFQ) system enables negotiated trades for larger positions outside the orderbook.
+
+**Limits:**
+- Maximum **100 open RFQs** at a time per user
+- RFQ uses **centi-cents** for target cost (divide by 10,000 for dollars)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /communications/id` | Get communications ID |
+| `POST /communications/rfqs` | Create new RFQ |
+| `GET /communications/rfqs` | List RFQs |
+| `GET /communications/rfqs/{rfq_id}` | RFQ details |
+| `DELETE /communications/rfqs/{rfq_id}` | Delete/cancel RFQ |
+| `POST /communications/quotes` | Create quote response to RFQ |
+| `GET /communications/quotes` | List quotes |
+| `GET /communications/quotes/{quote_id}` | Quote details |
+| `DELETE /communications/quotes/{quote_id}` | Delete/cancel quote |
+| `PUT /communications/quotes/{quote_id}/accept` | Accept quote (RFQ creator) |
+| `PUT /communications/quotes/{quote_id}/confirm` | Confirm quote (quote creator) |
+
+#### Create RFQ Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `market_ticker` | string | Yes | Market for the RFQ |
+| `contracts` | integer | No | Number of contracts |
+| `target_cost_centi_cents` | int64 | No | Target cost in **centi-cents** (÷10,000 for dollars) |
+| `rest_remainder` | boolean | Yes | Rest remaining quantity after partial execution |
+| `replace_existing` | boolean | No | If true, deletes existing RFQs during creation |
+| `subtrader_id` | string | No | FCM subtrader identifier |
+
+**Example:**
+```json
+{
+  "market_ticker": "KXBTC-26JAN-T100000",
+  "contracts": 1000,
+  "target_cost_centi_cents": 500000,
+  "rest_remainder": false
+}
+```
+
+> **Note:** `target_cost_centi_cents: 500000` = $50.00 (500000 ÷ 10000)
+
+#### WebSocket RFQ Channel
+
+Subscribe to `communications` channel for real-time RFQ/quote events. Requires authentication.
+
+### Multivariate Event Collections (Mixed Auth)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /multivariate_event_collections` | List multivariate event collections |
+| `GET /multivariate_event_collections/{collection_ticker}` | Collection details (auth required) |
+| `POST /multivariate_event_collections/{collection_ticker}` | Create/update collection (auth required) |
+| `GET /multivariate_event_collections/{collection_ticker}/lookup` | Lookup tickers in a collection (auth required) |
+| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | Update lookup mapping (auth required) |
 
 ### Portfolio Settlements (Authenticated)
 
@@ -640,15 +868,68 @@ Manage groups of orders that can be modified/canceled together:
 | `order_group_id` | string | Link order to a group (grouped cancel/modify) |
 | `time_in_force` | enum | `fill_or_kill`, `good_till_canceled`, `immediate_or_cancel` |
 
+### Amend Order Full Schema
+
+**Endpoint:** `POST /portfolio/orders/{order_id}/amend`
+
+Amend allows modifying price and/or increasing order size (not just decreasing).
+
+#### Request Body
+
+**Required fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ticker` | string | Market ticker |
+| `side` | enum | `yes` or `no` |
+| `action` | enum | `buy` or `sell` |
+| `client_order_id` | string | Original client-specified order ID |
+| `updated_client_order_id` | string | New client-specified order ID (must be unique) |
+
+**Price fields (exactly one required):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `yes_price` | integer | Updated YES price in cents (1-99) |
+| `no_price` | integer | Updated NO price in cents (1-99) |
+| `yes_price_dollars` | string | Updated YES price in dollars (e.g., `"0.5600"`) |
+| `no_price_dollars` | string | Updated NO price in dollars |
+
+**Optional:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `count` | integer | Updated quantity (min 1). Can **increase** size up to `remaining_count + fill_count`. |
+
+#### Response (200)
+
+Returns both order states:
+
+```json
+{
+  "old_order": { /* Order details before amendment */ },
+  "order": { /* Order details after amendment */ }
+}
+```
+
+> **Key insight:** Unlike decrease, amend can **increase** order size. Max fillable is `remaining_count + fill_count` (original order size).
+
 ### Order Response Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `order_id` | string | Unique order identifier |
+| `initial_count` | int | Original order size (before any fills or amendments) |
 | `queue_position` | int | **DEPRECATED** - Always returns 0. Use `GET /portfolio/orders/{id}/queue_position` instead. |
 | `taker_fees_dollars` | string | Fees paid on taker fills (dollars) |
 | `maker_fees_dollars` | string | Fees paid on maker fills (dollars) |
+| `taker_fill_cost` | int | Cost of taker fills in cents |
+| `maker_fill_cost` | int | Cost of maker fills in cents |
+| `taker_fill_cost_dollars` | string | Cost of taker fills in dollars |
+| `maker_fill_cost_dollars` | string | Cost of maker fills in dollars |
 | `fill_count` | int | Contracts filled so far |
 | `remaining_count` | int | Contracts still resting |
+| `last_update_time` | datetime | Last modification timestamp |
 
 ### Deprecated Order Fields
 

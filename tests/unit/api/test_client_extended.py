@@ -57,8 +57,9 @@ class TestKalshiClientAuthenticated:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_get_positions_supports_legacy_positions_key(self, mock_auth):
-        """Older docs/examples use `positions`; keep compatibility."""
+    async def test_get_positions_requires_market_positions_key(self, mock_auth):
+        """Kalshi OpenAPI spec defines `market_positions` (not legacy `positions`)."""
+        # If API returns legacy key only, we return empty (not supported)
         respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/positions").mock(
             return_value=Response(200, json={"positions": [{"ticker": "TEST", "position": 10}]})
         )
@@ -66,9 +67,8 @@ class TestKalshiClientAuthenticated:
         async with KalshiClient(key_id="test", private_key_path="test.pem") as client:
             positions = await client.get_positions()
 
-        assert len(positions) == 1
-        assert positions[0].ticker == "TEST"
-        assert positions[0].position == 10
+        # Legacy key is not supported - we expect market_positions per OpenAPI spec
+        assert len(positions) == 0
 
     @pytest.mark.asyncio
     @respx.mock

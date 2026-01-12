@@ -1,12 +1,22 @@
 # Technical Debt Register
 
-**Last Audit:** 2026-01-10
+**Last Audit:** 2026-01-11
 
 ---
 
 ## Outstanding Debt
 
-No outstanding debt items.
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| [DEBT-014](DEBT-014-friction-residuals.md) | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (Needs Design) |
+
+See [DEBT-014](DEBT-014-friction-residuals.md) for details on remaining items:
+1. Data sync `--mve-filter` CLI gap (P3)
+2. Exa research pipeline architecture (P1)
+3. Adversarial research pattern (P1)
+4. New market alert system (P2)
+5. Missing `/series` endpoint (P3)
+6. Jan 15, 2026 deprecation cleanup (P2, scheduled)
 
 ---
 
@@ -83,12 +93,22 @@ src/kalshi_research/
 
 | Item | Resolution |
 |------|------------|
+| [DEBT-012](../_archive/debt/DEBT-012-exa-error-observability.md) | Added `exc_info=True` to Exa-facing catch-and-continue logs; added unit coverage |
+| [DEBT-011](../_archive/debt/DEBT-011-unbounded-disk-growth-controls.md) | Added DB prune/vacuum + Exa cache clear + alerts log trimming commands; added unit coverage |
 | [DEBT-008](../_archive/debt/DEBT-008-dead-code-cleanup.md) | Deleted ~400 LOC of verified unused code and removed the dedicated unit tests |
 | [DEBT-010](../_archive/debt/DEBT-010-reduce-boilerplate.md) | Consolidated repeated CLI DB setup into `open_db()` / `open_db_session()` helpers |
 | [DEBT-009](../_archive/debt/DEBT-009-finish-halfway-implementations.md) | Wired in all halfway implementations (CLI exposure or explicit RESERVED) |
 | [DEBT-007](../_archive/debt/DEBT-007-a-plus-engineering-robustness-delta.md) | Added migrations CLI, live contract workflow, TradeExecutor harness, and warning-clean docs |
 | [DEBT-006](../_archive/debt/DEBT-006-price-snapshot-insert-batching.md) | Avoid per-row flush/refresh; restore batching intent for snapshot ingestion |
 | [DEBT-005](../_archive/debt/DEBT-005-price-snapshot-liquidity-dead-column.md) | Dropped dead `price_snapshots.liquidity` column and stopped writing it |
+
+---
+
+## Resolved (2026-01-11)
+
+| Item | Resolution |
+|------|------------|
+| [DEBT-013](../_archive/debt/DEBT-013-category-filtering-events-ssot.md) | Fixed `--category`/`--no-sports` filters to use `/events?with_nested_markets=true` as SSOT (avoid `/markets` pagination traps) |
 
 ---
 

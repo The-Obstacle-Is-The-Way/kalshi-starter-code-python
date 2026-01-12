@@ -133,7 +133,7 @@ async def test_sync_markets(data_fetcher, mock_client, mock_db):
     mock_market.expiration_time = "2025-01-01T00:00:00Z"
 
     # Correctly mock async generator
-    async def market_gen(status=None, max_pages: int | None = None):
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
         yield mock_market
 
     # REPLACE the AsyncMock method with a MagicMock that returns the generator
@@ -175,7 +175,8 @@ async def test_sync_settlements(data_fetcher, mock_client, mock_db):
     mock_market.expiration_time = datetime.now(UTC) - timedelta(days=1)
     mock_market.settlement_ts = mock_market.expiration_time - timedelta(hours=1)
 
-    async def market_gen(status=None, max_pages: int | None = None):
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
+        del mve_filter
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
@@ -231,7 +232,8 @@ async def test_take_snapshot(data_fetcher, mock_client, mock_db):
         liquidity=10000,
     )
 
-    async def market_gen(status=None, max_pages: int | None = None):
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
+        del mve_filter
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)

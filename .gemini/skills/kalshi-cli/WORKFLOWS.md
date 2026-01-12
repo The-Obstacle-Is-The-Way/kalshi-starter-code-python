@@ -462,7 +462,8 @@ sqlite3 data/kalshi.db "SELECT ticker, side, SUM(CASE WHEN action='buy' THEN qua
 
 ### When Ticker Not Found
 
-CLI display truncates long tickers. Get full ticker from database:
+If you got a truncated ticker from a table command, rerun it with `--full/-F` first. If you still need the exact
+ticker, query the database:
 
 ```bash
 # Search for partial match

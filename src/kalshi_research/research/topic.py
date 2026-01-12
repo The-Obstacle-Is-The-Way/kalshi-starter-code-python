@@ -57,7 +57,7 @@ class TopicResearcher:
         try:
             response = await self._exa.answer(topic, text=True)
         except Exception as e:
-            logger.warning("Answer generation failed", topic=topic, error=str(e))
+            logger.warning("Answer generation failed", topic=topic, error=str(e), exc_info=True)
             return None
 
         if self._cache:
@@ -82,7 +82,7 @@ class TopicResearcher:
         try:
             response = await self._exa.search_and_contents(topic, num_results=self._max_results)
         except Exception as e:
-            logger.warning("Topic search failed", topic=topic, error=str(e))
+            logger.warning("Topic search failed", topic=topic, error=str(e), exc_info=True)
             return None
 
         if self._cache:

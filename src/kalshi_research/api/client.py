@@ -196,13 +196,25 @@ class KalshiPublicClient:
         Filter: unopened, open, closed, settled
         Response: active, closed, determined, finalized
         """
-        markets, _ = await self.get_markets_page(
-            status=status,
-            event_ticker=event_ticker,
-            series_ticker=series_ticker,
-            limit=limit,
-            mve_filter=mve_filter,
-        )
+        if limit <= 0:
+            return []
+
+        markets: list[Market] = []
+        cursor: str | None = None
+        while len(markets) < limit:
+            remaining = limit - len(markets)
+            page_markets, cursor = await self.get_markets_page(
+                status=status,
+                event_ticker=event_ticker,
+                series_ticker=series_ticker,
+                limit=min(remaining, 1000),
+                cursor=cursor,
+                mve_filter=mve_filter,
+            )
+            markets.extend(page_markets)
+            if cursor is None or not page_markets:
+                break
+
         return markets
 
     async def get_all_markets(
@@ -356,6 +368,8 @@ class KalshiPublicClient:
         series_ticker: str | None = None,
         limit: int = 100,
         cursor: str | None = None,
+        *,
+        with_nested_markets: bool = False,
     ) -> tuple[list[Event], str | None]:
         """Fetch a single page of events and return the next cursor (if any)."""
         # Events endpoint max limit is 200 (not 1000 like markets)
@@ -366,6 +380,8 @@ class KalshiPublicClient:
             params["series_ticker"] = series_ticker
         if cursor:
             params["cursor"] = cursor
+        if with_nested_markets:
+            params["with_nested_markets"] = True
 
         data = await self._get("/events", params)
         events = [Event.model_validate(e) for e in data.get("events", [])]
@@ -376,12 +392,15 @@ class KalshiPublicClient:
         status: MarketFilterStatus | str | None = None,
         series_ticker: str | None = None,
         limit: int = 100,
+        *,
+        with_nested_markets: bool = False,
     ) -> list[Event]:
         """Fetch events with optional filters."""
         events, _ = await self.get_events_page(
             status=status,
             series_ticker=series_ticker,
             limit=limit,
+            with_nested_markets=with_nested_markets,
         )
         return events
 
@@ -391,6 +410,8 @@ class KalshiPublicClient:
         series_ticker: str | None = None,
         limit: int = 200,
         max_pages: int | None = None,
+        *,
+        with_nested_markets: bool = False,
     ) -> AsyncIterator[Event]:
         """
         Iterate through ALL events with automatic pagination.
@@ -415,6 +436,7 @@ class KalshiPublicClient:
                 series_ticker=series_ticker,
                 limit=limit,
                 cursor=cursor,
+                with_nested_markets=with_nested_markets,
             )
 
             for event in events:
@@ -555,9 +577,8 @@ class KalshiClient(KalshiPublicClient):
     async def get_positions(self) -> list[PortfolioPosition]:
         """Get current market positions."""
         data = await self._auth_get("/portfolio/positions")
-        # NOTE: Kalshi returns `market_positions` (and `event_positions`). Older docs/examples may
-        # reference `positions`, so keep a fallback for compatibility.
-        raw = data.get("market_positions") or data.get("positions") or []
+        # Kalshi returns `market_positions` (and `event_positions` for event-level aggregation)
+        raw = data.get("market_positions", [])
         if not isinstance(raw, list):
             return []
         return [PortfolioPosition.model_validate(pos) for pos in raw]

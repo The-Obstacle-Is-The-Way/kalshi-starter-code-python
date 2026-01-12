@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import structlog
+from sqlalchemy import select, update
 
 from kalshi_research.api import KalshiPublicClient
 from kalshi_research.api.models.market import MarketFilterStatus
@@ -109,7 +110,7 @@ class DataFetcher:
         """Convert API market to price snapshot.
 
         Uses computed properties that prefer new dollar fields over legacy cent fields.
-        Database continues to store cents for backwards compatibility.
+        Database stores cents (integers) for precision - avoids floating-point rounding issues.
         """
         return PriceSnapshot(
             ticker=api_market.ticker,
@@ -170,25 +171,34 @@ class DataFetcher:
         logger.info("Synced events", count=count)
         return count
 
-    async def sync_markets(self, status: str | None = None, *, max_pages: int | None = None) -> int:
+    async def sync_markets(
+        self,
+        status: str | None = None,
+        *,
+        max_pages: int | None = None,
+        mve_filter: Literal["only", "exclude"] | None = None,
+    ) -> int:
         """
         Sync markets from API to database.
 
         Args:
             status: Optional filter for market status (open, closed, etc.)
             max_pages: Optional pagination safety limit. None = iterate until exhausted.
+            mve_filter: Filter for multivariate events ("only" or "exclude").
 
         Returns:
             Number of markets synced
         """
-        logger.info("Starting market sync", status=status)
+        logger.info("Starting market sync", status=status, mve_filter=mve_filter)
         count = 0
 
         async with self._db.session_factory() as session, session.begin():
             market_repo = MarketRepository(session)
             event_repo = EventRepository(session)
 
-            async for api_market in self.client.get_all_markets(status=status, max_pages=max_pages):
+            async for api_market in self.client.get_all_markets(
+                status=status, max_pages=max_pages, mve_filter=mve_filter
+            ):
                 # Ensure event exists first (FK robustness) without racing other writers.
                 await event_repo.insert_ignore(
                     DBEvent(
@@ -207,6 +217,18 @@ class DataFetcher:
                 if count % 100 == 0:
                     await session.flush()
                     logger.info("Synced markets so far", count=count)
+
+            # Denormalize event categories onto markets for offline filtering. Market responses no
+            # longer include category data, so we derive it from the parent event when available.
+            await session.execute(
+                update(DBMarket)
+                .where(DBMarket.category.is_(None))
+                .values(
+                    category=select(DBEvent.category)
+                    .where(DBEvent.ticker == DBMarket.event_ticker)
+                    .scalar_subquery()
+                )
+            )
 
         logger.info("Synced total markets", count=count)
         return count

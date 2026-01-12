@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from kalshi_research.api.models.market import Market  # noqa: TC001
+
 
 class Event(BaseModel):
     """Event as returned by the Kalshi API."""
@@ -18,6 +20,11 @@ class Event(BaseModel):
     title: str
     sub_title: str = ""
     category: str | None = None
+
+    markets: list[Market] | None = Field(
+        default=None,
+        description="Markets associated with this event (only when with_nested_markets=true).",
+    )
 
     mutually_exclusive: bool = False
     available_on_brokers: bool = False

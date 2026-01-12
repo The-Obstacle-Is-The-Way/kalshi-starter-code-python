@@ -29,6 +29,18 @@ uv run kalshi data init [--db PATH]
 |--------|---------|-------------|
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
 
+### data migrate
+Run Alembic schema migrations (upgrade to head).
+
+```bash
+uv run kalshi data migrate [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
+| `--dry-run` / `--apply` | `--dry-run` | Validate migrations on a temporary DB copy (dry-run) or apply to the DB |
+
 ### data sync-markets
 Sync markets from Kalshi API to database.
 
@@ -53,6 +65,22 @@ uv run kalshi data sync-settlements [OPTIONS]
 |--------|---------|-------------|
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
 | `--max-pages` | None | Pagination safety limit |
+
+### data sync-trades
+Fetch public trade history from Kalshi (GET /markets/trades).
+
+```bash
+uv run kalshi data sync-trades [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--ticker` | None | Optional market ticker filter |
+| `--limit` | `100` | Max trades to fetch (Kalshi caps at 1000) |
+| `--min-ts` | None | Filter: min Unix timestamp (seconds) |
+| `--max-ts` | None | Filter: max Unix timestamp (seconds) |
+| `--output`, `-o` | None | Write results to a CSV file |
+| `--json` | False | Output results as JSON to stdout |
 
 ### data snapshot
 Take a price snapshot of all markets.
@@ -105,6 +133,31 @@ uv run kalshi data stats [OPTIONS]
 |--------|---------|-------------|
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
 
+### data prune
+Prune old rows to keep the database manageable.
+
+```bash
+uv run kalshi data prune [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
+| `--snapshots-older-than-days` | None | Delete price snapshots older than N days |
+| `--news-older-than-days` | None | Delete collected news articles older than N days (by collected_at) |
+| `--dry-run` / `--apply` | `--dry-run` | Preview deletions or apply changes |
+
+### data vacuum
+Run SQLite VACUUM to reclaim disk space after large deletes.
+
+```bash
+uv run kalshi data vacuum [--db PATH]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
+
 ---
 
 ## market - Market Lookup
@@ -131,7 +184,11 @@ uv run kalshi market list [OPTIONS]
 |--------|---------|-------------|
 | `--status`, `-s` | `open` | Filter by status: `unopened`, `open`, `paused`, `closed`, `settled` |
 | `--event`, `-e` | None | Filter by event ticker |
+| `--category`, `-c` | None | Filter by category (e.g. Politics, Economics, 'Science and Technology'); aliases: `pol`, `econ`, `tech`, `ai`, `crypto`, `climate` |
+| `--exclude-category`, `-X` | None | Exclude a category (e.g. `--exclude-category Sports`) |
+| `--event-prefix` | None | Filter by event ticker prefix (e.g. `KXFED`) |
 | `--limit`, `-n` | `20` | Maximum number of results |
+| `--full`, `-F` | False | Show full tickers/titles without truncation |
 
 **IMPORTANT**: There is NO `--search` or `--query` option. Use database queries instead.
 
@@ -176,13 +233,17 @@ uv run kalshi scan opportunities [OPTIONS]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--filter`, `-f` | None | Filter type: `close-race`, `high-volume`, `wide-spread`, `expiring-soon` |
+| `--category`, `-c` | None | Filter by category |
+| `--no-sports` | False | Exclude Sports category markets |
+| `--event-prefix` | None | Filter by event ticker prefix (e.g. `KXFED`) |
 | `--top`, `-n` | `10` | Number of results |
 | `--min-volume` | `0` | Minimum 24h volume (close-race only) |
 | `--max-spread` | `100` | Maximum bid-ask spread in cents (close-race only) |
-| `--max-pages` | None | Pagination safety limit |
+| `--max-pages` | None | Optional pagination safety limit (None = full) |
 | `--min-liquidity` | None | Minimum liquidity score (0-100); fetches orderbooks for candidates |
 | `--show-liquidity` | False | Show liquidity score column; fetches orderbooks for displayed markets |
 | `--liquidity-depth` | `25` | Orderbook depth levels for liquidity scoring |
+| `--full`, `-F` | False | Show full tickers/titles without truncation |
 
 ### scan arbitrage
 Find arbitrage opportunities from correlated markets.
@@ -198,6 +259,7 @@ uv run kalshi scan arbitrage [OPTIONS]
 | `--top`, `-n` | `10` | Number of results |
 | `--tickers-limit` | `50` | Limit correlation analysis to N tickers (0 = all) |
 | `--max-pages` | None | Pagination safety limit |
+| `--full`, `-F` | False | Show full tickers/relationships without truncation |
 
 ### scan movers
 Show biggest price movers over a time period.
@@ -212,6 +274,7 @@ uv run kalshi scan movers [OPTIONS]
 | `--period`, `-p` | `24h` | Time period: `1h`, `6h`, `24h` |
 | `--top`, `-n` | `10` | Number of results |
 | `--max-pages` | None | Pagination safety limit |
+| `--full`, `-F` | False | Show full titles without truncation |
 
 ---
 
@@ -331,8 +394,12 @@ uv run kalshi research thesis create "TITLE" [OPTIONS]
 List all theses.
 
 ```bash
-uv run kalshi research thesis list
+uv run kalshi research thesis list [OPTIONS]
 ```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--full`, `-F` | False | Show full thesis IDs/titles without truncation |
 
 ### research thesis show
 Show details of a thesis.
@@ -369,7 +436,7 @@ uv run kalshi research backtest --start DATE --end DATE [OPTIONS]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--start` | Required | Start date (YYYY-MM-DD) |
-| `--end` | Required | End date (YYYY-MM-DD) |
+| `--end` | Required | End date (YYYY-MM-DD, inclusive) |
 | `--thesis`, `-t` | None | Specific thesis ID (default: all resolved) |
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
 
@@ -406,6 +473,18 @@ uv run kalshi research topic TOPIC [OPTIONS]
 | `--json` | False | Output as JSON |
 
 Requires `EXA_API_KEY`.
+
+### research cache clear
+Clear Exa response cache entries on disk.
+
+```bash
+uv run kalshi research cache clear [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--all` | False | Clear all cache entries (default: clear expired only) |
+| `--cache-dir` | None | Override cache directory (default: data/exa_cache/) |
 
 ---
 
@@ -526,6 +605,20 @@ uv run kalshi alerts monitor [OPTIONS]
 | `--daemon` | False | Run in background |
 | `--once` | False | Single check cycle and exit |
 | `--max-pages` | None | Pagination safety limit |
+
+### alerts trim-log
+Trim the alerts monitor log to keep disk usage bounded.
+
+```bash
+uv run kalshi alerts trim-log [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--log` | `data/alert_monitor.log` | Path to the alerts monitor log file |
+| `--max-mb` | `50` | Trim the log when it exceeds this many MB |
+| `--keep-mb` | `5` | When trimming, keep the last N MB |
+| `--dry-run` / `--apply` | `--dry-run` | Preview changes or apply trimming |
 
 ---
 

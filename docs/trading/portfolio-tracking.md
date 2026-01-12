@@ -211,8 +211,10 @@ unrealized_pnl = sum(
 When markets settle:
 
 ```python
-# Settlement P&L is computed directly from Kalshi’s settlement record:
-settlement_pnl_cents = revenue - yes_total_cost - no_total_cost - fee_cost_cents
+# Kalshi returns settlement fees as a dollar string (fee_cost_dollars).
+# We convert to cents (best-effort) and compute:
+fee_cents = int(Decimal(fee_cost_dollars) * 100)
+settlement_pnl_cents = revenue - yes_total_cost - no_total_cost - fee_cents
 ```
 
 ## Performance Metrics

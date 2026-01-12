@@ -2,36 +2,25 @@
 
 **Session:** 2026-01-09
 **Purpose:** Track CLI friction, bugs, and issues encountered during research session
+**Status:** Mostly resolved. Remaining items consolidated in [DEBT-014](DEBT-014-friction-residuals.md).
 
 ---
 
 ## Confirmed Issues
 
-### 1. BUG-047: Portfolio positions sync shows 0 despite portfolio_value > 0
+### 1. ~~BUG-047: Portfolio positions sync shows 0 despite portfolio_value > 0~~
 
-**Encountered:** 2026-01-09 18:15
-**Command:** `uv run kalshi portfolio positions`
-**Output:** "No open positions found"
-**But:** `portfolio balance` shows portfolio_value = 8822 ($88.22)
-
-**Impact:** Cannot see current positions through CLI. Must query Kalshi API directly or check trades table.
-
-**Workaround:** Calculate net positions from trades table:
-```sql
-SELECT ticker, side, SUM(CASE WHEN action='buy' THEN quantity ELSE -quantity END) as net
-FROM trades GROUP BY ticker, side HAVING net > 0;
-```
-
-**Status:** Known bug, tracked in [`docs/_archive/bugs/BUG-047-portfolio-positions-sync.md`](docs/_archive/bugs/BUG-047-portfolio-positions-sync.md)
+**Status:** ✅ **FIXED** (2026-01-10) - See [`docs/_archive/bugs/BUG-047-portfolio-positions-sync.md`](../_archive/bugs/BUG-047-portfolio-positions-sync.md)
 
 ---
 
 ## CLI Friction Notes
 
-### Ticker Truncation
-- `portfolio history` truncates long tickers with `...`
-- Need to query database for full tickers
-- Example: `KXNFLAFCCHAMP-25-…` should be queried from `trades` table
+### ~~Ticker Truncation~~
+
+**Status:** ✅ **IMPLEMENTED** (2026-01-11) - See [SPEC-035](../_specs/SPEC-035-ticker-display-enhancement.md)
+
+Use `--full` / `-F` flag on `market list`, `scan opportunities`, `scan movers` to show full tickers/titles.
 
 ---
 
@@ -51,21 +40,35 @@ FROM trades GROUP BY ticker, side HAVING net > 0;
 
 ## Market Scan Friction
 
-### Scanner Shows Illiquid Garbage
-- `kalshi scan opportunities` returns multivariate sports markets with 0 volume and 98¢ spreads
-- Need better filtering to exclude KXMVE (multivariate) markets
-- Should prioritize by volume AND spread quality
+### ~~Scanner Shows Illiquid Garbage~~
+
+**Status:** ✅ **ADDRESSED** (2026-01-11) - Use `--no-sports` or `--category` flags on `scan opportunities`.
 
 ### Database Sync Dominated by Sports Parlays
-- `data sync-markets --max-pages 10` syncs 10,000 markets
-- ~15,000 are KXMVE (multivariate sports parlays)
-- Interesting political/economic markets not captured in default sync
-- **Workaround:** Query API directly with `mve_filter=exclude`
 
-### Missing Category Filter
-- `markets` table has `category` column but it's empty
-- Cannot filter by Politics/Economics/AI in database
-- Need to use event_ticker patterns (KXFED, KXTRUMP, KXBTC, etc.)
+**Status:** ⚠️ **PARTIAL** - Tracked in [DEBT-014](DEBT-014-friction-residuals.md) Item 1.
+
+- `data sync-markets` still doesn't expose `--mve-filter` flag
+- **Workaround:** Query API directly with `mve_filter=exclude` or use `scan`/`market list` with filtering
+
+### ~~Missing Category Filter~~
+- ✅ **Resolved (2026-01-11):** Category filtering now works for both:
+  - `kalshi market list --category ...`
+  - `kalshi scan opportunities --category ...` / `--no-sports`
+
+**Root cause (why it looked “impossible”):**
+- `GET /markets` has no server-side category filter, and its pagination is dominated by Sports multivariate markets.
+- Early implementations that fetched “first N markets” + used event_ticker prefix heuristics produced false
+  negatives (e.g., `--category ai` returning no results despite Science/Tech markets existing).
+
+**Fix:**
+- Use `GET /events?with_nested_markets=true` as the SSOT and filter on `Event.category` (case-insensitive),
+  then flatten nested markets.
+- This also avoids the “sports parlay pagination trap” because `/events` excludes multivariate events.
+
+**Residual risk:**
+- Kalshi OpenAPI notes `Event.category` is deprecated in favor of series-level category; if Kalshi removes it,
+  migrate SSOT to `Series.category`.
 
 ---
 
@@ -89,6 +92,8 @@ GET /markets?status=open&limit=500&mve_filter=exclude
 ---
 
 ## Metacognitive Reflection: Exa Integration Gap (2026-01-09)
+
+**Status:** 📝 **DESIGN DOC** - Tracked in [DEBT-014](DEBT-014-friction-residuals.md) Items 2-4.
 
 ### The Core Problem (Session Evidence)
 
@@ -169,6 +174,8 @@ Without this, Claude just vibes on market data - which defeats the entire purpos
 ---
 
 ## Case Study: Indiana Spread Bet Failure (2026-01-09)
+
+**Status:** 📝 **HISTORICAL LESSON** - Informs [DEBT-014](DEBT-014-friction-residuals.md) Item 3 (Adversarial Research).
 
 ### The Loss
 
@@ -274,6 +281,8 @@ This $17.76 loss is:
 ---
 
 ## Strategic Insights: Information Arbitrage Framework (2026-01-09)
+
+**Status:** 📝 **DESIGN PRINCIPLES** - Informs [DEBT-014](DEBT-014-friction-residuals.md) Items 2-4.
 
 ### Insight 1: New Markets = Maximum Edge
 

@@ -112,6 +112,184 @@ def test_market_list(mock_client_cls: MagicMock) -> None:
 
 
 @patch("kalshi_research.api.KalshiPublicClient")
+def test_market_list_full_flag_disables_truncation(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    ticker_prefix = "KXTHISISAREALLYLONGTICKER-"
+    ticker_suffix = "TAILTICKER"
+    long_ticker = f"{ticker_prefix}{'X' * 30}{ticker_suffix}"
+    assert len(long_ticker) > 30
+
+    title_prefix = "A" * 40
+    title_suffix = "TAILTITLE"
+    long_title = f"{title_prefix}{title_suffix}"
+    assert len(long_title) > 40
+
+    mock_market = MagicMock()
+    mock_market.ticker = long_ticker
+    mock_market.title = long_title
+    mock_market.status.value = "active"
+    mock_market.yes_bid_cents = 50
+    mock_market.volume_24h = 1000
+
+    mock_client.get_markets.return_value = [mock_market]
+
+    result_default = runner.invoke(app, ["market", "list"])
+    assert result_default.exit_code == 0
+    assert ticker_suffix not in result_default.stdout
+    assert title_suffix not in result_default.stdout
+
+    result_full = runner.invoke(app, ["market", "list", "--full"])
+    assert result_full.exit_code == 0
+    assert ticker_suffix in result_full.stdout
+    assert title_suffix in result_full.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_list_filters_by_category(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    econ_market = MagicMock()
+    econ_market.ticker = "ECON-MARKET"
+    econ_market.event_ticker = "KXFEDRATE-26JAN"
+    econ_market.title = "Economics Market"
+    econ_market.status.value = "active"
+    econ_market.yes_bid_cents = 50
+    econ_market.volume_24h = 1000
+
+    sports_market = MagicMock()
+    sports_market.ticker = "SPORTS-MARKET"
+    sports_market.event_ticker = "KXNFLAFCCHAMP-26JAN"
+    sports_market.title = "Sports Market"
+    sports_market.status.value = "active"
+    sports_market.yes_bid_cents = 50
+    sports_market.volume_24h = 1000
+
+    econ_event = MagicMock()
+    econ_event.event_ticker = econ_market.event_ticker
+    econ_event.category = "Economics"
+    econ_event.markets = [econ_market]
+
+    sports_event = MagicMock()
+    sports_event.event_ticker = sports_market.event_ticker
+    sports_event.category = "Sports"
+    sports_event.markets = [sports_market]
+
+    async def event_gen(*args: object, **kwargs: object):
+        _ = args, kwargs
+        yield econ_event
+        yield sports_event
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+
+    result = runner.invoke(app, ["market", "list", "--category", "econ"])
+
+    assert result.exit_code == 0
+    assert "ECON-MARKET" in result.stdout
+    assert "SPORTS-MARKET" not in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_list_excludes_category(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    econ_market = MagicMock()
+    econ_market.ticker = "ECON-MARKET"
+    econ_market.event_ticker = "KXFEDRATE-26JAN"
+    econ_market.title = "Economics Market"
+    econ_market.status.value = "active"
+    econ_market.yes_bid_cents = 50
+    econ_market.volume_24h = 1000
+
+    sports_market = MagicMock()
+    sports_market.ticker = "SPORTS-MARKET"
+    sports_market.event_ticker = "KXNFLAFCCHAMP-26JAN"
+    sports_market.title = "Sports Market"
+    sports_market.status.value = "active"
+    sports_market.yes_bid_cents = 50
+    sports_market.volume_24h = 1000
+
+    econ_event = MagicMock()
+    econ_event.event_ticker = econ_market.event_ticker
+    econ_event.category = "Economics"
+    econ_event.markets = [econ_market]
+
+    sports_event = MagicMock()
+    sports_event.event_ticker = sports_market.event_ticker
+    sports_event.category = "Sports"
+    sports_event.markets = [sports_market]
+
+    async def event_gen(*args: object, **kwargs: object):
+        _ = args, kwargs
+        yield econ_event
+        yield sports_event
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+
+    result = runner.invoke(app, ["market", "list", "--exclude-category", "sports"])
+
+    assert result.exit_code == 0
+    assert "ECON-MARKET" in result.stdout
+    assert "SPORTS-MARKET" not in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_list_filters_by_event_prefix(mock_client_cls: MagicMock) -> None:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    fed_market = MagicMock()
+    fed_market.ticker = "FED-MARKET"
+    fed_market.event_ticker = "KXFEDRATE-26JAN"
+    fed_market.title = "Fed Market"
+    fed_market.status.value = "active"
+    fed_market.yes_bid_cents = 50
+    fed_market.volume_24h = 1000
+
+    other_market = MagicMock()
+    other_market.ticker = "OTHER-MARKET"
+    other_market.event_ticker = "KXBTC-26JAN"
+    other_market.title = "Other Market"
+    other_market.status.value = "active"
+    other_market.yes_bid_cents = 50
+    other_market.volume_24h = 1000
+
+    fed_event = MagicMock()
+    fed_event.event_ticker = fed_market.event_ticker
+    fed_event.category = "Economics"
+    fed_event.markets = [fed_market]
+
+    other_event = MagicMock()
+    other_event.event_ticker = other_market.event_ticker
+    other_event.category = "Financials"
+    other_event.markets = [other_market]
+
+    async def event_gen(*args: object, **kwargs: object):
+        _ = args, kwargs
+        yield fed_event
+        yield other_event
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+
+    result = runner.invoke(app, ["market", "list", "--event-prefix", "KXFED"])
+
+    assert result.exit_code == 0
+    assert "FED-MARKET" in result.stdout
+    assert "OTHER-MARKET" not in result.stdout
+
+
+@patch("kalshi_research.api.KalshiPublicClient")
 def test_market_list_maps_active_to_open(mock_client_cls: MagicMock) -> None:
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client

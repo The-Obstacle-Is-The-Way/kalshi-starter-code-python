@@ -23,7 +23,8 @@ uv run kalshi scan opportunities --filter close-race --top 10
 **Filter logic:**
 
 ```python
-is_close_race = 0.40 <= yes_price <= 0.60
+mid_prob = (yes_bid_cents + yes_ask_cents) / 200.0
+is_close_race = 0.40 <= mid_prob <= 0.60
 ```
 
 ### 2. High Volume
@@ -43,8 +44,9 @@ uv run kalshi scan opportunities --filter high-volume --top 10
 **Filter logic:**
 
 ```python
-# Top N by 24h volume
-sorted_by_volume = sorted(markets, key=lambda m: m.volume_24h, reverse=True)
+# Default threshold (not currently configurable via CLI): volume_24h >= 10,000
+high_volume = [m for m in markets if m.volume_24h >= 10_000]
+sorted_by_volume = sorted(high_volume, key=lambda m: m.volume_24h, reverse=True)
 ```
 
 ### 3. Wide Spread
@@ -65,7 +67,7 @@ uv run kalshi scan opportunities --filter wide-spread --top 10
 
 ```python
 spread = yes_ask - yes_bid
-is_wide_spread = spread >= threshold  # default: 5 cents
+is_wide_spread = spread >= threshold  # default: 5 cents (fixed in code today)
 ```
 
 ### 4. Expiring Soon
@@ -116,27 +118,43 @@ percent_move = abs_move / historical_price
 
 ### 6. Arbitrage
 
-Inverse market pairs that don't sum to 100% - free money (in theory).
+Flags potential consistency / divergence opportunities across related markets.
 
 **Why this matters:**
 
-- Two markets should sum to 100% if they're true inverses
-- If TRUMP-YES + TRUMP-NO < 100%, you can buy both
-- Profit = 100% - (cost of YES + cost of NO)
+- Related markets often move together (or sum to ~100% when they represent two outcomes).
+- If they diverge, it can signal mispricing or stale quotes.
 
 ```bash
 uv run kalshi scan arbitrage --threshold 0.10 --top 10
 ```
 
-**Filter logic:**
+This command does **not** place trades. It:
+
+1. Uses historical **price snapshots** (if available in your DB) to find correlated market pairs and flags:
+   - `divergence`: positively correlated pairs whose midpoint probabilities differ by more than `--threshold`.
+   - `inverse_sum`: negatively correlated pairs whose midpoint probabilities no longer sum to ~100% within
+     `--threshold`.
+2. Always checks events with **exactly two priced markets** and flags `inverse_sum` when their midpoint probabilities
+   deviate from 100% by more than `--threshold`.
+
+Use `--tickers-limit` to bound how many tickers are included in the historical correlation analysis.
+
+**Filter logic (simplified):**
+
+In the implementation, `corr_type` is derived from historical correlation analysis of the two markets' midpoint
+probabilities (from your local price snapshot history). It is the string value of `CorrelationType`
+(`positive`, `negative`, `lead_lag`, or `none`) from `src/kalshi_research/analysis/correlation.py`.
 
 ```python
-# Find inverse pairs (e.g., TRUMP-WIN vs TRUMP-LOSE)
-for ticker_a, ticker_b in inverse_pairs:
-    combined_cost = price_a + (1 - price_b)  # Cost to buy both YES
-    if combined_cost < (1 - threshold):
-        # Arbitrage opportunity: you pay less than 100%
-        edge = 1 - combined_cost
+if corr_type == "positive" and abs(price_a - price_b) > threshold:
+    opportunity_type = "divergence"
+
+if corr_type == "negative" and abs((price_a + price_b) - 1.0) > threshold:
+    opportunity_type = "inverse_sum"
+
+if event_has_exactly_two_priced_markets and abs((p1 + p2) - 1.0) > threshold:
+    opportunity_type = "inverse_sum"
 ```
 
 **Caveats:**
@@ -147,27 +165,59 @@ for ticker_a, ticker_b in inverse_pairs:
 
 ## Output Format
 
-Scanner results include:
+Scanner commands print tables (exact columns depend on the command).
+
+### Opportunities
 
 ```text
-┌──────────────────┬───────┬────────┬────────┬──────────┐
-│ Ticker           │ Price │ Volume │ Spread │ Score    │
-├──────────────────┼───────┼────────┼────────┼──────────┤
-│ TRUMP-2024       │ 52¢   │ 50,000 │ 2¢     │ 0.85     │
-│ BIDEN-RESIGN     │ 48¢   │ 25,000 │ 3¢     │ 0.72     │
-│ ...              │ ...   │ ...    │ ...    │ ...      │
-└──────────────────┴───────┴────────┴────────┴──────────┘
+┌──────────────────┬──────────────────────┬─────────────┬────────┬─────────┐
+│ Ticker           │ Title                │ Probability  │ Spread │ Volume  │
+├──────────────────┼──────────────────────┼─────────────┼────────┼─────────┤
+│ TRUMP-2024       │ ...                  │ 52.0%        │ 2¢     │ 50,000  │
+│ ...              │ ...                  │ ...          │ ...    │ ...     │
+└──────────────────┴──────────────────────┴─────────────┴────────┴─────────┘
+```
+
+### Arbitrage
+
+```text
+┌────────────────────────────┬────────────┬─────────────────────────┬───────────┬────────────┐
+│ Tickers                     │ Type       │ Expected                │ Divergence │ Confidence │
+├────────────────────────────┼────────────┼─────────────────────────┼───────────┼────────────┤
+│ AAA, BBB                    │ divergence │ Move together (r=0.72)  │ 12.00%     │ 0.72       │
+│ ...                         │ ...        │ ...                     │ ...        │ ...        │
+└────────────────────────────┴────────────┴─────────────────────────┴───────────┴────────────┘
 ```
 
 ## CLI Options
 
-### Common Filters
+Add `--full/-F` to disable truncation in table output.
+
+### Opportunities
 
 ```bash
 --min-volume 1000    # Minimum 24h volume
 --max-spread 10      # Maximum spread in cents
---max-pages 10       # Limit API pagination (safety cap)
+--max-pages 10       # Optional pagination safety limit (omit for full)
 --top 10             # Number of results to show
+--category ai        # Filter by category (e.g. Politics, Economics, AI)
+--no-sports          # Exclude Sports markets
+--event-prefix KXFED # Filter by event ticker prefix
+--min-liquidity 50   # Minimum liquidity score (0-100; fetches orderbooks)
+--show-liquidity     # Show liquidity score column (fetches orderbooks)
+--liquidity-depth 25 # Orderbook depth for liquidity scoring
+--full               # Show full tickers/titles without truncation
+```
+
+### Arbitrage
+
+```bash
+--db data/kalshi.db      # DB used for historical correlation analysis (optional)
+--threshold 0.10         # Min divergence to flag (0-1)
+--tickers-limit 50       # Correlation analysis cap (0 = analyze all tickers)
+--top 10                 # Number of results to show
+--max-pages 10           # Optional pagination safety limit (omit for full)
+--full                   # Show full tickers/relationships without truncation
 ```
 
 ### Examples
@@ -178,6 +228,8 @@ uv run kalshi scan opportunities \
   --filter close-race \
   --min-volume 1000 \
   --max-spread 10 \
+  --min-liquidity 50 \
+  --full \
   --top 10
 
 # Big movers in the last hour

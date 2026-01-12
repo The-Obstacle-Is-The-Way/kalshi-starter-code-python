@@ -5,7 +5,7 @@
 **OpenAPI Specs:**
 - Search API: [exa-openapi-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-openapi-spec.yaml)
 - Websets API: [exa-websets-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-websets-spec.yaml)
-**Python SDK:** `pip install exa-py` / `pip install exa_py` (module: `exa_py`)
+**Python SDK:** `pip install exa-py` (module: `exa_py`)
 **Last Verified:** 2026-01-10
 **Verified Against:** Official docs via llms.txt, OpenAPI specs (August 2025)
 
@@ -527,11 +527,11 @@ for r in results.results:
 
 | Method | Description |
 |--------|-------------|
-| `search(query, **kwargs)` | Search (returns text contents by default; use `contents=False` to disable) |
-| `search_and_contents(query, **kwargs)` | Deprecated; prefer `search(query, contents=...)` |
+| `search(query, **kwargs)` | Search (API returns content fields only when requested via `text`/`contents`) |
+| `search_and_contents(query, **kwargs)` | Search + contents convenience method (used in OpenAPI examples v1.2.0) |
 | `get_contents(urls, **kwargs)` | Get contents from URLs |
 | `find_similar(url, **kwargs)` | Find similar pages |
-| `find_similar_and_contents(url, **kwargs)` | Deprecated; prefer `find_similar(url, contents=...)` |
+| `find_similar_and_contents(url, **kwargs)` | Find similar + contents convenience method (used in OpenAPI examples v1.2.0) |
 | `answer(query, **kwargs)` | Get LLM answer with citations |
 | `stream_answer(query, **kwargs)` | Streaming answer (yields chunks) |
 | `research.create(instructions=..., **kwargs)` | Start async research |

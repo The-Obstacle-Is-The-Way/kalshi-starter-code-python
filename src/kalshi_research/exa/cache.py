@@ -78,6 +78,7 @@ class ExaCache:
                 operation=operation,
                 key=key,
                 error=str(e),
+                exc_info=True,
             )
             path.unlink(missing_ok=True)
             return None

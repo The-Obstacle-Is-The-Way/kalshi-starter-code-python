@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
+import time
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from typer.testing import CliRunner
 
 from kalshi_research.cli import app
@@ -158,7 +162,8 @@ def test_alerts_monitor_once_exits(
     mock_market.midpoint = 51.0
     mock_market.volume = 1000
 
-    async def market_gen(status=None, max_pages: int | None = None):
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
+        del mve_filter
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
@@ -201,7 +206,8 @@ def test_alerts_monitor_continuous_shows_ctrl_c(
     mock_market.midpoint = 51.0
     mock_market.volume = 1000
 
-    async def market_gen(status=None, max_pages: int | None = None):
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
+        del mve_filter
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
@@ -360,3 +366,73 @@ def test_alerts_monitor_daemon_does_not_spawn_without_alerts(
     assert result.exit_code == 0
     assert "No alerts configured" in result.stdout
     mock_popen.assert_not_called()
+
+
+def test_alert_monitor_daemon_log_lock_inherited(tmp_path: Path, monkeypatch) -> None:
+    if sys.platform == "win32":
+        pytest.skip("File locking integration test requires fcntl (non-Windows only).")
+
+    import errno
+    import fcntl
+
+    import kalshi_research.cli.alerts as alerts_cli
+
+    log_path = tmp_path / "alert_monitor.log"
+    monkeypatch.setattr(alerts_cli, "_ALERT_MONITOR_LOG_PATH", log_path)
+
+    real_popen = subprocess.Popen
+    spawned: list[subprocess.Popen] = []
+
+    def _popen_stub(args: list[str], **kwargs: object) -> subprocess.Popen:
+        del args
+        proc = real_popen([sys.executable, "-c", "import time; time.sleep(60)"], **kwargs)
+        spawned.append(proc)
+        return proc
+
+    monkeypatch.setattr(alerts_cli.subprocess, "Popen", _popen_stub)
+
+    try:
+        pid, _ = alerts_cli._spawn_alert_monitor_daemon(
+            interval=60,
+            once=False,
+            max_pages=None,
+            environment="demo",
+            output_file=None,
+            webhook_url=None,
+        )
+        assert spawned and pid == spawned[0].pid
+
+        with pytest.raises(RuntimeError, match="already be running"):
+            alerts_cli._spawn_alert_monitor_daemon(
+                interval=60,
+                once=False,
+                max_pages=None,
+                environment="demo",
+                output_file=None,
+                webhook_url=None,
+            )
+
+        lock_acquired = False
+        for _ in range(10):
+            try:
+                with log_path.open("a") as log_file:
+                    fcntl.flock(log_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                lock_acquired = True
+                break
+            except OSError as exc:
+                if exc.errno not in (errno.EACCES, errno.EAGAIN):
+                    raise
+            time.sleep(0.05)
+
+        assert lock_acquired is False, "Expected daemon lock to be held by child process"
+    finally:
+        for proc in spawned:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=5)
+
+    with log_path.open("a") as log_file:
+        fcntl.flock(log_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)

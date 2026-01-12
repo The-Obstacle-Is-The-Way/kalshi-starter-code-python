@@ -199,7 +199,7 @@ def portfolio_positions(
 
             # Display positions table
             table = Table(title="Current Positions", show_header=True)
-            table.add_column("Ticker", style="cyan")
+            table.add_column("Ticker", style="cyan", no_wrap=True)
             table.add_column("Side", style="magenta")
             table.add_column("Qty", justify="right")
             table.add_column("Avg Price", justify="right")
@@ -446,7 +446,7 @@ def portfolio_history(
             # Display trades table
             table = Table(title=f"Trade History (Last {limit})", show_header=True)
             table.add_column("Date", style="dim")
-            table.add_column("Ticker", style="cyan")
+            table.add_column("Ticker", style="cyan", no_wrap=True)
             table.add_column("Side", style="magenta")
             table.add_column("Action", style="yellow")
             table.add_column("Qty", justify="right")
@@ -563,7 +563,7 @@ def portfolio_suggest_links(
 
             # Display suggestions
             table = Table(title="Suggested Thesis-Position Links")
-            table.add_column("Ticker", style="cyan")
+            table.add_column("Ticker", style="cyan", no_wrap=True)
             table.add_column("Thesis ID", style="magenta")
             table.add_column("Thesis Title", style="white")
 

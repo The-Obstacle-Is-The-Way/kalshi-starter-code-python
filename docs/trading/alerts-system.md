@@ -6,16 +6,18 @@ Instead of refreshing the page to see if TRUMP-2024 crossed 60 cents, you set an
 
 ## Alert Types
 
-The system supports several condition types:
+The monitor evaluates internal `ConditionType` values (stored in `data/alerts.json`). The CLI exposes a safe subset via
+`kalshi alerts add`:
 
-| Type | Description | Example |
-|------|-------------|---------|
-| `price_above` | YES price exceeds threshold | Alert when TRUMP > 60c |
-| `price_below` | YES price drops below threshold | Alert when TRUMP < 40c |
-| `price_crosses` | Price crosses threshold (either direction) | Alert when TRUMP crosses 50c |
-| `spread_above` | Bid-ask spread exceeds threshold | Alert when spread > 5c |
-| `volume_above` | 24h volume exceeds threshold | Alert when volume > 10,000 |
-| `edge_detected` | Market matches your thesis edge criteria | Custom edge alerts |
+| ConditionType | CLI support | Description | Example |
+|---|---|---|---|
+| `price_above` | ✅ `alerts add price --above` | Midpoint probability goes **above** threshold | `--above 0.60` |
+| `price_below` | ✅ `alerts add price --below` | Midpoint probability goes **below** threshold | `--below 0.40` |
+| `spread_above` | ✅ `alerts add spread --above` | YES bid/ask spread (cents) goes above threshold | `--above 5` |
+| `volume_above` | ✅ `alerts add volume --above` | Total traded volume goes above threshold | `--above 10000` |
+| `sentiment_shift` | ✅ `alerts add sentiment --above` | Absolute change in rolling sentiment exceeds threshold | `--above 0.20` |
+| `price_crosses` | ⚠️ not exposed | Midpoint crosses a threshold between polling cycles | internal |
+| `edge_detected` | ⚠️ not exposed | Absolute midpoint move since last check exceeds threshold | internal |
 
 ## Architecture
 
@@ -53,7 +55,7 @@ Defines what to watch for:
 class AlertCondition:
     id: str                    # Unique identifier
     condition_type: ConditionType
-    ticker: str                # Market ticker (or "*" for all)
+    ticker: str                # Market ticker to monitor
     threshold: float           # Numeric threshold
     label: str                 # Human-readable description
     expires_at: datetime | None  # Optional expiration
@@ -83,11 +85,12 @@ PENDING ──► TRIGGERED ──► ACKNOWLEDGED ──► CLEARED
                 └──► EXPIRED (if expires_at passed)
 ```
 
-- **Pending**: Condition is being monitored
-- **Triggered**: Condition was met, alert fired
-- **Acknowledged**: You saw it (optional)
-- **Cleared**: Alert dismissed
-- **Expired**: Condition's expiration time passed
+Notes:
+
+- The current monitor treats conditions as **one-shot per run**: once a condition triggers, it is removed from the
+  in-memory monitor and won’t trigger again until you restart the process.
+- Conditions are stored in `data/alerts.json` and are not mutated by the monitor process today.
+- Alert statuses exist in code, but there is no CLI workflow yet for acknowledging/clearing triggered alerts.
 
 ## Monitoring Modes
 
@@ -117,6 +120,15 @@ uv run kalshi alerts monitor --daemon --interval 60
 
 Daemon mode spawns a background process that continues running after you close the terminal.
 
+For long-running daemon usage, keep the log size bounded:
+
+```bash
+uv run kalshi alerts trim-log          # dry-run default
+uv run kalshi alerts trim-log --apply  # execute trimming
+```
+
+Note: `trim-log` refuses to run while the daemon is actively writing to the log; stop the daemon first.
+
 ## Notifiers
 
 When an alert triggers, notifiers handle the output:
@@ -131,23 +143,20 @@ Prints to terminal (default):
 
 ### File Notifier
 
-Appends to a log file:
+Write triggered alerts to a JSONL file (one JSON object per line):
 
 ```bash
-# Configured via CLI or code
+uv run kalshi alerts monitor --output-file data/alerts_triggered.jsonl
 ```
 
 ### Webhook Notifier
 
-POSTs to a URL (for Slack, Discord, etc.):
+POST alerts to a webhook URL (Slack/Discord-style payload):
 
 ```python
 class WebhookNotifier:
     def notify(self, alert: Alert) -> None:
-        requests.post(self.url, json={
-            "text": f"Alert: {alert.condition.label}",
-            "value": alert.current_value,
-        })
+        ...
 ```
 
 ## Storage
@@ -158,12 +167,11 @@ Alerts are persisted to `data/alerts.json`:
 {
   "conditions": [
     {
-      "id": "abc123",
+      "id": "e7a6f5d1-6a33-4d2b-9c6e-0fd8f0b6b2a1",
       "condition_type": "price_above",
       "ticker": "TRUMP-2024",
       "threshold": 0.60,
-      "label": "TRUMP above 60c",
-      "expires_at": null,
+      "label": "price TRUMP-2024 > 0.6",
       "created_at": "2024-01-15T10:00:00Z"
     }
   ]
@@ -184,6 +192,9 @@ uv run kalshi alerts add volume TRUMP-2024 --above 10000
 
 # Spread alerts (only --above supported)
 uv run kalshi alerts add spread TRUMP-2024 --above 5
+
+# Sentiment alerts (only --above supported; requires news/sentiment data in your DB)
+uv run kalshi alerts add sentiment TRUMP-2024 --above 0.20
 ```
 
 ### List Alerts
@@ -209,19 +220,29 @@ uv run kalshi alerts monitor --interval 60
 
 # Background daemon
 uv run kalshi alerts monitor --daemon --interval 60
+
+# Optional notification sinks
+uv run kalshi alerts monitor --output-file data/alerts_triggered.jsonl
+uv run kalshi alerts monitor --webhook-url https://example.com/webhook
 ```
 
 ## Condition Evaluation
 
 Each condition type has specific evaluation logic:
 
+Note: In this codebase, `Market.midpoint` and `Market.spread` are computed properties (not raw API fields) derived
+from the current YES bid/ask quotes in `src/kalshi_research/api/models/market.py`.
+
 ### Price Above/Below
 
 ```python
+# midpoint is derived from YES bid/ask: (bid + ask) / 2, then scaled to [0, 1]
+mid_prob = market.midpoint / 100.0
+
 if condition.condition_type == ConditionType.PRICE_ABOVE:
-    triggered = market.yes_price >= condition.threshold
+    triggered = mid_prob > condition.threshold
 elif condition.condition_type == ConditionType.PRICE_BELOW:
-    triggered = market.yes_price <= condition.threshold
+    triggered = mid_prob < condition.threshold
 ```
 
 ### Price Crosses
@@ -238,15 +259,15 @@ if condition.condition_type == ConditionType.PRICE_CROSSES:
 
 ```python
 if condition.condition_type == ConditionType.SPREAD_ABOVE:
-    spread = market.yes_ask - market.yes_bid
-    triggered = spread >= condition.threshold
+    spread_cents = market.spread
+    triggered = spread_cents > condition.threshold
 ```
 
 ### Volume Above
 
 ```python
 if condition.condition_type == ConditionType.VOLUME_ABOVE:
-    triggered = market.volume_24h >= condition.threshold
+    triggered = market.volume > condition.threshold
 ```
 
 ## Use Cases

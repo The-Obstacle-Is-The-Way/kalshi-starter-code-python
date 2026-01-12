@@ -15,6 +15,19 @@ uv run kalshi data init
 uv run kalshi data init --db /tmp/kalshi.db
 ```
 
+### Validate/apply DB schema migrations
+
+For a brand new database, `kalshi data init` is enough. If you’re upgrading an existing DB (or pulling new
+migrations), use:
+
+```bash
+# Dry-run by default: validates migrations on a temporary DB copy
+uv run kalshi data migrate --db data/kalshi.db
+
+# Apply migrations to the real DB
+uv run kalshi data migrate --db data/kalshi.db --apply
+```
+
 ### Sync markets/events from the public API
 
 ```bash
@@ -30,6 +43,24 @@ If `--max-pages` is reached while a cursor still exists, the client logs a warni
 ```bash
 uv run kalshi data snapshot
 uv run kalshi data snapshot --status open --max-pages 10
+```
+
+### Sync settlements (resolved outcomes)
+
+Settlements power `kalshi research backtest` and calibration analysis.
+
+```bash
+uv run kalshi data sync-settlements --db data/kalshi.db
+uv run kalshi data sync-settlements --db data/kalshi.db --max-pages 10
+```
+
+### Fetch public trade history (market trades)
+
+This hits Kalshi’s public `/markets/trades` endpoint (not your authenticated fills).
+
+```bash
+uv run kalshi data sync-trades --limit 100 --json
+uv run kalshi data sync-trades --ticker <TICKER> --limit 100 --output trades.csv
 ```
 
 ### Run collection continuously (or once)
@@ -61,15 +92,33 @@ uv run kalshi data stats
 uv run kalshi data stats --db /tmp/kalshi.db
 ```
 
+### Maintenance (keep disk usage bounded)
+
+```bash
+# Preview deletes (dry-run default)
+uv run kalshi data prune --db data/kalshi.db --snapshots-older-than-days 30 --news-older-than-days 30
+
+# Apply deletes
+uv run kalshi data prune --db data/kalshi.db --snapshots-older-than-days 30 --news-older-than-days 30 --apply
+
+# Reclaim disk space after large deletes (SQLite VACUUM)
+uv run kalshi data vacuum --db data/kalshi.db
+```
+
 ---
 
 ## Market lookup (public)
 
 ```bash
-uv run kalshi market list --status open --limit 20
+uv run kalshi market list --status open --limit 20 --full
 uv run kalshi market list --event <EVENT_TICKER> --limit 20
+uv run kalshi market list --event-prefix KXFED --limit 20
+uv run kalshi market list --category Politics --limit 20
+uv run kalshi market list --exclude-category Sports --limit 20
 uv run kalshi market get <TICKER>
 uv run kalshi market orderbook <TICKER> --depth 5
+uv run kalshi market liquidity <TICKER> --depth 25
+uv run kalshi market history <TICKER> --interval 1h --days 7
 ```
 
 ---
@@ -80,6 +129,7 @@ uv run kalshi market orderbook <TICKER> --depth 5
 
 ```bash
 uv run kalshi scan opportunities --filter close-race --top 10 --min-volume 1000 --max-spread 10 --max-pages 10
+uv run kalshi scan opportunities --filter close-race --category ai --top 10 --min-volume 1000 --max-spread 10 --max-pages 10 --full
 uv run kalshi scan opportunities --filter high-volume --top 10 --max-pages 10
 uv run kalshi scan opportunities --filter wide-spread --top 10 --max-pages 10
 uv run kalshi scan opportunities --filter expiring-soon --top 10 --max-pages 10
@@ -88,13 +138,13 @@ uv run kalshi scan opportunities --filter expiring-soon --top 10 --max-pages 10
 ### Movers (requires snapshots in your DB)
 
 ```bash
-uv run kalshi scan movers --db data/kalshi.db --period 1h --top 10 --max-pages 10
+uv run kalshi scan movers --db data/kalshi.db --period 1h --top 10 --max-pages 10 --full
 ```
 
 ### Arbitrage
 
 ```bash
-uv run kalshi scan arbitrage --db data/kalshi.db --threshold 0.10 --top 10 --tickers-limit 50 --max-pages 10
+uv run kalshi scan arbitrage --db data/kalshi.db --threshold 0.10 --top 10 --tickers-limit 50 --max-pages 10 --full
 ```
 
 ---
@@ -115,12 +165,30 @@ uv run kalshi alerts add sentiment <TICKER> --above 0.20
 uv run kalshi alerts remove <ALERT_ID_PREFIX>
 ```
 
+Notes:
+
+- `volume`, `spread`, and `sentiment` alerts support `--above` only (no `--below`).
+- `sentiment` alerts trigger on absolute change in rolling sentiment; they depend on news/sentiment data being present
+  in `data/kalshi.db` (run `kalshi news collect` periodically).
+
 ### Monitor
 
 ```bash
 uv run kalshi alerts monitor --interval 60
 uv run kalshi alerts monitor --once --max-pages 10
 uv run kalshi alerts monitor --daemon --interval 60
+uv run kalshi alerts monitor --output-file data/alerts_triggered.jsonl
+uv run kalshi alerts monitor --webhook-url https://example.com/webhook
+```
+
+If you run the alerts daemon long-term, keep the log size bounded:
+
+```bash
+# Dry-run by default
+uv run kalshi alerts trim-log
+
+# Apply trimming
+uv run kalshi alerts trim-log --apply
 ```
 
 ---
@@ -172,9 +240,23 @@ Set `EXA_API_KEY` in your environment or `.env` to use these commands:
 ```bash
 uv run kalshi research context <TICKER> --max-news 5 --max-papers 3 --days 30
 uv run kalshi research topic "Fed rate cuts 2026" --json
+uv run kalshi research similar "https://example.com/some-article" --num-results 10 --json
 uv run kalshi research thesis create "My thesis title" ... --with-research
 uv run kalshi research thesis check-invalidation <THESIS_ID_PREFIX> --hours 48
 uv run kalshi research thesis suggest --category crypto
+```
+
+Exa deep research is a paid endpoint:
+
+```bash
+uv run kalshi research deep "What would make this market resolve YES?" --wait
+```
+
+Cache maintenance:
+
+```bash
+uv run kalshi research cache clear          # expired-only (default)
+uv run kalshi research cache clear --all    # delete everything
 ```
 
 Backtesting runs on resolved theses using settlement data in the database:
@@ -243,6 +325,7 @@ uv run kalshi portfolio suggest-links --db data/kalshi.db
 - **“Pagination truncated …” warning:** you set `--max-pages` and hit the safety cap. Increase it or remove it for
   full iteration.
 - **“Database not found …”:** run `kalshi data init --db ...` first, or pass the correct `--db`.
+- **“Migrations required …”:** run `kalshi data migrate` (dry-run by default; use `--apply` to execute).
 - **Auth errors:** confirm your `.env` values; see `docs/developer/configuration.md`.
 
 ## See also

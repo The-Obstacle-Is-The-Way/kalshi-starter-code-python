@@ -177,8 +177,13 @@ def test_data_collect_daemon_schedules_tasks_and_exits_cleanly(runner: CliRunner
             return {"events": 0, "markets": 0, "snapshots": 0}
 
         async def sync_markets(
-            self, status: str | None = None, *, max_pages: int | None = None
+            self,
+            status: str | None = None,
+            *,
+            max_pages: int | None = None,
+            mve_filter: object | None = None,
         ) -> int:
+            del mve_filter
             self.sync_markets_calls.append((status, max_pages))
             return 0
 
