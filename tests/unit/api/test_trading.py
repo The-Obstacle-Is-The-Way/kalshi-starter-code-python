@@ -1,11 +1,23 @@
 """Unit tests for trading functionality."""
 
+import json
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
 
 from kalshi_research.api.client import KalshiClient
+
+
+def _load_golden_fixture(name: str) -> dict[str, object]:
+    root = Path(__file__).resolve().parents[3]
+    fixture_path = root / "tests" / "fixtures" / "golden" / name
+    data = json.loads(fixture_path.read_text())
+    response = data["response"]
+    if not isinstance(response, dict):
+        raise TypeError(f"Unexpected golden fixture shape for {name}: expected object response")
+    return response
 
 
 @pytest.fixture
@@ -30,9 +42,10 @@ class TestTrading:
     @pytest.mark.asyncio
     async def test_create_order_payload(self, mock_client):
         """Verify create_order sends correct payload."""
+        create_order_response = _load_golden_fixture("create_order_response.json")
         mock_client._client.post.return_value = MagicMock(
             status_code=201,
-            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+            json=lambda: create_order_response,
         )
 
         await mock_client.create_order(
@@ -54,9 +67,10 @@ class TestTrading:
     @pytest.mark.asyncio
     async def test_create_order_with_reduce_only(self, mock_client):
         """Verify reduce_only is passed to API when provided."""
+        create_order_response = _load_golden_fixture("create_order_response.json")
         mock_client._client.post.return_value = MagicMock(
             status_code=201,
-            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+            json=lambda: create_order_response,
         )
 
         await mock_client.create_order(
@@ -74,9 +88,10 @@ class TestTrading:
     @pytest.mark.asyncio
     async def test_create_order_with_post_only(self, mock_client):
         """Verify post_only is passed to API when provided."""
+        create_order_response = _load_golden_fixture("create_order_response.json")
         mock_client._client.post.return_value = MagicMock(
             status_code=201,
-            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+            json=lambda: create_order_response,
         )
 
         await mock_client.create_order(
@@ -94,9 +109,10 @@ class TestTrading:
     @pytest.mark.asyncio
     async def test_create_order_with_time_in_force(self, mock_client):
         """Verify time_in_force is passed to API when provided."""
+        create_order_response = _load_golden_fixture("create_order_response.json")
         mock_client._client.post.return_value = MagicMock(
             status_code=201,
-            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+            json=lambda: create_order_response,
         )
 
         await mock_client.create_order(
@@ -114,9 +130,10 @@ class TestTrading:
     @pytest.mark.asyncio
     async def test_create_order_safety_params_not_sent_when_none(self, mock_client):
         """Verify optional safety params are NOT sent when not specified."""
+        create_order_response = _load_golden_fixture("create_order_response.json")
         mock_client._client.post.return_value = MagicMock(
             status_code=201,
-            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+            json=lambda: create_order_response,
         )
 
         await mock_client.create_order(
@@ -156,13 +173,14 @@ class TestTrading:
     @pytest.mark.asyncio
     async def test_cancel_order_rate_limit(self, mock_client):
         """Verify cancel_order uses DELETE and rate limiter."""
+        cancel_order_response = _load_golden_fixture("cancel_order_response.json")
         mock_client._client.delete.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"order": {"order_id": "oid-123", "status": "canceled"}, "reduced_by": 10},
+            json=lambda: cancel_order_response,
         )
 
         response = await mock_client.cancel_order("oid-123")
-        assert response.reduced_by == 10
+        assert response.reduced_by == cancel_order_response["reduced_by"]
 
         # Check rate limiter call
         mock_client._rate_limiter.acquire.assert_called_with("DELETE", "/portfolio/orders/oid-123")
@@ -175,9 +193,10 @@ class TestTrading:
     @pytest.mark.asyncio
     async def test_amend_order(self, mock_client):
         """Verify amend_order payload."""
+        amend_order_response = _load_golden_fixture("amend_order_response.json")
         mock_client._client.post.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
+            json=lambda: amend_order_response,
         )
 
         await mock_client.amend_order(
@@ -205,9 +224,10 @@ class TestTrading:
     @pytest.mark.asyncio
     async def test_amend_order_with_count(self, mock_client):
         """Verify amend_order can include count."""
+        amend_order_response = _load_golden_fixture("amend_order_response.json")
         mock_client._client.post.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
+            json=lambda: amend_order_response,
         )
 
         await mock_client.amend_order(
@@ -227,9 +247,10 @@ class TestTrading:
     @pytest.mark.asyncio
     async def test_amend_order_with_price_dollars(self, mock_client):
         """Verify amend_order supports fixed-point dollar price."""
+        amend_order_response = _load_golden_fixture("amend_order_response.json")
         mock_client._client.post.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
+            json=lambda: amend_order_response,
         )
 
         await mock_client.amend_order(
@@ -250,9 +271,10 @@ class TestTrading:
     @pytest.mark.asyncio
     async def test_amend_order_no_side_uses_no_price(self, mock_client):
         """Verify NO-side amend_order uses no_price fields."""
+        amend_order_response = _load_golden_fixture("amend_order_response.json")
         mock_client._client.post.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
+            json=lambda: amend_order_response,
         )
 
         await mock_client.amend_order(

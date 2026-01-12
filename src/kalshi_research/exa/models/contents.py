@@ -59,3 +59,4 @@ class ContentsResponse(BaseModel):
     statuses: list[ContentsStatus]
     context: str | None = None
     cost_dollars: CostDollars | None = Field(default=None, alias="costDollars")
+    search_time: float | None = Field(default=None, alias="searchTime")

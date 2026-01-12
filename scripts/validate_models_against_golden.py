@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Final, get_args, get_origin
 
 from pydantic_core import PydanticUndefined
 
+from kalshi_research.api.models.candlestick import Candlestick, CandlestickResponse
 from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market
 from kalshi_research.api.models.orderbook import Orderbook
@@ -43,6 +44,14 @@ from kalshi_research.api.models.portfolio import (
     PortfolioPosition,
     Settlement,
 )
+from kalshi_research.api.models.search import TagsByCategoriesResponse
+from kalshi_research.api.models.series import Series, SeriesFeeChangesResponse
+from kalshi_research.api.models.trade import Trade
+from kalshi_research.exa.models.answer import AnswerResponse
+from kalshi_research.exa.models.contents import ContentsResponse
+from kalshi_research.exa.models.research import ResearchTask
+from kalshi_research.exa.models.search import SearchResponse
+from kalshi_research.exa.models.similar import FindSimilarResponse
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
@@ -59,6 +68,13 @@ MODEL_MAPPING: Final[dict[str, tuple[str, type[BaseModel]]]] = {
     # GET /markets/{ticker} returns {"market": {...}}
     "market_single_response.json": ("response.market", Market),
     "markets_list_response.json": ("response.markets[0]", Market),
+    "trades_list_response.json": ("response.trades[0]", Trade),
+    "candlesticks_batch_response.json": ("response.markets[0]", CandlestickResponse),
+    "series_candlesticks_response.json": ("response.candlesticks[0]", Candlestick),
+    "tags_by_categories_response.json": ("response", TagsByCategoriesResponse),
+    "series_list_response.json": ("response.series[0]", Series),
+    "series_single_response.json": ("response.series", Series),
+    "series_fee_changes_response.json": ("response", SeriesFeeChangesResponse),
     # GET /events/{event_ticker} returns {"event": {...}, "markets": [...]}
     "event_single_response.json": ("response.event", Event),
     "events_list_response.json": ("response.events[0]", Event),
@@ -77,6 +93,15 @@ MODEL_MAPPING: Final[dict[str, tuple[str, type[BaseModel]]]] = {
     "create_order_response.json": ("response.order", Order),
     "cancel_order_response.json": ("response.order", Order),
     "amend_order_response.json": ("response.order", Order),
+    # Exa endpoints (fixtures live under tests/fixtures/golden/exa/)
+    "exa/search_response.json": ("response", SearchResponse),
+    "exa/search_and_contents_response.json": ("response", SearchResponse),
+    "exa/get_contents_response.json": ("response", ContentsResponse),
+    "exa/find_similar_response.json": ("response", FindSimilarResponse),
+    "exa/answer_response.json": ("response", AnswerResponse),
+    # Optional (only recorded when explicitly enabled)
+    "exa/research_task_create_response.json": ("response", ResearchTask),
+    "exa/research_task_response.json": ("response", ResearchTask),
 }
 
 
@@ -143,6 +168,9 @@ def get_model_field_info(model: type[BaseModel]) -> dict[str, dict[str, Any]]:
 def _extract_alias_to_field_map(model_fields: dict[str, dict[str, Any]]) -> dict[str, str]:
     alias_to_field: dict[str, str] = {}
     for fname, finfo in model_fields.items():
+        alias = finfo.get("alias")
+        if isinstance(alias, str) and alias:
+            alias_to_field[alias] = fname
         alias_str = finfo.get("validation_alias")
         if not alias_str or "AliasChoices" not in alias_str:
             continue
@@ -154,17 +182,12 @@ def _extract_alias_to_field_map(model_fields: dict[str, dict[str, Any]]) -> dict
 def _required_present_via_alias(
     *,
     field_name: str,
-    field_info: dict[str, Any],
     alias_to_field: dict[str, str],
     response_fields: set[str],
 ) -> bool:
-    alias_str = field_info.get("validation_alias")
-    if not alias_str:
-        return False
-    for alias, mapped in alias_to_field.items():
-        if mapped == field_name and alias in response_fields:
-            return True
-    return False
+    return any(
+        alias in response_fields for alias, mapped in alias_to_field.items() if mapped == field_name
+    )
 
 
 def analyze_response(
@@ -190,7 +213,6 @@ def analyze_response(
         and fname not in response_fields
         and not _required_present_via_alias(
             field_name=fname,
-            field_info=finfo,
             alias_to_field=alias_to_field,
             response_fields=response_fields,
         )

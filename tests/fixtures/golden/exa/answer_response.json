@@ -1,0 +1,81 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T20:14:34.558448+00:00",
+    "endpoint": "/answer",
+    "environment": "prod",
+    "sanitized": false,
+    "query": "What is Example Domain?"
+  },
+  "response": {
+    "requestId": "a56573831ac16b09714ccb9d15aa0cfc",
+    "answer": "Example Domain is a reserved Internet domain name (such as\u202fexample.com,\u202fexample.org,\u202fexample.net) designated for use in documentation, testing, and illustrative examples rather than for real\u2011world deployment. ([en.wikipedia.org](https://en.wikipedia.org/wiki/Example.com), [rfc-editor.org](https://rfc-editor.org/info/rfc2606))",
+    "citations": [
+      {
+        "id": "https://en.wikipedia.org/wiki/Example.com",
+        "title": "example.com",
+        "url": "https://en.wikipedia.org/wiki/Example.com",
+        "publishedDate": "2004-11-20T21:16:50.000Z",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Exampledotcom_2025.png/1200px-Exampledotcom_2025.png",
+        "favicon": "https://en.wikipedia.org/static/apple-touch/wikipedia.png"
+      },
+      {
+        "id": "https://rfc-editor.org/info/rfc2606",
+        "title": "RFC Editor",
+        "url": "https://rfc-editor.org/info/rfc2606",
+        "publishedDate": "2011-01-04T00:00:00.000Z",
+        "image": "https://www.rfc-editor.org/rfcscripts/images/RFC_ICONS_Text_40x50.png",
+        "favicon": "https://www.rfc-editor.org/wp-content/uploads/favicon-1.ico"
+      },
+      {
+        "id": "https://en.wikipedia.org/wiki/Example_domain",
+        "title": "example.com",
+        "url": "https://en.wikipedia.org/wiki/Example_domain",
+        "publishedDate": "2004-11-20T21:16:50.000Z",
+        "author": "Contributors to Wikimedia projects",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Exampledotcom_2025.png/1200px-Exampledotcom_2025.png",
+        "favicon": "https://en.wikipedia.org/static/apple-touch/wikipedia.png"
+      },
+      {
+        "id": "https://en.wikipedia.org/wiki/.example",
+        "title": ".example - Wikipedia",
+        "url": "https://en.wikipedia.org/wiki/.example",
+        "publishedDate": "2004-12-03T23:28:30.000Z",
+        "author": "Contributors to Wikimedia projects",
+        "image": "https://en.wikipedia.org/static/images/icons/wikipedia.png",
+        "favicon": "https://en.wikipedia.org/static/apple-touch/wikipedia.png"
+      },
+      {
+        "id": "https://rfc-editor.org/rfc/rfc2606",
+        "title": "RFC 2606:  Reserved Top Level DNS Names",
+        "url": "https://www.rfc-editor.org/rfc/rfc2606",
+        "publishedDate": "1999-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "https://rfc-editor.org/info/bcp32",
+        "title": "RFC Editor",
+        "url": "https://rfc-editor.org/info/bcp32",
+        "publishedDate": "2011-01-04T00:00:00.000Z",
+        "image": "https://rfc-editor.org/rfcscripts/images/RFC_ICONS_Text_40x50.png",
+        "favicon": "https://www.rfc-editor.org/wp-content/uploads/favicon-1.ico"
+      },
+      {
+        "id": "https://icannwiki.org/.example",
+        "title": ".example - ICANNWiki",
+        "url": "https://icannwiki.org/.example",
+        "publishedDate": "2025-12-01T00:00:00.000Z",
+        "favicon": "https://icannwiki.org/images/0/06/ICANNWiki-Logo-2025-Transparent.png"
+      },
+      {
+        "id": "https://developers.cloudflare.com/style-guide/formatting/example-values",
+        "title": "Example values",
+        "url": "https://developers.cloudflare.com/style-guide/formatting/example-values",
+        "publishedDate": "2024-08-13T00:00:00.000Z",
+        "image": "https://developers.cloudflare.com/cf-twitter-card.png",
+        "favicon": "https://developers.cloudflare.com/favicon.png"
+      }
+    ],
+    "costDollars": {
+      "total": 0.005
+    }
+  }
+}

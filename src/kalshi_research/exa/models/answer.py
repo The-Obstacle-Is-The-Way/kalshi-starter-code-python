@@ -39,6 +39,7 @@ class AnswerResponse(BaseModel):
 
     model_config = ConfigDict(frozen=True, populate_by_name=True)
 
+    request_id: str | None = Field(default=None, alias="requestId")
     answer: str
     citations: list[Citation]
     cost_dollars: CostDollars | None = Field(default=None, alias="costDollars")

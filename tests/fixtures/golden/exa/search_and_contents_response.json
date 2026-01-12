@@ -1,0 +1,44 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T20:14:32.092227+00:00",
+    "endpoint": "/search",
+    "environment": "prod",
+    "sanitized": false,
+    "query": "Example Domain",
+    "num_results": 1,
+    "include_domains": [
+      "example.com"
+    ],
+    "note": "Recorded via /search with a contents object"
+  },
+  "response": {
+    "requestId": "6c50ef568e1bbe8b39ee15b7deaa66d2",
+    "resolvedSearchType": "neural",
+    "results": [
+      {
+        "id": "https://example.com/",
+        "title": "Example Domain",
+        "url": "https://example.com/",
+        "author": null,
+        "text": "Example Domain\n# Example Domain\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n[Learn more](https://iana.org/domains/example)",
+        "highlights": [
+          "Example Domain\n# Example Domain\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\nLearn more"
+        ],
+        "highlightScores": [
+          0.267578125
+        ]
+      }
+    ],
+    "searchTime": 789.8,
+    "costDollars": {
+      "total": 0.007,
+      "search": {
+        "neural": 0.005
+      },
+      "contents": {
+        "text": 0.001,
+        "highlights": 0.001
+      }
+    }
+  }
+}

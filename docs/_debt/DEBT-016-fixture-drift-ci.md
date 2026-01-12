@@ -11,6 +11,10 @@
 
 We currently rely on **manual script execution** and **one-time JSON fixture recording** with **console reports**. This is brittle: fixtures drift silently, regressions sneak in, and "golden data" becomes untrusted.
 
+**Status update (2026-01-12):**
+- ✅ CI now runs `scripts/validate_models_against_golden.py` on PRs (SSOT mismatch fails fast)
+- 🔴 Remaining: automated re-recording + drift PRs + (optional) JSON Schema validation
+
 We want to evolve to a "gold standard" workflow where:
 
 - **Weekly scheduled CI job** re-records fixtures and raises drift as a PR
@@ -65,6 +69,7 @@ Canonical commands:
 ```bash
 # Record all fixtures
 uv run python scripts/record_api_responses.py
+uv run python scripts/record_exa_responses.py
 
 # Validate models against fixtures
 uv run python scripts/validate_models_against_golden.py

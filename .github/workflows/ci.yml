@@ -32,6 +32,8 @@ jobs:
         run: uv run mypy src/
       - name: Build docs (MkDocs)
         run: uv run mkdocs build --strict
+      - name: Validate models against golden fixtures (SSOT)
+        run: uv run python scripts/validate_models_against_golden.py
 
   test:
     name: Test (Python ${{ matrix.python-version }})

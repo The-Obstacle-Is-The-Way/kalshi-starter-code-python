@@ -200,11 +200,15 @@ Fetch candlesticks for multiple markets in a single request.
 
 **Category Discovery Pattern:** Use `GET /search/tags_by_categories` to discover available categories and their tags, then use `GET /series?category=...` to find series in that category, then `GET /markets?series_ticker=...` to get markets.
 
+**SSOT note (fixtures, 2026-01-12):** Some `Series` objects return `tags: null` and `additional_prohibitions: null` even though the OpenAPI schema marks them as required arrays. Treat `null` as an empty list.
+
 ### GET /search/tags_by_categories
 
 Returns a mapping of categories to their associated tags. Useful for building category filter UIs.
 
 **Response:** `{ "tags_by_categories": { "Politics": ["elections", ...], "Sports": [...], ... } }`
+
+**SSOT note (fixtures, 2026-01-12):** Some categories map to `null` instead of an array. Treat `null` as an empty list.
 
 ### Market Response Settlement Fields (Dec 25, 2025+)
 
@@ -341,12 +345,13 @@ For multivariate event markets:
 |----------|-------------|
 | `POST /portfolio/orders` | Create single order |
 | `POST /portfolio/orders/batched` | Create up to 20 orders |
+| `DELETE /portfolio/orders/batched` | Cancel orders in batch |
 | `GET /portfolio/orders` | List orders by status |
-| `GET /portfolio/orders/{id}` | Single order details |
-| `DELETE /portfolio/orders/{id}` | Cancel order |
-| `POST /portfolio/orders/{id}/amend` | Modify price/quantity |
-| `POST /portfolio/orders/{id}/decrease` | Decrease order size |
-| `GET /portfolio/orders/{id}/queue_position` | Queue position for one order |
+| `GET /portfolio/orders/{order_id}` | Single order details |
+| `DELETE /portfolio/orders/{order_id}` | Cancel order |
+| `POST /portfolio/orders/{order_id}/amend` | Modify price/quantity |
+| `POST /portfolio/orders/{order_id}/decrease` | Decrease order size |
+| `GET /portfolio/orders/{order_id}/queue_position` | Queue position for one order |
 | `GET /portfolio/orders/queue_positions` | Queue positions for multiple orders |
 
 ### Portfolio (Authenticated)
@@ -358,6 +363,11 @@ For multivariate event markets:
 | `GET /portfolio/fills` | Trade history |
 | `GET /portfolio/settlements` | Settlement records (includes trade fees, event ticker) |
 | `GET /portfolio/summary/total_resting_order_value` | Total value of resting orders |
+| `POST /portfolio/subaccounts` | Create subaccount |
+| `GET /portfolio/subaccounts` | List subaccounts |
+| `GET /portfolio/subaccounts/balances` | List subaccount balances |
+| `POST /portfolio/subaccounts/transfer` | Transfer between subaccounts |
+| `GET /portfolio/subaccounts/transfers` | List subaccount transfers |
 
 ### `GET /portfolio/balance` response keys
 
@@ -721,7 +731,7 @@ Manage groups of orders that can be modified/canceled together:
 | Endpoint | Description |
 |----------|-------------|
 | `GET /milestones` | List milestones |
-| `GET /milestones/{id}` | Get milestone details |
+| `GET /milestones/{milestone_id}` | Get milestone details |
 
 **Query Parameters for `GET /milestones`:**
 
@@ -763,7 +773,7 @@ Manage groups of orders that can be modified/canceled together:
 | `GET /api_keys` | List API keys |
 | `POST /api_keys` | Create API key |
 | `POST /api_keys/generate` | Generate new API key |
-| `DELETE /api_keys/{id}` | Delete API key |
+| `DELETE /api_keys/{api_key}` | Delete API key |
 
 ### Search (No Auth)
 
@@ -961,7 +971,7 @@ Returns both order states:
 |-------|------|-------------|
 | `order_id` | string | Unique order identifier |
 | `initial_count` | int | Original order size (before any fills or amendments) |
-| `queue_position` | int | **DEPRECATED** - Always returns 0. Use `GET /portfolio/orders/{id}/queue_position` instead. |
+| `queue_position` | int | **DEPRECATED** - Always returns 0. Use `GET /portfolio/orders/{order_id}/queue_position` instead. |
 | `taker_fees_dollars` | string | Fees paid on taker fills (dollars) |
 | `maker_fees_dollars` | string | Fees paid on maker fills (dollars) |
 | `taker_fill_cost` | int | Cost of taker fills in cents |

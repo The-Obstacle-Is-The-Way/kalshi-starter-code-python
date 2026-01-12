@@ -95,3 +95,4 @@ class SearchResponse(BaseModel):
     auto_date: str | None = Field(default=None, alias="autoDate")
     context: str | None = None
     cost_dollars: CostDollars | None = Field(default=None, alias="costDollars")
+    search_time: float | None = Field(default=None, alias="searchTime")

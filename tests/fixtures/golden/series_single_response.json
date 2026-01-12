@@ -1,0 +1,32 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T22:08:11.057186+00:00",
+    "endpoint": "series_single",
+    "environment": "prod",
+    "sanitized": false,
+    "series_ticker": "CO2",
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "series": {
+      "additional_prohibitions": null,
+      "category": "Climate and Weather",
+      "contract_terms_url": "https://kalshi-public-docs.s3.amazonaws.com/contract_terms/CO2.pdf",
+      "contract_url": "https://kalshi-public-docs.s3.us-east-1.amazonaws.com/regulatory/product-certifications/CO2.pdf",
+      "fee_multiplier": 1,
+      "fee_type": "quadratic",
+      "frequency": "monthly",
+      "settlement_sources": [
+        {
+          "name": "Energy Information Administration",
+          "url": "https://www.eia.gov/totalenergy/data/monthly/index.php"
+        }
+      ],
+      "tags": [
+        "Climate change"
+      ],
+      "ticker": "CO2",
+      "title": "US CO2 totals"
+    }
+  }
+}

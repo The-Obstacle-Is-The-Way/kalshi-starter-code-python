@@ -30,6 +30,14 @@ from kalshi_research.api.models.portfolio import (
     PortfolioPosition,
     SettlementPage,
 )
+from kalshi_research.api.models.search import TagsByCategoriesResponse
+from kalshi_research.api.models.series import (
+    Series,
+    SeriesFeeChange,
+    SeriesFeeChangesResponse,
+    SeriesListResponse,
+    SeriesResponse,
+)
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.api.rate_limiter import RateLimiter, RateTier
 
@@ -460,6 +468,62 @@ class KalshiPublicClient:
         """Fetch single event by ticker."""
         data = await self._get(f"/events/{event_ticker}")
         return Event.model_validate(data["event"])
+
+    # ==================== Search & Series ====================
+
+    async def get_tags_by_categories(self) -> dict[str, list[str]]:
+        """Fetch category->tags mapping for series discovery."""
+        data = await self._get("/search/tags_by_categories")
+        parsed = TagsByCategoriesResponse.model_validate(data)
+        return {
+            category: (tags if tags is not None else [])
+            for category, tags in parsed.tags_by_categories.items()
+        }
+
+    async def get_series_list(
+        self,
+        *,
+        category: str | None = None,
+        tags: str | None = None,
+        include_product_metadata: bool = False,
+        include_volume: bool = False,
+    ) -> list[Series]:
+        """
+        List available series with optional filters.
+
+        This is the intended Kalshi browse pattern:
+        `/search/tags_by_categories` -> `/series` -> `/markets?series_ticker=...`.
+        """
+        params: dict[str, Any] = {}
+        if category is not None:
+            params["category"] = category
+        if tags is not None:
+            params["tags"] = tags
+        if include_product_metadata:
+            params["include_product_metadata"] = True
+        if include_volume:
+            params["include_volume"] = True
+
+        data = await self._get("/series", params or None)
+        return SeriesListResponse.model_validate(data).series
+
+    async def get_series(
+        self,
+        series_ticker: str,
+        *,
+        include_volume: bool = False,
+    ) -> Series:
+        """Fetch a single series by ticker."""
+        params: dict[str, Any] = {}
+        if include_volume:
+            params["include_volume"] = True
+        data = await self._get(f"/series/{series_ticker}", params or None)
+        return SeriesResponse.model_validate(data).series
+
+    async def get_series_fee_changes(self) -> list[SeriesFeeChange]:
+        """Fetch scheduled series fee changes."""
+        data = await self._get("/series/fee_changes")
+        return SeriesFeeChangesResponse.model_validate(data).series_fee_change_arr
 
     # ==================== Exchange ====================
 

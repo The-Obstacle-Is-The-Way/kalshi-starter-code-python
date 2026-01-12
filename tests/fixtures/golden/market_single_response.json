@@ -1,24 +1,24 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-12T15:24:03.381019+00:00",
+    "recorded_at": "2026-01-12T22:08:10.608829+00:00",
     "endpoint": "market_single",
     "environment": "prod",
     "sanitized": false,
-    "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA-F7F474937F3",
+    "ticker": "KXMVENFLSINGLEGAME-S202513E70FA7695-688BECB3826",
     "note": "RAW API response (SSOT)"
   },
   "response": {
     "market": {
       "can_close_early": true,
       "close_time": "2026-01-27T01:15:00Z",
-      "created_time": "2026-01-12T15:24:02.365115Z",
+      "created_time": "2026-01-12T22:08:10.446961Z",
       "custom_strike": {
-        "Associated Events": "KXNFLPASSYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT",
-        "Associated Market Sides": "yes,yes,yes,yes",
-        "Associated Markets": "KXNFLPASSYDS-26JAN12HOUPIT-PITARODGERS8-175,KXNFLRECYDS-26JAN12HOUPIT-HOUDSCHULTZ86-30,KXNFLRECYDS-26JAN12HOUPIT-HOUJHIGGINS81-20,KXNFLRECYDS-26JAN12HOUPIT-HOUNCOLLINS12-60",
-        "Multivariate Event Ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R"
+        "Associated Events": "KXNFLGAME-26JAN12HOUPIT,KXNFLREC-26JAN12HOUPIT,KXNFLREC-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT",
+        "Associated Market Sides": "yes,yes,yes,yes,yes",
+        "Associated Markets": "KXNFLGAME-26JAN12HOUPIT-PIT,KXNFLREC-26JAN12HOUPIT-PITKGAINWELL14-4,KXNFLREC-26JAN12HOUPIT-PITPFREIERMUTH88-3,KXNFLRECYDS-26JAN12HOUPIT-PITJSMITH81-20,KXNFLRECYDS-26JAN12HOUPIT-PITJWARREN30-20",
+        "Multivariate Event Ticker": "KXMVENFLSINGLEGAME-26JAN12HOUPIT"
       },
-      "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA",
+      "event_ticker": "KXMVENFLSINGLEGAME-S202513E70FA7695",
       "expected_expiration_time": "2026-01-13T04:15:00Z",
       "expiration_time": "2026-01-27T01:15:00Z",
       "expiration_value": "",
@@ -28,26 +28,31 @@
       "liquidity": 0,
       "liquidity_dollars": "0.0000",
       "market_type": "binary",
-      "mve_collection_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R",
+      "mve_collection_ticker": "KXMVENFLSINGLEGAME-26JAN12HOUPIT",
       "mve_selected_legs": [
         {
-          "event_ticker": "KXNFLPASSYDS-26JAN12HOUPIT",
-          "market_ticker": "KXNFLPASSYDS-26JAN12HOUPIT-PITARODGERS8-175",
+          "event_ticker": "KXNFLGAME-26JAN12HOUPIT",
+          "market_ticker": "KXNFLGAME-26JAN12HOUPIT-PIT",
+          "side": "yes"
+        },
+        {
+          "event_ticker": "KXNFLREC-26JAN12HOUPIT",
+          "market_ticker": "KXNFLREC-26JAN12HOUPIT-PITKGAINWELL14-4",
+          "side": "yes"
+        },
+        {
+          "event_ticker": "KXNFLREC-26JAN12HOUPIT",
+          "market_ticker": "KXNFLREC-26JAN12HOUPIT-PITPFREIERMUTH88-3",
           "side": "yes"
         },
         {
           "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
-          "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUDSCHULTZ86-30",
+          "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-PITJSMITH81-20",
           "side": "yes"
         },
         {
           "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
-          "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUJHIGGINS81-20",
-          "side": "yes"
-        },
-        {
-          "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
-          "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUNCOLLINS12-60",
+          "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-PITJWARREN30-20",
           "side": "yes"
         }
       ],
@@ -55,11 +60,11 @@
       "no_ask_dollars": "1.0000",
       "no_bid": 100,
       "no_bid_dollars": "1.0000",
-      "no_sub_title": "yes Aaron Rodgers: 175+,yes Dalton Schultz: 30+,yes Jayden Higgins: 20+,yes Nico Collins: 60+",
+      "no_sub_title": "yes Pittsburgh,yes Kenneth Gainwell: 4+,yes Pat Freiermuth: 3+,yes Jonnu Smith: 20+,yes Jaylen Warren: 20+",
       "notional_value": 100,
       "notional_value_dollars": "1.0000",
       "open_interest": 0,
-      "open_time": "2026-01-12T15:24:02.326659Z",
+      "open_time": "2026-01-12T22:08:10.402546Z",
       "previous_price": 0,
       "previous_price_dollars": "0.0000",
       "previous_yes_ask": 0,
@@ -83,15 +88,15 @@
       "strike_type": "custom",
       "subtitle": "",
       "tick_size": 1,
-      "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA-F7F474937F3",
-      "title": "yes Aaron Rodgers: 175+,yes Dalton Schultz: 30+,yes Jayden Higgins: 20+,yes Nico Collins: 60+",
+      "ticker": "KXMVENFLSINGLEGAME-S202513E70FA7695-688BECB3826",
+      "title": "yes Pittsburgh,yes Kenneth Gainwell: 4+,yes Pat Freiermuth: 3+,yes Jonnu Smith: 20+,yes Jaylen Warren: 20+",
       "volume": 0,
       "volume_24h": 0,
       "yes_ask": 0,
       "yes_ask_dollars": "0.0000",
       "yes_bid": 0,
       "yes_bid_dollars": "0.0000",
-      "yes_sub_title": "yes Aaron Rodgers: 175+,yes Dalton Schultz: 30+,yes Jayden Higgins: 20+,yes Nico Collins: 60+"
+      "yes_sub_title": "yes Pittsburgh,yes Kenneth Gainwell: 4+,yes Pat Freiermuth: 3+,yes Jonnu Smith: 20+,yes Jaylen Warren: 20+"
     }
   }
 }
