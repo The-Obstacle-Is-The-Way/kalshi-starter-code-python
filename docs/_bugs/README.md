@@ -8,7 +8,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 |---|---|---|---|---|
 | **[BUG-064](BUG-064-missing-order-safety-parameters.md)** | Missing Order Safety Parameters (`reduce_only`, etc.) | P2 | Open | 2026-01-12 |
 | **[BUG-063](BUG-063-missing-dollar-fields-market-model.md)** | Missing Dollar Fields in Market Model | P3 | Open | 2026-01-12 |
-| **[BUG-065](BUG-065-amend-order-missing-required-fields.md)** | `amend_order()` Incomplete Implementation | P3 | Open | 2026-01-12 |
+| **[BUG-065](BUG-065-amend-order-missing-required-fields.md)** | `amend_order()` Missing Required Fields (BROKEN) | P2 | Open | 2026-01-12 |
 | **[BUG-066](BUG-066-fill-model-missing-fields.md)** | Fill Model Missing Fields (API Completeness) | P3 | Open | 2026-01-12 |
 | **[BUG-067](BUG-067-order-model-missing-fields.md)** | Order Model Missing Fields (API Completeness) | P3 | Open | 2026-01-12 |
 | **[BUG-068](BUG-068-market-model-missing-structural-fields.md)** | Market Model Missing Structural Fields | P3 | Open | 2026-01-12 |

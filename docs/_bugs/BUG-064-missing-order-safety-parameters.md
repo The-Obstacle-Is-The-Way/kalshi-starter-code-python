@@ -113,6 +113,8 @@ async def create_order(
 
 From `docs/_vendor-docs/kalshi-api-reference.md` lines 857-869.
 
+**OpenAPI Verification (2026-01-12):** All 7 missing parameters confirmed to exist in Kalshi's OpenAPI spec as OPTIONAL fields on `POST /portfolio/orders`. These are pass-through additions - will not break existing code.
+
 ---
 
 ## Test Plan
