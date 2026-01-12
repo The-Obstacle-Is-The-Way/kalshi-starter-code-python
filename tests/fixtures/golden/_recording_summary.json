@@ -9,7 +9,6 @@
     "endpoints_recorded": [
       "public",
       "authenticated"
-    ],
-    "golden_dir": "/Users/ray/Desktop/CLARITY-DIGITAL-TWIN/kalshi-starter-code-python/tests/fixtures/golden"
+    ]
   }
 }

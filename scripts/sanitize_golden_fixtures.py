@@ -99,13 +99,17 @@ def main():
     print("Sanitizing golden fixtures...")
     print(f"Directory: {GOLDEN_DIR}\n")
 
-    # Only sanitize portfolio files (they contain sensitive data)
+    # Sanitize files containing sensitive data (user_id, order_id, balance, etc.)
     sensitive_files = [
         "portfolio_balance_response.json",
         "portfolio_positions_response.json",
         "portfolio_orders_response.json",
         "portfolio_fills_response.json",
         "portfolio_settlements_response.json",
+        # Trading fixtures also contain user_id, order_id, client_order_id
+        "create_order_response.json",
+        "cancel_order_response.json",
+        "amend_order_response.json",
     ]
 
     for filename in sensitive_files:

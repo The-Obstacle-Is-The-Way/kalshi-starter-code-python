@@ -886,6 +886,29 @@ Subscribe to `communications` channel for real-time RFQ/quote events. Requires a
 | `order_group_id` | string | Link order to a group (grouped cancel/modify) |
 | `time_in_force` | enum | `fill_or_kill`, `good_till_canceled`, `immediate_or_cancel` |
 
+### Create Order Response (200)
+
+Observed in production:
+
+```json
+{
+  "order": { /* full Order object */ }
+}
+```
+
+### Cancel Order Response (200)
+
+Observed in production:
+
+```json
+{
+  "order": { /* full Order object */ },
+  "reduced_by": 10
+}
+```
+
+`reduced_by` is the number of contracts canceled. Treat as optional (may be absent).
+
 ### Amend Order Full Schema
 
 **Endpoint:** `POST /portfolio/orders/{order_id}/amend`

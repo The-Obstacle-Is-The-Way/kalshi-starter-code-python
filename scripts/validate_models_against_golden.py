@@ -33,7 +33,6 @@ from typing import TYPE_CHECKING, Any, Final, get_args, get_origin
 
 from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market
-from kalshi_research.api.models.order import OrderResponse
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.portfolio import (
     Fill,
@@ -69,8 +68,11 @@ MODEL_MAPPING: Final[dict[str, tuple[str, type[BaseModel]]]] = {
     "portfolio_orders_response.json": ("response.orders[0]", Order),
     "portfolio_fills_response.json": ("response.fills[0]", Fill),
     "portfolio_settlements_response.json": ("response.settlements[0]", Settlement),
-    # Trading endpoints (dry_run responses)
-    "create_order_response.json": ("response", OrderResponse),
+    # Trading endpoints - API returns full Order object wrapped in {"order": {...}}
+    # Note: OrderResponse is minimal (order_id, order_status); Order has full details
+    "create_order_response.json": ("response.order", Order),
+    "cancel_order_response.json": ("response.order", Order),
+    "amend_order_response.json": ("response.order", Order),
 }
 
 

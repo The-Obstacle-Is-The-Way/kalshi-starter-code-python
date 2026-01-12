@@ -74,6 +74,9 @@ Requirements:
 - Stable ordering for arrays where possible
 - Stable key ordering/formatting (use a formatter or stable stringify)
 - Sanitize ephemeral fields (user_id, balance) via `sanitize_golden_fixtures.py`
+- **Trading fixtures are special:** create/cancel/amend have side effects, so `record_api_responses.py` does not
+  re-record them against production. For drift detection, either (a) record trading fixtures against demo, or (b) treat
+  OpenAPI as SSOT for trading endpoints and exclude them from automated re-record jobs.
 
 ### 2. JSON Schema Validation
 

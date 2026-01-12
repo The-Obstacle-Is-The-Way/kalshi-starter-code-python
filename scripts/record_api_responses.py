@@ -347,7 +347,6 @@ async def main() -> None:
                 "response": {
                     "environment": env,
                     "endpoints_recorded": list(all_results.keys()),
-                    "golden_dir": str(GOLDEN_DIR),
                 },
             },
             indent=2,
