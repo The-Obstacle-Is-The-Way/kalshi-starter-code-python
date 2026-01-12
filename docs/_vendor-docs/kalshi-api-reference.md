@@ -200,11 +200,15 @@ Fetch candlesticks for multiple markets in a single request.
 
 **Category Discovery Pattern:** Use `GET /search/tags_by_categories` to discover available categories and their tags, then use `GET /series?category=...` to find series in that category, then `GET /markets?series_ticker=...` to get markets.
 
+**SSOT note (fixtures, 2026-01-12):** Some `Series` objects return `tags: null` and `additional_prohibitions: null` even though the OpenAPI schema marks them as required arrays. Treat `null` as an empty list.
+
 ### GET /search/tags_by_categories
 
 Returns a mapping of categories to their associated tags. Useful for building category filter UIs.
 
 **Response:** `{ "tags_by_categories": { "Politics": ["elections", ...], "Sports": [...], ... } }`
+
+**SSOT note (fixtures, 2026-01-12):** Some categories map to `null` instead of an array. Treat `null` as an empty list.
 
 ### Market Response Settlement Fields (Dec 25, 2025+)
 
