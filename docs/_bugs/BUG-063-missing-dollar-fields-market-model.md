@@ -1,81 +1,86 @@
-# BUG-063: Missing Dollar Fields in Market Model (Jan 15, 2026 Breaking Change)
+# BUG-063: Missing Dollar Fields in Market Model
 
-**Priority:** P0
+**Priority:** P3 (was P0 - downgraded after verification)
 **Status:** Open
 **Found:** 2026-01-12
-**Deadline:** 2026-01-15 (3 DAYS)
+**Verified:** 2026-01-12
 
 ---
 
 ## Summary
 
-The Market model is missing `liquidity_dollars` and `notional_value_dollars` fields. These fields REMAIN in the Kalshi API after the Jan 15, 2026 breaking change, but we have no way to capture them.
+The Market model has `liquidity: int | None` field but is missing the replacement `liquidity_dollars` and `notional_value_dollars` fields.
 
-When Kalshi removes the cent-denominated `liquidity` and `notional_value` fields on Jan 15, we will **lose access to liquidity and notional value data entirely**.
+**HOWEVER:** After careful verification, the `liquidity` field is **NEVER USED** in the codebase. Our liquidity analysis is computed from orderbook data (spread, depth, volume, open_interest) - NOT from the `market.liquidity` field.
+
+---
+
+## Verification Results
+
+**Is `market.liquidity` used anywhere?**
+
+```bash
+grep -r "market\.liquidity" src/
+# Result: No matches found
+```
+
+**How is liquidity computed?**
+
+`src/kalshi_research/analysis/liquidity.py:326-390` computes a composite liquidity score from:
+- Orderbook spread
+- Orderbook depth (via `orderbook_depth_score()`)
+- `market.volume_24h`
+- `market.open_interest`
+
+The `market.liquidity` field is **never accessed**.
 
 ---
 
 ## Current State
 
-**Location:** `src/kalshi_research/api/models/market.py`
+**Location:** `src/kalshi_research/api/models/market.py:93-133`
 
-**What we have:**
-- `liquidity: int | None` (DEPRECATED, being removed Jan 15)
-- `notional_value: int | None` (DEPRECATED, being removed Jan 15)
+**What we have (but don't use):**
+- `liquidity: int | None` - Field exists with validator for negative values, but NO CODE uses it
 
-**What we're missing:**
-- `liquidity_dollars: str | None` - Liquidity in dollars (e.g., `"1234.56"`)
-- `notional_value_dollars: str | None` - Notional value in dollars
-
----
-
-## Evidence from Vendor Docs
-
-From `docs/_vendor-docs/kalshi-api-reference.md` lines 959-968:
-
-```markdown
-| REMOVED (Jan 15) | REMAINS (Use This) | Format |
-|------------------|-------------------|--------|
-| `liquidity` | `liquidity_dollars` | String (current offer value) |
-| `notional_value` | `notional_value_dollars` | String |
-```
+**What we're missing (nice-to-have for completeness):**
+- `liquidity_dollars: str | None` - Kalshi's replacement field
+- `notional_value_dollars: str | None` - Additional market metric
 
 ---
 
-## Impact
+## Impact Assessment
 
 **After Jan 15, 2026:**
-- `market.liquidity` will return `None` (field removed from API)
-- `market.notional_value` will return `None` (field removed from API)
-- No alternative to get this data (missing dollar fields)
+- The `liquidity` field will return `None` from the API
+- **NO FUNCTIONALITY BREAKS** - we don't use this field
+- Our liquidity analysis continues to work (orderbook-based)
 
-**Features affected:**
-- Liquidity filtering in market scans
-- Market health indicators
-- Position sizing calculations
+**Why P3 instead of P0:**
+- No runtime breakage
+- No feature degradation
+- Purely a completeness issue for API parity
 
 ---
 
-## Fix Required
+## Fix (Optional - For API Completeness)
 
-1. Add `liquidity_dollars: str | None = None` field to Market model
-2. Add `notional_value_dollars: str | None = None` field to Market model
-3. Add computed properties `liquidity_cents` and `notional_value_cents` that convert dollars to cents
-4. Update any code using `liquidity` to use the new dollar field
+If we want full API field coverage:
+
+1. Add `liquidity_dollars: str | None = None` to Market model
+2. Add `notional_value_dollars: str | None = None` to Market model
+3. Consider removing unused `liquidity: int | None` field after Jan 15
 
 ---
 
 ## Test Plan
 
-- [ ] Add `liquidity_dollars` and `notional_value_dollars` to Market model
-- [ ] Verify parsing from live API response
-- [ ] Add computed property tests
-- [ ] Update scanner.py if using liquidity field
-- [ ] Run full test suite
+- [ ] Verify no tests depend on `market.liquidity`
+- [ ] (Optional) Add dollar fields for completeness
+- [ ] Run full test suite to confirm no breakage
 
 ---
 
-## Related
+## Lessons Learned
 
-- DEBT-014 Section C2: Jan 15, 2026 deprecation cleanup (scheduled)
-- `docs/_future/TODO-00A-api-verification-post-deadline.md`
+This bug was initially marked P0 based on vendor docs analysis without verifying actual code usage. Always grep for actual field usage before declaring a breaking change.

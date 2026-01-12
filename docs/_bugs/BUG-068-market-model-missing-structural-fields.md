@@ -3,6 +3,7 @@
 **Priority:** P3
 **Status:** Open
 **Found:** 2026-01-12
+**Verified:** 2026-01-12 - Confirmed none of these fields are used in codebase
 
 ---
 

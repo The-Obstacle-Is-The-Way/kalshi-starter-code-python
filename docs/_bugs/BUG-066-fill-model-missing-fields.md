@@ -1,90 +1,98 @@
-# BUG-066: Fill Model Missing Fields
+# BUG-066: Fill Model Missing Fields (API Completeness)
 
-**Priority:** P2
+**Priority:** P3 (was P2 - downgraded after verification)
 **Status:** Open
 **Found:** 2026-01-12
+**Verified:** 2026-01-12
 
 ---
 
 ## Summary
 
-The Fill model in `api/models/portfolio.py` is missing several fields documented in the Kalshi API. These fields are important for:
-- Proper fill identification and tracking
-- Maker/taker fee analysis
-- Dollar-denominated price access
-- Order correlation
+The Fill model is missing some fields from the Kalshi API. However, after verification:
+1. **`fill_id` = `trade_id`** - Vendor docs say they're the same, we have `trade_id`
+2. **Missing fields are not used** - Only `trade_id` is referenced in codebase
+3. **API completeness issue** - Not a functional bug
+
+---
+
+## Verification Results
+
+**Which Fill fields are actually used?**
+
+```bash
+grep -r "\.trade_id\|\.is_taker\|\.order_id\|\.fill_id" src/
+# Result: Only trade_id used in portfolio/syncer.py:235
+```
+
+**Usage:** `src/kalshi_research/portfolio/syncer.py:235`
+```python
+trade_id = fill.trade_id
+```
 
 ---
 
 ## Current State
 
-**Location:** `src/kalshi_research/api/models/portfolio.py` (Fill class)
+**Location:** `src/kalshi_research/api/models/portfolio.py:41-69`
 
-**Missing fields:**
+**What we have:**
+- `trade_id` ✅ (same as `fill_id` per vendor docs)
+- `ticker`, `side`, `action`, `yes_price`, `no_price`, `count`, `created_time` ✅
 
-| Field | Type | Description | Importance |
-|-------|------|-------------|------------|
-| `fill_id` | string | Unique fill identifier | P1 - Primary key |
-| `order_id` | string | Parent order ID | P1 - Order correlation |
-| `yes_price_fixed` | string | YES price in dollars (e.g., `"0.48"`) | P2 - Post Jan 15 |
-| `no_price_fixed` | string | NO price in dollars (e.g., `"0.52"`) | P2 - Post Jan 15 |
-| `is_taker` | bool | True if removed liquidity | P2 - Fee analysis |
-| `client_order_id` | string | Client-provided order ID (if set) | P3 - Tracking |
+**Missing (for API completeness):**
+
+| Field | Type | Used? | Notes |
+|-------|------|-------|-------|
+| `fill_id` | string | No | Same as `trade_id` - redundant |
+| `order_id` | string | No | Could be useful for order correlation |
+| `yes_price_fixed` | string | No | Dollar prices |
+| `no_price_fixed` | string | No | Dollar prices |
+| `is_taker` | bool | No | Could be useful for fee analysis |
+| `client_order_id` | string | No | Only if using client IDs |
 
 ---
 
-## Evidence from Vendor Docs
+## Risk Assessment
 
-From `docs/_vendor-docs/kalshi-api-reference.md` lines 421-438:
+**Why P3:**
+- Core functionality works with existing fields
+- `trade_id` serves as `fill_id`
+- Missing fields aren't used anywhere
+- Pure API completeness for future features
 
-```markdown
-**Response fields (per fill):**
+**When to upgrade priority:**
+- If implementing maker/taker fee breakdown analysis
+- If implementing order→fill correlation views
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `fill_id` | string | Unique fill identifier |
-| `trade_id` | string | Legacy field (same as fill_id) |
-| `order_id` | string | Parent order ID |
-| ...
-| `yes_price_fixed` | string | YES price in dollars (e.g., `"0.48"`) |
-| `no_price_fixed` | string | NO price in dollars (e.g., `"0.52"`) |
-| `is_taker` | bool | True if removed liquidity |
-| `client_order_id` | string | Client-provided order ID (if set) |
+---
+
+## Fix (Optional - For API Completeness)
+
+```python
+class Fill(BaseModel):
+    # Existing fields...
+    trade_id: str  # Already have this
+
+    # Add for completeness:
+    fill_id: str | None = None  # Alias of trade_id
+    order_id: str | None = None
+    yes_price_fixed: str | None = None  # Dollar price
+    no_price_fixed: str | None = None   # Dollar price
+    is_taker: bool | None = None
+    client_order_id: str | None = None
 ```
-
----
-
-## Impact
-
-- Can't uniquely identify fills (missing `fill_id`)
-- Can't correlate fills to orders (missing `order_id`)
-- Can't determine maker/taker status for fee analysis
-- Will need dollar prices post Jan 15 deprecation
-
----
-
-## Fix Required
-
-1. Add `fill_id: str` field (primary identifier)
-2. Add `order_id: str | None` field
-3. Add `yes_price_fixed: str | None` and `no_price_fixed: str | None`
-4. Add `is_taker: bool | None` field
-5. Add `client_order_id: str | None` field
-6. Update any code using fills
 
 ---
 
 ## Test Plan
 
-- [ ] Add missing fields to Fill model
-- [ ] Update test fixtures to include new fields
-- [ ] Verify parsing from live API
-- [ ] Update portfolio syncer if needed
-- [ ] Run full test suite
+- [ ] Add fields to model (optional)
+- [ ] Fields should be optional (None default)
+- [ ] Existing tests should pass unchanged
 
 ---
 
 ## Related
 
-- BUG-063: Missing dollar fields in Market model
-- BUG-067: Order model missing fields
+- BUG-067: Order model missing fields (similar pattern)

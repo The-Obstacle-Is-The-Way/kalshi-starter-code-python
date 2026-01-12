@@ -1,87 +1,105 @@
-# BUG-067: Order Model Missing Fields
+# BUG-067: Order Model Missing Fields (API Completeness)
 
-**Priority:** P2
+**Priority:** P3 (was P2 - downgraded after verification)
 **Status:** Open
 **Found:** 2026-01-12
+**Verified:** 2026-01-12
 
 ---
 
 ## Summary
 
-The Order model is missing several fields documented in the Kalshi API. These are important for:
-- Understanding order fill history
-- Tracking fees by maker/taker
-- Monitoring order modifications
+The Order model is missing several fields from the Kalshi API. However, after verification:
+1. **Missing fields are not used** - `get_orders()` is called but result fields aren't processed
+2. **No CLI exposure** - `get_orders` isn't used in any CLI command
+3. **API completeness issue** - Not a functional bug
+
+---
+
+## Verification Results
+
+**Are missing Order fields used anywhere?**
+
+```bash
+grep -r "\.fill_count\|\.remaining_count\|\.initial_count\|\.taker_fees\|\.maker_fees" src/
+# Result: No matches found
+```
+
+**Is get_orders used in CLI?**
+
+```bash
+grep -r "get_orders" src/kalshi_research/cli/
+# Result: No matches found
+```
 
 ---
 
 ## Current State
 
-**Location:** `src/kalshi_research/api/models/portfolio.py` (Order class)
+**Location:** `src/kalshi_research/api/models/portfolio.py:134-165`
 
-**Missing fields:**
+**What we have:**
+- `order_id`, `ticker`, `status`, `side`, `action`, `yes_price`, `no_price`, `count`, `placed_at` ✅
 
-| Field | Type | Description | Importance |
-|-------|------|-------------|------------|
-| `initial_count` | int | Original order size before fills/amendments | P2 |
-| `fill_count` | int | Contracts filled so far | P2 |
-| `remaining_count` | int | Contracts still resting | P2 |
-| `taker_fees_dollars` | string | Fees paid on taker fills (dollars) | P2 |
-| `maker_fees_dollars` | string | Fees paid on maker fills (dollars) | P2 |
-| `taker_fill_cost` | int | Cost of taker fills in cents | P3 |
-| `maker_fill_cost` | int | Cost of maker fills in cents | P3 |
-| `taker_fill_cost_dollars` | string | Cost of taker fills in dollars | P3 |
-| `maker_fill_cost_dollars` | string | Cost of maker fills in dollars | P3 |
-| `last_update_time` | datetime | Last modification timestamp | P3 |
-| `client_order_id` | string | Client-specified order ID | P2 |
+**Missing (for API completeness):**
+
+| Field | Type | Used? | Notes |
+|-------|------|-------|-------|
+| `initial_count` | int | No | Original size before fills/amendments |
+| `fill_count` | int | No | Contracts filled so far |
+| `remaining_count` | int | No | Contracts still resting |
+| `taker_fees_dollars` | string | No | Taker fees paid |
+| `maker_fees_dollars` | string | No | Maker fees paid |
+| `taker_fill_cost` | int | No | Cost of taker fills |
+| `maker_fill_cost` | int | No | Cost of maker fills |
+| `last_update_time` | datetime | No | Last modification |
+| `client_order_id` | string | No | Client-specified ID |
 
 ---
 
-## Evidence from Vendor Docs
+## Risk Assessment
 
-From `docs/_vendor-docs/kalshi-api-reference.md` lines 917-932:
+**Why P3:**
+- `get_orders()` exists but isn't used in any CLI command
+- Order list data isn't processed beyond returning the model
+- Pure API completeness for future order management features
 
-```markdown
-### Order Response Fields
+**When to upgrade priority:**
+- If adding order management CLI commands
+- If implementing order tracking/monitoring features
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `order_id` | string | Unique order identifier |
-| `initial_count` | int | Original order size (before any fills or amendments) |
-| `taker_fees_dollars` | string | Fees paid on taker fills (dollars) |
-| `maker_fees_dollars` | string | Fees paid on maker fills (dollars) |
-| `fill_count` | int | Contracts filled so far |
-| `remaining_count` | int | Contracts still resting |
-| `last_update_time` | datetime | Last modification timestamp |
+---
+
+## Fix (Optional - For API Completeness)
+
+```python
+class Order(BaseModel):
+    # Existing fields...
+
+    # Add for completeness:
+    initial_count: int | None = None
+    fill_count: int | None = None
+    remaining_count: int | None = None
+    taker_fees_dollars: str | None = None
+    maker_fees_dollars: str | None = None
+    taker_fill_cost: int | None = None
+    maker_fill_cost: int | None = None
+    taker_fill_cost_dollars: str | None = None
+    maker_fill_cost_dollars: str | None = None
+    last_update_time: str | None = None
+    client_order_id: str | None = None
 ```
-
----
-
-## Impact
-
-- Can't track partial fills properly without `fill_count`/`remaining_count`
-- Can't analyze maker vs taker fees
-- Can't track order modifications without `last_update_time`
-
----
-
-## Fix Required
-
-1. Add all missing fields to Order model
-2. Update test fixtures
-3. Verify parsing from live API
 
 ---
 
 ## Test Plan
 
-- [ ] Add missing fields to Order model
-- [ ] Update test fixtures
-- [ ] Run full test suite
+- [ ] Add fields to model (optional)
+- [ ] Fields should be optional (None default)
+- [ ] Existing tests should pass unchanged
 
 ---
 
 ## Related
 
-- BUG-066: Fill model missing fields
-- BUG-064: Missing order safety parameters
+- BUG-066: Fill model missing fields (similar pattern)

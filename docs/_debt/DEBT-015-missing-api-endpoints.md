@@ -3,6 +3,7 @@
 **Priority:** P2-P3 (Non-blocking but limiting)
 **Status:** Open
 **Found:** 2026-01-12
+**Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---

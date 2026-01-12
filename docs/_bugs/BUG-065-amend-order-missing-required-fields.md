@@ -1,20 +1,42 @@
-# BUG-065: `amend_order()` Missing Required Fields
+# BUG-065: `amend_order()` Incomplete Implementation
 
-**Priority:** P2
+**Priority:** P3 (was P2 - downgraded after verification)
 **Status:** Open
 **Found:** 2026-01-12
+**Verified:** 2026-01-12
 
 ---
 
 ## Summary
 
-The `amend_order()` method has an incomplete signature. Per Kalshi API docs, several fields are **required** that we don't support. The method may work for simple cases but will fail for proper order tracking.
+The `amend_order()` method has a minimal implementation. Vendor docs suggest additional required fields, but this has **NOT been verified against the actual API**.
+
+**CONTEXT:** After verification:
+1. **Not used in CLI** - no user exposure
+2. **Unit test uses minimal payload** - test at line 93 expects `{"order_id": "...", "yes_price": 55}`
+3. **Vendor doc "required" fields are unverified** - may work without them
+
+---
+
+## Verification Results
+
+**Is amend_order used anywhere?**
+
+```bash
+grep -r "amend_order" src/kalshi_research/cli/
+# Result: No matches found
+```
+
+**Unit test expectation:** `tests/unit/api/test_trading.py:93`
+```python
+assert kwargs["json"] == {"order_id": "oid-123", "yes_price": 55}
+```
 
 ---
 
 ## Current State
 
-**Location:** `src/kalshi_research/api/client.py`
+**Location:** `src/kalshi_research/api/client.py:830-907`
 
 **Current signature:**
 ```python
@@ -27,76 +49,60 @@ async def amend_order(
 ) -> OrderResponse
 ```
 
-**Missing required fields per vendor docs:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `ticker` | string | Yes | Market ticker |
-| `side` | enum | Yes | `yes` or `no` |
-| `action` | enum | Yes | `buy` or `sell` |
-| `client_order_id` | string | Yes | Original client-specified order ID |
-| `updated_client_order_id` | string | Yes | New client-specified order ID |
-
-**Missing price alternatives:**
-- `no_price` (cents) - Alternative to `yes_price`
-- `yes_price_dollars` (string) - Dollar-denominated price
-- `no_price_dollars` (string) - Dollar-denominated price
+**Sends to API:** `{"order_id": "...", "yes_price": ..., "count": ...}`
 
 ---
 
-## Evidence from Vendor Docs
+## Potentially Missing Fields (UNVERIFIED)
 
-From `docs/_vendor-docs/kalshi-api-reference.md` lines 879-902:
+The vendor docs I created claim these are required, but this needs API verification:
 
-```markdown
-### Amend Order Full Schema
+| Field | Claimed | Actual Need | Notes |
+|-------|---------|-------------|-------|
+| `ticker` | Required | Unknown | Server may infer from order_id |
+| `side` | Required | Unknown | Server may infer from order_id |
+| `action` | Required | Unknown | Server may infer from order_id |
+| `client_order_id` | Required | Unknown | Only if using client IDs |
+| `updated_client_order_id` | Required | Unknown | Only if using client IDs |
 
-**Endpoint:** `POST /portfolio/orders/{order_id}/amend`
-
-#### Request Body
-
-**Required fields:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `ticker` | string | Market ticker |
-| `side` | enum | `yes` or `no` |
-| `action` | enum | `buy` or `sell` |
-| `client_order_id` | string | Original client-specified order ID |
-| `updated_client_order_id` | string | New client-specified order ID (must be unique) |
-```
+**Dollar-price alternatives (useful for API completeness):**
+- `yes_price_dollars` (string) - Alternative to cents
+- `no_price_dollars` (string) - Alternative to cents
 
 ---
 
-## Impact
+## Risk Assessment
 
-- Order tracking via `client_order_id` won't work properly
-- Can't amend using dollar-denominated prices (needed post Jan 15)
-- Missing fields may cause API errors or unexpected behavior
+**Why P3:**
+- Not exposed via CLI
+- Unit test assumes minimal payload works
+- "Required" fields may be server-inferred
+- Pure API completeness issue
+
+**Verification needed:**
+- Test `amend_order` against demo API with minimal payload
+- Confirm if additional fields are truly required or just recommended
 
 ---
 
-## Fix Required
+## Fix (If Needed After Verification)
 
-1. Add missing required parameters to method signature
-2. Add dollar-price alternatives (`yes_price_dollars`, `no_price_dollars`)
-3. Update request body construction
-4. Add validation for enum types
-5. Update docstrings
+If API verification shows fields are required:
+
+1. Add missing parameters to method signature
+2. Update request body construction
+3. Add tests
 
 ---
 
 ## Test Plan
 
-- [ ] Add `ticker`, `side`, `action` parameters
-- [ ] Add `client_order_id`, `updated_client_order_id` parameters
-- [ ] Add dollar-price parameters
-- [ ] Test with mock API
-- [ ] Integration test with demo environment
+- [ ] Test against demo API with minimal payload
+- [ ] If fails, add required fields
+- [ ] Add dollar-price alternatives for future-proofing
 
 ---
 
-## Related
+## Lessons Learned
 
-- BUG-064: Missing order safety parameters
-- BUG-067: Order model missing fields
+Vendor docs I wrote may be stricter than actual API behavior. Always verify against actual API before claiming "required" fields.

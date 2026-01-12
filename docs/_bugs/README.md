@@ -4,21 +4,26 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-| ID | Title | Priority | Status |
-|---|---|---|---|
-| **[BUG-063](BUG-063-missing-dollar-fields-market-model.md)** | Missing Dollar Fields in Market Model (Jan 15 Breaking Change) | **P0** | Open |
-| **[BUG-064](BUG-064-missing-order-safety-parameters.md)** | Missing Order Safety Parameters (`reduce_only`, `post_only`, etc.) | P1 | Open |
-| **[BUG-065](BUG-065-amend-order-missing-required-fields.md)** | `amend_order()` Missing Required Fields | P2 | Open |
-| **[BUG-066](BUG-066-fill-model-missing-fields.md)** | Fill Model Missing Fields (`fill_id`, `is_taker`, etc.) | P2 | Open |
-| **[BUG-067](BUG-067-order-model-missing-fields.md)** | Order Model Missing Fields (`fill_count`, fee breakdown) | P2 | Open |
-| **[BUG-068](BUG-068-market-model-missing-structural-fields.md)** | Market Model Missing Structural Fields (scalar, strikes) | P3 | Open |
+| ID | Title | Priority | Status | Verified |
+|---|---|---|---|---|
+| **[BUG-064](BUG-064-missing-order-safety-parameters.md)** | Missing Order Safety Parameters (`reduce_only`, etc.) | P2 | Open | 2026-01-12 |
+| **[BUG-063](BUG-063-missing-dollar-fields-market-model.md)** | Missing Dollar Fields in Market Model | P3 | Open | 2026-01-12 |
+| **[BUG-065](BUG-065-amend-order-missing-required-fields.md)** | `amend_order()` Incomplete Implementation | P3 | Open | 2026-01-12 |
+| **[BUG-066](BUG-066-fill-model-missing-fields.md)** | Fill Model Missing Fields (API Completeness) | P3 | Open | 2026-01-12 |
+| **[BUG-067](BUG-067-order-model-missing-fields.md)** | Order Model Missing Fields (API Completeness) | P3 | Open | 2026-01-12 |
+| **[BUG-068](BUG-068-market-model-missing-structural-fields.md)** | Market Model Missing Structural Fields | P3 | Open | 2026-01-12 |
+
+### Verification Note (2026-01-12)
+
+All bugs verified against actual codebase usage. Several originally classified as P0-P2 were **downgraded** after discovering:
+- Missing fields are not used in any code paths
+- No CLI commands expose the affected functionality
+- Core platform works without these fields (API completeness issues, not functional bugs)
 
 ### Priority Guide
 
-- **P0**: Critical - Must fix before Jan 15, 2026 deadline
-- **P1**: High - Safety-critical features missing
-- **P2**: Medium - API parity gaps affecting functionality
-- **P3**: Low - Nice-to-have completeness
+- **P2**: Medium - API completeness gaps (safety params, not yet exposed via CLI)
+- **P3**: Low - Nice-to-have API parity (fields exist in API but we don't use them)
 
 ### Recently Closed Dependency Chain (Resolved)
 
