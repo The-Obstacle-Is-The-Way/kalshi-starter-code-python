@@ -203,6 +203,89 @@ class TestTrading:
         }
 
     @pytest.mark.asyncio
+    async def test_amend_order_with_count(self, mock_client):
+        """Verify amend_order can include count."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
+        )
+
+        await mock_client.amend_order(
+            order_id="oid-123",
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            client_order_id="cid-1",
+            updated_client_order_id="cid-2",
+            price=55,
+            count=20,
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        assert kwargs["json"]["count"] == 20
+
+    @pytest.mark.asyncio
+    async def test_amend_order_with_price_dollars(self, mock_client):
+        """Verify amend_order supports fixed-point dollar price."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
+        )
+
+        await mock_client.amend_order(
+            order_id="oid-123",
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            client_order_id="cid-1",
+            updated_client_order_id="cid-2",
+            price_dollars="0.5500",
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        payload = kwargs["json"]
+        assert payload["yes_price_dollars"] == "0.5500"
+        assert "yes_price" not in payload
+
+    @pytest.mark.asyncio
+    async def test_amend_order_no_side_uses_no_price(self, mock_client):
+        """Verify NO-side amend_order uses no_price fields."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
+        )
+
+        await mock_client.amend_order(
+            order_id="oid-123",
+            ticker="KXTEST",
+            side="no",
+            action="buy",
+            client_order_id="cid-1",
+            updated_client_order_id="cid-2",
+            price=55,
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        payload = kwargs["json"]
+        assert payload["no_price"] == 55
+        assert "yes_price" not in payload
+
+    @pytest.mark.asyncio
+    async def test_amend_order_rejects_price_and_price_dollars(self, mock_client):
+        """Verify amend_order rejects setting both cents and dollars prices."""
+        with pytest.raises(ValueError, match="Provide only one of price or price_dollars"):
+            await mock_client.amend_order(
+                order_id="oid-123",
+                ticker="KXTEST",
+                side="yes",
+                action="buy",
+                client_order_id="cid-1",
+                updated_client_order_id="cid-2",
+                price=55,
+                price_dollars="0.5500",
+            )
+
+    @pytest.mark.asyncio
     async def test_create_order_dry_run(self, mock_client):
         """Verify dry_run mode does not execute order."""
         response = await mock_client.create_order(
