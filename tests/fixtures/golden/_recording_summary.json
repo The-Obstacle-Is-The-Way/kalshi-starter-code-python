@@ -2,7 +2,8 @@
   "_metadata": {
     "recorded_at": "2026-01-12T10:24:03.963243+00:00",
     "endpoint": "_recording_summary",
-    "environment": "prod"
+    "environment": "prod",
+    "sanitized": false
   },
   "response": {
     "environment": "prod",

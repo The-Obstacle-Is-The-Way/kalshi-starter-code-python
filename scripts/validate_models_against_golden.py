@@ -31,6 +31,8 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Final, get_args, get_origin
 
+from pydantic_core import PydanticUndefined
+
 from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market
 from kalshi_research.api.models.orderbook import Orderbook
@@ -122,7 +124,13 @@ def get_model_field_info(model: type[BaseModel]) -> dict[str, dict[str, Any]]:
             "type": str(base_type),
             "required": field_info.is_required(),
             "optional": is_optional,
-            "default": field_info.default if field_info.default is not None else "None",
+            "default": (
+                "<required>"
+                if field_info.default is PydanticUndefined and field_info.default_factory is None
+                else "<factory>"
+                if field_info.default_factory is not None
+                else repr(field_info.default)
+            ),
             "alias": field_info.alias,
             "validation_alias": (
                 str(field_info.validation_alias) if field_info.validation_alias else None
@@ -218,8 +226,8 @@ def analyze_response(
     }
 
 
-def print_report(results: list[dict[str, Any]]) -> None:
-    """Print validation report."""
+def print_report(results: list[dict[str, Any]]) -> bool:
+    """Print validation report. Returns True if issues were found."""
     print("\n" + "=" * 70)
     print("MODEL VALIDATION REPORT")
     print("=" * 70)
@@ -241,7 +249,8 @@ def print_report(results: list[dict[str, Any]]) -> None:
 
         if result["validation_error"]:
             print("\n  VALIDATION ERROR:")
-            print(f"    {result['validation_error'][:200]}...")
+            err = result["validation_error"]
+            print(f"    {err[:200]}{'...' if len(err) > 200 else ''}")
 
         if result["unexpected_fields"]:
             print("\n  UNEXPECTED FIELDS (in API, not in model):")
@@ -267,6 +276,8 @@ def print_report(results: list[dict[str, Any]]) -> None:
     else:
         print("RESULT: ALL MODELS MATCH GOLDEN FIXTURES")
         print("=" * 70)
+
+    return issues_found
 
 
 def main() -> None:
@@ -303,7 +314,9 @@ def main() -> None:
             continue
 
     if results:
-        print_report(results)
+        issues_found = print_report(results)
+        if issues_found:
+            sys.exit(1)
     else:
         print("\nNo fixtures found to validate.")
         print("Run 'uv run python scripts/record_api_responses.py' first")

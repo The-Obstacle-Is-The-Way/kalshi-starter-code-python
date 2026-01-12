@@ -11,17 +11,17 @@
     "cursor": "",
     "settlements": [
       {
-        "event_ticker": "KXEXAMPLE-2C7BBF0A0FB7",
+        "event_ticker": "KXEXAMPLE-237850A89798",
         "fee_cost": "0.7300",
         "market_result": "yes",
         "no_count": 37,
-        "no_total_cost": 28475,
+        "no_total_cost": 49195,
         "revenue": 0,
         "settled_time": "2026-01-10T04:50:31.435826Z",
-        "ticker": "KXEXAMPLE-0121FB0D83B3",
-        "value": 34318,
+        "ticker": "KXEXAMPLE-CCBD3CFD2609",
+        "value": 4559,
         "yes_count": 37,
-        "yes_total_cost": 20510
+        "yes_total_cost": 4286
       }
     ]
   }

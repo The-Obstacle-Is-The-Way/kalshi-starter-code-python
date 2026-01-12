@@ -62,7 +62,7 @@ The following documents were consolidated into DEBT-014 and archived:
 ## Workflow
 
 - Add new debt as a short, actionable entry (priority + impact + fix path).
-- Link to the relevant bug (`docs/_bugs/`) or task (`docs/_future/`) when applicable.
+- Link to the relevant bug (`docs/_bugs/`) or task (`docs/_todo/`) when applicable.
 - When resolved, move the entry to the **Resolved** section (don't delete history).
 
 ---

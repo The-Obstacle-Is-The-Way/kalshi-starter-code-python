@@ -210,32 +210,16 @@ def test_fill_contract():
 
 ---
 
-## Proposed Fix
+## Fix Applied (2026-01-12)
 
-### Phase 1: Capture Reality (P1)
+- Recorded raw production fixtures to `tests/fixtures/golden/` via `scripts/record_api_responses.py`
+- Added deterministic sanitization via `scripts/sanitize_golden_fixtures.py` (IDs, money-like fields, tickers)
+- Added model-vs-fixture validator `scripts/validate_models_against_golden.py`
+- Updated models + vendor docs to match observed wrapper keys and payload fields
 
-1. Add `tests/fixtures/golden/` directory
-2. Create script to hit demo API and record responses for each endpoint
-3. Run against demo-api.kalshi.co (paper trading, no risk)
-4. Store actual response shapes as JSON fixtures
-
-### Phase 2: Validate Models (P1)
-
-1. Compare golden fixtures against our Pydantic models
-2. Fix any mismatches (mark truly optional fields, add missing required fields)
-3. Update tests to use golden fixtures instead of hand-crafted mocks
-
-### Phase 3: Runtime Validation (P2)
-
-1. Add response schema validator (Option B above)
-2. Log unexpected fields in production
-3. Alert on schema drift
-
-### Phase 4: Continuous Verification (P3)
-
-1. Weekly cron job hits demo API, compares against golden files
-2. PR fails if API response shape changed
-3. Forces us to acknowledge and handle API changes
+Follow-up hardening is tracked as debt:
+- `docs/_debt/DEBT-016-fixture-drift-ci.md` (automation)
+- `docs/_debt/DEBT-018-test-ssot-stabilization.md` (fixture-driven tests, Exa SSOT)
 
 ---
 
@@ -270,11 +254,11 @@ def test_fill_contract():
 
 ## Acceptance Criteria
 
-- [ ] Golden fixtures exist for all Critical and High priority endpoints
-- [ ] Pydantic models match actual API responses (not OpenAPI, not guesses)
-- [ ] At least one test per endpoint uses golden fixture instead of hand-crafted mock
-- [ ] Runtime validator logs unexpected fields (non-blocking)
-- [ ] Documentation updated with "Verified against API" dates
+- [x] Golden fixtures exist for all Critical and High priority endpoints
+- [x] Pydantic models match actual API responses (not OpenAPI, not guesses)
+- [ ] At least one test per endpoint uses golden fixture instead of hand-crafted mock (DEBT-018)
+- [ ] Runtime validator logs unexpected fields (non-blocking) (DEBT-016)
+- [x] Documentation updated with "Verified against API" dates
 
 ---
 

@@ -3,6 +3,7 @@
     "recorded_at": "2026-01-12T15:24:03.340542+00:00",
     "endpoint": "markets_list",
     "environment": "prod",
+    "sanitized": false,
     "limit": 5,
     "status": "open",
     "note": "RAW API response (SSOT)"

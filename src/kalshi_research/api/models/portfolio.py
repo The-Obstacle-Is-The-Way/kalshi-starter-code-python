@@ -50,10 +50,10 @@ class PortfolioPosition(BaseModel):
     """Total fees paid in dollars (fixed-point string, may be absent)."""
 
     total_traded: int | None = None
-    """Total contracts traded (may be absent)."""
+    """Total spent on this market in cents (may be absent)."""
 
     total_traded_dollars: str | None = None
-    """Total traded notional in dollars (fixed-point string, may be absent)."""
+    """Total spent on this market in dollars (fixed-point string, may be absent)."""
 
     resting_orders_count: int | None = None
     """Count of currently resting orders (may be absent)."""

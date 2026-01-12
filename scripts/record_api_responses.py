@@ -70,6 +70,7 @@ def save_golden(
             "recorded_at": datetime.now(UTC).isoformat(),
             "endpoint": endpoint,
             "environment": os.getenv("KALSHI_ENVIRONMENT", "prod"),
+            "sanitized": False,
             **(metadata or {}),
         },
         "response": data,

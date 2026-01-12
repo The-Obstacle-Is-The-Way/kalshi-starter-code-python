@@ -380,18 +380,18 @@ Kalshi returns both market-level and event-level aggregates:
 
 ```json
 {
-  "cursor": null,
+  "cursor": "",
   "market_positions": [
     {
       "ticker": "KX...",
       "position": 34,
       "market_exposure": 952,
-      "market_exposure_dollars": "9.52",
+      "market_exposure_dollars": "9.5200",
       "realized_pnl": 0,
       "fees_paid": 48,
-      "fees_paid_dollars": "0.48",
-      "total_traded": 34,
-      "total_traded_dollars": "14.00",
+      "fees_paid_dollars": "0.4800",
+      "total_traded": 1400,
+      "total_traded_dollars": "14.0000",
       "resting_orders_count": 0,
       "last_updated_ts": "2026-01-10T16:11:11.109894Z"
     }
@@ -400,11 +400,11 @@ Kalshi returns both market-level and event-level aggregates:
     {
       "event_ticker": "KX...",
       "event_exposure": 952,
-      "event_exposure_dollars": "9.52",
+      "event_exposure_dollars": "9.5200",
       "realized_pnl": 0,
       "fees_paid": 48,
       "total_cost": 1400,
-      "total_cost_dollars": "14.00",
+      "total_cost_dollars": "14.0000",
       "total_cost_shares": 34
     }
   ]

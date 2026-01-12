@@ -3,6 +3,7 @@
     "recorded_at": "2026-01-12T15:24:03.381019+00:00",
     "endpoint": "market_single",
     "environment": "prod",
+    "sanitized": false,
     "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA-F7F474937F3",
     "note": "RAW API response (SSOT)"
   },

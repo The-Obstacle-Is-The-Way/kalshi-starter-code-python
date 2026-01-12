@@ -3,6 +3,7 @@
     "recorded_at": "2026-01-12T15:24:03.543383+00:00",
     "endpoint": "exchange_status",
     "environment": "prod",
+    "sanitized": false,
     "note": "RAW API response (SSOT)"
   },
   "response": {

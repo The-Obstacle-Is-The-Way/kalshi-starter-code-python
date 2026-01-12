@@ -3,6 +3,7 @@
     "recorded_at": "2026-01-12T15:24:03.530776+00:00",
     "endpoint": "event_single",
     "environment": "prod",
+    "sanitized": false,
     "ticker": "KXELONMARS-99",
     "note": "RAW API response (SSOT)"
   },

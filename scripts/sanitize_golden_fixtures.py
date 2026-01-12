@@ -72,8 +72,8 @@ def _fake_uuid(value: str) -> str:
     return str(uuid.uuid5(_SANITIZE_UUID_NAMESPACE, f"{_SANITIZE_SALT}:{value}"))
 
 
-def _fake_ticker(value: str, *, kind: str) -> str:
-    suffix = hashlib.sha256(f"{_SANITIZE_SALT}:{kind}:{value}".encode()).hexdigest()[:12].upper()
+def _fake_ticker(value: str) -> str:
+    suffix = hashlib.sha256(f"{_SANITIZE_SALT}:ticker:{value}".encode()).hexdigest()[:12].upper()
     return f"KXEXAMPLE-{suffix}"
 
 
@@ -101,7 +101,7 @@ def sanitize_value(key: str, value: object) -> object:
 
     # Tickers - portfolio fixtures can leak trading interests/positions.
     if key in _TICKER_KEYS and isinstance(value, str) and value:
-        return _fake_ticker(value, kind=key)
+        return _fake_ticker(value)
 
     if key in _FIXED_INT_OVERRIDES and isinstance(value, int):
         return _FIXED_INT_OVERRIDES[key]
