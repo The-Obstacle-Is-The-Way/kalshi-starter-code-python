@@ -9,8 +9,10 @@ PHILOSOPHY: Use REAL objects wherever possible. Only mock at system boundaries.
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -81,6 +83,22 @@ def make_market() -> Callable[..., dict[str, Any]]:
     Note: After Phase 2, update to return REAL Market Pydantic models.
     """
 
+    fixture_path = (
+        Path(__file__).resolve().parent / "fixtures" / "golden" / "market_single_response.json"
+    )
+    fixture_data = json.loads(fixture_path.read_text())
+    fixture_market = fixture_data.get("response", {}).get("market")
+    if not isinstance(fixture_market, dict):
+        raise TypeError(
+            "Golden market fixture has unexpected shape (expected response.market object)."
+        )
+
+    market_template: dict[str, Any] = dict(fixture_market)
+    market_template["liquidity"] = None  # deprecated field; avoid accidental reliance in tests
+
+    def _cents_to_fixed_dollars(cents: int) -> str:
+        return f"{cents / 100:.4f}"
+
     def _make(
         ticker: str = "TEST-MARKET",
         status: str = "active",
@@ -88,29 +106,41 @@ def make_market() -> Callable[..., dict[str, Any]]:
         yes_ask: int = 47,
         **overrides: Any,
     ) -> dict[str, Any]:
-        base: dict[str, Any] = {
-            "ticker": ticker,
-            "event_ticker": "TEST-EVENT",
-            "series_ticker": "TEST",
-            "title": f"Test Market {ticker}",
-            "subtitle": "",
-            "status": status,
-            "result": "",
-            "yes_bid": yes_bid,
-            "yes_ask": yes_ask,
-            "no_bid": 100 - yes_ask,
-            "no_ask": 100 - yes_bid,
-            "last_price": (yes_bid + yes_ask) // 2,
-            "volume": 10000,
-            "volume_24h": 1000,
-            "open_interest": 5000,
-            "liquidity": 10000,
-            "created_time": "2023-12-15T17:50:26Z",
-            "open_time": "2024-01-01T00:00:00Z",
-            "close_time": "2025-12-31T00:00:00Z",
-            "expiration_time": "2026-01-01T00:00:00Z",
-        }
+        base: dict[str, Any] = dict(market_template)
+        base.update(
+            {
+                "ticker": ticker,
+                "event_ticker": "TEST-EVENT",
+                "series_ticker": "TEST",
+                "title": f"Test Market {ticker}",
+                "subtitle": "",
+                "status": status,
+                "result": "",
+                "yes_bid": yes_bid,
+                "yes_ask": yes_ask,
+                "volume": 10000,
+                "volume_24h": 1000,
+                "open_interest": 5000,
+                "created_time": "2023-12-15T17:50:26Z",
+                "open_time": "2024-01-01T00:00:00Z",
+                "close_time": "2025-12-31T00:00:00Z",
+                "expiration_time": "2026-01-01T00:00:00Z",
+            }
+        )
         base.update(overrides)
+
+        final_yes_bid = base.get("yes_bid")
+        final_yes_ask = base.get("yes_ask")
+        if isinstance(final_yes_bid, int) and isinstance(final_yes_ask, int):
+            base["no_bid"] = 100 - final_yes_ask
+            base["no_ask"] = 100 - final_yes_bid
+            base["last_price"] = (final_yes_bid + final_yes_ask) // 2
+
+            base["yes_bid_dollars"] = _cents_to_fixed_dollars(final_yes_bid)
+            base["yes_ask_dollars"] = _cents_to_fixed_dollars(final_yes_ask)
+            base["no_bid_dollars"] = _cents_to_fixed_dollars(100 - final_yes_ask)
+            base["no_ask_dollars"] = _cents_to_fixed_dollars(100 - final_yes_bid)
+            base["last_price_dollars"] = _cents_to_fixed_dollars(base["last_price"])
         return base
 
     return _make

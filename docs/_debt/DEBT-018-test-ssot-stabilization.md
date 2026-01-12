@@ -228,10 +228,18 @@ Refactor CLI tests to:
 - [x] All Exa models pass validation
 
 ### Phase 2: Fix Test Drift (P1)
-- [ ] Refactor `test_trading.py` to use golden fixtures
-- [ ] Refactor `test_client_extended.py` to use golden fixtures
-- [ ] Update `conftest.py` factories to match golden structure
-- [ ] Add CI check for inline mock drift (optional)
+- [x] Refactor `tests/unit/api/test_trading.py` to load golden order responses (create/cancel/amend) instead of inline dicts
+- [x] Refactor `tests/unit/api/test_client_extended.py` to use golden fixtures for portfolio endpoints instead of minimal JSON
+- [x] Update `tests/conftest.py:make_market()` to be fixture-shaped (base from `market_single_response.json`, then allow overrides)
+- [ ] Optional: add a CI-only check that flags “inline mock drift” (missing keys vs golden), without forcing every unit test to use fixtures
+
+#### Phase 2 Implementation Notes (SSOT)
+
+- **Trading fixtures to use** (recorded + sanitized): `create_order_response.json`, `cancel_order_response.json`, `amend_order_response.json`.
+- **Portfolio fixtures to use** (recorded + sanitized): `portfolio_balance_response.json`, `portfolio_positions_response.json`, `portfolio_orders_response.json`, `portfolio_fills_response.json`, `portfolio_settlements_response.json`.
+- Prefer assertions of the form “returned model equals fixture values” (read expected values from the fixture) instead of hard-coded numbers.
+- Keep “negative tests” (e.g., legacy keys, error handling) as intentionally-minimal mocks; Phase 2 targets only the **happy-path** drift risk.
+- **Verified (2026-01-12):** `tests/conftest.py:make_orderbook()` and `make_trade()` are currently unused in the test suite (per `rg`). They are not required for Phase 2.
 
 ### Phase 3: Close Kalshi Gaps (P2)
 - [x] Record trades golden fixture (e.g., `trades_list_response.json`)
@@ -249,15 +257,13 @@ Refactor CLI tests to:
 ## Implementation Order
 
 ```
-DEBT-018 Phase 1 (Exa SSOT)
-    ↓
-DEBT-018 Phase 2 (Fix Test Drift)
+DEBT-018 Phase 2 (Fix Test Drift) ← NEXT
     ↓
 DEBT-016 (CI Automation) - builds on Phase 1-2
     ↓
-DEBT-018 Phase 3 (Kalshi Gaps)
-    ↓
 DEBT-018 Phase 4 (CLI Tests) - lower priority
+    ↓
+DEBT-017 (Model cleanup) - optional follow-up
     ↓
 DEBT-015 (Missing Endpoints) - only after foundation solid
 ```

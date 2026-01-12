@@ -65,6 +65,7 @@ Canonical commands:
 ```bash
 # Record all fixtures
 uv run python scripts/record_api_responses.py
+uv run python scripts/record_exa_responses.py
 
 # Validate models against fixtures
 uv run python scripts/validate_models_against_golden.py

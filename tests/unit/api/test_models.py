@@ -104,7 +104,10 @@ class TestMarketModel:
 
     def test_market_model_dollar_fields_optional(self, make_market: MakeMarket) -> None:
         """Dollar fields should be optional (None by default)."""
-        market = Market.model_validate(make_market())
+        data = make_market()
+        data.pop("liquidity_dollars", None)
+        data.pop("notional_value_dollars", None)
+        market = Market.model_validate(data)
 
         assert market.liquidity_dollars is None
         assert market.notional_value_dollars is None
