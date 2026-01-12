@@ -17,8 +17,11 @@ All bugs verified against actual codebase usage. Several originally classified a
 
 ### Priority Guide
 
+- **P0**: Critical - financial risk, data loss, or security issue
+- **P1**: High - core functionality broken or safety-critical behavior degraded
 - **P2**: Medium - API completeness gaps (safety params, not yet exposed via CLI)
 - **P3**: Low - Nice-to-have API parity (fields exist in API but we don't use them)
+- **P4**: Cosmetic - documentation or UX-only issue
 
 ### Recently Closed Dependency Chain (Resolved)
 

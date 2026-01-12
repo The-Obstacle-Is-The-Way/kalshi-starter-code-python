@@ -24,8 +24,8 @@ Two `Order` classes exist in the codebase:
 
 | Location | Fields | Used By |
 |----------|--------|---------|
-| `api/models/order.py:73` | Minimal (11 fields) | Internal trading logic |
-| `api/models/portfolio.py:185` | Full (28 fields) | Portfolio API responses |
+| `src/kalshi_research/api/models/order.py` | Minimal (11 fields) | Internal trading logic |
+| `src/kalshi_research/api/models/portfolio.py` | Full (28 fields) | Portfolio API responses |
 
 ### order.py:Order (Minimal)
 

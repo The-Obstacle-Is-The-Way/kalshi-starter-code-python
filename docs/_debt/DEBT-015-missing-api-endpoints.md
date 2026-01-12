@@ -39,7 +39,7 @@ The Kalshi API client is missing 45+ documented endpoints. While the core tradin
 |----------|-------------|----------|
 | `GET /series` | List series with filters | **P2** |
 | `GET /series/{series_ticker}` | Single series details | P2 |
-| `GET /series/{ticker}/events/{ticker}/forecast_percentile_history` | Forecast history (auth) | P3 |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Forecast history (auth) | P3 |
 
 **Impact:** Medium - This is Kalshi's intended category filtering pattern:
 1. `GET /search/tags_by_categories` → Discover categories

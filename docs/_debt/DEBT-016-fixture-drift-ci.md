@@ -81,7 +81,7 @@ Requirements:
 ### 2. JSON Schema Validation
 
 Add schemas under:
-```
+```text
 schemas/fixtures/
 ├── market.schema.json
 ├── order.schema.json
@@ -128,7 +128,7 @@ Implementation:
 
 ### Option A (Recommended): Timestamped Snapshots + "latest" Pointer
 
-```
+```text
 tests/fixtures/golden/
 ├── snapshots/
 │   ├── 2026-01-12/
@@ -149,7 +149,7 @@ Cons:
 
 ### Option B: Single Baseline + Git History Only
 
-```
+```text
 tests/fixtures/golden/
 ├── market_single_response.json
 └── ...
@@ -200,6 +200,9 @@ on:
 
 jobs:
   rerecord:
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -213,8 +216,8 @@ jobs:
           # See: `KalshiClient(..., private_key_b64=...)`
           KALSHI_PRIVATE_KEY_B64: ${{ secrets.KALSHI_PRIVATE_KEY_B64 }}
           KALSHI_ENVIRONMENT: prod
-        # Non-interactive: the script prompts before recording in prod.
-        run: printf 'y\n' | uv run python scripts/record_api_responses.py --env prod
+        # Non-interactive: prefer a dedicated flag rather than piping stdin.
+        run: uv run python scripts/record_api_responses.py --env prod --yes
 
       - name: Sanitize fixtures
         run: uv run python scripts/sanitize_golden_fixtures.py
@@ -231,7 +234,7 @@ jobs:
             Automated fixture re-recording from production API.
 
             Review changes carefully - any drift may indicate API changes.
-          branch: fixtures/weekly-rerecord
+          branch: fixtures/weekly-rerecord-${{ github.run_id }}
           delete-branch: true
 ```
 

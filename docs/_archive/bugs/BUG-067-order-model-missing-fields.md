@@ -49,9 +49,9 @@ grep -r "get_orders" src/kalshi_research/cli/
 **Location:** `src/kalshi_research/api/models/portfolio.py:134-165`
 
 **What we have:**
-- `order_id`, `ticker`, `status`, `side`, `action`, `yes_price`, `no_price`, `count`, `placed_at` ✅
+- `order_id`, `ticker`, `status` ✅ (plus optional side/action/prices/count fields as returned)
 
-**Missing (for API completeness):**
+**Originally missing (now fixed):**
 
 | Field | Type | Used? | Notes |
 |-------|------|-------|-------|
@@ -62,6 +62,8 @@ grep -r "get_orders" src/kalshi_research/cli/
 | `maker_fees_dollars` | string | No | Maker fees paid |
 | `taker_fill_cost` | int | No | Cost of taker fills |
 | `maker_fill_cost` | int | No | Cost of maker fills |
+| `taker_fill_cost_dollars` | string | No | Cost of taker fills (dollars) |
+| `maker_fill_cost_dollars` | string | No | Cost of maker fills (dollars) |
 | `last_update_time` | datetime | No | Last modification |
 | `client_order_id` | string | No | Client-specified ID |
 

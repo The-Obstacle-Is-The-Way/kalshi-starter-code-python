@@ -133,5 +133,5 @@ currently expose them.
 
 ## Related
 
-- BUG-063: Missing dollar fields (higher priority)
+- BUG-063: Missing dollar fields
 - DEBT-014: General API field tracking

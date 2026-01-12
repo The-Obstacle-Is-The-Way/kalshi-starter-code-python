@@ -82,7 +82,7 @@ These follow best practices - mocking at boundaries or using real objects.
 ## CRITICAL SAFETY ISSUES
 
 ### Issue #1: API Response Shape Not Validated
-**Severity: P0**
+#### Severity: P0
 
 Mocked responses are hardcoded dicts never validated against OpenAPI or real API.
 
@@ -92,7 +92,7 @@ mock_response = {"order": {"order_id": "...", "status": "resting"}}
 ```
 
 ### Issue #2: Repository Pattern Defeated by Mocks
-**Severity: P1**
+#### Severity: P1
 
 `test_fetcher.py` mocks repositories instead of using real DB:
 ```python
@@ -102,17 +102,17 @@ with patch("...EventRepository") as MockRepo:
 ```
 
 ### Issue #3: Authenticated Client Never Tested E2E
-**Severity: P1**
+#### Severity: P1
 
 Order creation (financial risk) only tested with mocked HTTP.
 
 ### Issue #4: Portfolio Syncer Mocks Transactions
-**Severity: P1**
+#### Severity: P1
 
 Session mocked - transaction safety never tested.
 
 ### Issue #5: Rate Limiter Never Actually Rate-Limits
-**Severity: P2**
+#### Severity: P2
 
 TokenBucket mocked - real throttling never tested.
 
