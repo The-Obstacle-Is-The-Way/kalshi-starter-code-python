@@ -17,7 +17,7 @@ Deep analysis revealed that while Kalshi API golden fixtures exist, the test sui
 **Status update (2026-01-12):**
 - ✅ Exa SSOT baseline added (golden fixtures + model validation + unit tests)
 - ✅ Kalshi public SSOT gaps closed (trades + candlesticks fixtures + unit tests)
-- 🔴 Remaining: test drift refactor (Phase 2) + CLI test architecture cleanup (Phase 4)
+- 🔴 Remaining: CLI test architecture cleanup (Phase 4) + optional “inline mock drift” guard (Phase 2 optional)
 
 This debt must be paid before adding new features to ensure a stable foundation.
 
@@ -29,7 +29,7 @@ This debt must be paid before adding new features to ensure a stable foundation.
 
 | Component | Files | Golden Fixtures | Risk |
 |-----------|-------|-----------------|------|
-| Exa client | 12 source files | **5** | Low |
+| Exa client | 12 source files | **7** | Low |
 | Exa tests | 5 test modules (+2 `__init__.py`), ~16 `respx` route mocks | Golden + inline | Medium |
 
 ### Impact
@@ -60,7 +60,8 @@ This debt must be paid before adding new features to ensure a stable foundation.
    - `find_similar_response.json`
    - `answer_response.json`
    - `get_contents_response.json`
-   - `research_task_response.json` (optional: higher cost/latency; record only if keys are available)
+   - `research_task_create_response.json` (create response)
+   - `research_task_response.json` (terminal response)
 3. Add to `scripts/record_api_responses.py` or create `scripts/record_exa_responses.py`
 4. Validate Exa models against golden fixtures
 
@@ -69,6 +70,7 @@ This debt must be paid before adding new features to ensure a stable foundation.
 ### Completed (2026-01-12)
 
 - `scripts/record_exa_responses.py` records `/search`, `/contents`, `/findSimilar`, `/answer` fixtures.
+- `scripts/record_exa_responses.py --only-research` records `/research/v1` fixtures without re-recording core endpoints.
 - `scripts/validate_models_against_golden.py` validates Exa models against those fixtures.
 - Unit tests validate the recorded fixtures against Exa response models.
 
@@ -223,7 +225,7 @@ Refactor CLI tests to:
 
 ### Phase 1: Exa SSOT (P1)
 - [x] Create `tests/fixtures/golden/exa/` directory
-- [x] Record Exa golden fixtures for: `/search`, `/contents`, `/findSimilar`, `/answer` (and optionally `/research/v1`)
+- [x] Record Exa golden fixtures for: `/search`, `/contents`, `/findSimilar`, `/answer`, `/research/v1`
 - [x] Add Exa models to `validate_models_against_golden.py`
 - [x] All Exa models pass validation
 
@@ -257,11 +259,9 @@ Refactor CLI tests to:
 ## Implementation Order
 
 ```
-DEBT-018 Phase 2 (Fix Test Drift) ← NEXT
+DEBT-018 Phase 4 (CLI Tests) - lower priority (remaining)
     ↓
-DEBT-016 (CI Automation) - builds on Phase 1-2
-    ↓
-DEBT-018 Phase 4 (CLI Tests) - lower priority
+DEBT-016 (CI Automation) - builds on SSOT baseline
     ↓
 DEBT-017 (Model cleanup) - optional follow-up
     ↓
