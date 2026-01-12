@@ -10,7 +10,7 @@ Usage:
     uv run python scripts/record_api_responses.py
 
     # Record specific endpoint category
-    uv run python scripts/record_api_responses.py --endpoint markets
+    uv run python scripts/record_api_responses.py --endpoint public
 
     # Override environment (default: from .env or prod)
     uv run python scripts/record_api_responses.py --env demo
@@ -19,7 +19,7 @@ Output:
     tests/fixtures/golden/<endpoint>_response.json
 
 Note:
-    All operations are READ-ONLY. Trading endpoints use dry_run=True.
+    All operations are READ-ONLY.
     Run sanitize_golden_fixtures.py before committing to remove sensitive data.
 """
 
@@ -36,7 +36,7 @@ from typing import Any, Final
 from dotenv import load_dotenv
 
 from kalshi_research.api.client import KalshiClient, KalshiPublicClient
-from kalshi_research.api.config import Environment, get_config
+from kalshi_research.api.config import get_config
 
 load_dotenv()
 
@@ -294,77 +294,6 @@ async def record_authenticated_endpoints() -> dict[str, Any]:
     return results
 
 
-async def record_trading_dry_run() -> dict[str, Any]:
-    """Record trading endpoint responses using dry_run mode (NO REAL ORDERS)."""
-    config = get_config()
-    results: dict[str, Any] = {}
-
-    key_id = os.getenv("KALSHI_KEY_ID")
-    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
-    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
-
-    if not key_id:
-        print("\n=== TRADING ENDPOINTS (DRY RUN) ===\n")
-        print("  SKIPPED: No KALSHI_KEY_ID configured")
-        return results
-
-    # Only run on demo to be extra safe
-    if config.environment != Environment.DEMO:
-        print("\n=== TRADING ENDPOINTS (DRY RUN) ===\n")
-        print("  SKIPPED: Only runs on demo environment for safety")
-        print("  Set KALSHI_ENVIRONMENT=demo to record trading responses")
-        return results
-
-    try:
-        async with KalshiClient(
-            key_id=key_id,
-            private_key_path=private_key_path,
-            private_key_b64=private_key_b64,
-            environment=config.environment,
-        ) as client:
-            print("\n=== TRADING ENDPOINTS (DRY RUN) ===\n")
-
-            # Get a real market ticker for the test
-            markets, _ = await client.get_markets_page(limit=1, status="open")
-            if not markets:
-                print("  SKIPPED: No open markets found")
-                return results
-
-            ticker = markets[0].ticker
-            print(f"  Using ticker: {ticker}")
-
-            print("Recording: POST /portfolio/orders (DRY RUN)")
-            try:
-                order_response = await client.create_order(
-                    ticker=ticker,
-                    side="yes",
-                    action="buy",
-                    count=1,
-                    price=1,  # 1 cent - minimum
-                    dry_run=True,
-                )
-                results["create_order_dry_run"] = order_response.model_dump(mode="json")
-                save_golden(
-                    "create_order_response",
-                    results["create_order_dry_run"],
-                    {
-                        "ticker": ticker,
-                        "dry_run": True,
-                        "note": "DRY RUN - simulated, not real API",
-                    },
-                )
-                print("  NOTE: dry_run returns simulated response, not actual API shape!")
-            except Exception as e:
-                print(f"  ERROR: {e}")
-                results["create_order_dry_run"] = {"error": str(e)}
-
-    except Exception as e:
-        print(f"\n  TRADING ERROR: {e}")
-        results["trading_error"] = str(e)
-
-    return results
-
-
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Record actual API responses as golden fixtures")
     parser.add_argument(
@@ -375,7 +304,7 @@ async def main() -> None:
     )
     parser.add_argument(
         "--endpoint",
-        choices=["public", "authenticated", "trading", "all"],
+        choices=["public", "authenticated", "all"],
         default="all",
         help="Which endpoints to record",
     )
@@ -405,18 +334,21 @@ async def main() -> None:
     if args.endpoint in ("authenticated", "all"):
         all_results["authenticated"] = await record_authenticated_endpoints()
 
-    if args.endpoint in ("trading", "all"):
-        all_results["trading"] = await record_trading_dry_run()
-
     # Save summary
     summary_path = GOLDEN_DIR / "_recording_summary.json"
     summary_path.write_text(
         json.dumps(
             {
-                "recorded_at": datetime.now().isoformat(),
-                "environment": env,
-                "endpoints_recorded": list(all_results.keys()),
-                "golden_dir": str(GOLDEN_DIR),
+                "_metadata": {
+                    "recorded_at": datetime.now(UTC).isoformat(),
+                    "endpoint": "_recording_summary",
+                    "environment": env,
+                },
+                "response": {
+                    "environment": env,
+                    "endpoints_recorded": list(all_results.keys()),
+                    "golden_dir": str(GOLDEN_DIR),
+                },
             },
             indent=2,
         )

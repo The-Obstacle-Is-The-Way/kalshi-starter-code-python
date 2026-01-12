@@ -1,10 +1,15 @@
 {
-  "recorded_at": "2026-01-12T10:24:03.963243",
-  "environment": "prod",
-  "endpoints_recorded": [
-    "public",
-    "authenticated",
-    "trading"
-  ],
-  "golden_dir": "/Users/ray/Desktop/CLARITY-DIGITAL-TWIN/kalshi-starter-code-python/tests/fixtures/golden"
+  "_metadata": {
+    "recorded_at": "2026-01-12T10:24:03.963243+00:00",
+    "endpoint": "_recording_summary",
+    "environment": "prod"
+  },
+  "response": {
+    "environment": "prod",
+    "endpoints_recorded": [
+      "public",
+      "authenticated"
+    ],
+    "golden_dir": "/Users/ray/Desktop/CLARITY-DIGITAL-TWIN/kalshi-starter-code-python/tests/fixtures/golden"
+  }
 }
