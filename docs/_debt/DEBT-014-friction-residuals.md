@@ -142,7 +142,7 @@ channel = data.get("type") or data.get("channel")
 
 **Verification performed:**
 
-1. [x] Checked Kalshi WebSocket docs: https://docs.kalshi.com/websockets/
+1. [x] Checked [Kalshi WebSocket docs](https://docs.kalshi.com/websockets/)
 2. [x] Verified message structures for all channel types:
    - `orderbook_snapshot` / `orderbook_delta` → uses `"type"`
    - `ticker` → uses `"type"`
@@ -167,11 +167,11 @@ Added documentation reference comment in code.
 
 ---
 
-### A5. Data Sync MVE Filter [P3] - ✅ COMPLETED
+### A5. Data Sync MVE Filter (Multivariate Events) [P3] - ✅ COMPLETED
 
 **Source:** `friction.md` - "Database Sync Sports Dominated"
 
-**Problem:** `kalshi data sync-markets` doesn't expose `--mve-filter` flag.
+**Problem:** `kalshi data sync-markets` doesn't expose `--mve-filter` flag (MVE = multivariate events).
 
 **Status:** ✅ **COMPLETED** (2026-01-11, commit 12657bb)
 - Added `mve_filter` parameter to `DataFetcher.sync_markets()`
@@ -204,14 +204,15 @@ compatibility layer.
 
 ## Section B: Needs Design Decisions
 
-> **User Decision (2026-01-11):**
-> - B1: Yes, always research first (auto-research before recommendations)
-> - B2: Yes, always show both sides (bull AND bear case required)
-> - B3: Yes, alert on new markets
->
-> **Status:** B1 and B2 are **BLOCKED BY FUTURE-001** implementation. The design is already
-> specified in `docs/_future/FUTURE-001-exa-research-agent.md`. When FUTURE-001 is implemented,
-> B1 and B2 become default behavior.
+### User Decisions (2026-01-11)
+
+- B1: Yes, always research first (auto-research before recommendations)
+- B2: Yes, always show both sides (bull AND bear case required)
+- B3: Yes, alert on new markets
+
+**Status:** B1 and B2 are **BLOCKED BY FUTURE-001** implementation. The design is already specified in
+`docs/_future/FUTURE-001-exa-research-agent.md`. When FUTURE-001 is implemented, B1 and B2 become
+default behavior.
 
 ### B1. Exa Integration Gap (Research Pipeline Architecture)
 
@@ -277,9 +278,9 @@ kalshi scan new-markets --hours 24 --categories politics,ai,tech --research
 2. Should this auto-trigger Exa research?
 3. What's the signal-to-noise threshold?
 
-**✅ INVESTIGATED (2026-01-11): Liquidity Filtering Analysis**
+#### ✅ INVESTIGATED (2026-01-11): Liquidity Filtering Analysis
 
-**Finding 1: Default filters are permissive**
+#### Finding 1: Default filters are permissive
 
 | Filter | Default | Impact on New Markets |
 |--------|---------|----------------------|
@@ -287,7 +288,7 @@ kalshi scan new-markets --hours 24 --categories politics,ai,tech --research
 | `--max-spread` | 100¢ | No exclusion (max range) |
 | `--min-liquidity` | None | Off by default |
 
-**Finding 2: The REAL filter is in `scanner.py:220-224`**
+#### Finding 2: The REAL filter is in `scanner.py:220-224`
 
 ```python
 # SKIP: Unpriced markets (0/0 or 0/100 placeholder quotes)
@@ -300,7 +301,7 @@ if m.yes_bid_cents == 0 and m.yes_ask_cents == 100:
 New markets with NO price discovery (bid=0, ask=100) ARE skipped. This is technically correct
 (can't analyze markets with no prices), but misses the "information arbitrage window."
 
-**Finding 3: `created_time` field EXISTS** (`api/models/market.py:84`)
+#### Finding 3: `created_time` field EXISTS (`api/models/market.py:84`)
 
 We CAN detect new markets. The Market model already has this field.
 

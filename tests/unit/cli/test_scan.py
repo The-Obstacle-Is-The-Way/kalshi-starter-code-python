@@ -39,7 +39,8 @@ def test_scan_movers_uses_probability_units(
     mock_market.title = "Test Market"
     mock_market.volume = 1000
 
-    async def market_gen(status=None, max_pages: int | None = None):
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
+        del mve_filter
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
@@ -117,8 +118,8 @@ def test_scan_movers_full_flag_disables_title_truncation(
     mock_market.title = long_title
     mock_market.volume = 1000
 
-    async def market_gen(status=None, max_pages: int | None = None):
-        _ = status, max_pages
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
+        _ = status, max_pages, mve_filter
         yield mock_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
@@ -206,7 +207,8 @@ def test_scan_arbitrage_warns_when_tickers_truncated(
     m2.yes_bid = 48
     m2.yes_ask = 50
 
-    async def market_gen(status=None, max_pages: int | None = None):
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
+        del mve_filter
         yield m1
         yield m2
 
@@ -266,8 +268,13 @@ def test_scan_opportunities_does_not_fetch_orderbooks_by_default(
         )
     )
 
-    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
-        _ = status, max_pages
+    async def market_gen(
+        *,
+        status: str | None = None,
+        max_pages: int | None = None,
+        mve_filter: object | None = None,
+    ):
+        _ = status, max_pages, mve_filter
         yield high_liquidity
         yield low_liquidity
 
@@ -316,8 +323,13 @@ def test_scan_opportunities_show_liquidity_fetches_orderbooks_with_depth(
         )
     )
 
-    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
-        _ = status, max_pages
+    async def market_gen(
+        *,
+        status: str | None = None,
+        max_pages: int | None = None,
+        mve_filter: object | None = None,
+    ):
+        _ = status, max_pages, mve_filter
         yield high_liquidity
         yield low_liquidity
 
@@ -387,8 +399,13 @@ def test_scan_opportunities_min_liquidity_filters_results(
         )
     )
 
-    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
-        _ = status, max_pages
+    async def market_gen(
+        *,
+        status: str | None = None,
+        max_pages: int | None = None,
+        mve_filter: object | None = None,
+    ):
+        _ = status, max_pages, mve_filter
         yield high_liquidity
         yield low_liquidity
 
@@ -445,8 +462,13 @@ def test_scan_opportunities_parses_exchange_status_booleans(
         )
     )
 
-    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
-        _ = status, max_pages
+    async def market_gen(
+        *,
+        status: str | None = None,
+        max_pages: int | None = None,
+        mve_filter: object | None = None,
+    ):
+        _ = status, max_pages, mve_filter
         yield high_liquidity
 
     mock_client.get_exchange_status = AsyncMock(
@@ -482,8 +504,13 @@ def test_scan_opportunities_warns_when_exchange_status_missing_boolean_fields(
         )
     )
 
-    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
-        _ = status, max_pages
+    async def market_gen(
+        *,
+        status: str | None = None,
+        max_pages: int | None = None,
+        mve_filter: object | None = None,
+    ):
+        _ = status, max_pages, mve_filter
         yield high_liquidity
 
     mock_client.get_exchange_status = AsyncMock(
@@ -664,8 +691,13 @@ def test_scan_opportunities_full_flag_disables_title_truncation(
         )
     )
 
-    async def market_gen(*, status: str | None = None, max_pages: int | None = None):
-        _ = status, max_pages
+    async def market_gen(
+        *,
+        status: str | None = None,
+        max_pages: int | None = None,
+        mve_filter: object | None = None,
+    ):
+        _ = status, max_pages, mve_filter
         yield market
 
     mock_client.get_exchange_status = AsyncMock(
@@ -750,8 +782,8 @@ def test_scan_arbitrage_full_flag_disables_truncation(
     m2.yes_bid = 48
     m2.yes_ask = 50
 
-    async def market_gen(status=None, max_pages: int | None = None):
-        _ = status, max_pages
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
+        _ = status, max_pages, mve_filter
         yield m1
         yield m2
 

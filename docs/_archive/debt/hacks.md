@@ -33,7 +33,7 @@ This document catalogs known hacky implementations, backwards compatibility conc
 3. More API calls than necessary (fetch everything, filter locally)
 
 **Kalshi's Intended Pattern:**
-```
+```text
 GET /search/tags_by_categories     # Discover available categories
 GET /series?category=Politics      # Get series in that category
 GET /markets?series_ticker=...     # Get markets for those series
@@ -224,7 +224,7 @@ Database continues to store cents for backwards compatibility.
 - Database stores cents (integers like 45)
 - Conversion happens in multiple places
 
-**Fix Consideration:** After Jan 15 deprecation, consider migrating DB to store dollars to match API convention. However, cents are simpler for calculations (no floating point issues).
+**Fix Consideration:** After Jan 15 deprecation, consider migrating DB to store dollars to match API convention. However, cents are simpler for calculations (no floating-point issues).
 
 ---
 

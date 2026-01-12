@@ -48,13 +48,15 @@ uv run kalshi --help
 ### data - Data Management
 ```bash
 uv run kalshi data init                    # Initialize database
-uv run kalshi data migrate                 # Validate/apply DB migrations (dry-run default)
+uv run kalshi data migrate                 # Preview migrations (dry-run default)
+uv run kalshi data migrate --apply         # Apply migrations
 uv run kalshi data sync-markets            # Sync markets from API
 uv run kalshi data sync-settlements        # Sync resolved outcomes
 uv run kalshi data sync-trades             # Fetch public trade history (CSV/JSON output)
 uv run kalshi data snapshot                # Take price snapshot
 uv run kalshi data collect [--interval 15] [--once] [--max-pages N]  # Continuous collection
-uv run kalshi data prune                   # Prune old snapshots/news (dry-run default)
+uv run kalshi data prune                   # Preview pruning (dry-run default)
+uv run kalshi data prune --apply           # Apply pruning
 uv run kalshi data vacuum                  # Reclaim DB space after deletes
 uv run kalshi data export [-f csv|parquet] # Export data
 uv run kalshi data stats                   # Show statistics
@@ -94,7 +96,7 @@ uv run kalshi research thesis create "TITLE" -m TICKER --your-prob 0.7 --market-
 uv run kalshi research thesis list [--full]
 uv run kalshi research thesis show ID [--with-positions]
 uv run kalshi research thesis resolve ID --outcome yes|no|void
-uv run kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD
+uv run kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD  # End date is inclusive
 ```
 
 ### news - News Monitoring & Sentiment (Exa-Powered)
@@ -112,7 +114,8 @@ uv run kalshi alerts list
 uv run kalshi alerts add price|volume|spread TICKER [--above N] [--below N]
 uv run kalshi alerts remove ALERT_ID
 uv run kalshi alerts monitor [--interval 60] [--daemon] [--once] [--max-pages N]
-uv run kalshi alerts trim-log               # Trim alerts daemon log (dry-run default)
+uv run kalshi alerts trim-log               # Preview log trim (dry-run default)
+uv run kalshi alerts trim-log --apply       # Apply trimming
 ```
 
 ### analysis - Market Analysis

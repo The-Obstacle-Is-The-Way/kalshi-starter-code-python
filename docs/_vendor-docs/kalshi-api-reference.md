@@ -275,7 +275,7 @@ The `price_level_structure` field defines allowed price levels, critical for upc
 | `price_level_structure` | string | Defines pricing rules (e.g., `custom`) |
 | `price_ranges` | array | Allowed price ranges with start, end, step |
 
-> **⚠️ IMPORTANT:** Subpenny pricing is coming "in the near future". All systems should parse `*_dollars` fields now and handle non-integer prices. Integer cent fields will be removed.
+> **⚠️ IMPORTANT:** Subpenny pricing migration is underway. Per the Kalshi API changelog: subpenny fields were added to price APIs on Aug 31, 2025, added to WebSocket messages on Sep 9, 2025, and additional quote fields (e.g., `yes_bid_dollars` / `no_bid_dollars`) were added on Nov 21, 2025. All systems should parse `*_dollars` fields now and handle non-integer prices; legacy integer cent fields are deprecated and may be removed.
 
 #### Expiration & Settlement Times
 

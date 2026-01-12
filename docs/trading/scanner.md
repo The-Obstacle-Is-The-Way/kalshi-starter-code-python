@@ -142,6 +142,10 @@ Use `--tickers-limit` to bound how many tickers are included in the historical c
 
 **Filter logic (simplified):**
 
+In the implementation, `corr_type` is derived from historical correlation analysis of the two markets' midpoint
+probabilities (from your local price snapshot history). It is the string value of `CorrelationType`
+(`positive`, `negative`, `lead_lag`, or `none`) from `src/kalshi_research/analysis/correlation.py`.
+
 ```python
 if corr_type == "positive" and abs(price_a - price_b) > threshold:
     opportunity_type = "divergence"

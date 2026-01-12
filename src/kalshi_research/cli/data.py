@@ -49,6 +49,8 @@ def _validate_migrations_on_temp_db(*, alembic_ini: Path, db_path: Path) -> None
             tmp_path.touch()
 
         tmp_cfg = Config(str(alembic_ini))
+        # Alembic is invoked synchronously, but our alembic `env.py` runs migrations via
+        # `async_engine_from_config`, so the async driver URL is required here.
         tmp_cfg.set_main_option("sqlalchemy.url", f"sqlite+aiosqlite:///{tmp_path}")
         command.upgrade(tmp_cfg, "head")
     finally:
@@ -105,6 +107,8 @@ def data_migrate(
         raise typer.Exit(1) from None
 
     alembic_cfg = Config(str(alembic_ini))
+    # Keep the async driver URL: our alembic `env.py` runs migrations via
+    # `async_engine_from_config`.
     alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite+aiosqlite:///{db_path}")
 
     script = ScriptDirectory.from_config(alembic_cfg)

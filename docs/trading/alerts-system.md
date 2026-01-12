@@ -230,6 +230,9 @@ uv run kalshi alerts monitor --webhook-url https://example.com/webhook
 
 Each condition type has specific evaluation logic:
 
+Note: In this codebase, `Market.midpoint` and `Market.spread` are computed properties (not raw API fields) derived
+from the current YES bid/ask quotes in `src/kalshi_research/api/models/market.py`.
+
 ### Price Above/Below
 
 ```python

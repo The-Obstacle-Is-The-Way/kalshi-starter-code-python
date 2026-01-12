@@ -50,7 +50,7 @@ class ThesisEvidence:
     snippet: str
     supports: str  # bull, bear, neutral
     relevance_score: float
-    added_at: datetime
+    added_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 @dataclass
 class Thesis:
@@ -70,16 +70,16 @@ class Thesis:
     invalidation_criteria: list[str]  # What would prove you wrong?
 
     # Tracking
-    status: ThesisStatus         # draft, active, resolved, abandoned
-    created_at: datetime
-    resolved_at: datetime | None
-    actual_outcome: str | None   # "yes", "no", or "void"
-    updates: list[dict]          # Timestamped notes
+    status: ThesisStatus = ThesisStatus.DRAFT
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    resolved_at: datetime | None = None
+    actual_outcome: str | None = None   # "yes", "no", or "void"
+    updates: list[dict[str, Any]] = field(default_factory=list)  # Timestamped notes
 
     # Optional: attached Exa research
-    evidence: list[ThesisEvidence]
-    research_summary: str | None
-    last_research_at: datetime | None
+    evidence: list[ThesisEvidence] = field(default_factory=list)
+    research_summary: str | None = None
+    last_research_at: datetime | None = None
 ```
 
 ## Edge Detection
