@@ -1,0 +1,16 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T21:09:29.518067+00:00",
+    "endpoint": "/research/v1",
+    "environment": "prod",
+    "sanitized": false,
+    "instructions": "Summarize https://example.com in 1 short sentence."
+  },
+  "response": {
+    "researchId": "r_01ket0nq2k24446e21cmbz6jkx",
+    "createdAt": 1768252169299,
+    "model": "exa-research",
+    "instructions": "Summarize https://example.com in 1 short sentence.",
+    "status": "running"
+  }
+}

@@ -9,6 +9,9 @@ Usage:
     # Record core endpoints (requires EXA_API_KEY)
     uv run python scripts/record_exa_responses.py
 
+    # Record only /research/v1 fixtures (higher cost/latency)
+    uv run python scripts/record_exa_responses.py --only-research
+
     # Include /research/v1 (higher cost/latency)
     uv run python scripts/record_exa_responses.py --include-research
 
@@ -104,7 +107,7 @@ async def _record_get(
     return raw
 
 
-async def record_exa_fixtures(*, include_research: bool) -> None:
+async def record_exa_fixtures(*, include_research: bool, only_research: bool) -> None:
     api_key = os.getenv("EXA_API_KEY")
     if not api_key:
         raise RuntimeError("EXA_API_KEY not configured (check .env)")
@@ -114,79 +117,84 @@ async def record_exa_fixtures(*, include_research: bool) -> None:
         stable_domain = "example.com"
         example_url = "https://example.com"
 
-        # 1) /search (no contents)
-        search_request = SearchRequest(query=query, num_results=1, include_domains=[stable_domain])
-        await _record_post(
-            exa=exa,
-            name="search",
-            endpoint="/search",
-            json_body=search_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
-            metadata={"query": query, "num_results": 1, "include_domains": [stable_domain]},
-        )
+        if not only_research:
+            # 1) /search (no contents)
+            search_request = SearchRequest(
+                query=query, num_results=1, include_domains=[stable_domain]
+            )
+            await _record_post(
+                exa=exa,
+                name="search",
+                endpoint="/search",
+                json_body=search_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
+                metadata={"query": query, "num_results": 1, "include_domains": [stable_domain]},
+            )
 
-        # 2) /search (with contents)
-        contents = ContentsRequest(
-            text=TextContentsOptions(max_characters=500),
-            highlights=HighlightsOptions(query=query, num_sentences=2, highlights_per_url=1),
-        )
-        search_contents_request = SearchRequest(
-            query=query,
-            num_results=1,
-            include_domains=[stable_domain],
-            contents=contents,
-        )
-        search_contents_payload = search_contents_request.model_dump(
-            by_alias=True, exclude_none=True, mode="json"
-        )
-        await _record_post(
-            exa=exa,
-            name="search_and_contents",
-            endpoint="/search",
-            json_body=search_contents_payload,
-            metadata={
-                "query": query,
-                "num_results": 1,
-                "include_domains": [stable_domain],
-                "note": "Recorded via /search with a contents object",
-            },
-        )
+            # 2) /search (with contents)
+            contents = ContentsRequest(
+                text=TextContentsOptions(max_characters=500),
+                highlights=HighlightsOptions(query=query, num_sentences=2, highlights_per_url=1),
+            )
+            search_contents_request = SearchRequest(
+                query=query,
+                num_results=1,
+                include_domains=[stable_domain],
+                contents=contents,
+            )
+            search_contents_payload = search_contents_request.model_dump(
+                by_alias=True, exclude_none=True, mode="json"
+            )
+            await _record_post(
+                exa=exa,
+                name="search_and_contents",
+                endpoint="/search",
+                json_body=search_contents_payload,
+                metadata={
+                    "query": query,
+                    "num_results": 1,
+                    "include_domains": [stable_domain],
+                    "note": "Recorded via /search with a contents object",
+                },
+            )
 
-        # 3) /contents
-        contents_request = GetContentsRequest(
-            urls=[example_url],
-            text=TextContentsOptions(max_characters=800),
-        )
-        await _record_post(
-            exa=exa,
-            name="get_contents",
-            endpoint="/contents",
-            json_body=contents_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
-            metadata={"urls": [example_url]},
-        )
+            # 3) /contents
+            contents_request = GetContentsRequest(
+                urls=[example_url],
+                text=TextContentsOptions(max_characters=800),
+            )
+            await _record_post(
+                exa=exa,
+                name="get_contents",
+                endpoint="/contents",
+                json_body=contents_request.model_dump(
+                    by_alias=True, exclude_none=True, mode="json"
+                ),
+                metadata={"urls": [example_url]},
+            )
 
-        # 4) /findSimilar
-        find_similar_request = FindSimilarRequest(url=example_url, num_results=3)
-        find_similar_payload = find_similar_request.model_dump(
-            by_alias=True, exclude_none=True, mode="json"
-        )
-        await _record_post(
-            exa=exa,
-            name="find_similar",
-            endpoint="/findSimilar",
-            json_body=find_similar_payload,
-            metadata={"url": example_url, "num_results": 3},
-        )
+            # 4) /findSimilar
+            find_similar_request = FindSimilarRequest(url=example_url, num_results=3)
+            find_similar_payload = find_similar_request.model_dump(
+                by_alias=True, exclude_none=True, mode="json"
+            )
+            await _record_post(
+                exa=exa,
+                name="find_similar",
+                endpoint="/findSimilar",
+                json_body=find_similar_payload,
+                metadata={"url": example_url, "num_results": 3},
+            )
 
-        # 5) /answer
-        answer_query = "What is Example Domain?"
-        answer_request = AnswerRequest(query=answer_query, text=False)
-        await _record_post(
-            exa=exa,
-            name="answer",
-            endpoint="/answer",
-            json_body=answer_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
-            metadata={"query": answer_query},
-        )
+            # 5) /answer
+            answer_query = "What is Example Domain?"
+            answer_request = AnswerRequest(query=answer_query, text=False)
+            await _record_post(
+                exa=exa,
+                name="answer",
+                endpoint="/answer",
+                json_body=answer_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
+                metadata={"query": answer_query},
+            )
 
         if include_research:
             # NOTE: /research/v1 can be higher cost/latency. Keep the task small.
@@ -257,6 +265,11 @@ async def record_exa_fixtures(*, include_research: bool) -> None:
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Record Exa API responses as golden fixtures")
     parser.add_argument(
+        "--only-research",
+        action="store_true",
+        help="Record only /research/v1 fixtures (avoid re-recording core endpoints).",
+    )
+    parser.add_argument(
         "--include-research",
         action="store_true",
         help="Also record /research/v1 fixtures (higher cost/latency).",
@@ -272,10 +285,12 @@ async def main() -> None:
         print("Refusing to record in non-interactive mode without --yes.")
         return
 
+    include_research = args.include_research or args.only_research
+
     print(f"\n{'=' * 60}")
     print("RECORDING EXA API RESPONSES")
     print(f"{'=' * 60}\n")
-    await record_exa_fixtures(include_research=args.include_research)
+    await record_exa_fixtures(include_research=include_research, only_research=args.only_research)
 
     print(f"\n{'=' * 60}")
     print(f"DONE! Exa golden fixtures saved to: {GOLDEN_EXA_DIR}")

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -30,32 +32,32 @@ def _client() -> ExaClient:
     return ExaClient(ExaConfig(api_key="test-key"))
 
 
+def _load_golden_exa_fixture(name: str) -> dict[str, Any]:
+    root = Path(__file__).resolve().parents[3]
+    fixture_path = root / "tests" / "fixtures" / "golden" / "exa" / name
+    data = json.loads(fixture_path.read_text())
+    response = data["response"]
+    if not isinstance(response, dict):
+        raise TypeError(f"Unexpected Exa golden fixture shape for {name}: expected object response")
+    return response
+
+
 @pytest.mark.asyncio
 @respx.mock
 async def test_search_success_includes_api_key_header() -> None:
+    response_json = _load_golden_exa_fixture("search_response.json")
     route = respx.post("https://api.exa.ai/search").mock(
         return_value=Response(
             200,
-            json={
-                "requestId": "req_1",
-                "searchType": "auto",
-                "results": [
-                    {
-                        "id": "doc_1",
-                        "url": "https://example.com/a",
-                        "title": "Example",
-                        "score": 0.9,
-                    }
-                ],
-            },
+            json=response_json,
         )
     )
 
     async with _client() as exa:
         resp = await exa.search("hello", num_results=1)
 
-    assert resp.request_id == "req_1"
-    assert resp.results[0].url == "https://example.com/a"
+    assert resp.request_id == response_json["requestId"]
+    assert resp.results[0].url == response_json["results"][0]["url"]
     assert route.call_count == 1
     assert route.calls[0].request.headers.get("x-api-key") == "test-key"
 
@@ -144,30 +146,19 @@ async def test_rate_limit_retries_with_retry_after_header() -> None:
 @pytest.mark.asyncio
 @respx.mock
 async def test_get_contents_success() -> None:
+    response_json = _load_golden_exa_fixture("get_contents_response.json")
     route = respx.post("https://api.exa.ai/contents").mock(
         return_value=Response(
             200,
-            json={
-                "requestId": "req_contents",
-                "results": [
-                    {
-                        "id": "doc_1",
-                        "url": "https://example.com/a",
-                        "title": "Example",
-                        "score": 0.9,
-                        "text": "hello",
-                    }
-                ],
-                "statuses": [{"id": "doc_1", "status": "success"}],
-            },
+            json=response_json,
         )
     )
 
     async with _client() as exa:
         resp = await exa.get_contents(["https://example.com/a"], text=True)
 
-    assert resp.request_id == "req_contents"
-    assert resp.results[0].text == "hello"
+    assert resp.request_id == response_json["requestId"]
+    assert resp.results[0].text == response_json["results"][0]["text"]
     assert route.call_count == 1
 
 
@@ -205,23 +196,20 @@ async def test_find_similar_omits_contents_when_all_options_disabled() -> None:
 @pytest.mark.asyncio
 @respx.mock
 async def test_answer_success() -> None:
+    response_json = _load_golden_exa_fixture("answer_response.json")
     respx.post("https://api.exa.ai/answer").mock(
         return_value=Response(
             200,
-            json={
-                "answer": "42",
-                "citations": [],
-                "costDollars": {"total": 0.01},
-            },
+            json=response_json,
         )
     )
 
     async with _client() as exa:
         resp = await exa.answer("meaning of life", text=False)
 
-    assert resp.answer == "42"
+    assert resp.answer == response_json["answer"]
     assert resp.cost_dollars is not None
-    assert resp.cost_dollars.total == 0.01
+    assert resp.cost_dollars.total == response_json["costDollars"]["total"]
 
 
 @pytest.mark.asyncio
@@ -269,16 +257,11 @@ async def test_open_and_close_are_idempotent() -> None:
 @pytest.mark.asyncio
 @respx.mock
 async def test_create_research_task_posts_payload() -> None:
+    response_json = _load_golden_exa_fixture("research_task_create_response.json")
     route = respx.post("https://api.exa.ai/research/v1").mock(
         return_value=Response(
             200,
-            json={
-                "researchId": "r1",
-                "status": "completed",
-                "createdAt": 1,
-                "instructions": "Do the thing",
-                "output": {"content": "done"},
-            },
+            json=response_json,
         )
     )
 
@@ -288,8 +271,7 @@ async def test_create_research_task_posts_payload() -> None:
             output_schema={"type": "object"},
         )
 
-    assert task.research_id == "r1"
-    assert task.output is not None
+    assert task.research_id == response_json["researchId"]
     assert route.call_count == 1
     body = json.loads(route.calls[0].request.content.decode("utf-8"))
     assert body["instructions"] == "Do the thing"
@@ -299,36 +281,30 @@ async def test_create_research_task_posts_payload() -> None:
 @pytest.mark.asyncio
 @respx.mock
 async def test_wait_for_research_polls_until_terminal_status() -> None:
-    route = respx.get("https://api.exa.ai/research/v1/r1")
+    terminal = _load_golden_exa_fixture("research_task_response.json")
+    research_id = terminal["researchId"]
+
+    route = respx.get(f"https://api.exa.ai/research/v1/{research_id}")
     route.side_effect = [
         Response(
             200,
             json={
-                "researchId": "r1",
+                "researchId": research_id,
                 "status": "pending",
                 "createdAt": 1,
                 "instructions": "x",
             },
         ),
-        Response(
-            200,
-            json={
-                "researchId": "r1",
-                "status": "completed",
-                "createdAt": 1,
-                "instructions": "x",
-                "output": {"content": "done"},
-            },
-        ),
+        Response(200, json=terminal),
     ]
 
     with patch("asyncio.sleep", new=AsyncMock()) as mock_sleep:
         async with _client() as exa:
-            task = await exa.wait_for_research("r1", poll_interval=0.0, timeout=1.0)
+            task = await exa.wait_for_research(research_id, poll_interval=0.0, timeout=1.0)
 
     assert task.status.value == "completed"
     assert task.output is not None
-    assert task.output.content == "done"
+    assert task.output.content == terminal["output"]["content"]
     assert route.call_count == 2
     assert mock_sleep.await_count >= 1
 

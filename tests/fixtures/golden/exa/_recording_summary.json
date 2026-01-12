@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-12T20:14:34.559171+00:00",
+    "recorded_at": "2026-01-12T21:09:45.251079+00:00",
     "endpoint": "_recording_summary",
     "environment": "prod"
   },
@@ -9,9 +9,11 @@
       "answer_response.json",
       "find_similar_response.json",
       "get_contents_response.json",
+      "research_task_create_response.json",
+      "research_task_response.json",
       "search_and_contents_response.json",
       "search_response.json"
     ],
-    "include_research": false
+    "include_research": true
   }
 }

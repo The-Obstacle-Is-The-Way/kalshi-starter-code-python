@@ -6,6 +6,7 @@ from typing import Any
 
 from kalshi_research.exa.models.answer import AnswerResponse
 from kalshi_research.exa.models.contents import ContentsResponse
+from kalshi_research.exa.models.research import ResearchTask
 from kalshi_research.exa.models.search import SearchResponse
 from kalshi_research.exa.models.similar import FindSimilarResponse
 
@@ -35,3 +36,11 @@ def test_exa_find_similar_fixture_matches_model() -> None:
 
 def test_exa_answer_fixture_matches_model() -> None:
     AnswerResponse.model_validate(_load_exa_fixture("answer_response.json"))
+
+
+def test_exa_research_task_create_fixture_matches_model() -> None:
+    ResearchTask.model_validate(_load_exa_fixture("research_task_create_response.json"))
+
+
+def test_exa_research_task_fixture_matches_model() -> None:
+    ResearchTask.model_validate(_load_exa_fixture("research_task_response.json"))

@@ -60,11 +60,22 @@ class ResearchTask(BaseModel):
 
     model_config = ConfigDict(frozen=True, populate_by_name=True)
 
+    class Citation(BaseModel):
+        """Citation returned by research output (may be absent)."""
+
+        model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+        id: str
+        url: str
+        title: str | None = None
+
     research_id: str = Field(alias="researchId")
     status: ResearchStatus
     created_at: int = Field(alias="createdAt")
+    finished_at: int | None = Field(default=None, alias="finishedAt")
     model: str | None = None
     instructions: str
     output: ResearchOutput | None = None
+    citations: list[Citation] | None = None
     cost_dollars: ResearchCostDollars | None = Field(default=None, alias="costDollars")
     error: str | None = None
