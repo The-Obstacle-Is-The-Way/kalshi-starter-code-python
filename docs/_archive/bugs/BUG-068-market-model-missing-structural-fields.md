@@ -1,19 +1,33 @@
 # BUG-068: Market Model Missing Structural Fields
 
 **Priority:** P3
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-12
+**Fixed:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed none of these fields are used in codebase
 
 ---
 
 ## Summary
 
-The Market model is missing several structural fields documented in the Kalshi API. While not immediately critical, these fields are needed for:
+The Market model was missing several structural fields documented in the Kalshi OpenAPI schema. While
+not immediately critical, these fields are needed for:
 - Understanding market mechanics (scalar vs binary)
 - Strike configuration for range-based markets
 - Price level structure for subpenny pricing
 - Multivariate event support
+
+---
+
+## Fix Implemented
+
+- Expanded `Market` in `src/kalshi_research/api/models/market.py` to include structural OpenAPI fields
+  (all optional to avoid breaking older fixtures).
+- Added typed models/enums:
+  - `MarketType`, `StrikeType`
+  - `PriceRange`
+  - `MveSelectedLeg`
+- Added unit coverage to ensure these fields parse correctly.
 
 ---
 
@@ -111,9 +125,9 @@ currently expose them.
 
 ## Test Plan
 
-- [ ] Add fields incrementally
-- [ ] Update test fixtures
-- [ ] Verify parsing from live API with diverse market types
+- [x] Add fields to Market model
+- [x] Add unit coverage for parsing structural fields
+- [ ] Verify parsing from live API with diverse market types (follow-up)
 
 ---
 

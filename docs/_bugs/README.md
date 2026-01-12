@@ -6,7 +6,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Priority | Status | Verified |
 |---|---|---|---|---|
-| **[BUG-068](BUG-068-market-model-missing-structural-fields.md)** | Market Model Missing Structural Fields | P3 | Open | 2026-01-12 |
+| (none) | | | | |
 
 ### Verification Note (2026-01-12)
 
@@ -52,6 +52,7 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 | **BUG-065** | `amend_order()` Missing Required Fields | ✅ Fixed |
 | **BUG-066** | Fill Model Missing Fields | ✅ Fixed |
 | **BUG-067** | Order Model Missing Fields | ✅ Fixed |
+| **BUG-068** | Market Model Missing Structural Fields | ✅ Fixed |
 | **BUG-070** | `cancel_order()` drops `reduced_by` from cancel response | ✅ Fixed |
 | **BUG-069** | Order response schema mismatch (`status` vs `order_status`) can orphan live orders | ✅ Fixed |
 

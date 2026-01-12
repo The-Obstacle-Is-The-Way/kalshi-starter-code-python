@@ -6,7 +6,7 @@ import logging
 from datetime import UTC, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -40,6 +40,46 @@ class MarketFilterStatus(str, Enum):
     SETTLED = "settled"
 
 
+class MarketType(str, Enum):
+    """Market type as returned by the API."""
+
+    BINARY = "binary"
+    SCALAR = "scalar"
+
+
+class StrikeType(str, Enum):
+    """Strike type for scalar/structured markets (OpenAPI enum)."""
+
+    GREATER = "greater"
+    GREATER_OR_EQUAL = "greater_or_equal"
+    LESS = "less"
+    LESS_OR_EQUAL = "less_or_equal"
+    BETWEEN = "between"
+    FUNCTIONAL = "functional"
+    CUSTOM = "custom"
+    STRUCTURED = "structured"
+
+
+class MveSelectedLeg(BaseModel):
+    """Selected leg in a multivariate market combination."""
+
+    model_config = ConfigDict(frozen=True)
+
+    event_ticker: str | None = None
+    market_ticker: str | None = None
+    side: str | None = None
+
+
+class PriceRange(BaseModel):
+    """Valid price range and tick size (OpenAPI PriceRange schema)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    start: str
+    end: str
+    step: str
+
+
 class Market(BaseModel):
     """Represents a Kalshi prediction market."""
 
@@ -47,15 +87,25 @@ class Market(BaseModel):
 
     ticker: str = Field(..., description="Unique market identifier")
     event_ticker: str = Field(..., description="Parent event ticker")
+    market_type: MarketType | None = Field(
+        default=None, description="Market type: binary or scalar"
+    )
     # Note: series_ticker may not be present in all responses
     series_ticker: str | None = Field(default=None, description="Parent series ticker")
 
     title: str = Field(..., description="Market question/title")
     subtitle: str = Field(default="", description="Additional context")
+    yes_sub_title: str | None = Field(default=None, description="Short title for YES side")
+    no_sub_title: str | None = Field(default=None, description="Short title for NO side")
 
     status: MarketStatus
     # Result can be "yes", "no", "void", or "" (empty string when undetermined)
     result: Literal["yes", "no", "void", ""] = ""
+
+    response_price_units: Literal["usd_cent"] | None = Field(
+        default=None,
+        description="DEPRECATED: Use price_level_structure and price_ranges instead.",
+    )
 
     # Pricing - NEW dollar fields (strings from API, format: "0.4500")
     # These will become the primary fields after Jan 15, 2026
@@ -67,6 +117,9 @@ class Market(BaseModel):
     previous_price_dollars: str | None = Field(default=None, description="Prev close (dollars)")
     previous_yes_bid_dollars: str | None = Field(default=None, description="Prev yes bid (dollars)")
     previous_yes_ask_dollars: str | None = Field(default=None, description="Prev yes ask (dollars)")
+    previous_yes_bid: int | None = Field(default=None, ge=0, le=100, description="DEPRECATED")
+    previous_yes_ask: int | None = Field(default=None, ge=0, le=100, description="DEPRECATED")
+    previous_price: int | None = Field(default=None, ge=0, le=100, description="DEPRECATED")
 
     # Legacy pricing (DEPRECATED: removed Jan 15, 2026 - use *_dollars fields)
     yes_bid: int | None = Field(default=None, ge=0, le=100, description="DEPRECATED")
@@ -84,10 +137,27 @@ class Market(BaseModel):
     created_time: datetime | None = Field(default=None, description="When the market was created")
     open_time: datetime
     close_time: datetime
+    expected_expiration_time: datetime | None = Field(
+        default=None,
+        description="Projected market expiration time (may be absent).",
+    )
     expiration_time: datetime
+    latest_expiration_time: datetime | None = Field(
+        default=None,
+        description="Latest possible market expiration time (may be absent).",
+    )
+    settlement_timer_seconds: int | None = Field(
+        default=None,
+        ge=0,
+        description="Time after determination before settlement (seconds).",
+    )
     settlement_ts: datetime | None = Field(
         default=None,
         description="Actual settlement timestamp (None if not yet settled).",
+    )
+    fee_waiver_expiration_time: datetime | None = Field(
+        default=None,
+        description="When promotional fee waiver expires (may be absent).",
     )
 
     # Liquidity (DEPRECATED: removed Jan 15, 2026 - use dollar fields)
@@ -99,17 +169,103 @@ class Market(BaseModel):
         default=None,
         description="Current offer value in fixed-point dollars (replacement for `liquidity`).",
     )
+    notional_value: int | None = Field(
+        default=None,
+        description="DEPRECATED: Use notional_value_dollars. Contract notional in cents.",
+    )
     notional_value_dollars: str | None = Field(
         default=None,
         description="Contract notional value in fixed-point dollars.",
+    )
+
+    # Market rules and settlement
+    can_close_early: bool | None = Field(
+        default=None,
+        description="Whether the market can close early (may be absent).",
+    )
+    settlement_value: int | None = Field(
+        default=None,
+        description="YES payout in cents after determination (may be absent).",
+    )
+    settlement_value_dollars: str | None = Field(
+        default=None,
+        description="YES payout in dollars after determination (may be absent).",
+    )
+    expiration_value: str | None = Field(
+        default=None,
+        description="Value used for settlement (may be absent).",
+    )
+    rules_primary: str | None = Field(
+        default=None, description="Primary rules text (may be absent)."
+    )
+    rules_secondary: str | None = Field(
+        default=None, description="Secondary rules text (may be absent)."
+    )
+    early_close_condition: str | None = Field(
+        default=None,
+        description="Condition for early close (may be absent).",
+    )
+
+    # Pricing structure (subpenny / structured pricing)
+    tick_size: int | None = Field(
+        default=None,
+        description="DEPRECATED: Use price_level_structure and price_ranges instead.",
+    )
+    price_level_structure: str | None = Field(
+        default=None,
+        description="Price level structure defining allowed tick sizes (may be absent).",
+    )
+    price_ranges: list[PriceRange] | None = Field(
+        default=None,
+        description="Valid price ranges for orders on this market (may be absent).",
+    )
+
+    # Strike configuration (scalar / structured markets)
+    strike_type: StrikeType | None = Field(default=None, description="Strike evaluation type")
+    floor_strike: float | None = Field(
+        default=None,
+        description="Minimum expiration value that yields a YES settlement (may be absent).",
+    )
+    cap_strike: float | None = Field(
+        default=None,
+        description="Maximum expiration value that yields a YES settlement (may be absent).",
+    )
+    functional_strike: str | None = Field(
+        default=None,
+        description="Mapping from expiration values to settlement values (may be absent).",
+    )
+    custom_strike: dict[str, Any] | None = Field(
+        default=None,
+        description="Per-target expiration values that yield a YES settlement (may be absent).",
+    )
+
+    # Multivariate markets
+    mve_collection_ticker: str | None = Field(
+        default=None,
+        description="Ticker of the multivariate event collection (may be absent).",
+    )
+    mve_selected_legs: list[MveSelectedLeg] | None = Field(
+        default=None,
+        description="Selected legs in the multivariate combination (may be absent).",
+    )
+    primary_participant_key: str | None = Field(
+        default=None,
+        description="Primary participant identifier (may be absent).",
+    )
+    is_provisional: bool | None = Field(
+        default=None,
+        description="Whether the market is provisional and may be deleted (may be absent).",
     )
 
     @field_validator(
         "created_time",
         "open_time",
         "close_time",
+        "expected_expiration_time",
         "expiration_time",
+        "latest_expiration_time",
         "settlement_ts",
+        "fee_waiver_expiration_time",
         mode="after",
     )
     @classmethod

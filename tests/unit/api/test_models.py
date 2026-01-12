@@ -13,7 +13,14 @@ from typing import Any
 
 import pytest
 
-from kalshi_research.api.models.market import Market, MarketFilterStatus, MarketStatus
+from kalshi_research.api.models.market import (
+    Market,
+    MarketFilterStatus,
+    MarketStatus,
+    MarketType,
+    PriceRange,
+    StrikeType,
+)
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.portfolio import Fill, Order
 from kalshi_research.api.models.trade import Trade
@@ -123,6 +130,60 @@ class TestMarketModel:
 
         assert market.liquidity_dollars is None
         assert market.notional_value_dollars is None
+
+    def test_market_model_accepts_structural_fields(self, make_market: Any) -> None:
+        """Market model should accept structural OpenAPI fields (even if unused)."""
+        market = Market.model_validate(
+            make_market(
+                market_type="binary",
+                yes_sub_title="Yes",
+                no_sub_title="No",
+                latest_expiration_time="2026-01-02T00:00:00Z",
+                settlement_timer_seconds=60,
+                response_price_units="usd_cent",
+                notional_value=100,
+                previous_yes_bid=44,
+                previous_yes_ask=48,
+                previous_price=46,
+                can_close_early=False,
+                expiration_value="0",
+                rules_primary="Primary rules",
+                rules_secondary="Secondary rules",
+                tick_size=1,
+                price_level_structure="custom",
+                price_ranges=[{"start": "0.01", "end": "0.99", "step": "0.01"}],
+                strike_type="greater",
+                floor_strike=1.0,
+                cap_strike=2.0,
+                functional_strike="x",
+                custom_strike={"target": 1.0},
+                is_provisional=False,
+            )
+        )
+
+        assert market.market_type == MarketType.BINARY
+        assert market.yes_sub_title == "Yes"
+        assert market.no_sub_title == "No"
+        assert market.latest_expiration_time is not None
+        assert market.settlement_timer_seconds == 60
+        assert market.response_price_units == "usd_cent"
+        assert market.notional_value == 100
+        assert market.previous_yes_bid == 44
+        assert market.previous_yes_ask == 48
+        assert market.previous_price == 46
+        assert market.can_close_early is False
+        assert market.expiration_value == "0"
+        assert market.rules_primary == "Primary rules"
+        assert market.rules_secondary == "Secondary rules"
+        assert market.tick_size == 1
+        assert market.price_level_structure == "custom"
+        assert market.price_ranges == [PriceRange(start="0.01", end="0.99", step="0.01")]
+        assert market.strike_type == StrikeType.GREATER
+        assert market.floor_strike == 1.0
+        assert market.cap_strike == 2.0
+        assert market.functional_strike == "x"
+        assert market.custom_strike == {"target": 1.0}
+        assert market.is_provisional is False
 
     def test_market_positive_liquidity_preserved(self, make_market: Any) -> None:
         """Positive liquidity values are preserved until field removal."""
