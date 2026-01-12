@@ -130,6 +130,19 @@ def _extract_series_ticker_from_event_single(raw_event_single: dict[str, Any]) -
     return series_ticker
 
 
+def _extract_first_series_ticker(raw_series_list: dict[str, Any]) -> str | None:
+    series = raw_series_list.get("series")
+    if not isinstance(series, list) or not series:
+        return None
+    first = series[0]
+    if not isinstance(first, dict):
+        return None
+    ticker = first.get("ticker")
+    if not isinstance(ticker, str) or not ticker:
+        return None
+    return ticker
+
+
 def _batch_candlesticks_has_data(raw_batch: dict[str, Any]) -> bool:
     markets = raw_batch.get("markets")
     if not isinstance(markets, list) or not markets:
@@ -192,12 +205,93 @@ async def _record_auth_get(
     return raw
 
 
+async def _record_series_discovery_endpoints(
+    client: KalshiPublicClient,
+    *,
+    raw_tags_by_categories: dict[str, Any] | None,
+    results: dict[str, Any],
+) -> None:
+    """
+    Record discovery endpoints that support category->series browsing.
+
+    We derive a real category from the `/search/tags_by_categories` response to keep the
+    `/series` fixture representative and reasonably sized.
+    """
+    # Record series discovery endpoints (category derived from tags_by_categories).
+    tags_map: object | None = None
+    if isinstance(raw_tags_by_categories, dict):
+        tags_map = raw_tags_by_categories.get("tags_by_categories")
+
+    category_candidates: list[str] = []
+    if isinstance(tags_map, dict):
+        category_candidates = [
+            category
+            for category, tags in tags_map.items()
+            if isinstance(category, str)
+            and category
+            and isinstance(tags, list)
+            and any(isinstance(tag, str) and tag for tag in tags)
+        ]
+
+    chosen_category: str | None = category_candidates[0] if category_candidates else None
+
+    raw_series_list: dict[str, Any] | None = None
+    if chosen_category is not None:
+        try:
+            raw_series_list = await client._get("/series", params={"category": chosen_category})
+            results["series_list"] = raw_series_list
+            save_golden(
+                "series_list",
+                raw_series_list,
+                {
+                    "category": chosen_category,
+                    "note": "RAW API response (SSOT)",
+                },
+            )
+        except Exception as exc:
+            print(f"  ERROR recording /series: {exc}")
+            raw_series_list = None
+    else:
+        print(
+            "  SKIP recording /series: no categories found in /search/tags_by_categories response"
+        )
+
+    series_ticker = _extract_first_series_ticker(raw_series_list or {})
+    if series_ticker:
+        await _record_public_get(
+            client,
+            label=f"GET /series/{series_ticker} (RAW)",
+            path=f"/series/{series_ticker}",
+            save_as="series_single",
+            metadata={"series_ticker": series_ticker, "note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
+    await _record_public_get(
+        client,
+        label="GET /series/fee_changes (RAW)",
+        path="/series/fee_changes",
+        save_as="series_fee_changes",
+        metadata={"note": "RAW API response (SSOT)"},
+        results=results,
+    )
+
+
 async def record_public_endpoints() -> dict[str, Any]:
     """Record responses from public (unauthenticated) endpoints."""
     results: dict[str, Any] = {}
 
     async with KalshiPublicClient() as client:
         print("\n=== PUBLIC ENDPOINTS ===\n")
+
+        raw_tags_by_categories = await _record_public_get(
+            client,
+            label="GET /search/tags_by_categories (RAW)",
+            path="/search/tags_by_categories",
+            save_as="tags_by_categories",
+            metadata={"note": "RAW API response (SSOT)"},
+            results=results,
+        )
 
         raw_markets = await _record_public_get(
             client,
@@ -372,6 +466,12 @@ async def record_public_endpoints() -> dict[str, Any]:
             path="/exchange/status",
             save_as="exchange_status",
             metadata={"note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
+        await _record_series_discovery_endpoints(
+            client,
+            raw_tags_by_categories=raw_tags_by_categories,
             results=results,
         )
 

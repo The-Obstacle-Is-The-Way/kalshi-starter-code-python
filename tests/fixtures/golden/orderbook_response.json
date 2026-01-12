@@ -1,10 +1,10 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-12T20:19:03.076498+00:00",
+    "recorded_at": "2026-01-12T22:08:10.667203+00:00",
     "endpoint": "orderbook",
     "environment": "prod",
     "sanitized": false,
-    "ticker": "KXMVENFLSINGLEGAME-S2025D0419213909-2823B13EC45",
+    "ticker": "KXMVENFLSINGLEGAME-S202513E70FA7695-688BECB3826",
     "note": "RAW API response (SSOT)"
   },
   "response": {

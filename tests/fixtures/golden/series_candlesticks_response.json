@@ -1,13 +1,13 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-12T20:19:03.337859+00:00",
+    "recorded_at": "2026-01-12T22:08:10.949333+00:00",
     "endpoint": "series_candlesticks",
     "environment": "prod",
     "sanitized": false,
     "series_ticker": "KXELONMARS",
     "ticker": "KXELONMARS-99",
-    "start_ts": 1760473143,
-    "end_ts": 1768249143,
+    "start_ts": 1760479690,
+    "end_ts": 1768255690,
     "period_interval": 1440,
     "note": "RAW API response (SSOT) - daily candles (90d)"
   },

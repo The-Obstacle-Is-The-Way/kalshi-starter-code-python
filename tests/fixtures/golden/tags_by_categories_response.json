@@ -1,0 +1,102 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T22:08:10.535294+00:00",
+    "endpoint": "tags_by_categories",
+    "environment": "prod",
+    "sanitized": false,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "tags_by_categories": {
+      "Climate and Weather": [
+        "Snow and rain",
+        "Daily temperature",
+        "Climate change",
+        "Natural disasters",
+        "Hurricanes"
+      ],
+      "Companies": [
+        "KPIs",
+        "Product launches",
+        "Elon Musk",
+        "CEOs",
+        "Layoffs"
+      ],
+      "Crypto": [
+        "BTC",
+        "Hourly",
+        "ETH",
+        "SOL",
+        "Pre-Market",
+        "Dogecoin",
+        "SHIBA"
+      ],
+      "Economics": [
+        "Fed",
+        "Inflation",
+        "Oil and energy",
+        "Growth",
+        "Employment",
+        "Housing",
+        "Mortgages"
+      ],
+      "Elections": null,
+      "Entertainment": [
+        "Awards",
+        "Movies",
+        "Music",
+        "Music charts",
+        "Television",
+        "Video games",
+        "Rotten Tomatoes",
+        "Live Music"
+      ],
+      "Financials": [
+        "S&P",
+        "Daily",
+        "Nasdaq",
+        "EUR/USD",
+        "Treasuries",
+        "USD/JPY",
+        "WTI"
+      ],
+      "Mentions": null,
+      "Politics": [
+        "Trump Agenda",
+        "US Elections",
+        "Culture war",
+        "Bills",
+        "Foreign Elections",
+        "SCOTUS & courts",
+        "Immigration",
+        "Cabinet",
+        "Debt ceiling & shutdowns",
+        "Education",
+        "Policy"
+      ],
+      "Science and Technology": [
+        "AI",
+        "Space",
+        "Energy"
+      ],
+      "Social": null,
+      "Sports": [
+        "Soccer",
+        "Basketball",
+        "Baseball",
+        "Football",
+        "Hockey",
+        "Tennis",
+        "Golf",
+        "UFC",
+        "MMA",
+        "Esports",
+        "NFL",
+        "Cricket",
+        "Motorsport",
+        "Chess"
+      ],
+      "Transportation": null
+    }
+  }
+}

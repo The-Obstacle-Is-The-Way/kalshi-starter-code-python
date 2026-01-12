@@ -1,0 +1,12 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T22:08:11.093148+00:00",
+    "endpoint": "series_fee_changes",
+    "environment": "prod",
+    "sanitized": false,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "series_fee_change_arr": []
+  }
+}

@@ -44,6 +44,8 @@ from kalshi_research.api.models.portfolio import (
     PortfolioPosition,
     Settlement,
 )
+from kalshi_research.api.models.search import TagsByCategoriesResponse
+from kalshi_research.api.models.series import Series, SeriesFeeChangesResponse
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.exa.models.answer import AnswerResponse
 from kalshi_research.exa.models.contents import ContentsResponse
@@ -69,6 +71,10 @@ MODEL_MAPPING: Final[dict[str, tuple[str, type[BaseModel]]]] = {
     "trades_list_response.json": ("response.trades[0]", Trade),
     "candlesticks_batch_response.json": ("response.markets[0]", CandlestickResponse),
     "series_candlesticks_response.json": ("response.candlesticks[0]", Candlestick),
+    "tags_by_categories_response.json": ("response", TagsByCategoriesResponse),
+    "series_list_response.json": ("response.series[0]", Series),
+    "series_single_response.json": ("response.series", Series),
+    "series_fee_changes_response.json": ("response", SeriesFeeChangesResponse),
     # GET /events/{event_ticker} returns {"event": {...}, "markets": [...]}
     "event_single_response.json": ("response.event", Event),
     "events_list_response.json": ("response.events[0]", Event),
