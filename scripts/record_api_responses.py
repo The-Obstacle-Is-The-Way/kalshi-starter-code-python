@@ -29,6 +29,7 @@ import argparse
 import asyncio
 import json
 import os
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final
@@ -239,7 +240,7 @@ async def record_authenticated_endpoints() -> dict[str, Any]:
             key_id=key_id,
             private_key_path=private_key_path,
             private_key_b64=private_key_b64,
-            environment=config.environment,
+            environment=config.environment.value,
         ) as client:
             print("\n=== AUTHENTICATED ENDPOINTS ===\n")
 
@@ -308,6 +309,11 @@ async def main() -> None:
         default="all",
         help="Which endpoints to record",
     )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Skip the production confirmation prompt (non-interactive safe).",
+    )
     args = parser.parse_args()
 
     if args.env:
@@ -321,10 +327,14 @@ async def main() -> None:
     if env == "prod":
         print("\nWARNING: Using PRODUCTION API")
         print("All operations are READ-ONLY, but be aware this hits real API.")
-        response = input("Continue? [y/N]: ")
-        if response.lower() != "y":
-            print("Aborted.")
-            return
+        if not args.yes:
+            if not sys.stdin.isatty():
+                print("Refusing to record from prod in non-interactive mode without --yes.")
+                return
+            response = input("Continue? [y/N]: ")
+            if response.lower() != "y":
+                print("Aborted.")
+                return
 
     all_results: dict[str, Any] = {}
 

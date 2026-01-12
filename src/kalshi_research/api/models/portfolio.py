@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 class PortfolioBalance(BaseModel):
@@ -79,11 +79,8 @@ class Fill(BaseModel):
     client_order_id: str | None = None
     """Client-provided identifier for the order that resulted in this fill (may be absent)."""
 
-    ticker: str
-    """Market ticker symbol."""
-
-    market_ticker: str | None = None
-    """Legacy field name for ticker (may be absent)."""
+    ticker: str = Field(validation_alias=AliasChoices("ticker", "market_ticker"))
+    """Market ticker symbol (accepts legacy `market_ticker`)."""
 
     side: str | None = None
     """Position side: 'yes' or 'no' (may be absent in some API responses)."""
@@ -129,6 +126,16 @@ class FillPage(BaseModel):
 
     cursor: str | None = None
     """Cursor for next page (None if last page)."""
+
+    @field_validator("cursor", mode="before")
+    @classmethod
+    def normalize_cursor(cls, value: object) -> str | None:
+        """Normalize empty-string cursors to None (API may return \"\" for last page)."""
+        if value is None or value == "":
+            return None
+        if isinstance(value, str):
+            return value
+        return str(value)
 
 
 class Settlement(BaseModel):
@@ -180,6 +187,16 @@ class SettlementPage(BaseModel):
 
     cursor: str | None = None
     """Cursor for next page (None if last page)."""
+
+    @field_validator("cursor", mode="before")
+    @classmethod
+    def normalize_cursor(cls, value: object) -> str | None:
+        """Normalize empty-string cursors to None (API may return \"\" for last page)."""
+        if value is None or value == "":
+            return None
+        if isinstance(value, str):
+            return value
+        return str(value)
 
 
 class Order(BaseModel):

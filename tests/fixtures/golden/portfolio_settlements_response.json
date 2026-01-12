@@ -11,17 +11,17 @@
     "cursor": "",
     "settlements": [
       {
-        "event_ticker": "KXNCAAFSPREAD-26JAN09OREIND",
+        "event_ticker": "KXEXAMPLE-2C7BBF0A0FB7",
         "fee_cost": "0.7300",
         "market_result": "yes",
         "no_count": 37,
-        "no_total_cost": 1887,
+        "no_total_cost": 28475,
         "revenue": 0,
         "settled_time": "2026-01-10T04:50:31.435826Z",
-        "ticker": "KXNCAAFSPREAD-26JAN09OREIND-IND3",
-        "value": 100,
+        "ticker": "KXEXAMPLE-0121FB0D83B3",
+        "value": 34318,
         "yes_count": 37,
-        "yes_total_cost": 3589
+        "yes_total_cost": 20510
       }
     ]
   }

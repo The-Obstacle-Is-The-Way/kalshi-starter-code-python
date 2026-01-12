@@ -7,6 +7,7 @@ Pydantic model instances, not mocked stand-ins.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -25,11 +26,13 @@ from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.portfolio import Fill, Order, PortfolioBalance, PortfolioPosition
 from kalshi_research.api.models.trade import Trade
 
+MakeMarket = Callable[..., dict[str, Any]]
+
 
 class TestMarketModel:
     """Test Market model with REAL instances."""
 
-    def test_market_creation_from_api_data(self, make_market: Any) -> None:
+    def test_market_creation_from_api_data(self, make_market: MakeMarket) -> None:
         """Market model correctly parses API response data."""
         data = make_market(ticker="BTC-100K", yes_bid=45, yes_ask=47)
 
@@ -73,65 +76,40 @@ class TestMarketModel:
             )
             assert market.status == expected_enum
 
-    def test_market_negative_liquidity_becomes_none(self, make_market: Any) -> None:
+    def test_market_negative_liquidity_becomes_none(self, make_market: MakeMarket) -> None:
         """Negative liquidity values are converted to None (deprecated field)."""
         data = make_market(liquidity=-170750)
         market = Market.model_validate(data)
         # Validator converts negative to None (field deprecated Jan 15, 2026)
         assert market.liquidity is None
 
-    def test_market_liquidity_optional(self, make_market: Any) -> None:
+    def test_market_liquidity_optional(self, make_market: MakeMarket) -> None:
         """Liquidity field is optional (deprecated, may be absent)."""
         data = make_market()
         data.pop("liquidity", None)  # Remove liquidity field
         market = Market.model_validate(data)
         assert market.liquidity is None
 
-    def test_market_model_accepts_dollar_fields(self) -> None:
+    def test_market_model_accepts_dollar_fields(self, make_market: MakeMarket) -> None:
         """Market model should accept liquidity_dollars and notional_value_dollars."""
         market = Market.model_validate(
-            {
-                "ticker": "KXTEST",
-                "event_ticker": "KXEVENT",
-                "title": "Test Market",
-                "status": "active",
-                "result": "",
-                "volume": 100,
-                "volume_24h": 50,
-                "open_interest": 10,
-                "open_time": "2026-01-01T00:00:00Z",
-                "close_time": "2026-01-15T00:00:00Z",
-                "expiration_time": "2026-01-15T00:00:00Z",
-                "liquidity_dollars": "1234.56",
-                "notional_value_dollars": "5678.90",
-            }
+            make_market(
+                liquidity_dollars="1234.56",
+                notional_value_dollars="5678.90",
+            )
         )
 
         assert market.liquidity_dollars == "1234.56"
         assert market.notional_value_dollars == "5678.90"
 
-    def test_market_model_dollar_fields_optional(self) -> None:
+    def test_market_model_dollar_fields_optional(self, make_market: MakeMarket) -> None:
         """Dollar fields should be optional (None by default)."""
-        market = Market.model_validate(
-            {
-                "ticker": "KXTEST",
-                "event_ticker": "KXEVENT",
-                "title": "Test Market",
-                "status": "active",
-                "result": "",
-                "volume": 100,
-                "volume_24h": 50,
-                "open_interest": 10,
-                "open_time": "2026-01-01T00:00:00Z",
-                "close_time": "2026-01-15T00:00:00Z",
-                "expiration_time": "2026-01-15T00:00:00Z",
-            }
-        )
+        market = Market.model_validate(make_market())
 
         assert market.liquidity_dollars is None
         assert market.notional_value_dollars is None
 
-    def test_market_model_accepts_structural_fields(self, make_market: Any) -> None:
+    def test_market_model_accepts_structural_fields(self, make_market: MakeMarket) -> None:
         """Market model should accept structural OpenAPI fields (even if unused)."""
         market = Market.model_validate(
             make_market(
@@ -185,13 +163,13 @@ class TestMarketModel:
         assert market.custom_strike == {"target": 1.0}
         assert market.is_provisional is False
 
-    def test_market_positive_liquidity_preserved(self, make_market: Any) -> None:
+    def test_market_positive_liquidity_preserved(self, make_market: MakeMarket) -> None:
         """Positive liquidity values are preserved until field removal."""
         data = make_market(liquidity=50000)
         market = Market.model_validate(data)
         assert market.liquidity == 50000
 
-    def test_market_settlement_ts_parses(self, make_market: Any) -> None:
+    def test_market_settlement_ts_parses(self, make_market: MakeMarket) -> None:
         """Market model parses settlement_ts when present."""
         data = make_market(
             status="finalized",
@@ -241,12 +219,12 @@ class TestMarketModel:
             assert dt.tzinfo is not None
             assert dt.utcoffset() == timedelta(0)
 
-    def test_market_settlement_ts_optional(self, make_market: Any) -> None:
+    def test_market_settlement_ts_optional(self, make_market: MakeMarket) -> None:
         """Market model accepts missing settlement_ts for unsettled/legacy markets."""
         market = Market.model_validate(make_market())
         assert market.settlement_ts is None
 
-    def test_market_immutability(self, make_market: Any) -> None:
+    def test_market_immutability(self, make_market: MakeMarket) -> None:
         """Market model is frozen (immutable)."""
         from pydantic import ValidationError
 

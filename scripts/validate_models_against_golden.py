@@ -29,7 +29,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final, get_args, get_origin
+from typing import TYPE_CHECKING, Annotated, Any, Final, get_args, get_origin
 
 from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market
@@ -46,6 +46,8 @@ if TYPE_CHECKING:
     from pydantic import BaseModel
 
 GOLDEN_DIR: Final[Path] = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "golden"
+
+JsonDict = dict[str, Any]
 
 # Regex pattern for extracting choices from AliasChoices string representation
 _ALIAS_CHOICES_PATTERN: Final[re.Pattern[str]] = re.compile(r"'([^']+)'")
@@ -76,10 +78,10 @@ MODEL_MAPPING: Final[dict[str, tuple[str, type[BaseModel]]]] = {
 }
 
 
-def get_nested_value(data: dict, path: str) -> Any:
+def get_nested_value(data: JsonDict, path: str) -> Any:
     """Extract value from nested dict using dot notation with array support."""
     parts = path.split(".")
-    current = data
+    current: Any = data
 
     for part in parts:
         if "[" in part:
@@ -99,21 +101,22 @@ def get_model_field_info(model: type[BaseModel]) -> dict[str, dict[str, Any]]:
     for name, field_info in model.model_fields.items():
         annotation = field_info.annotation
 
-        # Check if optional (Union with None)
-        is_optional = False
+        # Check if optional (Union[..., None]); also handle Annotated[T, ...]
         origin = get_origin(annotation)
-        if origin is type(None):
-            is_optional = True
-        elif hasattr(annotation, "__args__"):
-            args = get_args(annotation)
-            is_optional = type(None) in args
+        if origin is Annotated:
+            annotated_args = get_args(annotation)
+            if annotated_args:
+                annotation = annotated_args[0]
+
+        args = get_args(annotation)
+        is_optional = type(None) in args
 
         # Get the base type
         base_type = annotation
-        if is_optional and hasattr(annotation, "__args__"):
-            args = [a for a in get_args(annotation) if a is not type(None)]
-            if args:
-                base_type = args[0]
+        if is_optional:
+            non_none_args = [a for a in args if a is not type(None)]
+            if non_none_args:
+                base_type = non_none_args[0]
 
         fields[name] = {
             "type": str(base_type),
@@ -157,10 +160,10 @@ def _required_present_via_alias(
 
 
 def analyze_response(
-    golden_data: dict,
+    golden_data: JsonDict,
     model: type[BaseModel],
     fixture_name: str,
-) -> dict[str, Any]:
+) -> JsonDict:
     """Analyze differences between golden fixture and Pydantic model."""
     model_fields = get_model_field_info(model)
     response_fields = set(golden_data.keys())
@@ -282,7 +285,7 @@ def main() -> None:
             continue
 
         try:
-            data = json.loads(fixture_path.read_text())
+            data: JsonDict = json.loads(fixture_path.read_text())
             response_data = get_nested_value(data, path)
 
             if response_data is None:
