@@ -120,7 +120,15 @@ async def test_amend_order_flow(authenticated_client):
             )
         )
 
-        response = await authenticated_client.amend_order("oid-123", price=55)
+        response = await authenticated_client.amend_order(
+            order_id="oid-123",
+            ticker="KXBTC-25JAN-50000",
+            side="yes",
+            action="buy",
+            client_order_id="cid-1",
+            updated_client_order_id="cid-2",
+            price=55,
+        )
 
         assert response.order_status == "executed"
 
@@ -129,5 +137,10 @@ async def test_amend_order_flow(authenticated_client):
         import json
 
         body = json.loads(request.content)
+        assert body["ticker"] == "KXBTC-25JAN-50000"
+        assert body["side"] == "yes"
+        assert body["action"] == "buy"
+        assert body["client_order_id"] == "cid-1"
+        assert body["updated_client_order_id"] == "cid-2"
         assert body["yes_price"] == 55
         assert "count" not in body

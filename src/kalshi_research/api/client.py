@@ -870,7 +870,13 @@ class KalshiClient(KalshiPublicClient):
     async def amend_order(
         self,
         order_id: str,
+        ticker: str,
+        side: Literal["yes", "no"] | OrderSide,
+        action: Literal["buy", "sell"] | OrderAction,
+        client_order_id: str,
+        updated_client_order_id: str,
         price: int | None = None,
+        price_dollars: str | None = None,
         count: int | None = None,
         dry_run: bool = False,
     ) -> OrderResponse:
@@ -879,15 +885,27 @@ class KalshiClient(KalshiPublicClient):
 
         Args:
             order_id: The order ID to amend
+            ticker: Market ticker
+            side: "yes" or "no"
+            action: "buy" or "sell"
+            client_order_id: Original client_order_id used when creating the order
+            updated_client_order_id: New unique client_order_id for the amended order
             price: New price in cents (1-99)
+            price_dollars: New price in dollars (e.g., "0.5500")
             count: New quantity (must be positive)
             dry_run: If True, validate and log but do not execute the amendment
 
         Returns:
             OrderResponse with updated order status
         """
-        if price is None and count is None:
-            raise ValueError("Must provide either price or count")
+        if not updated_client_order_id:
+            raise ValueError("updated_client_order_id must be provided")
+
+        if price is not None and price_dollars is not None:
+            raise ValueError("Provide only one of price or price_dollars")
+
+        if price is None and price_dollars is None and count is None:
+            raise ValueError("Must provide either price/price_dollars or count")
 
         if price is not None and (price < 1 or price > 99):
             raise ValueError("Price must be between 1 and 99 cents")
@@ -895,12 +913,21 @@ class KalshiClient(KalshiPublicClient):
         if count is not None and count <= 0:
             raise ValueError("Count must be positive")
 
+        side_value = side if isinstance(side, str) else side.value
+        action_value = action if isinstance(action, str) else action.value
+
         # Handle dry run mode
         if dry_run:
             logger.info(
                 "DRY RUN: amend_order - amendment validated but not executed",
                 order_id=order_id,
+                ticker=ticker,
+                side=side_value,
+                action=action_value,
+                client_order_id=client_order_id,
+                updated_client_order_id=updated_client_order_id,
                 price=price,
+                price_dollars=price_dollars,
                 count=count,
             )
             return OrderResponse(
@@ -911,9 +938,19 @@ class KalshiClient(KalshiPublicClient):
         path = f"/portfolio/orders/{order_id}/amend"
         full_path = self.API_PATH + path
 
-        payload: dict[str, Any] = {"order_id": order_id}
+        payload: dict[str, Any] = {
+            "ticker": ticker,
+            "side": side_value,
+            "action": action_value,
+            "client_order_id": client_order_id,
+            "updated_client_order_id": updated_client_order_id,
+        }
         if price is not None:
-            payload["yes_price"] = price
+            price_key = "yes_price" if side_value == "yes" else "no_price"
+            payload[price_key] = price
+        if price_dollars is not None:
+            dollars_key = "yes_price_dollars" if side_value == "yes" else "no_price_dollars"
+            payload[dollars_key] = price_dollars
         if count is not None:
             payload["count"] = count
 

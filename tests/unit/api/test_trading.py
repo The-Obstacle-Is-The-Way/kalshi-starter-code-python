@@ -180,12 +180,27 @@ class TestTrading:
             json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
         )
 
-        await mock_client.amend_order("oid-123", price=55)
+        await mock_client.amend_order(
+            order_id="oid-123",
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            client_order_id="cid-1",
+            updated_client_order_id="cid-2",
+            price=55,
+        )
 
         mock_client._client.post.assert_called_once()
         args, kwargs = mock_client._client.post.call_args
         assert args[0] == "/portfolio/orders/oid-123/amend"
-        assert kwargs["json"] == {"order_id": "oid-123", "yes_price": 55}
+        assert kwargs["json"] == {
+            "ticker": "KXTEST",
+            "side": "yes",
+            "action": "buy",
+            "client_order_id": "cid-1",
+            "updated_client_order_id": "cid-2",
+            "yes_price": 55,
+        }
 
     @pytest.mark.asyncio
     async def test_create_order_dry_run(self, mock_client):

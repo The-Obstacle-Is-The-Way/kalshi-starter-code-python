@@ -1,17 +1,32 @@
 # BUG-065: `amend_order()` Missing Required Fields
 
 **Priority:** P2 (UPGRADED - OpenAPI confirms required fields missing)
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-12
+**Fixed:** 2026-01-12
 **Verified:** 2026-01-12 (code audit + live OpenAPI spec fetch)
 
 ---
 
 ## Summary
 
-The `amend_order()` method is **broken** - it's missing **5 required fields** per the Kalshi OpenAPI specification. Calling this method will result in a **400 Bad Request** or **422 Validation Error** from the API.
+The `amend_order()` method was **broken** - it omitted **5 required fields** per the Kalshi OpenAPI
+specification, which would cause a **400 Bad Request** / **422 Validation Error** if called against the
+real API.
 
 **CRITICAL:** Unlike other "completeness" bugs, this one causes **runtime failures** if the method is ever called with `dry_run=False`.
+
+---
+
+## Fix Implemented
+
+- Updated `KalshiClient.amend_order(...)` to include all required OpenAPI fields:
+  - `ticker`, `side`, `action`, `client_order_id`, `updated_client_order_id`
+- Removed the incorrect `"order_id": ...` body field (order_id is a path parameter).
+- Added support for updating price in either cents (`yes_price`/`no_price`) or dollars
+  (`yes_price_dollars`/`no_price_dollars`) with validation that `price` and `price_dollars` are not both
+  set.
+- Updated unit + integration tests to validate the full payload shape.
 
 ---
 
@@ -48,7 +63,7 @@ The `amend_order()` method is **broken** - it's missing **5 required fields** pe
 
 ---
 
-## Current Implementation (BROKEN)
+## Previous Implementation (BROKEN)
 
 ### Location
 
@@ -229,10 +244,10 @@ async def amend_order(
 
 ## Test Plan
 
-- [ ] Fix method signature to include all required fields
-- [ ] Update payload construction to send all required fields
-- [ ] Update unit test (`test_trading.py:81-93`) to validate complete payload
-- [ ] Add integration test against demo API (not mocked)
+- [x] Fix method signature to include all required fields
+- [x] Update payload construction to send all required fields
+- [x] Update unit test to validate complete payload
+- [x] Update integration test flow (respx) to validate complete payload
 - [ ] Update docstring with accurate parameter descriptions
 - [ ] Consider adding to TradeExecutor with safety wrapper
 
