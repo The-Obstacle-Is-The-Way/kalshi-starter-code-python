@@ -4,7 +4,21 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-No active bugs.
+| ID | Title | Priority | Status |
+|---|---|---|---|
+| **[BUG-063](BUG-063-missing-dollar-fields-market-model.md)** | Missing Dollar Fields in Market Model (Jan 15 Breaking Change) | **P0** | Open |
+| **[BUG-064](BUG-064-missing-order-safety-parameters.md)** | Missing Order Safety Parameters (`reduce_only`, `post_only`, etc.) | P1 | Open |
+| **[BUG-065](BUG-065-amend-order-missing-required-fields.md)** | `amend_order()` Missing Required Fields | P2 | Open |
+| **[BUG-066](BUG-066-fill-model-missing-fields.md)** | Fill Model Missing Fields (`fill_id`, `is_taker`, etc.) | P2 | Open |
+| **[BUG-067](BUG-067-order-model-missing-fields.md)** | Order Model Missing Fields (`fill_count`, fee breakdown) | P2 | Open |
+| **[BUG-068](BUG-068-market-model-missing-structural-fields.md)** | Market Model Missing Structural Fields (scalar, strikes) | P3 | Open |
+
+### Priority Guide
+
+- **P0**: Critical - Must fix before Jan 15, 2026 deadline
+- **P1**: High - Safety-critical features missing
+- **P2**: Medium - API parity gaps affecting functionality
+- **P3**: Low - Nice-to-have completeness
 
 ### Recently Closed Dependency Chain (Resolved)
 
@@ -19,7 +33,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-063**
+**BUG-069**
 
 ---
 

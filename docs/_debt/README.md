@@ -4,16 +4,17 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**1 active debt item.**
+**2 active debt items.**
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
 | **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (Needs Design) |
+| **[DEBT-015](DEBT-015-missing-api-endpoints.md)** | Missing API Endpoints (45+ endpoints) | P2-P3 | Open |
 
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-015**
+**DEBT-016**
 
 ---
 
@@ -21,7 +22,8 @@ Use this ID for the next debt item:
 
 | File | Purpose |
 |------|---------|
-| `DEBT-014-friction-residuals.md` | **Active debt SSOT** - all actionable items |
+| `DEBT-014-friction-residuals.md` | **Active debt SSOT** - friction, design decisions |
+| `DEBT-015-missing-api-endpoints.md` | **Active debt** - 45+ missing Kalshi API endpoints |
 | `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
 | `technical-debt.md` | Living register with historical context |
 | `security-audit.md` | Deep security audit findings (Agent Safety, Injection Risks) |
