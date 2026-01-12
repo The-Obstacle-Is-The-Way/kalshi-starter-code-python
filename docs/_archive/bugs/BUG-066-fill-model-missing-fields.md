@@ -1,18 +1,28 @@
 # BUG-066: Fill Model Missing Fields (API Completeness)
 
 **Priority:** P3 (was P2 - downgraded after verification)
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-12
+**Fixed:** 2026-01-12
 **Verified:** 2026-01-12
 
 ---
 
 ## Summary
 
-The Fill model is missing some fields from the Kalshi API. However, after verification:
+The Fill model was missing several fields from the Kalshi OpenAPI schema. However, after verification:
 1. **`fill_id` = `trade_id`** - Vendor docs say they're the same, we have `trade_id`
 2. **Missing fields are not used** - Only `trade_id` is referenced in codebase
 3. **API completeness issue** - Not a functional bug
+
+---
+
+## Fix Implemented
+
+- Expanded `Fill` in `src/kalshi_research/api/models/portfolio.py` to include optional OpenAPI fields:
+  `fill_id`, `order_id`, `client_order_id`, `market_ticker`, `price`, `yes_price_fixed`,
+  `no_price_fixed`, `is_taker`.
+- Added unit coverage to ensure these fields parse correctly.
 
 ---
 
@@ -87,9 +97,9 @@ class Fill(BaseModel):
 
 ## Test Plan
 
-- [ ] Add fields to model (optional)
-- [ ] Fields should be optional (None default)
-- [ ] Existing tests should pass unchanged
+- [x] Add fields to model (optional)
+- [x] Fields are optional (None default)
+- [x] Existing tests pass unchanged
 
 ---
 

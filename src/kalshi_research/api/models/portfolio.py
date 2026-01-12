@@ -43,11 +43,23 @@ class Fill(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
+    fill_id: str | None = None
+    """Unique fill identifier (may be redundant with trade_id)."""
+
     trade_id: str
     """Unique trade identifier."""
 
+    order_id: str | None = None
+    """Order identifier that resulted in this fill (may be absent)."""
+
+    client_order_id: str | None = None
+    """Client-provided identifier for the order that resulted in this fill (may be absent)."""
+
     ticker: str
     """Market ticker symbol."""
+
+    market_ticker: str | None = None
+    """Legacy field name for ticker (may be absent)."""
 
     side: str | None = None
     """Position side: 'yes' or 'no' (may be absent in some API responses)."""
@@ -55,11 +67,23 @@ class Fill(BaseModel):
     action: str | None = None
     """Trade action: 'buy' or 'sell' (may be absent in some API responses)."""
 
+    price: float | None = None
+    """Deprecated fill price (may be absent; prefer yes_price/no_price)."""
+
     yes_price: int
     """YES price in cents (0-100)."""
 
     no_price: int | None = None
     """NO price in cents (0-100), may be derived from yes_price."""
+
+    yes_price_fixed: str | None = None
+    """YES price in fixed-point dollars (may be absent)."""
+
+    no_price_fixed: str | None = None
+    """NO price in fixed-point dollars (may be absent)."""
+
+    is_taker: bool | None = None
+    """True if this fill removed liquidity from the orderbook (may be absent)."""
 
     count: int
     """Number of contracts filled."""
@@ -139,11 +163,20 @@ class Order(BaseModel):
     order_id: str
     """Unique order identifier."""
 
+    user_id: str | None = None
+    """Unique user identifier (may be absent in some responses)."""
+
+    client_order_id: str | None = None
+    """Client-specified identifier for this order (may be absent)."""
+
     ticker: str
     """Market ticker symbol."""
 
     status: str
     """Order status: 'resting', 'canceled', 'executed', etc."""
+
+    type: str | None = None
+    """Order type: 'limit' or 'market' (may be absent)."""
 
     side: str | None = None
     """Position side: 'yes' or 'no'."""
@@ -157,11 +190,68 @@ class Order(BaseModel):
     no_price: int | None = None
     """NO limit price in cents (0-100)."""
 
+    yes_price_dollars: str | None = None
+    """YES limit price in fixed-point dollars (may be absent)."""
+
+    no_price_dollars: str | None = None
+    """NO limit price in fixed-point dollars (may be absent)."""
+
     count: int | None = None
     """Number of contracts (remaining or total)."""
 
-    placed_at: str | None = None
-    """ISO timestamp when order was placed."""
+    initial_count: int | None = None
+    """Original order size before fills/amendments (may be absent)."""
+
+    fill_count: int | None = None
+    """Number of contracts filled so far (may be absent)."""
+
+    remaining_count: int | None = None
+    """Number of contracts still resting (may be absent)."""
+
+    taker_fees: int | None = None
+    """Fees paid on filled taker contracts, in cents (may be absent)."""
+
+    maker_fees: int | None = None
+    """Fees paid on filled maker contracts, in cents (may be absent)."""
+
+    taker_fill_cost: int | None = None
+    """Cost of filled taker orders in cents (may be absent)."""
+
+    maker_fill_cost: int | None = None
+    """Cost of filled maker orders in cents (may be absent)."""
+
+    taker_fill_cost_dollars: str | None = None
+    """Cost of filled taker orders in fixed-point dollars (may be absent)."""
+
+    maker_fill_cost_dollars: str | None = None
+    """Cost of filled maker orders in fixed-point dollars (may be absent)."""
+
+    taker_fees_dollars: str | None = None
+    """Fees paid on filled taker contracts, in fixed-point dollars (may be absent)."""
+
+    maker_fees_dollars: str | None = None
+    """Fees paid on filled maker contracts, in fixed-point dollars (may be absent)."""
+
+    queue_position: int | None = None
+    """Deprecated queue position (may be absent; always 0 per OpenAPI)."""
+
+    created_time: str | None = None
+    """ISO timestamp when the order was created (may be absent)."""
+
+    expiration_time: str | None = None
+    """ISO timestamp when the order expires (may be absent)."""
+
+    last_update_time: str | None = None
+    """ISO timestamp of the last order update (may be absent)."""
+
+    self_trade_prevention_type: str | None = None
+    """Self-trade prevention mode (may be absent)."""
+
+    order_group_id: str | None = None
+    """Order group identifier (may be absent)."""
+
+    cancel_order_on_pause: bool | None = None
+    """If true, order is canceled when trading is paused (may be absent)."""
 
 
 class OrderPage(BaseModel):

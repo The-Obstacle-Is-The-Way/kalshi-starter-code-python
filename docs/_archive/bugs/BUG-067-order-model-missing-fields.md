@@ -1,18 +1,28 @@
 # BUG-067: Order Model Missing Fields (API Completeness)
 
 **Priority:** P3 (was P2 - downgraded after verification)
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-12
+**Fixed:** 2026-01-12
 **Verified:** 2026-01-12
 
 ---
 
 ## Summary
 
-The Order model is missing several fields from the Kalshi API. However, after verification:
+The Order model was missing several fields from the Kalshi OpenAPI schema. However, after verification:
 1. **Missing fields are not used** - `get_orders()` is called but result fields aren't processed
 2. **No CLI exposure** - `get_orders` isn't used in any CLI command
 3. **API completeness issue** - Not a functional bug
+
+---
+
+## Fix Implemented
+
+- Expanded `Order` in `src/kalshi_research/api/models/portfolio.py` to include optional OpenAPI fields:
+  `user_id`, `client_order_id`, `type`, `*_dollars`, `initial_count`, `fill_count`, `remaining_count`,
+  fee/cost fields, timestamps, and self-trade / order-group fields.
+- Added unit coverage to ensure these fields parse correctly.
 
 ---
 
@@ -94,9 +104,9 @@ class Order(BaseModel):
 
 ## Test Plan
 
-- [ ] Add fields to model (optional)
-- [ ] Fields should be optional (None default)
-- [ ] Existing tests should pass unchanged
+- [x] Add fields to model (optional)
+- [x] Fields are optional (None default)
+- [x] Existing tests pass unchanged
 
 ---
 

@@ -15,6 +15,7 @@ import pytest
 
 from kalshi_research.api.models.market import Market, MarketFilterStatus, MarketStatus
 from kalshi_research.api.models.orderbook import Orderbook
+from kalshi_research.api.models.portfolio import Fill, Order
 from kalshi_research.api.models.trade import Trade
 
 
@@ -392,6 +393,74 @@ class TestOrderbookModel:
         # Should use dollars, not legacy
         assert orderbook.yes_levels == [(99, 100)]
         assert orderbook.no_levels == [(1, 100)]
+
+
+class TestPortfolioModels:
+    """Test portfolio models accept OpenAPI fields."""
+
+    def test_fill_accepts_openapi_fields(self) -> None:
+        fill = Fill.model_validate(
+            {
+                "fill_id": "fid-123",
+                "trade_id": "tid-123",
+                "order_id": "oid-123",
+                "client_order_id": "cid-123",
+                "ticker": "KXTEST",
+                "market_ticker": "KXTEST",
+                "side": "yes",
+                "action": "buy",
+                "count": 10,
+                "price": 0.55,
+                "yes_price": 55,
+                "no_price": 45,
+                "yes_price_fixed": "0.5500",
+                "no_price_fixed": "0.4500",
+                "is_taker": True,
+                "created_time": "2026-01-01T00:00:00Z",
+            }
+        )
+
+        assert fill.trade_id == "tid-123"
+        assert fill.fill_id == "fid-123"
+        assert fill.order_id == "oid-123"
+        assert fill.client_order_id == "cid-123"
+        assert fill.is_taker is True
+        assert fill.yes_price_fixed == "0.5500"
+
+    def test_order_accepts_openapi_fields(self) -> None:
+        order = Order.model_validate(
+            {
+                "order_id": "oid-123",
+                "user_id": "uid-123",
+                "client_order_id": "cid-123",
+                "ticker": "KXTEST",
+                "side": "yes",
+                "action": "buy",
+                "type": "limit",
+                "status": "resting",
+                "yes_price": 55,
+                "no_price": 45,
+                "yes_price_dollars": "0.5500",
+                "no_price_dollars": "0.4500",
+                "fill_count": 0,
+                "remaining_count": 10,
+                "initial_count": 10,
+                "taker_fees": 0,
+                "maker_fees": 0,
+                "taker_fill_cost": 0,
+                "maker_fill_cost": 0,
+                "taker_fill_cost_dollars": "0.0000",
+                "maker_fill_cost_dollars": "0.0000",
+                "queue_position": 0,
+                "created_time": "2026-01-01T00:00:00Z",
+            }
+        )
+
+        assert order.order_id == "oid-123"
+        assert order.client_order_id == "cid-123"
+        assert order.fill_count == 0
+        assert order.remaining_count == 10
+        assert order.yes_price_dollars == "0.5500"
 
 
 class TestTradeModel:
