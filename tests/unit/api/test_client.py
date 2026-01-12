@@ -7,6 +7,8 @@ These tests use respx to mock HTTP requests. Everything else
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -453,6 +455,34 @@ class TestKalshiPublicClient:
 
     @pytest.mark.asyncio
     @respx.mock
+    async def test_get_series_candlesticks_uses_candlesticks_list(self) -> None:
+        """
+        get_series_candlesticks() should extract the `candlesticks` list from the response.
+
+        This test uses the recorded golden fixture to keep wrapper-key assumptions aligned with
+        SSOT.
+        """
+        root = Path(__file__).resolve().parents[3]
+        fixture_path = root / "tests" / "fixtures" / "golden" / "series_candlesticks_response.json"
+        fixture = json.loads(fixture_path.read_text())
+
+        series_ticker = fixture["_metadata"]["series_ticker"]
+        market_ticker = fixture["_metadata"]["ticker"]
+        response_payload = fixture["response"]
+
+        route = respx.get(
+            "https://api.elections.kalshi.com/trade-api/v2"
+            f"/series/{series_ticker}/markets/{market_ticker}/candlesticks"
+        ).mock(return_value=Response(200, json=response_payload))
+
+        async with KalshiPublicClient() as client:
+            candles = await client.get_series_candlesticks(series_ticker, market_ticker)
+
+        assert len(candles) > 0
+        assert route.call_count == 1
+
+    @pytest.mark.asyncio
+    @respx.mock
     async def test_get_exchange_status(self) -> None:
         """Test exchange status endpoint."""
         respx.get("https://api.elections.kalshi.com/trade-api/v2/exchange/status").mock(
@@ -490,6 +520,31 @@ class TestKalshiPublicClient:
 
         assert len(events) == 1
         assert events[0].event_ticker == "KXBTC-25JAN"
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_event_single_uses_event_wrapper_key(self) -> None:
+        """
+        get_event() should extract the nested `event` object.
+
+        This test uses the recorded golden fixture to ensure our wrapper-key assumptions stay
+        aligned with SSOT.
+        """
+        root = Path(__file__).resolve().parents[3]
+        fixture_path = root / "tests" / "fixtures" / "golden" / "event_single_response.json"
+        fixture = json.loads(fixture_path.read_text())
+        response_payload = fixture["response"]
+        event_ticker = response_payload["event"]["event_ticker"]
+
+        route = respx.get(
+            f"https://api.elections.kalshi.com/trade-api/v2/events/{event_ticker}"
+        ).mock(return_value=Response(200, json=response_payload))
+
+        async with KalshiPublicClient() as client:
+            event = await client.get_event(event_ticker)
+
+        assert event.event_ticker == event_ticker
+        assert route.call_count == 1
 
     @pytest.mark.asyncio
     @respx.mock

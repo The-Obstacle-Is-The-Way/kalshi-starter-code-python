@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-12T15:24:03.530776+00:00",
+    "recorded_at": "2026-01-12T20:19:03.166530+00:00",
     "endpoint": "event_single",
     "environment": "prod",
     "sanitized": false,
@@ -32,8 +32,8 @@
         "last_price": 6,
         "last_price_dollars": "0.0600",
         "latest_expiration_time": "2099-08-08T15:00:00Z",
-        "liquidity": 6696669,
-        "liquidity_dollars": "66966.6900",
+        "liquidity": 6814589,
+        "liquidity_dollars": "68145.8900",
         "market_type": "binary",
         "no_ask": 94,
         "no_ask_dollars": "0.9400",

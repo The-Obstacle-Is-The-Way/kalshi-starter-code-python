@@ -1,0 +1,45 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T20:14:32.373601+00:00",
+    "endpoint": "/findSimilar",
+    "environment": "prod",
+    "sanitized": false,
+    "url": "https://example.com",
+    "num_results": 3
+  },
+  "response": {
+    "requestId": "b652a6bde074c4606fdcf87323c15558",
+    "results": [
+      {
+        "id": "https://exmaple.com/",
+        "title": "",
+        "url": "https://exmaple.com/",
+        "author": null,
+        "score": 0.7809348702430725
+      },
+      {
+        "id": "https://eexample.com/",
+        "title": "eExample.com",
+        "url": "https://eexample.com/",
+        "publishedDate": "2024-01-01T00:00:00.000Z",
+        "author": null,
+        "score": 0.7790051102638245
+      },
+      {
+        "id": "https://examplewebsite.com/",
+        "title": "Example Website \u2013 This is an example website",
+        "url": "https://examplewebsite.com/",
+        "publishedDate": "2025-01-01T00:00:00.000Z",
+        "author": null,
+        "score": 0.771050214767456
+      }
+    ],
+    "costDollars": {
+      "total": 0.005,
+      "search": {
+        "neural": 0.005
+      }
+    },
+    "searchTime": 77.69232099992223
+  }
+}

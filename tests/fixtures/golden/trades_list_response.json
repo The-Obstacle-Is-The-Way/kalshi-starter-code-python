@@ -1,0 +1,76 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T20:19:03.207543+00:00",
+    "endpoint": "trades_list",
+    "environment": "prod",
+    "sanitized": false,
+    "ticker": "KXELONMARS-99",
+    "limit": 5,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "cursor": "EhIKEGiNwc3pm3X2QYbRDgixEEEaDAjN9pPLBhDIivDDAQ",
+    "trades": [
+      {
+        "count": 1,
+        "created_time": "2026-01-12T15:00:20.897212Z",
+        "no_price": 94,
+        "no_price_dollars": "0.9400",
+        "price": 0.06,
+        "taker_side": "no",
+        "ticker": "KXELONMARS-99",
+        "trade_id": "961535f3-d80f-5462-e91d-88d4fe6db285",
+        "yes_price": 6,
+        "yes_price_dollars": "0.0600"
+      },
+      {
+        "count": 1,
+        "created_time": "2026-01-12T14:59:36.37315Z",
+        "no_price": 94,
+        "no_price_dollars": "0.9400",
+        "price": 0.06,
+        "taker_side": "no",
+        "ticker": "KXELONMARS-99",
+        "trade_id": "58e2d628-f8b3-4506-36ee-f788a3a41695",
+        "yes_price": 6,
+        "yes_price_dollars": "0.0600"
+      },
+      {
+        "count": 1,
+        "created_time": "2026-01-12T14:59:18.480042Z",
+        "no_price": 94,
+        "no_price_dollars": "0.9400",
+        "price": 0.06,
+        "taker_side": "no",
+        "ticker": "KXELONMARS-99",
+        "trade_id": "e9c3ad06-a797-4a96-f57b-b55a3e9d0b2d",
+        "yes_price": 6,
+        "yes_price_dollars": "0.0600"
+      },
+      {
+        "count": 1,
+        "created_time": "2026-01-12T14:56:42.250819Z",
+        "no_price": 94,
+        "no_price_dollars": "0.9400",
+        "price": 0.06,
+        "taker_side": "no",
+        "ticker": "KXELONMARS-99",
+        "trade_id": "c670cd85-d823-7736-b8c1-25f413753ba5",
+        "yes_price": 6,
+        "yes_price_dollars": "0.0600"
+      },
+      {
+        "count": 1,
+        "created_time": "2026-01-12T13:46:53.410781Z",
+        "no_price": 94,
+        "no_price_dollars": "0.9400",
+        "price": 0.06,
+        "taker_side": "no",
+        "ticker": "KXELONMARS-99",
+        "trade_id": "688dc1cd-e99b-75f6-4186-d10e08b11041",
+        "yes_price": 6,
+        "yes_price_dollars": "0.0600"
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T20:14:31.202182+00:00",
+    "endpoint": "/search",
+    "environment": "prod",
+    "sanitized": false,
+    "query": "Example Domain",
+    "num_results": 1,
+    "include_domains": [
+      "example.com"
+    ]
+  },
+  "response": {
+    "requestId": "e107d4e4e6afb8d3de78c5b31283b254",
+    "resolvedSearchType": "neural",
+    "results": [
+      {
+        "id": "https://example.com/",
+        "title": "Example Domain",
+        "url": "https://example.com/",
+        "author": null
+      }
+    ],
+    "searchTime": 601.6,
+    "costDollars": {
+      "total": 0.005,
+      "search": {
+        "neural": 0.005
+      }
+    }
+  }
+}

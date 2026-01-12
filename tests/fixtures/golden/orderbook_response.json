@@ -1,10 +1,10 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-12T15:24:03.416924+00:00",
+    "recorded_at": "2026-01-12T20:19:03.076498+00:00",
     "endpoint": "orderbook",
     "environment": "prod",
     "sanitized": false,
-    "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA-F7F474937F3",
+    "ticker": "KXMVENFLSINGLEGAME-S2025D0419213909-2823B13EC45",
     "note": "RAW API response (SSOT)"
   },
   "response": {

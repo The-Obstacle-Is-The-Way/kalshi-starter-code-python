@@ -1,0 +1,37 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T20:14:32.196484+00:00",
+    "endpoint": "/contents",
+    "environment": "prod",
+    "sanitized": false,
+    "urls": [
+      "https://example.com"
+    ]
+  },
+  "response": {
+    "requestId": "edcc9104687295c43a80877e441be22d",
+    "results": [
+      {
+        "id": "https://example.com",
+        "title": "Example Domain",
+        "url": "https://example.com",
+        "author": null,
+        "text": "Example Domain\n# Example Domain\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n[Learn more](https://iana.org/domains/example)"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "https://example.com",
+        "status": "success",
+        "source": "crawled"
+      }
+    ],
+    "costDollars": {
+      "total": 0.001,
+      "contents": {
+        "text": 0.001
+      }
+    },
+    "searchTime": 7.069822000339627
+  }
+}

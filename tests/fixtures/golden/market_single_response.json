@@ -1,24 +1,24 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-12T15:24:03.381019+00:00",
+    "recorded_at": "2026-01-12T20:19:03.036162+00:00",
     "endpoint": "market_single",
     "environment": "prod",
     "sanitized": false,
-    "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA-F7F474937F3",
+    "ticker": "KXMVENFLSINGLEGAME-S2025D0419213909-2823B13EC45",
     "note": "RAW API response (SSOT)"
   },
   "response": {
     "market": {
       "can_close_early": true,
       "close_time": "2026-01-27T01:15:00Z",
-      "created_time": "2026-01-12T15:24:02.365115Z",
+      "created_time": "2026-01-12T20:19:02.090231Z",
       "custom_strike": {
-        "Associated Events": "KXNFLPASSYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT",
-        "Associated Market Sides": "yes,yes,yes,yes",
-        "Associated Markets": "KXNFLPASSYDS-26JAN12HOUPIT-PITARODGERS8-175,KXNFLRECYDS-26JAN12HOUPIT-HOUDSCHULTZ86-30,KXNFLRECYDS-26JAN12HOUPIT-HOUJHIGGINS81-20,KXNFLRECYDS-26JAN12HOUPIT-HOUNCOLLINS12-60",
-        "Multivariate Event Ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R"
+        "Associated Events": "KXNFLANYTD-26JAN12HOUPIT,KXNFLFIRSTTD-26JAN12HOUPIT",
+        "Associated Market Sides": "yes,yes",
+        "Associated Markets": "KXNFLANYTD-26JAN12HOUPIT-HOUJHIGGINS81,KXNFLFIRSTTD-26JAN12HOUPIT-HOUWMARKS27",
+        "Multivariate Event Ticker": "KXMVENFLSINGLEGAME-26JAN12HOUPIT"
       },
-      "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA",
+      "event_ticker": "KXMVENFLSINGLEGAME-S2025D0419213909",
       "expected_expiration_time": "2026-01-13T04:15:00Z",
       "expiration_time": "2026-01-27T01:15:00Z",
       "expiration_value": "",
@@ -28,26 +28,16 @@
       "liquidity": 0,
       "liquidity_dollars": "0.0000",
       "market_type": "binary",
-      "mve_collection_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R",
+      "mve_collection_ticker": "KXMVENFLSINGLEGAME-26JAN12HOUPIT",
       "mve_selected_legs": [
         {
-          "event_ticker": "KXNFLPASSYDS-26JAN12HOUPIT",
-          "market_ticker": "KXNFLPASSYDS-26JAN12HOUPIT-PITARODGERS8-175",
+          "event_ticker": "KXNFLANYTD-26JAN12HOUPIT",
+          "market_ticker": "KXNFLANYTD-26JAN12HOUPIT-HOUJHIGGINS81",
           "side": "yes"
         },
         {
-          "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
-          "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUDSCHULTZ86-30",
-          "side": "yes"
-        },
-        {
-          "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
-          "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUJHIGGINS81-20",
-          "side": "yes"
-        },
-        {
-          "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
-          "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUNCOLLINS12-60",
+          "event_ticker": "KXNFLFIRSTTD-26JAN12HOUPIT",
+          "market_ticker": "KXNFLFIRSTTD-26JAN12HOUPIT-HOUWMARKS27",
           "side": "yes"
         }
       ],
@@ -55,11 +45,11 @@
       "no_ask_dollars": "1.0000",
       "no_bid": 100,
       "no_bid_dollars": "1.0000",
-      "no_sub_title": "yes Aaron Rodgers: 175+,yes Dalton Schultz: 30+,yes Jayden Higgins: 20+,yes Nico Collins: 60+",
+      "no_sub_title": "yes Jayden Higgins,yes Woody Marks",
       "notional_value": 100,
       "notional_value_dollars": "1.0000",
       "open_interest": 0,
-      "open_time": "2026-01-12T15:24:02.326659Z",
+      "open_time": "2026-01-12T20:19:02.060695Z",
       "previous_price": 0,
       "previous_price_dollars": "0.0000",
       "previous_yes_ask": 0,
@@ -83,15 +73,15 @@
       "strike_type": "custom",
       "subtitle": "",
       "tick_size": 1,
-      "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA-F7F474937F3",
-      "title": "yes Aaron Rodgers: 175+,yes Dalton Schultz: 30+,yes Jayden Higgins: 20+,yes Nico Collins: 60+",
+      "ticker": "KXMVENFLSINGLEGAME-S2025D0419213909-2823B13EC45",
+      "title": "yes Jayden Higgins,yes Woody Marks",
       "volume": 0,
       "volume_24h": 0,
       "yes_ask": 0,
       "yes_ask_dollars": "0.0000",
       "yes_bid": 0,
       "yes_bid_dollars": "0.0000",
-      "yes_sub_title": "yes Aaron Rodgers: 175+,yes Dalton Schultz: 30+,yes Jayden Higgins: 20+,yes Nico Collins: 60+"
+      "yes_sub_title": "yes Jayden Higgins,yes Woody Marks"
     }
   }
 }

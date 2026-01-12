@@ -11,22 +11,26 @@
 
 Deep analysis revealed that while Kalshi API golden fixtures exist, the test suite has significant gaps:
 
-1. **Exa integration has ZERO golden fixtures** - Complete blind spot for API drift
-2. **Tests use inline mocks that drift from golden fixtures** - 70%+ field coverage gap
-3. **Several Kalshi endpoints lack fixture coverage** - trades + series candlesticks are missing fixtures/tests
+1. **Tests use inline mocks that drift from golden fixtures** - 70%+ field coverage gap
+2. **Some tests still mock at the wrong layer** (entire clients / MagicMock models) - real parsing errors can slip
+
+**Status update (2026-01-12):**
+- ✅ Exa SSOT baseline added (golden fixtures + model validation + unit tests)
+- ✅ Kalshi public SSOT gaps closed (trades + candlesticks fixtures + unit tests)
+- 🔴 Remaining: test drift refactor (Phase 2) + CLI test architecture cleanup (Phase 4)
 
 This debt must be paid before adding new features to ensure a stable foundation.
 
 ---
 
-## Problem 1: Exa Has No SSOT Validation
+## Problem 1 (Resolved): Exa SSOT Validation
 
 ### Current State
 
 | Component | Files | Golden Fixtures | Risk |
 |-----------|-------|-----------------|------|
-| Exa client | 12 source files | **0** | **CRITICAL** |
-| Exa tests | 5 test modules (+2 `__init__.py`), ~16 `respx` route mocks | All inline | HIGH |
+| Exa client | 12 source files | **5** | Low |
+| Exa tests | 5 test modules (+2 `__init__.py`), ~16 `respx` route mocks | Golden + inline | Medium |
 
 ### Impact
 
@@ -56,10 +60,17 @@ This debt must be paid before adding new features to ensure a stable foundation.
    - `find_similar_response.json`
    - `answer_response.json`
    - `get_contents_response.json`
+   - `research_task_response.json` (optional: higher cost/latency; record only if keys are available)
 3. Add to `scripts/record_api_responses.py` or create `scripts/record_exa_responses.py`
 4. Validate Exa models against golden fixtures
 
 **Effort:** Medium (script + fixture recording + validation)
+
+### Completed (2026-01-12)
+
+- `scripts/record_exa_responses.py` records `/search`, `/contents`, `/findSimilar`, `/answer` fixtures.
+- `scripts/validate_models_against_golden.py` validates Exa models against those fixtures.
+- Unit tests validate the recorded fixtures against Exa response models.
 
 ---
 
@@ -133,21 +144,20 @@ def mock_market_response():
 
 ---
 
-## Problem 3: Missing Kalshi Fixture Validation
+## Problem 3 (Resolved): Missing Kalshi Fixture Validation
 
 ### Endpoints Without Golden Fixture Validation
 
 | Endpoint | Golden Fixture | Unit Test | Model Validated |
 |----------|----------------|-----------|-----------------|
-| `get_trades()` | **MISSING** | Yes (inline mock) | **NO** |
-| `get_series_candlesticks()` | **MISSING** | **MISSING** | **NO** |
-| `get_event()` | EXISTS | **MISSING** | ✅ Yes (fixture validated) |
+| `get_trades()` | ✅ `trades_list_response.json` | ✅ Yes | ✅ Yes |
+| `get_candlesticks()` | ✅ `candlesticks_batch_response.json` | ✅ Yes | ✅ Yes |
+| `get_series_candlesticks()` | ✅ `series_candlesticks_response.json` | ✅ Yes | ✅ Yes |
+| `get_event()` | ✅ `event_single_response.json` | ✅ Yes | ✅ Yes |
 
 ### Impact
 
-- `Trade` model structure never validated against real API
-- `Candlestick` model for series endpoint completely untested
-- `get_event()` has fixture but no test uses it
+- These endpoints are now validated against recorded SSOT fixtures.
 
 ### Recommended Fix
 
@@ -175,7 +185,7 @@ def mock_market_response():
    - Fixture already exists (`event_single_response.json`)
    - Just need test method
 
-**Effort:** Small (2 new fixtures + 3 tests)
+**Effort:** Completed
 
 ---
 
@@ -212,10 +222,10 @@ Refactor CLI tests to:
 ## Acceptance Criteria
 
 ### Phase 1: Exa SSOT (P1)
-- [ ] Create `tests/fixtures/golden/exa/` directory
-- [ ] Record 5 Exa endpoint golden fixtures
-- [ ] Add Exa models to `validate_models_against_golden.py`
-- [ ] All Exa models pass validation
+- [x] Create `tests/fixtures/golden/exa/` directory
+- [x] Record Exa golden fixtures for: `/search`, `/contents`, `/findSimilar`, `/answer` (and optionally `/research/v1`)
+- [x] Add Exa models to `validate_models_against_golden.py`
+- [x] All Exa models pass validation
 
 ### Phase 2: Fix Test Drift (P1)
 - [ ] Refactor `test_trading.py` to use golden fixtures
@@ -224,9 +234,10 @@ Refactor CLI tests to:
 - [ ] Add CI check for inline mock drift (optional)
 
 ### Phase 3: Close Kalshi Gaps (P2)
-- [ ] Record trades golden fixture (e.g., `trades_list_response.json`)
-- [ ] Add `test_get_event_single` test
-- [ ] Record `series_candlesticks_response.json` and add test
+- [x] Record trades golden fixture (e.g., `trades_list_response.json`)
+- [x] Add `test_get_event_single` test
+- [x] Record `candlesticks_batch_response.json` and add test for `get_candlesticks()`
+- [x] Record `series_candlesticks_response.json` and add test
 
 ### Phase 4: CLI Test Architecture (P3)
 - [ ] Refactor `test_market.py` to mock HTTP, not client
