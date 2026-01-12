@@ -1,0 +1,272 @@
+# DEBT-018: Test SSOT Stabilization (Fixtures, Mocks, Exa Coverage)
+
+**Priority:** P1 (Foundation stability before new features)
+**Status:** Open
+**Created:** 2026-01-12
+**Related:** DEBT-016, DEBT-017, BUG-071
+
+---
+
+## Summary
+
+Deep analysis revealed that while Kalshi API golden fixtures exist, the test suite has significant gaps:
+
+1. **Exa integration has ZERO golden fixtures** - Complete blind spot for API drift
+2. **Tests use inline mocks that drift from golden fixtures** - 70%+ field coverage gap
+3. **Several Kalshi endpoints lack fixture validation** - trades, series candlesticks, single event
+
+This debt must be paid before adding new features to ensure a stable foundation.
+
+---
+
+## Problem 1: Exa Has No SSOT Validation
+
+### Current State
+
+| Component | Files | Golden Fixtures | Risk |
+|-----------|-------|-----------------|------|
+| Exa client | 12 source files | **0** | **CRITICAL** |
+| Exa tests | 7 test files, 100+ respx mocks | All inline | HIGH |
+
+### Impact
+
+- If Exa changes their API response structure, tests pass but production breaks
+- No way to detect drift without manually comparing to real API
+- Fast-moving AI APIs change frequently (high likelihood)
+
+### Files Involved
+
+**Source:**
+- `src/kalshi_research/exa/client.py` - Main client
+- `src/kalshi_research/exa/models/*.py` - 6 model files (search, answer, contents, etc.)
+
+**Tests (all use inline mocks):**
+- `tests/unit/exa/test_client.py` - 250+ lines of inline mock responses
+- `tests/unit/exa/test_models.py`
+- `tests/unit/exa/test_cache.py`
+
+### Recommended Fix
+
+1. Create `tests/fixtures/golden/exa/` directory
+2. Record real Exa API responses (requires EXA_API_KEY):
+   - `search_response.json`
+   - `search_and_contents_response.json`
+   - `find_similar_response.json`
+   - `answer_response.json`
+   - `get_contents_response.json`
+3. Add to `scripts/record_api_responses.py` or create `scripts/record_exa_responses.py`
+4. Validate Exa models against golden fixtures
+
+**Effort:** Medium (script + fixture recording + validation)
+
+---
+
+## Problem 2: Test Mocks Drift from Golden Fixtures
+
+### Current State
+
+Tests create inline mock responses instead of loading golden fixtures. This creates drift risk.
+
+### Drift Analysis
+
+| Component | Inline Mock Fields | Golden Fixture Fields | Gap |
+|-----------|-------------------|----------------------|-----|
+| Market | 18 fields | 50+ fields | **32 fields missing** |
+| Order | 3 fields | 27 fields | **24 fields missing** |
+| Position | 2 fields | 12 fields | **10 fields missing** |
+| Orderbook | 2 fields (legacy only) | 4 fields (incl. dollar) | dollar fields |
+| Create Order Response | 2 fields | 27 fields | **25 fields missing** |
+
+### Example: Order Mock Drift
+
+**Test mock** (`tests/unit/api/test_trading.py`):
+```python
+json={"order": {"order_id": "oid-123", "status": "resting"}}
+```
+
+**Golden fixture** (`tests/fixtures/golden/create_order_response.json`):
+```json
+{
+  "order": {
+    "order_id": "...",
+    "status": "resting",
+    "action": "buy",
+    "client_order_id": "...",
+    "created_time": "...",
+    "fill_count": 0,
+    "initial_count": 10,
+    "maker_fees": 0,
+    "taker_fees": 0,
+    "taker_fill_cost": 0,
+    "taker_fill_cost_dollars": "0.0000",
+    // ... 17 more fields
+  }
+}
+```
+
+### Files with Drift Risk
+
+| File | Issue |
+|------|-------|
+| `tests/conftest.py` | `make_market()`, `make_orderbook()` factories simplified |
+| `tests/unit/api/test_client.py` | `mock_market_response` inline fixture |
+| `tests/unit/api/test_trading.py` | Order responses oversimplified |
+| `tests/unit/api/test_client_extended.py` | Position/order mocks minimal |
+| `tests/e2e/test_data_pipeline.py` | `_event_dict()`, `_market_dict()` inline |
+
+### Recommended Fix
+
+**Option A (Preferred): Load Golden Fixtures in Tests**
+```python
+# Instead of inline dict
+@pytest.fixture
+def mock_market_response():
+    with open("tests/fixtures/golden/market_single_response.json") as f:
+        return json.load(f)["response"]
+```
+
+**Option B: Validate Inline Mocks Against Golden**
+- Add CI step that compares inline mock keys vs golden fixture keys
+- Fail if inline mock is missing required fields
+
+**Effort:** Medium (refactor ~10 test files)
+
+---
+
+## Problem 3: Missing Kalshi Fixture Validation
+
+### Endpoints Without Golden Fixture Validation
+
+| Endpoint | Golden Fixture | Unit Test | Model Validated |
+|----------|----------------|-----------|-----------------|
+| `get_trades()` | **MISSING** | Yes (inline mock) | **NO** |
+| `get_series_candlesticks()` | **MISSING** | **MISSING** | **NO** |
+| `get_event()` | EXISTS | **MISSING** | Partial |
+
+### Impact
+
+- `Trade` model structure never validated against real API
+- `Candlestick` model for series endpoint completely untested
+- `get_event()` has fixture but no test uses it
+
+### Recommended Fix
+
+1. **Record trades fixture:**
+   ```bash
+   # Add to record_api_responses.py
+   trades = await client.get_trades(ticker="KXBTC-25JAN-T100000", limit=5)
+   save_fixture("trades_response.json", trades)
+   ```
+
+2. **Add series candlesticks test + fixture:**
+   - Record from real API
+   - Add test in `test_client.py`
+
+3. **Add get_event test:**
+   - Fixture already exists (`event_single_response.json`)
+   - Just need test method
+
+**Effort:** Small (3 fixtures + 3 tests)
+
+---
+
+## Problem 4: CLI Tests Mock at Wrong Layer
+
+### Current Pattern (Wrong)
+
+```python
+# tests/unit/cli/test_market.py
+@patch("kalshi_research.api.KalshiPublicClient")
+def test_market_get(mock_client_cls: MagicMock) -> None:
+    mock_market = MagicMock()
+    mock_market.status.value = "active"  # MagicMock, not real enum
+```
+
+### Issue
+
+- Mocks entire client class, not HTTP boundary
+- Returns `MagicMock` objects, not real Pydantic models
+- Model validation errors won't be caught
+- Tests don't verify CLI actually parses real API responses correctly
+
+### Recommended Fix
+
+Refactor CLI tests to:
+1. Mock at HTTP boundary (respx)
+2. Use real Pydantic models in responses
+3. Let CLI code parse models naturally
+
+**Effort:** Medium (refactor ~5 CLI test files)
+
+---
+
+## Acceptance Criteria
+
+### Phase 1: Exa SSOT (P1)
+- [ ] Create `tests/fixtures/golden/exa/` directory
+- [ ] Record 5 Exa endpoint golden fixtures
+- [ ] Add Exa models to `validate_models_against_golden.py`
+- [ ] All Exa models pass validation
+
+### Phase 2: Fix Test Drift (P1)
+- [ ] Refactor `test_trading.py` to use golden fixtures
+- [ ] Refactor `test_client_extended.py` to use golden fixtures
+- [ ] Update `conftest.py` factories to match golden structure
+- [ ] Add CI check for inline mock drift (optional)
+
+### Phase 3: Close Kalshi Gaps (P2)
+- [ ] Record `trades_response.json` golden fixture
+- [ ] Add `test_get_event_single` test
+- [ ] Record `series_candlesticks_response.json` and add test
+
+### Phase 4: CLI Test Architecture (P3)
+- [ ] Refactor `test_market.py` to mock HTTP, not client
+- [ ] Refactor `test_portfolio.py` similarly
+- [ ] All CLI tests use real Pydantic models
+
+---
+
+## Implementation Order
+
+```
+DEBT-018 Phase 1 (Exa SSOT)
+    ↓
+DEBT-018 Phase 2 (Fix Test Drift)
+    ↓
+DEBT-016 (CI Automation) - builds on Phase 1-2
+    ↓
+DEBT-018 Phase 3 (Kalshi Gaps)
+    ↓
+DEBT-018 Phase 4 (CLI Tests) - lower priority
+    ↓
+DEBT-015 (Missing Endpoints) - only after foundation solid
+```
+
+---
+
+## Cross-References
+
+| Item | Relationship |
+|------|--------------|
+| DEBT-016 | CI automation for fixture drift (builds on this) |
+| DEBT-017 | Duplicate Order models (separate issue) |
+| DEBT-015 | Missing API endpoints (do AFTER this debt) |
+| BUG-071 | Original mocked tests finding (now archived) |
+| `scripts/validate_models_against_golden.py` | Existing validation script to extend |
+| `scripts/record_api_responses.py` | Existing recording script to extend |
+
+---
+
+## Why This Matters
+
+**Without this debt paid:**
+- Adding new features risks silent regressions
+- Exa API changes will break production without warning
+- Tests give false confidence (pass with wrong data)
+- Other agents working on codebase may introduce drift
+
+**With this debt paid:**
+- Golden fixtures are SSOT for all external APIs (Kalshi + Exa)
+- Tests validate against reality, not imagination
+- CI catches drift before it hits production
+- Safe foundation for DEBT-015 (new endpoints) and new features
