@@ -127,20 +127,34 @@ def make_market() -> Callable[..., dict[str, Any]]:
                 "expiration_time": "2026-01-01T00:00:00Z",
             }
         )
+        override_keys = set(overrides)
         base.update(overrides)
 
         final_yes_bid = base.get("yes_bid")
         final_yes_ask = base.get("yes_ask")
         if isinstance(final_yes_bid, int) and isinstance(final_yes_ask, int):
-            base["no_bid"] = 100 - final_yes_ask
-            base["no_ask"] = 100 - final_yes_bid
-            base["last_price"] = (final_yes_bid + final_yes_ask) // 2
+            # Derived fields keep internal consistency; explicit overrides win.
+            if "no_bid" not in override_keys:
+                base["no_bid"] = 100 - final_yes_ask
+            if "no_ask" not in override_keys:
+                base["no_ask"] = 100 - final_yes_bid
+            if "last_price" not in override_keys:
+                base["last_price"] = (final_yes_bid + final_yes_ask) // 2
 
-            base["yes_bid_dollars"] = _cents_to_fixed_dollars(final_yes_bid)
-            base["yes_ask_dollars"] = _cents_to_fixed_dollars(final_yes_ask)
-            base["no_bid_dollars"] = _cents_to_fixed_dollars(100 - final_yes_ask)
-            base["no_ask_dollars"] = _cents_to_fixed_dollars(100 - final_yes_bid)
-            base["last_price_dollars"] = _cents_to_fixed_dollars(base["last_price"])
+            if "yes_bid_dollars" not in override_keys:
+                base["yes_bid_dollars"] = _cents_to_fixed_dollars(final_yes_bid)
+            if "yes_ask_dollars" not in override_keys:
+                base["yes_ask_dollars"] = _cents_to_fixed_dollars(final_yes_ask)
+
+            no_bid = base.get("no_bid")
+            no_ask = base.get("no_ask")
+            last_price = base.get("last_price")
+            if isinstance(no_bid, int) and "no_bid_dollars" not in override_keys:
+                base["no_bid_dollars"] = _cents_to_fixed_dollars(no_bid)
+            if isinstance(no_ask, int) and "no_ask_dollars" not in override_keys:
+                base["no_ask_dollars"] = _cents_to_fixed_dollars(no_ask)
+            if isinstance(last_price, int) and "last_price_dollars" not in override_keys:
+                base["last_price_dollars"] = _cents_to_fixed_dollars(last_price)
         return base
 
     return _make
