@@ -13,7 +13,7 @@ Deep analysis revealed that while Kalshi API golden fixtures exist, the test sui
 
 1. **Exa integration has ZERO golden fixtures** - Complete blind spot for API drift
 2. **Tests use inline mocks that drift from golden fixtures** - 70%+ field coverage gap
-3. **Several Kalshi endpoints lack fixture validation** - trades, series candlesticks, single event
+3. **Several Kalshi endpoints lack fixture coverage** - trades + series candlesticks are missing fixtures/tests
 
 This debt must be paid before adding new features to ensure a stable foundation.
 
@@ -26,7 +26,7 @@ This debt must be paid before adding new features to ensure a stable foundation.
 | Component | Files | Golden Fixtures | Risk |
 |-----------|-------|-----------------|------|
 | Exa client | 12 source files | **0** | **CRITICAL** |
-| Exa tests | 7 test files, 100+ respx mocks | All inline | HIGH |
+| Exa tests | 5 test modules (+2 `__init__.py`), ~16 `respx` route mocks | All inline | HIGH |
 
 ### Impact
 
@@ -41,9 +41,11 @@ This debt must be paid before adding new features to ensure a stable foundation.
 - `src/kalshi_research/exa/models/*.py` - 6 model files (search, answer, contents, etc.)
 
 **Tests (all use inline mocks):**
-- `tests/unit/exa/test_client.py` - 250+ lines of inline mock responses
+- `tests/unit/exa/test_client.py` - 250+ lines, `@respx.mock` for API routes
+- `tests/unit/exa/test_config.py`
 - `tests/unit/exa/test_models.py`
 - `tests/unit/exa/test_cache.py`
+- `tests/integration/exa/test_exa_research.py`
 
 ### Recommended Fix
 
@@ -71,11 +73,11 @@ Tests create inline mock responses instead of loading golden fixtures. This crea
 
 | Component | Inline Mock Fields | Golden Fixture Fields | Gap |
 |-----------|-------------------|----------------------|-----|
-| Market | 18 fields | 50+ fields | **32 fields missing** |
-| Order | 3 fields | 27 fields | **24 fields missing** |
+| Market | 20 fields (`tests/conftest.py:make_market`) | 51 fields (`market_single_response.json`) | **31 fields missing** |
+| Order | 2–3 fields (common mocks) | 27 fields (`portfolio_orders_response.json`) | **24–25 fields missing** |
 | Position | 2 fields | 12 fields | **10 fields missing** |
 | Orderbook | 2 fields (legacy only) | 4 fields (incl. dollar) | dollar fields |
-| Create Order Response | 2 fields | 27 fields | **25 fields missing** |
+| Create Order Response | 2 fields (common mocks) | 26 fields (`create_order_response.json`) | **24 fields missing** |
 
 ### Example: Order Mock Drift
 
@@ -84,23 +86,21 @@ Tests create inline mock responses instead of loading golden fixtures. This crea
 json={"order": {"order_id": "oid-123", "status": "resting"}}
 ```
 
-**Golden fixture** (`tests/fixtures/golden/create_order_response.json`):
+**Golden fixture payload** (`tests/fixtures/golden/create_order_response.json` → `response.order`):
 ```json
 {
-  "order": {
-    "order_id": "...",
-    "status": "resting",
-    "action": "buy",
-    "client_order_id": "...",
-    "created_time": "...",
-    "fill_count": 0,
-    "initial_count": 10,
-    "maker_fees": 0,
-    "taker_fees": 0,
-    "taker_fill_cost": 0,
-    "taker_fill_cost_dollars": "0.0000",
-    // ... 17 more fields
-  }
+  "order_id": "...",
+  "status": "resting",
+  "action": "buy",
+  "client_order_id": "...",
+  "created_time": "...",
+  "fill_count": 0,
+  "initial_count": 10,
+  "maker_fees": 0,
+  "taker_fees": 0,
+  "taker_fill_cost": 0,
+  "taker_fill_cost_dollars": "0.0000"
+  // ... +16 more fields in production
 }
 ```
 
@@ -141,7 +141,7 @@ def mock_market_response():
 |----------|----------------|-----------|-----------------|
 | `get_trades()` | **MISSING** | Yes (inline mock) | **NO** |
 | `get_series_candlesticks()` | **MISSING** | **MISSING** | **NO** |
-| `get_event()` | EXISTS | **MISSING** | Partial |
+| `get_event()` | EXISTS | **MISSING** | ✅ Yes (fixture validated) |
 
 ### Impact
 
@@ -153,9 +153,18 @@ def mock_market_response():
 
 1. **Record trades fixture:**
    ```bash
-   # Add to record_api_responses.py
-   trades = await client.get_trades(ticker="KXBTC-25JAN-T100000", limit=5)
-   save_fixture("trades_response.json", trades)
+   # Add a new public recording step in scripts/record_api_responses.py.
+   # IMPORTANT: record the RAW response payload (not parsed Trade models).
+   #
+   # Example:
+   # await _record_public_get(
+   #     client,
+   #     label="trades",
+   #     path="/markets/trades",
+   #     params={"ticker": "<LIVE_TICKER>", "limit": 5},
+   #     save_as="trades_list",
+   #     results=results,
+   # )
    ```
 
 2. **Add series candlesticks test + fixture:**
@@ -166,7 +175,7 @@ def mock_market_response():
    - Fixture already exists (`event_single_response.json`)
    - Just need test method
 
-**Effort:** Small (3 fixtures + 3 tests)
+**Effort:** Small (2 new fixtures + 3 tests)
 
 ---
 
@@ -215,7 +224,7 @@ Refactor CLI tests to:
 - [ ] Add CI check for inline mock drift (optional)
 
 ### Phase 3: Close Kalshi Gaps (P2)
-- [ ] Record `trades_response.json` golden fixture
+- [ ] Record trades golden fixture (e.g., `trades_list_response.json`)
 - [ ] Add `test_get_event_single` test
 - [ ] Record `series_candlesticks_response.json` and add test
 

@@ -24,8 +24,8 @@ Two `Order` classes exist in the codebase:
 
 | Location | Fields | Used By |
 |----------|--------|---------|
-| `src/kalshi_research/api/models/order.py` | Minimal (11 fields) | Internal trading logic |
-| `src/kalshi_research/api/models/portfolio.py` | Full (28 fields) | Portfolio API responses |
+| `src/kalshi_research/api/models/order.py` | Minimal (~12 fields) | ⚠️ Currently unused (dead code risk) |
+| `src/kalshi_research/api/models/portfolio.py` | Full (31 fields) | Portfolio API responses + golden fixture validation |
 
 ### order.py:Order (Minimal)
 
@@ -76,7 +76,8 @@ class Order(BaseModel):
 
 - **Confusion**: Which `Order` should code import?
 - **Import errors**: Wrong import silently uses wrong model
-- **Validation gaps**: `order.py:Order` can't validate full API responses
+- **Dead code**: `order.py:Order` is not imported anywhere (drifts silently)
+- **Validation gaps**: `order.py:Order` can't validate full API responses even if adopted
 
 ### Current Usage
 

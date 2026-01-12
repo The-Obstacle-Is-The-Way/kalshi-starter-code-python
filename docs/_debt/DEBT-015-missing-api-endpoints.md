@@ -33,7 +33,7 @@ The Kalshi API client is missing 45+ documented endpoints. While the core tradin
 
 **Impact:** Low - informational only
 
-### 2. Series Endpoints (4 endpoints) - P2
+### 2. Series Endpoints (3 endpoints) - P2
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
@@ -46,7 +46,8 @@ The Kalshi API client is missing 45+ documented endpoints. While the core tradin
 2. `GET /series?category=Politics` → Get series in category
 3. `GET /markets?series_ticker=...` → Get markets
 
-Currently we use `/events` which works but is deprecated pattern.
+Currently we use `/events` for browsing (works), but it does not provide the same series-centric
+navigation and filtering Kalshi designs around via `/series`.
 
 ### 3. Search & Discovery (2 endpoints) - P2
 
