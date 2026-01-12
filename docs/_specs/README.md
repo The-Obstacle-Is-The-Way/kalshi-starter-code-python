@@ -22,8 +22,6 @@ This directory contains **active** design specifications - work happening NOW.
 | SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft |
 | SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft |
 | SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft |
-| SPEC-035 | [Ticker Display Enhancement (Full Tickers in CLI)](SPEC-035-ticker-display-enhancement.md) | 📝 Draft |
-| SPEC-036 | [Category Filtering for Markets](SPEC-036-category-filtering.md) | 📝 Draft |
 
 ---
 
@@ -49,6 +47,8 @@ build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive s
 
 | ID | Title | Status |
 |---|---|---|
+| SPEC-036 | [Category Filtering for Markets](../_archive/specs/SPEC-036-category-filtering.md) | ✅ Implemented |
+| SPEC-035 | [Ticker Display Enhancement](../_archive/specs/SPEC-035-ticker-display-enhancement.md) | ✅ Implemented |
 | SPEC-027 | [Settlement Timestamp Support](../_archive/specs/SPEC-027-settlement-timestamp.md) | ✅ Implemented |
 | SPEC-026 | [Liquidity Analysis](../_archive/specs/SPEC-026-liquidity-analysis.md) | ✅ Implemented |
 | SPEC-025 | [Market Open Time Display](../_archive/specs/SPEC-025-market-open-time-display.md) | ✅ Implemented |
