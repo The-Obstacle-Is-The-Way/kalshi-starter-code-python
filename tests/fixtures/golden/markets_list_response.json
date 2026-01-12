@@ -1,0 +1,471 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T15:24:03.340542+00:00",
+    "endpoint": "markets_list",
+    "environment": "prod",
+    "sanitized": false,
+    "limit": 5,
+    "status": "open",
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "cursor": "CgwIkaSUywYQqLi72gESL0tYTVZFTkZMU0lOR0xFR0FNRS1TMjAyNTg0QjQzMTY4ODE1LTQ5Mjc2REYyMjQ4",
+    "markets": [
+      {
+        "can_close_early": true,
+        "close_time": "2026-01-27T01:15:00Z",
+        "created_time": "2026-01-12T15:24:02.365115Z",
+        "custom_strike": {
+          "Associated Events": "KXNFLPASSYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT",
+          "Associated Market Sides": "yes,yes,yes,yes",
+          "Associated Markets": "KXNFLPASSYDS-26JAN12HOUPIT-PITARODGERS8-175,KXNFLRECYDS-26JAN12HOUPIT-HOUDSCHULTZ86-30,KXNFLRECYDS-26JAN12HOUPIT-HOUJHIGGINS81-20,KXNFLRECYDS-26JAN12HOUPIT-HOUNCOLLINS12-60",
+          "Multivariate Event Ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R"
+        },
+        "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA",
+        "expected_expiration_time": "2026-01-13T04:15:00Z",
+        "expiration_time": "2026-01-27T01:15:00Z",
+        "expiration_value": "",
+        "last_price": 0,
+        "last_price_dollars": "0.0000",
+        "latest_expiration_time": "2026-01-27T01:15:00Z",
+        "liquidity": 0,
+        "liquidity_dollars": "0.0000",
+        "market_type": "binary",
+        "mve_collection_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R",
+        "mve_selected_legs": [
+          {
+            "event_ticker": "KXNFLPASSYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLPASSYDS-26JAN12HOUPIT-PITARODGERS8-175",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUDSCHULTZ86-30",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUJHIGGINS81-20",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUNCOLLINS12-60",
+            "side": "yes"
+          }
+        ],
+        "no_ask": 100,
+        "no_ask_dollars": "1.0000",
+        "no_bid": 100,
+        "no_bid_dollars": "1.0000",
+        "no_sub_title": "yes Aaron Rodgers: 175+,yes Dalton Schultz: 30+,yes Jayden Higgins: 20+,yes Nico Collins: 60+",
+        "notional_value": 100,
+        "notional_value_dollars": "1.0000",
+        "open_interest": 0,
+        "open_time": "2026-01-12T15:24:02.326659Z",
+        "previous_price": 0,
+        "previous_price_dollars": "0.0000",
+        "previous_yes_ask": 0,
+        "previous_yes_ask_dollars": "0.0000",
+        "previous_yes_bid": 0,
+        "previous_yes_bid_dollars": "0.0000",
+        "price_level_structure": "deci_cent",
+        "price_ranges": [
+          {
+            "end": "1.0000",
+            "start": "0.0000",
+            "step": "0.0010"
+          }
+        ],
+        "response_price_units": "usd_cent",
+        "result": "",
+        "rules_primary": "",
+        "rules_secondary": "",
+        "settlement_timer_seconds": 600,
+        "status": "active",
+        "strike_type": "custom",
+        "subtitle": "",
+        "tick_size": 1,
+        "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025F4F0CF3B0DA-F7F474937F3",
+        "title": "yes Aaron Rodgers: 175+,yes Dalton Schultz: 30+,yes Jayden Higgins: 20+,yes Nico Collins: 60+",
+        "volume": 0,
+        "volume_24h": 0,
+        "yes_ask": 0,
+        "yes_ask_dollars": "0.0000",
+        "yes_bid": 0,
+        "yes_bid_dollars": "0.0000",
+        "yes_sub_title": "yes Aaron Rodgers: 175+,yes Dalton Schultz: 30+,yes Jayden Higgins: 20+,yes Nico Collins: 60+"
+      },
+      {
+        "can_close_early": true,
+        "close_time": "2026-01-27T00:00:00Z",
+        "created_time": "2026-01-12T15:24:02.041072Z",
+        "custom_strike": {
+          "Associated Events": "KXNBASPREAD-26JAN12UTACLE,KXNBATOTAL-26JAN12PHITOR",
+          "Associated Market Sides": "no,no",
+          "Associated Markets": "KXNBASPREAD-26JAN12UTACLE-CLE13,KXNBATOTAL-26JAN12PHITOR-220",
+          "Multivariate Event Ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R"
+        },
+        "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025914C1DEF932",
+        "expected_expiration_time": "2026-01-13T03:30:00Z",
+        "expiration_time": "2026-01-27T00:00:00Z",
+        "expiration_value": "",
+        "last_price": 0,
+        "last_price_dollars": "0.0000",
+        "latest_expiration_time": "2026-01-27T00:00:00Z",
+        "liquidity": 0,
+        "liquidity_dollars": "0.0000",
+        "market_type": "binary",
+        "mve_collection_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R",
+        "mve_selected_legs": [
+          {
+            "event_ticker": "KXNBASPREAD-26JAN12UTACLE",
+            "market_ticker": "KXNBASPREAD-26JAN12UTACLE-CLE13",
+            "side": "no"
+          },
+          {
+            "event_ticker": "KXNBATOTAL-26JAN12PHITOR",
+            "market_ticker": "KXNBATOTAL-26JAN12PHITOR-220",
+            "side": "no"
+          }
+        ],
+        "no_ask": 100,
+        "no_ask_dollars": "1.0000",
+        "no_bid": 100,
+        "no_bid_dollars": "1.0000",
+        "no_sub_title": "no Cleveland wins by over 13.5 Points,no Over 220.5 points scored",
+        "notional_value": 100,
+        "notional_value_dollars": "1.0000",
+        "open_interest": 0,
+        "open_time": "2026-01-12T15:24:02.005572Z",
+        "previous_price": 0,
+        "previous_price_dollars": "0.0000",
+        "previous_yes_ask": 0,
+        "previous_yes_ask_dollars": "0.0000",
+        "previous_yes_bid": 0,
+        "previous_yes_bid_dollars": "0.0000",
+        "price_level_structure": "deci_cent",
+        "price_ranges": [
+          {
+            "end": "1.0000",
+            "start": "0.0000",
+            "step": "0.0010"
+          }
+        ],
+        "response_price_units": "usd_cent",
+        "result": "",
+        "rules_primary": "",
+        "rules_secondary": "",
+        "settlement_timer_seconds": 600,
+        "status": "active",
+        "strike_type": "custom",
+        "subtitle": "",
+        "tick_size": 1,
+        "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025914C1DEF932-2AB7D089B34",
+        "title": "no Cleveland wins by over 13.5 Points,no Over 220.5 points scored",
+        "volume": 0,
+        "volume_24h": 0,
+        "yes_ask": 0,
+        "yes_ask_dollars": "0.0000",
+        "yes_bid": 0,
+        "yes_bid_dollars": "0.0000",
+        "yes_sub_title": "no Cleveland wins by over 13.5 Points,no Over 220.5 points scored"
+      },
+      {
+        "can_close_early": true,
+        "close_time": "2026-01-27T01:15:00Z",
+        "created_time": "2026-01-12T15:24:01.638541Z",
+        "custom_strike": {
+          "Associated Events": "KXNFLPASSYDS-26JAN12HOUPIT,KXNFLPASSYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRSHYDS-26JAN12HOUPIT,KXNFLRSHYDS-26JAN12HOUPIT",
+          "Associated Market Sides": "yes,yes,yes,yes,yes,yes,yes",
+          "Associated Markets": "KXNFLPASSYDS-26JAN12HOUPIT-HOUCSTROUD7-175,KXNFLPASSYDS-26JAN12HOUPIT-PITARODGERS8-175,KXNFLRECYDS-26JAN12HOUPIT-HOUCKIRK13-10,KXNFLRECYDS-26JAN12HOUPIT-HOUJNOEL14-10,KXNFLRECYDS-26JAN12HOUPIT-PITJWARREN30-10,KXNFLRSHYDS-26JAN12HOUPIT-HOUCSTROUD7-10,KXNFLRSHYDS-26JAN12HOUPIT-HOUNCHUBB21-10",
+          "Multivariate Event Ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R"
+        },
+        "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S20250D70227AB15",
+        "expected_expiration_time": "2026-01-13T04:15:00Z",
+        "expiration_time": "2026-01-27T01:15:00Z",
+        "expiration_value": "",
+        "last_price": 0,
+        "last_price_dollars": "0.0000",
+        "latest_expiration_time": "2026-01-27T01:15:00Z",
+        "liquidity": 0,
+        "liquidity_dollars": "0.0000",
+        "market_type": "binary",
+        "mve_collection_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R",
+        "mve_selected_legs": [
+          {
+            "event_ticker": "KXNFLPASSYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLPASSYDS-26JAN12HOUPIT-HOUCSTROUD7-175",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLPASSYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLPASSYDS-26JAN12HOUPIT-PITARODGERS8-175",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUCKIRK13-10",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUJNOEL14-10",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-PITJWARREN30-10",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLRSHYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLRSHYDS-26JAN12HOUPIT-HOUCSTROUD7-10",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLRSHYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLRSHYDS-26JAN12HOUPIT-HOUNCHUBB21-10",
+            "side": "yes"
+          }
+        ],
+        "no_ask": 100,
+        "no_ask_dollars": "1.0000",
+        "no_bid": 100,
+        "no_bid_dollars": "1.0000",
+        "no_sub_title": "yes C.J. Stroud: 175+,yes Aaron Rodgers: 175+,yes Christian Kirk: 10+,yes Jaylin Noel: 10+,yes Jaylen Warren: 10+,yes C.J. Stroud: 10+,yes Nick Chubb: 10+",
+        "notional_value": 100,
+        "notional_value_dollars": "1.0000",
+        "open_interest": 0,
+        "open_time": "2026-01-12T15:24:01.599652Z",
+        "previous_price": 0,
+        "previous_price_dollars": "0.0000",
+        "previous_yes_ask": 0,
+        "previous_yes_ask_dollars": "0.0000",
+        "previous_yes_bid": 0,
+        "previous_yes_bid_dollars": "0.0000",
+        "price_level_structure": "deci_cent",
+        "price_ranges": [
+          {
+            "end": "1.0000",
+            "start": "0.0000",
+            "step": "0.0010"
+          }
+        ],
+        "response_price_units": "usd_cent",
+        "result": "",
+        "rules_primary": "",
+        "rules_secondary": "",
+        "settlement_timer_seconds": 600,
+        "status": "active",
+        "strike_type": "custom",
+        "subtitle": "",
+        "tick_size": 1,
+        "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S20250D70227AB15-82BD3E9AC03",
+        "title": "yes C.J. Stroud: 175+,yes Aaron Rodgers: 175+,yes Christian Kirk: 10+,yes Jaylin Noel: 10+,yes Jaylen Warren: 10+,yes C.J. Stroud: 10+,yes Nick Chubb: 10+",
+        "volume": 0,
+        "volume_24h": 0,
+        "yes_ask": 0,
+        "yes_ask_dollars": "0.0000",
+        "yes_bid": 0,
+        "yes_bid_dollars": "0.0000",
+        "yes_sub_title": "yes C.J. Stroud: 175+,yes Aaron Rodgers: 175+,yes Christian Kirk: 10+,yes Jaylin Noel: 10+,yes Jaylen Warren: 10+,yes C.J. Stroud: 10+,yes Nick Chubb: 10+"
+      },
+      {
+        "can_close_early": true,
+        "close_time": "2026-01-27T00:00:00Z",
+        "created_time": "2026-01-12T15:24:01.570059Z",
+        "custom_strike": {
+          "Associated Events": "KXNBAAST-26JAN12UTACLE,KXNBAPTS-26JAN12BOSIND,KXNBAPTS-26JAN12CHALAC,KXNBAPTS-26JAN12LALSAC,KXNBAPTS-26JAN12PHITOR,KXNBAPTS-26JAN12PHITOR,KXNBAREB-26JAN12CHALAC,KXNBAREB-26JAN12UTACLE",
+          "Associated Market Sides": "yes,yes,yes,yes,yes,yes,yes,yes",
+          "Associated Markets": "KXNBAAST-26JAN12UTACLE-CLEDGARLAND10-4,KXNBAPTS-26JAN12BOSIND-INDPSIAKAM43-15,KXNBAPTS-26JAN12CHALAC-LACJHARDEN1-15,KXNBAPTS-26JAN12LALSAC-SACDDEROZAN10-10,KXNBAPTS-26JAN12PHITOR-PHIVEDGECOMBE77-10,KXNBAPTS-26JAN12PHITOR-TORSBARNES4-15,KXNBAREB-26JAN12CHALAC-LACJHARDEN1-2,KXNBAREB-26JAN12UTACLE-CLEDMITCHELL45-2",
+          "Multivariate Event Ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R"
+        },
+        "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S202564C7D2450D8",
+        "expected_expiration_time": "2026-01-13T06:30:00Z",
+        "expiration_time": "2026-01-27T00:00:00Z",
+        "expiration_value": "",
+        "last_price": 0,
+        "last_price_dollars": "0.0000",
+        "latest_expiration_time": "2026-01-27T00:00:00Z",
+        "liquidity": 0,
+        "liquidity_dollars": "0.0000",
+        "market_type": "binary",
+        "mve_collection_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R",
+        "mve_selected_legs": [
+          {
+            "event_ticker": "KXNBAAST-26JAN12UTACLE",
+            "market_ticker": "KXNBAAST-26JAN12UTACLE-CLEDGARLAND10-4",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNBAPTS-26JAN12BOSIND",
+            "market_ticker": "KXNBAPTS-26JAN12BOSIND-INDPSIAKAM43-15",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNBAPTS-26JAN12CHALAC",
+            "market_ticker": "KXNBAPTS-26JAN12CHALAC-LACJHARDEN1-15",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNBAPTS-26JAN12LALSAC",
+            "market_ticker": "KXNBAPTS-26JAN12LALSAC-SACDDEROZAN10-10",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNBAPTS-26JAN12PHITOR",
+            "market_ticker": "KXNBAPTS-26JAN12PHITOR-PHIVEDGECOMBE77-10",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNBAPTS-26JAN12PHITOR",
+            "market_ticker": "KXNBAPTS-26JAN12PHITOR-TORSBARNES4-15",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNBAREB-26JAN12CHALAC",
+            "market_ticker": "KXNBAREB-26JAN12CHALAC-LACJHARDEN1-2",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNBAREB-26JAN12UTACLE",
+            "market_ticker": "KXNBAREB-26JAN12UTACLE-CLEDMITCHELL45-2",
+            "side": "yes"
+          }
+        ],
+        "no_ask": 100,
+        "no_ask_dollars": "1.0000",
+        "no_bid": 100,
+        "no_bid_dollars": "1.0000",
+        "no_sub_title": "yes Darius Garland: 4+,yes Pascal Siakam: 15+,yes James Harden: 15+,yes DeMar DeRozan: 10+,yes VJ Edgecombe: 10+,yes Scottie Barnes: 15+,yes James Harden: 2+,yes Donovan Mitchell: 2+",
+        "notional_value": 100,
+        "notional_value_dollars": "1.0000",
+        "open_interest": 0,
+        "open_time": "2026-01-12T15:24:01.539823Z",
+        "previous_price": 0,
+        "previous_price_dollars": "0.0000",
+        "previous_yes_ask": 0,
+        "previous_yes_ask_dollars": "0.0000",
+        "previous_yes_bid": 0,
+        "previous_yes_bid_dollars": "0.0000",
+        "price_level_structure": "deci_cent",
+        "price_ranges": [
+          {
+            "end": "1.0000",
+            "start": "0.0000",
+            "step": "0.0010"
+          }
+        ],
+        "response_price_units": "usd_cent",
+        "result": "",
+        "rules_primary": "",
+        "rules_secondary": "",
+        "settlement_timer_seconds": 600,
+        "status": "active",
+        "strike_type": "custom",
+        "subtitle": "",
+        "tick_size": 1,
+        "ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S202564C7D2450D8-3091E052E40",
+        "title": "yes Darius Garland: 4+,yes Pascal Siakam: 15+,yes James Harden: 15+,yes DeMar DeRozan: 10+,yes VJ Edgecombe: 10+,yes Scottie Barnes: 15+,yes James Harden: 2+,yes Donovan Mitchell: 2+",
+        "volume": 0,
+        "volume_24h": 0,
+        "yes_ask": 0,
+        "yes_ask_dollars": "0.0000",
+        "yes_bid": 0,
+        "yes_bid_dollars": "0.0000",
+        "yes_sub_title": "yes Darius Garland: 4+,yes Pascal Siakam: 15+,yes James Harden: 15+,yes DeMar DeRozan: 10+,yes VJ Edgecombe: 10+,yes Scottie Barnes: 15+,yes James Harden: 2+,yes Donovan Mitchell: 2+"
+      },
+      {
+        "can_close_early": true,
+        "close_time": "2026-01-27T01:15:00Z",
+        "created_time": "2026-01-12T15:24:01.458153Z",
+        "custom_strike": {
+          "Associated Events": "KXNFLANYTD-26JAN12HOUPIT,KXNFLGAME-26JAN12HOUPIT,KXNFLPASSYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT,KXNFLRECYDS-26JAN12HOUPIT",
+          "Associated Market Sides": "yes,yes,yes,yes,yes",
+          "Associated Markets": "KXNFLANYTD-26JAN12HOUPIT-HOUDSCHULTZ86,KXNFLGAME-26JAN12HOUPIT-HOU,KXNFLPASSYDS-26JAN12HOUPIT-HOUCSTROUD7-200,KXNFLRECYDS-26JAN12HOUPIT-HOUDSCHULTZ86-40,KXNFLRECYDS-26JAN12HOUPIT-HOUNCOLLINS12-70",
+          "Multivariate Event Ticker": "KXMVENFLSINGLEGAME-26JAN12HOUPIT"
+        },
+        "event_ticker": "KXMVENFLSINGLEGAME-S202584B43168815",
+        "expected_expiration_time": "2026-01-13T04:15:00Z",
+        "expiration_time": "2026-01-27T01:15:00Z",
+        "expiration_value": "",
+        "last_price": 0,
+        "last_price_dollars": "0.0000",
+        "latest_expiration_time": "2026-01-27T01:15:00Z",
+        "liquidity": 0,
+        "liquidity_dollars": "0.0000",
+        "market_type": "binary",
+        "mve_collection_ticker": "KXMVENFLSINGLEGAME-26JAN12HOUPIT",
+        "mve_selected_legs": [
+          {
+            "event_ticker": "KXNFLANYTD-26JAN12HOUPIT",
+            "market_ticker": "KXNFLANYTD-26JAN12HOUPIT-HOUDSCHULTZ86",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLGAME-26JAN12HOUPIT",
+            "market_ticker": "KXNFLGAME-26JAN12HOUPIT-HOU",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLPASSYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLPASSYDS-26JAN12HOUPIT-HOUCSTROUD7-200",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUDSCHULTZ86-40",
+            "side": "yes"
+          },
+          {
+            "event_ticker": "KXNFLRECYDS-26JAN12HOUPIT",
+            "market_ticker": "KXNFLRECYDS-26JAN12HOUPIT-HOUNCOLLINS12-70",
+            "side": "yes"
+          }
+        ],
+        "no_ask": 100,
+        "no_ask_dollars": "1.0000",
+        "no_bid": 100,
+        "no_bid_dollars": "1.0000",
+        "no_sub_title": "yes Dalton Schultz,yes Houston,yes C.J. Stroud: 200+,yes Dalton Schultz: 40+,yes Nico Collins: 70+",
+        "notional_value": 100,
+        "notional_value_dollars": "1.0000",
+        "open_interest": 0,
+        "open_time": "2026-01-12T15:24:01.407288Z",
+        "previous_price": 0,
+        "previous_price_dollars": "0.0000",
+        "previous_yes_ask": 0,
+        "previous_yes_ask_dollars": "0.0000",
+        "previous_yes_bid": 0,
+        "previous_yes_bid_dollars": "0.0000",
+        "price_level_structure": "deci_cent",
+        "price_ranges": [
+          {
+            "end": "1.0000",
+            "start": "0.0000",
+            "step": "0.0010"
+          }
+        ],
+        "response_price_units": "usd_cent",
+        "result": "",
+        "rules_primary": "",
+        "rules_secondary": "",
+        "settlement_timer_seconds": 600,
+        "status": "active",
+        "strike_type": "custom",
+        "subtitle": "",
+        "tick_size": 1,
+        "ticker": "KXMVENFLSINGLEGAME-S202584B43168815-49276DF2248",
+        "title": "yes Dalton Schultz,yes Houston,yes C.J. Stroud: 200+,yes Dalton Schultz: 40+,yes Nico Collins: 70+",
+        "volume": 0,
+        "volume_24h": 0,
+        "yes_ask": 0,
+        "yes_ask_dollars": "0.0000",
+        "yes_bid": 0,
+        "yes_bid_dollars": "0.0000",
+        "yes_sub_title": "yes Dalton Schultz,yes Houston,yes C.J. Stroud: 200+,yes Dalton Schultz: 40+,yes Nico Collins: 70+"
+      }
+    ]
+  }
+}

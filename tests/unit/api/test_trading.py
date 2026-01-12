@@ -32,7 +32,7 @@ class TestTrading:
         """Verify create_order sends correct payload."""
         mock_client._client.post.return_value = MagicMock(
             status_code=201,
-            json=lambda: {"order": {"order_id": "oid-123", "order_status": "resting"}},
+            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
         )
 
         await mock_client.create_order(
@@ -52,6 +52,99 @@ class TestTrading:
         assert payload["client_order_id"] == "cid-1"
 
     @pytest.mark.asyncio
+    async def test_create_order_with_reduce_only(self, mock_client):
+        """Verify reduce_only is passed to API when provided."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            count=10,
+            price=50,
+            reduce_only=True,
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        assert kwargs["json"]["reduce_only"] is True
+
+    @pytest.mark.asyncio
+    async def test_create_order_with_post_only(self, mock_client):
+        """Verify post_only is passed to API when provided."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            count=10,
+            price=50,
+            post_only=True,
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        assert kwargs["json"]["post_only"] is True
+
+    @pytest.mark.asyncio
+    async def test_create_order_with_time_in_force(self, mock_client):
+        """Verify time_in_force is passed to API when provided."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            count=10,
+            price=50,
+            time_in_force="fill_or_kill",
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        assert kwargs["json"]["time_in_force"] == "fill_or_kill"
+
+    @pytest.mark.asyncio
+    async def test_create_order_safety_params_not_sent_when_none(self, mock_client):
+        """Verify optional safety params are NOT sent when not specified."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "resting"}},
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST", side="yes", action="buy", count=10, price=50
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        payload = kwargs["json"]
+
+        assert "reduce_only" not in payload
+        assert "post_only" not in payload
+        assert "time_in_force" not in payload
+
+    @pytest.mark.asyncio
+    async def test_create_order_accepts_legacy_order_status(self, mock_client):
+        """Verify OrderResponse accepts legacy `order_status` key."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: {"order": {"order_id": "oid-123", "order_status": "resting"}},
+        )
+
+        response = await mock_client.create_order(
+            ticker="KXTEST", side="yes", action="buy", count=10, price=50, client_order_id="cid-1"
+        )
+
+        assert response.order_status == "resting"
+
+    @pytest.mark.asyncio
     async def test_create_order_validation(self, mock_client):
         """Verify input validation for create_order."""
         with pytest.raises(ValueError, match="Price must be between"):
@@ -64,10 +157,12 @@ class TestTrading:
     async def test_cancel_order_rate_limit(self, mock_client):
         """Verify cancel_order uses DELETE and rate limiter."""
         mock_client._client.delete.return_value = MagicMock(
-            status_code=200, json=lambda: {"order_id": "oid-123", "status": "canceled"}
+            status_code=200,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "canceled"}, "reduced_by": 10},
         )
 
-        await mock_client.cancel_order("oid-123")
+        response = await mock_client.cancel_order("oid-123")
+        assert response.reduced_by == 10
 
         # Check rate limiter call
         mock_client._rate_limiter.acquire.assert_called_with("DELETE", "/portfolio/orders/oid-123")
@@ -82,15 +177,113 @@ class TestTrading:
         """Verify amend_order payload."""
         mock_client._client.post.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"order": {"order_id": "oid-123", "order_status": "executed"}},
+            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
         )
 
-        await mock_client.amend_order("oid-123", price=55)
+        await mock_client.amend_order(
+            order_id="oid-123",
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            client_order_id="cid-1",
+            updated_client_order_id="cid-2",
+            price=55,
+        )
 
         mock_client._client.post.assert_called_once()
         args, kwargs = mock_client._client.post.call_args
         assert args[0] == "/portfolio/orders/oid-123/amend"
-        assert kwargs["json"] == {"order_id": "oid-123", "yes_price": 55}
+        assert kwargs["json"] == {
+            "ticker": "KXTEST",
+            "side": "yes",
+            "action": "buy",
+            "client_order_id": "cid-1",
+            "updated_client_order_id": "cid-2",
+            "yes_price": 55,
+        }
+
+    @pytest.mark.asyncio
+    async def test_amend_order_with_count(self, mock_client):
+        """Verify amend_order can include count."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
+        )
+
+        await mock_client.amend_order(
+            order_id="oid-123",
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            client_order_id="cid-1",
+            updated_client_order_id="cid-2",
+            price=55,
+            count=20,
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        assert kwargs["json"]["count"] == 20
+
+    @pytest.mark.asyncio
+    async def test_amend_order_with_price_dollars(self, mock_client):
+        """Verify amend_order supports fixed-point dollar price."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
+        )
+
+        await mock_client.amend_order(
+            order_id="oid-123",
+            ticker="KXTEST",
+            side="yes",
+            action="buy",
+            client_order_id="cid-1",
+            updated_client_order_id="cid-2",
+            price_dollars="0.5500",
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        payload = kwargs["json"]
+        assert payload["yes_price_dollars"] == "0.5500"
+        assert "yes_price" not in payload
+
+    @pytest.mark.asyncio
+    async def test_amend_order_no_side_uses_no_price(self, mock_client):
+        """Verify NO-side amend_order uses no_price fields."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"order": {"order_id": "oid-123", "status": "executed"}},
+        )
+
+        await mock_client.amend_order(
+            order_id="oid-123",
+            ticker="KXTEST",
+            side="no",
+            action="buy",
+            client_order_id="cid-1",
+            updated_client_order_id="cid-2",
+            price=55,
+        )
+
+        _, kwargs = mock_client._client.post.call_args
+        payload = kwargs["json"]
+        assert payload["no_price"] == 55
+        assert "yes_price" not in payload
+
+    @pytest.mark.asyncio
+    async def test_amend_order_rejects_price_and_price_dollars(self, mock_client):
+        """Verify amend_order rejects setting both cents and dollars prices."""
+        with pytest.raises(ValueError, match="Provide only one of price or price_dollars"):
+            await mock_client.amend_order(
+                order_id="oid-123",
+                ticker="KXTEST",
+                side="yes",
+                action="buy",
+                client_order_id="cid-1",
+                updated_client_order_id="cid-2",
+                price=55,
+                price_dollars="0.5500",
+            )
 
     @pytest.mark.asyncio
     async def test_create_order_dry_run(self, mock_client):

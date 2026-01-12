@@ -359,37 +359,52 @@ For multivariate event markets:
 | `GET /portfolio/settlements` | Settlement records (includes trade fees, event ticker) |
 | `GET /portfolio/summary/total_resting_order_value` | Total value of resting orders |
 
+### `GET /portfolio/balance` response keys
+
+Observed response keys:
+
+```json
+{
+  "balance": 10000,
+  "portfolio_value": 25000,
+  "updated_ts": 1768231443
+}
+```
+
+- `balance` and `portfolio_value` are in **cents**
+- `updated_ts` is a **Unix timestamp (seconds)** (observed in production)
+
 ### `GET /portfolio/positions` response keys
 
 Kalshi returns both market-level and event-level aggregates:
 
 ```json
 {
-  "cursor": null,
+  "cursor": "",
   "market_positions": [
     {
       "ticker": "KX...",
       "position": 34,
       "market_exposure": 952,
-      "market_exposure_dollars": "9.52",
+      "market_exposure_dollars": "9.5200",
       "realized_pnl": 0,
       "fees_paid": 48,
-      "fees_paid_dollars": "0.48",
-      "total_traded": 34,
-      "total_traded_dollars": "14.00",
+      "fees_paid_dollars": "0.4800",
+      "total_traded": 1400,
+      "total_traded_dollars": "14.0000",
       "resting_orders_count": 0,
-      "last_updated_ts": 1704067200
+      "last_updated_ts": "2026-01-10T16:11:11.109894Z"
     }
   ],
   "event_positions": [
     {
       "event_ticker": "KX...",
       "event_exposure": 952,
-      "event_exposure_dollars": "9.52",
+      "event_exposure_dollars": "9.5200",
       "realized_pnl": 0,
       "fees_paid": 48,
       "total_cost": 1400,
-      "total_cost_dollars": "14.00",
+      "total_cost_dollars": "14.0000",
       "total_cost_shares": 34
     }
   ]
@@ -425,10 +440,13 @@ OpenAPI response keys are `market_positions` and `event_positions`. The legacy `
 | `fill_id` | string | Unique fill identifier |
 | `trade_id` | string | Legacy field (same as fill_id) |
 | `order_id` | string | Parent order ID |
+| `ts` | int | Unix timestamp (seconds) of fill (observed in production) |
 | `ticker` | string | Market ticker |
+| `market_ticker` | string | Duplicate of `ticker` (legacy; observed in production) |
 | `side` | enum | `yes` or `no` - **literal side, not effective position** |
 | `action` | enum | `buy` or `sell` |
 | `count` | int | Contracts filled |
+| `price` | number | Decimal price representation (deprecated; observed in production) |
 | `yes_price` | int | YES price in cents |
 | `no_price` | int | NO price in cents |
 | `yes_price_fixed` | string | YES price in dollars (e.g., `"0.48"`) |
@@ -469,7 +487,7 @@ OpenAPI response keys are `market_positions` and `event_positions`. The legacy `
 - **Integer fields:** Cents (0-100 scale, $0.00-$1.00)
 - **Dollar fields:** String format like `"0.1500"`
 - **Levels:** Sorted best-to-worst price (highest bid first)
-- **Empty sides:** Arrays omitted when no orders exist
+- **Empty sides:** May be `null` (observed) or omitted when no orders exist
 
 **Binary market math:** A YES bid at price X = NO ask at price (100-X)
 
@@ -867,6 +885,29 @@ Subscribe to `communications` channel for real-time RFQ/quote events. Requires a
 | `self_trade_prevention_type` | enum | `taker_at_cross` or `maker` - prevent self-trades |
 | `order_group_id` | string | Link order to a group (grouped cancel/modify) |
 | `time_in_force` | enum | `fill_or_kill`, `good_till_canceled`, `immediate_or_cancel` |
+
+### Create Order Response (200)
+
+Observed in production:
+
+```json
+{
+  "order": { /* full Order object */ }
+}
+```
+
+### Cancel Order Response (200)
+
+Observed in production:
+
+```json
+{
+  "order": { /* full Order object */ },
+  "reduced_by": 10
+}
+```
+
+`reduced_by` is the number of contracts canceled. Treat as optional (may be absent).
 
 ### Amend Order Full Schema
 

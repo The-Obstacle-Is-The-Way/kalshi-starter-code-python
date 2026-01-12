@@ -4,7 +4,24 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-No active bugs.
+| ID | Title | Priority | Status | Verified |
+|---|---|---|---|---|
+| (none) | | | | |
+
+### Verification Note (2026-01-12)
+
+All bugs verified against actual codebase usage. Several originally classified as P0-P2 were **downgraded** after discovering:
+- Missing fields are not used in any code paths
+- No CLI commands expose the affected functionality
+- Core platform works without these fields (API completeness issues, not functional bugs)
+
+### Priority Guide
+
+- **P0**: Critical - financial risk, data loss, or security issue
+- **P1**: High - core functionality broken or safety-critical behavior degraded
+- **P2**: Medium - API completeness gaps (safety params, not yet exposed via CLI)
+- **P3**: Low - Nice-to-have API parity (fields exist in API but we don't use them)
+- **P4**: Cosmetic - documentation or UX-only issue
 
 ### Recently Closed Dependency Chain (Resolved)
 
@@ -19,7 +36,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-063**
+**BUG-075**
 
 ---
 
@@ -28,6 +45,23 @@ All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
+### Recently Archived (2026-01-12)
+
+| ID | Title | Status |
+|---|---|---|
+| **BUG-074** | Deprecated Cent Fields “Direct Usage” (False Positive) | ✅ Closed |
+| **BUG-073** | Vendor Docs Drift vs Production API | ✅ Fixed |
+| **BUG-072** | API SSOT Findings - Raw Responses vs Models vs Docs | ✅ Fixed |
+| **BUG-071** | Mocked Tests Hide API Reality - No SSOT Verification | ✅ Fixed |
+| **BUG-063** | Missing Dollar Fields in Market Model | ✅ Fixed |
+| **BUG-064** | Missing Order Safety Parameters (`reduce_only`, etc.) | ✅ Fixed |
+| **BUG-065** | `amend_order()` Missing Required Fields | ✅ Fixed |
+| **BUG-066** | Fill Model Missing Fields | ✅ Fixed |
+| **BUG-067** | Order Model Missing Fields | ✅ Fixed |
+| **BUG-068** | Market Model Missing Structural Fields | ✅ Fixed |
+| **BUG-070** | `cancel_order()` drops `reduced_by` from cancel response | ✅ Fixed |
+| **BUG-069** | Order response schema mismatch (`status` vs `order_status`) can orphan live orders | ✅ Fixed |
 
 ### Recently Archived (2026-01-10)
 

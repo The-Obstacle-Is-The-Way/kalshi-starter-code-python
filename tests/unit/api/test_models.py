@@ -7,21 +7,32 @@ Pydantic model instances, not mocked stand-ins.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
 import pytest
 
-from kalshi_research.api.models.market import Market, MarketFilterStatus, MarketStatus
+from kalshi_research.api.models.market import (
+    Market,
+    MarketFilterStatus,
+    MarketStatus,
+    MarketType,
+    PriceRange,
+    StrikeType,
+)
 from kalshi_research.api.models.orderbook import Orderbook
+from kalshi_research.api.models.portfolio import Fill, Order, PortfolioBalance, PortfolioPosition
 from kalshi_research.api.models.trade import Trade
+
+MakeMarket = Callable[..., dict[str, Any]]
 
 
 class TestMarketModel:
     """Test Market model with REAL instances."""
 
-    def test_market_creation_from_api_data(self, make_market: Any) -> None:
+    def test_market_creation_from_api_data(self, make_market: MakeMarket) -> None:
         """Market model correctly parses API response data."""
         data = make_market(ticker="BTC-100K", yes_bid=45, yes_ask=47)
 
@@ -65,27 +76,100 @@ class TestMarketModel:
             )
             assert market.status == expected_enum
 
-    def test_market_negative_liquidity_becomes_none(self, make_market: Any) -> None:
+    def test_market_negative_liquidity_becomes_none(self, make_market: MakeMarket) -> None:
         """Negative liquidity values are converted to None (deprecated field)."""
         data = make_market(liquidity=-170750)
         market = Market.model_validate(data)
         # Validator converts negative to None (field deprecated Jan 15, 2026)
         assert market.liquidity is None
 
-    def test_market_liquidity_optional(self, make_market: Any) -> None:
+    def test_market_liquidity_optional(self, make_market: MakeMarket) -> None:
         """Liquidity field is optional (deprecated, may be absent)."""
         data = make_market()
         data.pop("liquidity", None)  # Remove liquidity field
         market = Market.model_validate(data)
         assert market.liquidity is None
 
-    def test_market_positive_liquidity_preserved(self, make_market: Any) -> None:
+    def test_market_model_accepts_dollar_fields(self, make_market: MakeMarket) -> None:
+        """Market model should accept liquidity_dollars and notional_value_dollars."""
+        market = Market.model_validate(
+            make_market(
+                liquidity_dollars="1234.56",
+                notional_value_dollars="5678.90",
+            )
+        )
+
+        assert market.liquidity_dollars == "1234.56"
+        assert market.notional_value_dollars == "5678.90"
+
+    def test_market_model_dollar_fields_optional(self, make_market: MakeMarket) -> None:
+        """Dollar fields should be optional (None by default)."""
+        market = Market.model_validate(make_market())
+
+        assert market.liquidity_dollars is None
+        assert market.notional_value_dollars is None
+
+    def test_market_model_accepts_structural_fields(self, make_market: MakeMarket) -> None:
+        """Market model should accept structural OpenAPI fields (even if unused)."""
+        market = Market.model_validate(
+            make_market(
+                market_type="binary",
+                yes_sub_title="Yes",
+                no_sub_title="No",
+                latest_expiration_time="2026-01-02T00:00:00Z",
+                settlement_timer_seconds=60,
+                response_price_units="usd_cent",
+                notional_value=100,
+                previous_yes_bid=44,
+                previous_yes_ask=48,
+                previous_price=46,
+                can_close_early=False,
+                expiration_value="0",
+                rules_primary="Primary rules",
+                rules_secondary="Secondary rules",
+                tick_size=1,
+                price_level_structure="custom",
+                price_ranges=[{"start": "0.01", "end": "0.99", "step": "0.01"}],
+                strike_type="greater",
+                floor_strike=1.0,
+                cap_strike=2.0,
+                functional_strike="x",
+                custom_strike={"target": 1.0},
+                is_provisional=False,
+            )
+        )
+
+        assert market.market_type == MarketType.BINARY
+        assert market.yes_sub_title == "Yes"
+        assert market.no_sub_title == "No"
+        assert market.latest_expiration_time is not None
+        assert market.settlement_timer_seconds == 60
+        assert market.response_price_units == "usd_cent"
+        assert market.notional_value == 100
+        assert market.previous_yes_bid == 44
+        assert market.previous_yes_ask == 48
+        assert market.previous_price == 46
+        assert market.can_close_early is False
+        assert market.expiration_value == "0"
+        assert market.rules_primary == "Primary rules"
+        assert market.rules_secondary == "Secondary rules"
+        assert market.tick_size == 1
+        assert market.price_level_structure == "custom"
+        assert market.price_ranges == [PriceRange(start="0.01", end="0.99", step="0.01")]
+        assert market.strike_type == StrikeType.GREATER
+        assert market.floor_strike == 1.0
+        assert market.cap_strike == 2.0
+        assert market.functional_strike == "x"
+        assert market.custom_strike == {"target": 1.0}
+        assert market.is_provisional is False
+
+    def test_market_positive_liquidity_preserved(self, make_market: MakeMarket) -> None:
         """Positive liquidity values are preserved until field removal."""
         data = make_market(liquidity=50000)
         market = Market.model_validate(data)
         assert market.liquidity == 50000
 
-    def test_market_settlement_ts_parses(self, make_market: Any) -> None:
+    def test_market_settlement_ts_parses(self, make_market: MakeMarket) -> None:
         """Market model parses settlement_ts when present."""
         data = make_market(
             status="finalized",
@@ -135,12 +219,12 @@ class TestMarketModel:
             assert dt.tzinfo is not None
             assert dt.utcoffset() == timedelta(0)
 
-    def test_market_settlement_ts_optional(self, make_market: Any) -> None:
+    def test_market_settlement_ts_optional(self, make_market: MakeMarket) -> None:
         """Market model accepts missing settlement_ts for unsettled/legacy markets."""
         market = Market.model_validate(make_market())
         assert market.settlement_ts is None
 
-    def test_market_immutability(self, make_market: Any) -> None:
+    def test_market_immutability(self, make_market: MakeMarket) -> None:
         """Market model is frozen (immutable)."""
         from pydantic import ValidationError
 
@@ -348,6 +432,115 @@ class TestOrderbookModel:
         # Should use dollars, not legacy
         assert orderbook.yes_levels == [(99, 100)]
         assert orderbook.no_levels == [(1, 100)]
+
+
+class TestPortfolioModels:
+    """Test portfolio models accept OpenAPI fields."""
+
+    def test_fill_accepts_openapi_fields(self) -> None:
+        fill = Fill.model_validate(
+            {
+                "fill_id": "fid-123",
+                "trade_id": "tid-123",
+                "order_id": "oid-123",
+                "client_order_id": "cid-123",
+                "ticker": "KXTEST",
+                "market_ticker": "KXTEST",
+                "side": "yes",
+                "action": "buy",
+                "count": 10,
+                "price": 0.55,
+                "yes_price": 55,
+                "no_price": 45,
+                "yes_price_fixed": "0.5500",
+                "no_price_fixed": "0.4500",
+                "is_taker": True,
+                "ts": 1768231443,
+                "created_time": "2026-01-01T00:00:00Z",
+            }
+        )
+
+        assert fill.trade_id == "tid-123"
+        assert fill.fill_id == "fid-123"
+        assert fill.order_id == "oid-123"
+        assert fill.client_order_id == "cid-123"
+        assert fill.is_taker is True
+        assert fill.yes_price_fixed == "0.5500"
+        assert fill.ts == 1768231443
+
+    def test_portfolio_balance_accepts_updated_ts(self) -> None:
+        balance = PortfolioBalance.model_validate(
+            {
+                "balance": 10000,
+                "portfolio_value": 25000,
+                "updated_ts": 1768231443,
+            }
+        )
+
+        assert balance.balance == 10000
+        assert balance.portfolio_value == 25000
+        assert balance.updated_ts == 1768231443
+
+    def test_portfolio_position_accepts_extended_fields(self) -> None:
+        position = PortfolioPosition.model_validate(
+            {
+                "ticker": "KXTEST",
+                "position": 34,
+                "market_exposure": 952,
+                "market_exposure_dollars": "9.52",
+                "realized_pnl": 0,
+                "realized_pnl_dollars": "0.00",
+                "fees_paid": 48,
+                "fees_paid_dollars": "0.48",
+                "total_traded": 34,
+                "total_traded_dollars": "14.00",
+                "resting_orders_count": 0,
+                "last_updated_ts": "2026-01-10T16:11:11.109894Z",
+            }
+        )
+
+        assert position.market_exposure_dollars == "9.52"
+        assert position.realized_pnl_dollars == "0.00"
+        assert position.fees_paid_dollars == "0.48"
+        assert position.total_traded == 34
+        assert position.total_traded_dollars == "14.00"
+        assert position.resting_orders_count == 0
+        assert position.last_updated_ts == "2026-01-10T16:11:11.109894Z"
+
+    def test_order_accepts_openapi_fields(self) -> None:
+        order = Order.model_validate(
+            {
+                "order_id": "oid-123",
+                "user_id": "uid-123",
+                "client_order_id": "cid-123",
+                "ticker": "KXTEST",
+                "side": "yes",
+                "action": "buy",
+                "type": "limit",
+                "status": "resting",
+                "yes_price": 55,
+                "no_price": 45,
+                "yes_price_dollars": "0.5500",
+                "no_price_dollars": "0.4500",
+                "fill_count": 0,
+                "remaining_count": 10,
+                "initial_count": 10,
+                "taker_fees": 0,
+                "maker_fees": 0,
+                "taker_fill_cost": 0,
+                "maker_fill_cost": 0,
+                "taker_fill_cost_dollars": "0.0000",
+                "maker_fill_cost_dollars": "0.0000",
+                "queue_position": 0,
+                "created_time": "2026-01-01T00:00:00Z",
+            }
+        )
+
+        assert order.order_id == "oid-123"
+        assert order.client_order_id == "cid-123"
+        assert order.fill_count == 0
+        assert order.remaining_count == 10
+        assert order.yes_price_dollars == "0.5500"
 
 
 class TestTradeModel:

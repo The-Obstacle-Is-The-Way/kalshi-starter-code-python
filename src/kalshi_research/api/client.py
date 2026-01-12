@@ -675,6 +675,19 @@ class KalshiClient(KalshiPublicClient):
         client_order_id: str | None = None,
         expiration_ts: int | None = None,
         dry_run: bool = False,
+        *,
+        reduce_only: bool | None = None,
+        post_only: bool | None = None,
+        time_in_force: Literal[
+            "fill_or_kill",
+            "good_till_canceled",
+            "immediate_or_cancel",
+        ]
+        | None = None,
+        buy_max_cost: int | None = None,
+        cancel_order_on_pause: bool | None = None,
+        self_trade_prevention_type: Literal["taker_at_cross", "maker"] | None = None,
+        order_group_id: str | None = None,
     ) -> OrderResponse:
         """
         Create a new limit order.
@@ -687,6 +700,15 @@ class KalshiClient(KalshiPublicClient):
             price: Limit price in CENTS (1-99)
             client_order_id: Optional unique ID (generated if not provided)
             expiration_ts: Optional Unix timestamp for expiration
+            reduce_only: Optional exchange-enforced safety. When true, only reduces an existing
+                position.
+            post_only: Optional maker-only flag. When true, order will not cross the spread.
+            time_in_force: Optional order persistence (`fill_or_kill`, `good_till_canceled`,
+                `immediate_or_cancel`).
+            buy_max_cost: Optional max cost in cents; enables Fill-or-Kill behavior.
+            cancel_order_on_pause: Optional auto-cancel flag if trading is paused.
+            self_trade_prevention_type: Optional self-trade prevention mode.
+            order_group_id: Optional order group identifier for linked order management.
             dry_run: If True, validate and log order but do not execute
 
         Returns:
@@ -712,8 +734,17 @@ class KalshiClient(KalshiPublicClient):
             "yes_price": price,
             "client_order_id": client_order_id,
         }
-        if expiration_ts:
-            payload["expiration_ts"] = expiration_ts
+        optional_fields: dict[str, object] = {
+            "expiration_ts": expiration_ts,
+            "reduce_only": reduce_only,
+            "post_only": post_only,
+            "time_in_force": time_in_force,
+            "buy_max_cost": buy_max_cost,
+            "cancel_order_on_pause": cancel_order_on_pause,
+            "self_trade_prevention_type": self_trade_prevention_type,
+            "order_group_id": order_group_id,
+        }
+        payload.update({key: value for key, value in optional_fields.items() if value is not None})
 
         # Handle dry run mode
         if dry_run:
@@ -726,6 +757,13 @@ class KalshiClient(KalshiPublicClient):
                 price=price,
                 client_order_id=client_order_id,
                 expiration_ts=expiration_ts,
+                reduce_only=reduce_only,
+                post_only=post_only,
+                time_in_force=time_in_force,
+                buy_max_cost=buy_max_cost,
+                cancel_order_on_pause=cancel_order_on_pause,
+                self_trade_prevention_type=self_trade_prevention_type,
+                order_group_id=order_group_id,
             )
             return OrderResponse(
                 order_id=f"dry-run-{client_order_id}",
@@ -822,6 +860,8 @@ class KalshiClient(KalshiPublicClient):
                     )
 
                 payload = dict(payload_obj)
+                if isinstance(data, dict) and "reduced_by" in data and "reduced_by" not in payload:
+                    payload["reduced_by"] = data["reduced_by"]
                 payload.setdefault("order_id", order_id)
                 return CancelOrderResponse.model_validate(payload)
 
@@ -830,7 +870,14 @@ class KalshiClient(KalshiPublicClient):
     async def amend_order(
         self,
         order_id: str,
+        ticker: str,
+        side: Literal["yes", "no"] | OrderSide,
+        action: Literal["buy", "sell"] | OrderAction,
+        client_order_id: str,
+        updated_client_order_id: str,
+        *,
         price: int | None = None,
+        price_dollars: str | None = None,
         count: int | None = None,
         dry_run: bool = False,
     ) -> OrderResponse:
@@ -839,15 +886,27 @@ class KalshiClient(KalshiPublicClient):
 
         Args:
             order_id: The order ID to amend
+            ticker: Market ticker
+            side: "yes" or "no"
+            action: "buy" or "sell"
+            client_order_id: Original client_order_id used when creating the order
+            updated_client_order_id: New unique client_order_id for the amended order
             price: New price in cents (1-99)
+            price_dollars: New price in dollars (e.g., "0.5500")
             count: New quantity (must be positive)
             dry_run: If True, validate and log but do not execute the amendment
 
         Returns:
             OrderResponse with updated order status
         """
-        if price is None and count is None:
-            raise ValueError("Must provide either price or count")
+        if not updated_client_order_id:
+            raise ValueError("updated_client_order_id must be provided")
+
+        if price is not None and price_dollars is not None:
+            raise ValueError("Provide only one of price or price_dollars")
+
+        if price is None and price_dollars is None and count is None:
+            raise ValueError("Must provide either price/price_dollars or count")
 
         if price is not None and (price < 1 or price > 99):
             raise ValueError("Price must be between 1 and 99 cents")
@@ -855,12 +914,21 @@ class KalshiClient(KalshiPublicClient):
         if count is not None and count <= 0:
             raise ValueError("Count must be positive")
 
+        side_value = side if isinstance(side, str) else side.value
+        action_value = action if isinstance(action, str) else action.value
+
         # Handle dry run mode
         if dry_run:
             logger.info(
                 "DRY RUN: amend_order - amendment validated but not executed",
                 order_id=order_id,
+                ticker=ticker,
+                side=side_value,
+                action=action_value,
+                client_order_id=client_order_id,
+                updated_client_order_id=updated_client_order_id,
                 price=price,
+                price_dollars=price_dollars,
                 count=count,
             )
             return OrderResponse(
@@ -871,9 +939,19 @@ class KalshiClient(KalshiPublicClient):
         path = f"/portfolio/orders/{order_id}/amend"
         full_path = self.API_PATH + path
 
-        payload: dict[str, Any] = {"order_id": order_id}
+        payload: dict[str, Any] = {
+            "ticker": ticker,
+            "side": side_value,
+            "action": action_value,
+            "client_order_id": client_order_id,
+            "updated_client_order_id": updated_client_order_id,
+        }
         if price is not None:
-            payload["yes_price"] = price
+            price_key = "yes_price" if side_value == "yes" else "no_price"
+            payload[price_key] = price
+        if price_dollars is not None:
+            dollars_key = "yes_price_dollars" if side_value == "yes" else "no_price_dollars"
+            payload[dollars_key] = price_dollars
         if count is not None:
             payload["count"] = count
 

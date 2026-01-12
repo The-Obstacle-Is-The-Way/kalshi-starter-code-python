@@ -1,0 +1,71 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T15:24:03.454417+00:00",
+    "endpoint": "events_list",
+    "environment": "prod",
+    "sanitized": false,
+    "limit": 5,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "cursor": "CgYI8JHtswkSDktYRVJVUFRTVVBFUi0w",
+    "events": [
+      {
+        "available_on_brokers": false,
+        "category": "World",
+        "collateral_return_type": "",
+        "event_ticker": "KXELONMARS-99",
+        "mutually_exclusive": false,
+        "series_ticker": "KXELONMARS",
+        "strike_period": "",
+        "sub_title": "Before 2099",
+        "title": "Will Elon Musk visit Mars in his lifetime?"
+      },
+      {
+        "available_on_brokers": false,
+        "category": "World",
+        "collateral_return_type": "MECNET",
+        "event_ticker": "KXNEWPOPE-70",
+        "mutually_exclusive": true,
+        "series_ticker": "KXNEWPOPE",
+        "strike_period": "",
+        "sub_title": "Before 2070",
+        "title": "Who will the next Pope be?"
+      },
+      {
+        "available_on_brokers": false,
+        "category": "Climate and Weather",
+        "collateral_return_type": "",
+        "event_ticker": "KXWARMING-50",
+        "mutually_exclusive": false,
+        "series_ticker": "KXWARMING",
+        "strike_period": "",
+        "sub_title": "Before 2050",
+        "title": "Will the world pass 2 degrees Celsius over pre-industrial levels before 2050?"
+      },
+      {
+        "available_on_brokers": false,
+        "category": "Science and Technology",
+        "collateral_return_type": "",
+        "event_ticker": "KXMARSVRAIL-50",
+        "mutually_exclusive": false,
+        "series_ticker": "KXMARSVRAIL",
+        "strike_period": "",
+        "sub_title": "Before 2050",
+        "title": "Will a human land on Mars before California starts high-speed rail?"
+      },
+      {
+        "available_on_brokers": false,
+        "category": "Climate and Weather",
+        "collateral_return_type": "",
+        "event_ticker": "KXERUPTSUPER-0",
+        "mutually_exclusive": false,
+        "series_ticker": "KXERUPTSUPER",
+        "strike_period": "",
+        "sub_title": "a supervolcano",
+        "title": "Will a supervolcano erupt before 2050?"
+      }
+    ],
+    "milestones": []
+  }
+}

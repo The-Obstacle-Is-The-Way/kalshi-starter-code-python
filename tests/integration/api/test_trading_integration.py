@@ -47,7 +47,7 @@ async def test_create_order_flow(authenticated_client):
     async with respx.mock(base_url="https://demo-api.kalshi.co/trade-api/v2") as respx_mock:
         create_route = respx_mock.post("/portfolio/orders").mock(
             return_value=httpx.Response(
-                201, json={"order": {"order_id": "8a7c8a8a-...", "order_status": "resting"}}
+                201, json={"order": {"order_id": "8a7c8a8a-...", "status": "resting"}}
             )
         )
 
@@ -92,10 +92,14 @@ async def test_cancel_order_flow(authenticated_client):
 
     async with respx.mock(base_url="https://demo-api.kalshi.co/trade-api/v2") as respx_mock:
         cancel_route = respx_mock.delete("/portfolio/orders/oid-123").mock(
-            return_value=httpx.Response(200, json={"order": {"status": "canceled"}})
+            return_value=httpx.Response(
+                200,
+                json={"order": {"order_id": "oid-123", "status": "canceled"}, "reduced_by": 10},
+            )
         )
 
-        await authenticated_client.cancel_order("oid-123")
+        response = await authenticated_client.cancel_order("oid-123")
+        assert response.reduced_by == 10
 
         assert cancel_route.called
         request = cancel_route.calls.last.request
@@ -112,11 +116,19 @@ async def test_amend_order_flow(authenticated_client):
     async with respx.mock(base_url="https://demo-api.kalshi.co/trade-api/v2") as respx_mock:
         amend_route = respx_mock.post("/portfolio/orders/oid-123/amend").mock(
             return_value=httpx.Response(
-                200, json={"order": {"order_id": "oid-123", "order_status": "executed"}}
+                200, json={"order": {"order_id": "oid-123", "status": "executed"}}
             )
         )
 
-        response = await authenticated_client.amend_order("oid-123", price=55)
+        response = await authenticated_client.amend_order(
+            order_id="oid-123",
+            ticker="KXBTC-25JAN-50000",
+            side="yes",
+            action="buy",
+            client_order_id="cid-1",
+            updated_client_order_id="cid-2",
+            price=55,
+        )
 
         assert response.order_status == "executed"
 
@@ -125,5 +137,10 @@ async def test_amend_order_flow(authenticated_client):
         import json
 
         body = json.loads(request.content)
+        assert body["ticker"] == "KXBTC-25JAN-50000"
+        assert body["side"] == "yes"
+        assert body["action"] == "buy"
+        assert body["client_order_id"] == "cid-1"
+        assert body["updated_client_order_id"] == "cid-2"
         assert body["yes_price"] == 55
         assert "count" not in body

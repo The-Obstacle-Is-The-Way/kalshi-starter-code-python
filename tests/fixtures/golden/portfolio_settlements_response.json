@@ -1,0 +1,28 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-12T15:24:03.962096+00:00",
+    "endpoint": "portfolio_settlements",
+    "environment": "prod",
+    "limit": 5,
+    "note": "Sensitive data replaced with example values",
+    "sanitized": true
+  },
+  "response": {
+    "cursor": "",
+    "settlements": [
+      {
+        "event_ticker": "KXEXAMPLE-237850A89798",
+        "fee_cost": "0.7300",
+        "market_result": "yes",
+        "no_count": 37,
+        "no_total_cost": 49195,
+        "revenue": 0,
+        "settled_time": "2026-01-10T04:50:31.435826Z",
+        "ticker": "KXEXAMPLE-CCBD3CFD2609",
+        "value": 4559,
+        "yes_count": 37,
+        "yes_total_cost": 4286
+      }
+    ]
+  }
+}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 
 class OrderSide(str, Enum):
@@ -39,6 +39,8 @@ class OrderStatus(str, Enum):
 class CreateOrderRequest(BaseModel):
     """Request to create an order."""
 
+    model_config = ConfigDict(frozen=True)
+
     ticker: str
     action: OrderAction
     side: OrderSide
@@ -66,12 +68,16 @@ class CreateOrderRequest(BaseModel):
 class OrderResponse(BaseModel):
     """Response from create order."""
 
+    model_config = ConfigDict(frozen=True)
+
     order_id: str
-    order_status: str
+    order_status: str = Field(validation_alias=AliasChoices("order_status", "status"))
 
 
 class Order(BaseModel):
     """Order details."""
+
+    model_config = ConfigDict(frozen=True)
 
     order_id: str
     client_order_id: str
