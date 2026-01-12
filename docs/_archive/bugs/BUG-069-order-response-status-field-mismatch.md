@@ -1,8 +1,9 @@
 # BUG-069: Order Response Schema Mismatch (`status` vs `order_status`) Can Orphan Live Orders
 
 **Priority:** P0 (Financial risk - can lose track of live orders)
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-12
+**Fixed:** 2026-01-12
 **Verified:** 2026-01-12 (code audit + live OpenAPI spec)
 
 ---
@@ -94,27 +95,27 @@ we can still throw after-the-fact due to schema mismatch. That creates a real ri
 
 ---
 
-## Fix (Recommended)
+## Fix Implemented
 
-Make `OrderResponse` accept `status` as an alias of `order_status` (backwards compatible).
+Made `OrderResponse` accept `status` as an alias of `order_status` (backwards compatible).
 
 Pattern already used elsewhere:
 - `CancelOrderResponse.status` accepts both `status` and `order_status` via `AliasChoices`.
 
-**Implementation sketch:**
-- Update `OrderResponse`:
-  - `order_status: str = Field(validation_alias=AliasChoices("order_status", "status"))`
-- Update unit + integration tests to mock the canonical `status` field (and optionally keep one test for
-  `order_status` to ensure backwards compatibility).
+**Implementation:**
+- `src/kalshi_research/api/models/order.py`: `OrderResponse.order_status` now uses
+  `validation_alias=AliasChoices("order_status", "status")`
+- Updated unit + integration tests to mock the canonical `status` field
+- Added a unit test confirming the legacy `order_status` key is still accepted
 
 ---
 
 ## Test Plan (TDD)
 
-- [ ] Update `tests/unit/api/test_trading.py` to return `{"status": "resting"}` for create/amend mocks
-- [ ] Update `tests/integration/api/test_trading_integration.py` similarly (respx mocks)
-- [ ] Add one unit test asserting `order_status` continues to be accepted (legacy compatibility)
-- [ ] Run `uv run pre-commit run --all-files`
+- [x] Update `tests/unit/api/test_trading.py` to return `{"status": "resting"}` for create/amend mocks
+- [x] Update `tests/integration/api/test_trading_integration.py` similarly (respx mocks)
+- [x] Add unit test asserting `order_status` continues to be accepted (legacy compatibility)
+- [x] Run `uv run pre-commit run --all-files`
 
 ---
 

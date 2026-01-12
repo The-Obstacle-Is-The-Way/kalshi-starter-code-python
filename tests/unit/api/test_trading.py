@@ -52,6 +52,20 @@ class TestTrading:
         assert payload["client_order_id"] == "cid-1"
 
     @pytest.mark.asyncio
+    async def test_create_order_accepts_legacy_order_status(self, mock_client):
+        """Verify OrderResponse accepts legacy `order_status` key."""
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: {"order": {"order_id": "oid-123", "order_status": "resting"}},
+        )
+
+        response = await mock_client.create_order(
+            ticker="KXTEST", side="yes", action="buy", count=10, price=50, client_order_id="cid-1"
+        )
+
+        assert response.order_status == "resting"
+
+    @pytest.mark.asyncio
     async def test_create_order_validation(self, mock_client):
         """Verify input validation for create_order."""
         with pytest.raises(ValueError, match="Price must be between"):

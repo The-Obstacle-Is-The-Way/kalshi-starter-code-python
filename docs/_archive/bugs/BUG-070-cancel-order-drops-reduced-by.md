@@ -1,8 +1,9 @@
 # BUG-070: `cancel_order()` Drops `reduced_by` From Cancel Response (API Completeness)
 
 **Priority:** P3 (Completeness - order cancel still succeeds)
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-12
+**Fixed:** 2026-01-12
 **Verified:** 2026-01-12 (code audit + live OpenAPI spec)
 
 ---
@@ -61,22 +62,22 @@ we currently discard `reduced_by` before validating, so callers see `reduced_by=
 
 ---
 
-## Fix (Recommended)
+## Fix Implemented
 
 Preserve `reduced_by` if present when flattening the response shape for `CancelOrderResponse`.
 
-Implementation sketch:
-- If `data` is a dict and has `order`, start with that dict
-- If `data` also has `reduced_by`, copy it into the payload before validation
+Implementation:
+- `src/kalshi_research/api/client.py`: merge top-level `reduced_by` into the payload dict before
+  calling `CancelOrderResponse.model_validate(...)`
 
 ---
 
 ## Test Plan
 
-- [ ] Update `tests/unit/api/test_trading.py::test_cancel_order_rate_limit` to include `reduced_by`
-- [ ] Update `tests/integration/api/test_trading_integration.py::test_cancel_order_flow` to include
+- [x] Update `tests/unit/api/test_trading.py::test_cancel_order_rate_limit` to include `reduced_by`
+- [x] Update `tests/integration/api/test_trading_integration.py::test_cancel_order_flow` to include
   `reduced_by` in the mocked response
-- [ ] Ensure `cancel_order()` returns `CancelOrderResponse.reduced_by == 10`
+- [x] Ensure `cancel_order()` returns `CancelOrderResponse.reduced_by == 10`
 
 ---
 
