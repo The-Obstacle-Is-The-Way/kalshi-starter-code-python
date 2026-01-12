@@ -1,8 +1,9 @@
 # BUG-063: Missing Dollar Fields in Market Model
 
 **Priority:** P3 (was P0 - downgraded after verification)
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-12
+**Fixed:** 2026-01-12
 **Verified:** 2026-01-12
 
 ---
@@ -97,7 +98,7 @@ If we want full API field coverage:
 ## Test Plan
 
 - [ ] Verify no tests depend on `market.liquidity`
-- [ ] (Optional) Add dollar fields for completeness
+- [x] Add `liquidity_dollars` / `notional_value_dollars` to the Market model
 - [ ] Run full test suite to confirm no breakage
 
 ---

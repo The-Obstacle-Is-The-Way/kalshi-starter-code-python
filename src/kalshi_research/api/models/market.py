@@ -95,6 +95,14 @@ class Market(BaseModel):
         default=None,
         description="DEPRECATED: Use dollar-denominated fields. Removed Jan 15, 2026.",
     )
+    liquidity_dollars: str | None = Field(
+        default=None,
+        description="Current offer value in fixed-point dollars (replacement for `liquidity`).",
+    )
+    notional_value_dollars: str | None = Field(
+        default=None,
+        description="Contract notional value in fixed-point dollars.",
+    )
 
     @field_validator(
         "created_time",

@@ -79,6 +79,50 @@ class TestMarketModel:
         market = Market.model_validate(data)
         assert market.liquidity is None
 
+    def test_market_model_accepts_dollar_fields(self) -> None:
+        """Market model should accept liquidity_dollars and notional_value_dollars."""
+        market = Market.model_validate(
+            {
+                "ticker": "KXTEST",
+                "event_ticker": "KXEVENT",
+                "title": "Test Market",
+                "status": "active",
+                "result": "",
+                "volume": 100,
+                "volume_24h": 50,
+                "open_interest": 10,
+                "open_time": "2026-01-01T00:00:00Z",
+                "close_time": "2026-01-15T00:00:00Z",
+                "expiration_time": "2026-01-15T00:00:00Z",
+                "liquidity_dollars": "1234.56",
+                "notional_value_dollars": "5678.90",
+            }
+        )
+
+        assert market.liquidity_dollars == "1234.56"
+        assert market.notional_value_dollars == "5678.90"
+
+    def test_market_model_dollar_fields_optional(self) -> None:
+        """Dollar fields should be optional (None by default)."""
+        market = Market.model_validate(
+            {
+                "ticker": "KXTEST",
+                "event_ticker": "KXEVENT",
+                "title": "Test Market",
+                "status": "active",
+                "result": "",
+                "volume": 100,
+                "volume_24h": 50,
+                "open_interest": 10,
+                "open_time": "2026-01-01T00:00:00Z",
+                "close_time": "2026-01-15T00:00:00Z",
+                "expiration_time": "2026-01-15T00:00:00Z",
+            }
+        )
+
+        assert market.liquidity_dollars is None
+        assert market.notional_value_dollars is None
+
     def test_market_positive_liquidity_preserved(self, make_market: Any) -> None:
         """Positive liquidity values are preserved until field removal."""
         data = make_market(liquidity=50000)
