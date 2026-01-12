@@ -25,5 +25,4 @@ def load_golden_response(*relative_parts: str) -> dict[str, Any]:
 
 
 def _golden_root() -> Path:
-    repo_root = Path(__file__).resolve().parents[1]
-    return repo_root / "tests" / "fixtures" / "golden"
+    return Path(__file__).resolve().parent / "fixtures" / "golden"
