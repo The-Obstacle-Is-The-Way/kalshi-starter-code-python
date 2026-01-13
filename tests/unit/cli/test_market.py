@@ -338,8 +338,8 @@ def test_market_history_calls_get_candlesticks() -> None:
     assert result.exit_code == 0
     assert "Candlestick History: TEST-MARKET" in result.stdout
     close = fixture["markets"][0]["candlesticks"][0]["price"].get("close")
-    if close is not None:
-        assert f"{close}¢" in result.stdout
+    close_str = f"{close}¢" if close is not None else "N/A"
+    assert close_str in result.stdout
 
     assert route.call_count == 1
     assert route.calls[0].request.url.params["market_tickers"] == ticker
