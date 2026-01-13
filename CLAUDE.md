@@ -107,6 +107,7 @@ uv run kalshi scan opportunities --filter close-race
   - `sqlite3 data/kalshi.db "PRAGMA integrity_check;"`
   - `sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`
 - `data/exa_cache/` is safe to delete; the SQLite DB is not.
+- **SQLite concurrency:** Avoid running two write-heavy commands simultaneously (e.g., two `data sync-markets` in parallel). SQLite locks the entire DB on write; concurrent writers will get "database is locked" errors.
 - See `.claude/skills/kalshi-cli/GOTCHAS.md` for the full "Critical Anti-Patterns" section.
 
 ## Architecture

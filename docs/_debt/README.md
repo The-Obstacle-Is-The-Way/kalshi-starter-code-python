@@ -4,7 +4,7 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**5 active debt items.**
+**4 active debt items.**
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
@@ -12,7 +12,6 @@ This directory tracks **known debt** and **audit checklists** for the repository
 | **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (Needs Design) |
 | **[DEBT-016](DEBT-016-fixture-drift-ci.md)** | Automate Fixture Drift Detection + Weekly Re-Recording | P2 | 🟡 Partially Implemented |
 | **[DEBT-015](DEBT-015-missing-api-endpoints.md)** | Missing API Endpoints (45+ endpoints) | P2-P3 | Open (Partially Resolved) |
-| **[DEBT-023](DEBT-023-production-maturity-gaps.md)** | Production Maturity Gaps (Senior Engineer Audit) | P3 | Open (Reference Doc) |
 
 ### Recommended Order
 
@@ -41,7 +40,6 @@ Use this ID for the next debt item:
 | `DEBT-016-fixture-drift-ci.md` | **Active debt P2** - CI automation for fixture drift detection |
 | `DEBT-015-missing-api-endpoints.md` | **Active debt P2-P3** - 45+ missing Kalshi API endpoints |
 | `DEBT-014-friction-residuals.md` | **Active debt P1-P3** - friction, design decisions |
-| `DEBT-023-production-maturity-gaps.md` | **Active debt P3** - Senior engineer audit findings (reference doc) |
 | `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
 
 ## Archived Reference Docs
@@ -108,6 +106,7 @@ All resolved debt items are stored in
 | **[DEBT-019](../_archive/debt/DEBT-019-exa-empty-publisheddate-validation.md)** | Exa Empty `publishedDate` Validation Bug | ✅ Complete |
 | **[DEBT-020](../_archive/debt/DEBT-020-kalshi-market-discovery-gaps.md)** | Kalshi Market Discovery Gaps (false positive / user error) | ✅ Closed |
 | **[DEBT-022](../_archive/debt/DEBT-022-exa-research-task-recovery.md)** | Exa Research Task Recovery (`list_research_tasks()` crash recovery) | ✅ Complete |
+| **[DEBT-023](DEBT-023-production-maturity-gaps.md)** | Production Maturity Gaps (Senior Engineer Audit) | ✅ Complete (Reference Doc) |
 
 ---
 

@@ -1,8 +1,9 @@
 # DEBT-023: Production Maturity Gaps (Senior Engineer Audit)
 
 **Priority:** P3 (Research CLI is fine as-is; these matter for production service)
-**Status:** Open (Reference Document)
+**Status:** ✅ Resolved (Reference Document Only)
 **Created:** 2026-01-13
+**Resolved:** 2026-01-13
 **Audit Type:** Senior software engineer code review
 
 ---
@@ -73,9 +74,8 @@ These are "10/10" improvements that actually fit an internal research tool.
 
    Fixed commands: `alerts remove`, `thesis show`, `thesis resolve`, `thesis check-invalidation`.
 
-2. **SQLite concurrency footnote (doc-only)**
-   SQLite writes lock the DB. In practice, avoid running two write-heavy commands (e.g., `data sync-markets`) at the
-   same time. A one-line note in agent/runbook docs is sufficient.
+2. **SQLite concurrency footnote (doc-only)** ✅ **FIXED (2026-01-13)**
+   Added note to CLAUDE.md: "Avoid running two write-heavy commands simultaneously. SQLite locks the entire DB on write."
 
 ---
 
