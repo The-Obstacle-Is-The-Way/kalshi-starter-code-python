@@ -1,22 +1,25 @@
 # DEBT-015: Missing API Endpoints
 
 **Priority:** P2-P3 (Non-blocking but limiting)
-**Status:** Open
+**Status:** Open (Partially Resolved)
 **Found:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
+**Updated:** 2026-01-12 - Phase 1 (Series Discovery) implemented via SPEC-037
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---
 
 ## Summary
 
-The Kalshi API client is missing 45+ documented endpoints. While the core trading and research functionality works, these gaps limit advanced features like:
-- Category/tag discovery (proper market browsing)
-- Series-based filtering (Kalshi's intended pattern)
+The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Discovery) is now complete.** Remaining gaps limit advanced features like:
+- ~~Category/tag discovery (proper market browsing)~~ ✅ DONE
+- ~~Series-based filtering (Kalshi's intended pattern)~~ ✅ DONE
 - Order groups (batch management)
 - RFQ system (large block trades)
 - Queue position monitoring
 - Live data feeds
+
+**Why this is "Partially Resolved":** SPEC-037 implemented the Phase 1 discovery endpoints (`/search/tags_by_categories`, `/series`, `/series/{ticker}`, `/series/fee_changes`). All other items in this doc remain missing.
 
 ---
 
@@ -24,39 +27,41 @@ The Kalshi API client is missing 45+ documented endpoints. While the core tradin
 
 ### 1. Exchange & System (4 endpoints) - P3
 
-| Endpoint | Description | Priority |
-|----------|-------------|----------|
-| `GET /exchange/announcements` | Exchange-wide announcements | P3 |
-| `GET /exchange/schedule` | Trading schedule | P3 |
-| `GET /series/fee_changes` | Series fee change schedule | P3 |
-| `GET /exchange/user_data_timestamp` | User data timestamp | P3 |
+| Endpoint | Description | Priority | Status |
+|----------|-------------|----------|--------|
+| `GET /exchange/announcements` | Exchange-wide announcements | P3 | Missing |
+| `GET /exchange/schedule` | Trading schedule | P3 | Missing |
+| `GET /series/fee_changes` | Series fee change schedule | P3 | ✅ **DONE** |
+| `GET /exchange/user_data_timestamp` | User data timestamp | P3 | Missing |
 
 **Impact:** Low - informational only
+**Note:** `GET /series/fee_changes` implemented in SPEC-037 (`get_series_fee_changes()`)
 
-### 2. Series Endpoints (3 endpoints) - P2
+### 2. Series Endpoints (3 endpoints) - ✅ MOSTLY DONE
 
-| Endpoint | Description | Priority |
-|----------|-------------|----------|
-| `GET /series` | List series with filters | **P2** |
-| `GET /series/{series_ticker}` | Single series details | P2 |
-| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Forecast history (auth) | P3 |
+| Endpoint | Description | Priority | Status |
+|----------|-------------|----------|--------|
+| `GET /series` | List series with filters | **P2** | ✅ **DONE** |
+| `GET /series/{series_ticker}` | Single series details | P2 | ✅ **DONE** |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Forecast history (auth) | P3 | Missing |
 
-**Impact:** Medium - This is Kalshi's intended category filtering pattern:
-1. `GET /search/tags_by_categories` → Discover categories
-2. `GET /series?category=Politics` → Get series in category
-3. `GET /markets?series_ticker=...` → Get markets
+**Impact:** ~~Medium~~ **Resolved** - Series-centric navigation now available via:
+- `get_series_list()` - List all series with optional category filter
+- `get_series()` - Get single series details
+- `get_series_candlesticks()` - Historical price data for series
 
-Currently we use `/events` for browsing (works), but it does not provide the same series-centric
-navigation and filtering Kalshi designs around via `/series`.
+**Implemented:** SPEC-037 (2026-01-12)
 
-### 3. Search & Discovery (2 endpoints) - P2
+### 3. Search & Discovery (2 endpoints) - ✅ PARTIALLY DONE
 
-| Endpoint | Description | Priority |
-|----------|-------------|----------|
-| `GET /search/tags_by_categories` | Category → tags mapping | **P2** |
-| `GET /search/filters_by_sport` | Sports-specific filters | P3 |
+| Endpoint | Description | Priority | Status |
+|----------|-------------|----------|--------|
+| `GET /search/tags_by_categories` | Category → tags mapping | **P2** | ✅ **DONE** |
+| `GET /search/filters_by_sport` | Sports-specific filters | P3 | Missing |
 
-**Impact:** Medium - Can't build proper category filter UIs
+**Impact:** ~~Medium~~ **Resolved** - Category browsing now available via `get_tags_by_categories()`
+
+**Implemented:** SPEC-037 (2026-01-12)
 
 ### 4. Structured Targets (2 endpoints) - P3
 
@@ -166,12 +171,15 @@ navigation and filtering Kalshi designs around via `/series`.
 
 ## Recommended Implementation Order
 
-### Phase 1: Category Discovery (P2) - High Value
-1. `GET /search/tags_by_categories` - Enable proper category browsing
-2. `GET /series` - Kalshi's intended filtering pattern
-3. `GET /series/{ticker}` - Series details
+### Phase 1: Category Discovery (P2) - ✅ COMPLETE
+1. ~~`GET /search/tags_by_categories`~~ ✅ `get_tags_by_categories()`
+2. ~~`GET /series`~~ ✅ `get_series_list()`
+3. ~~`GET /series/{ticker}`~~ ✅ `get_series()`
+4. ~~`GET /series/fee_changes`~~ ✅ `get_series_fee_changes()`
 
-### Phase 2: Order Efficiency (P2)
+**Implemented:** SPEC-037 (2026-01-12)
+
+### Phase 2: Order Efficiency (P2) - PENDING
 4. `POST /portfolio/orders/batched` - 10x more efficient
 5. `GET /portfolio/orders/{id}/queue_position` - Market making
 6. `POST /portfolio/orders/{id}/decrease` - Order management
@@ -183,7 +191,7 @@ navigation and filtering Kalshi designs around via `/series`.
 
 ## Relationship to Other Debt/Bugs
 
-- **DEBT-014 Section C1**: Already tracks "Missing `/series` endpoint" as blocked
+- **DEBT-014 Section C1**: Tracks the `/series` endpoint work; now ✅ resolved via SPEC-037 (kept for context)
 - **BUG-064**: Missing order safety parameters (different issue - params vs endpoints)
 
 ---

@@ -3,7 +3,7 @@
     "recorded_at": "2026-01-12T20:14:32.373601+00:00",
     "endpoint": "/findSimilar",
     "environment": "prod",
-    "sanitized": false,
+    "sanitized": true,
     "url": "https://example.com",
     "num_results": 3
   },
@@ -11,9 +11,9 @@
     "requestId": "b652a6bde074c4606fdcf87323c15558",
     "results": [
       {
-        "id": "https://exmaple.com/",
+        "id": "https://example.com/",
         "title": "",
-        "url": "https://exmaple.com/",
+        "url": "https://example.com/",
         "author": null,
         "score": 0.7809348702430725
       },

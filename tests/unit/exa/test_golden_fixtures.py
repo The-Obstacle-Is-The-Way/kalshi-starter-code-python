@@ -16,6 +16,12 @@ def test_exa_search_and_contents_fixture_matches_model() -> None:
     SearchResponse.model_validate(load_golden_response("exa", "search_and_contents_response.json"))
 
 
+def test_exa_search_empty_published_date_fixture_matches_model() -> None:
+    SearchResponse.model_validate(
+        load_golden_response("exa", "search_empty_published_date_response.json")
+    )
+
+
 def test_exa_contents_fixture_matches_model() -> None:
     ContentsResponse.model_validate(load_golden_response("exa", "get_contents_response.json"))
 

@@ -63,45 +63,49 @@ JsonDict = dict[str, Any]
 # Regex pattern for extracting choices from AliasChoices string representation
 _ALIAS_CHOICES_PATTERN: Final[re.Pattern[str]] = re.compile(r"'([^']+)'")
 
-MODEL_MAPPING: Final[dict[str, tuple[str, type[BaseModel]]]] = {
+MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
     # Public endpoints
     # GET /markets/{ticker} returns {"market": {...}}
-    "market_single_response.json": ("response.market", Market),
-    "markets_list_response.json": ("response.markets[0]", Market),
-    "trades_list_response.json": ("response.trades[0]", Trade),
-    "candlesticks_batch_response.json": ("response.markets[0]", CandlestickResponse),
-    "series_candlesticks_response.json": ("response.candlesticks[0]", Candlestick),
-    "tags_by_categories_response.json": ("response", TagsByCategoriesResponse),
-    "series_list_response.json": ("response.series[0]", Series),
-    "series_single_response.json": ("response.series", Series),
-    "series_fee_changes_response.json": ("response", SeriesFeeChangesResponse),
+    "market_single_response.json": [("response.market", Market)],
+    "markets_list_response.json": [("response.markets[0]", Market)],
+    "trades_list_response.json": [("response.trades[0]", Trade)],
+    "candlesticks_batch_response.json": [("response.markets[0]", CandlestickResponse)],
+    "series_candlesticks_response.json": [("response.candlesticks[0]", Candlestick)],
+    "tags_by_categories_response.json": [("response", TagsByCategoriesResponse)],
+    "series_list_response.json": [("response.series[0]", Series)],
+    "series_single_response.json": [("response.series", Series)],
+    "series_fee_changes_response.json": [("response", SeriesFeeChangesResponse)],
     # GET /events/{event_ticker} returns {"event": {...}, "markets": [...]}
-    "event_single_response.json": ("response.event", Event),
-    "events_list_response.json": ("response.events[0]", Event),
+    "event_single_response.json": [("response.event", Event)],
+    "events_list_response.json": [("response.events[0]", Event)],
     # GET /markets/{ticker}/orderbook returns {"orderbook": {...}}
-    "orderbook_response.json": ("response.orderbook", Orderbook),
+    "orderbook_response.json": [("response.orderbook", Orderbook)],
     # Note: exchange_status_response returns dict, not a model (skipped)
     # Portfolio endpoints
-    "portfolio_balance_response.json": ("response", PortfolioBalance),
+    "portfolio_balance_response.json": [("response", PortfolioBalance)],
     # GET /portfolio/positions returns market_positions + event_positions
-    "portfolio_positions_response.json": ("response.market_positions[0]", PortfolioPosition),
-    "portfolio_orders_response.json": ("response.orders[0]", Order),
-    "portfolio_fills_response.json": ("response.fills[0]", Fill),
-    "portfolio_settlements_response.json": ("response.settlements[0]", Settlement),
+    "portfolio_positions_response.json": [("response.market_positions[0]", PortfolioPosition)],
+    "portfolio_orders_response.json": [("response.orders[0]", Order)],
+    "portfolio_fills_response.json": [("response.fills[0]", Fill)],
+    "portfolio_settlements_response.json": [("response.settlements[0]", Settlement)],
     # Trading endpoints - API returns full Order object wrapped in {"order": {...}}
     # Note: OrderResponse is minimal (order_id, order_status); Order has full details
-    "create_order_response.json": ("response.order", Order),
-    "cancel_order_response.json": ("response.order", Order),
-    "amend_order_response.json": ("response.order", Order),
+    "create_order_response.json": [("response.order", Order)],
+    "cancel_order_response.json": [("response.order", Order)],
+    "amend_order_response.json": [
+        ("response.order", Order),
+        ("response.old_order", Order),
+    ],
     # Exa endpoints (fixtures live under tests/fixtures/golden/exa/)
-    "exa/search_response.json": ("response", SearchResponse),
-    "exa/search_and_contents_response.json": ("response", SearchResponse),
-    "exa/get_contents_response.json": ("response", ContentsResponse),
-    "exa/find_similar_response.json": ("response", FindSimilarResponse),
-    "exa/answer_response.json": ("response", AnswerResponse),
+    "exa/search_response.json": [("response", SearchResponse)],
+    "exa/search_and_contents_response.json": [("response", SearchResponse)],
+    "exa/search_empty_published_date_response.json": [("response", SearchResponse)],
+    "exa/get_contents_response.json": [("response", ContentsResponse)],
+    "exa/find_similar_response.json": [("response", FindSimilarResponse)],
+    "exa/answer_response.json": [("response", AnswerResponse)],
     # Optional (only recorded when explicitly enabled)
-    "exa/research_task_create_response.json": ("response", ResearchTask),
-    "exa/research_task_response.json": ("response", ResearchTask),
+    "exa/research_task_create_response.json": [("response", ResearchTask)],
+    "exa/research_task_response.json": [("response", ResearchTask)],
 }
 
 
@@ -310,7 +314,7 @@ def main() -> None:
 
     results: list[dict[str, Any]] = []
 
-    for fixture_file, (path, model) in MODEL_MAPPING.items():
+    for fixture_file, validations in MODEL_MAPPING.items():
         fixture_path = GOLDEN_DIR / fixture_file
 
         if not fixture_path.exists():
@@ -319,21 +323,27 @@ def main() -> None:
 
         try:
             data: JsonDict = json.loads(fixture_path.read_text())
-            response_data = get_nested_value(data, path)
-
-            if response_data is None:
-                print(f"SKIP: {fixture_file} (empty response)")
-                continue
-
-            result = analyze_response(response_data, model, fixture_file)
-            results.append(result)
-
-        except (KeyError, IndexError, TypeError) as e:
-            print(f"SKIP: {fixture_file} (path error: {e})")
-            continue
         except json.JSONDecodeError as e:
             print(f"SKIP: {fixture_file} (JSON error: {e})")
             continue
+
+        for path, model in validations:
+            fixture_label = fixture_file
+            if len(validations) > 1:
+                fixture_label = f"{fixture_file} ({path})"
+
+            try:
+                response_data = get_nested_value(data, path)
+            except (KeyError, IndexError, TypeError) as e:
+                print(f"SKIP: {fixture_label} (path error: {e})")
+                continue
+
+            if response_data is None:
+                print(f"SKIP: {fixture_label} (empty response)")
+                continue
+
+            result = analyze_response(response_data, model, fixture_label)
+            results.append(result)
 
     if results:
         issues_found = print_report(results)

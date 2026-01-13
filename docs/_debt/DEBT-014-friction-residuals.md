@@ -320,13 +320,15 @@ Options to address:
 
 **Effort:** Medium (new scan filter + optional Exa integration)
 
-**Next step:** Create SPEC-037 for new market alerts with appropriate filter logic
+**Next step:** Create SPEC-039 (New Market Alerts) with appropriate filter logic
 
 ---
 
 ## Section C: Blocked/Scheduled (External Dependencies)
 
-### C1. Missing `/series` Endpoint (Proper Category SSOT)
+### C1. Missing `/series` Endpoint (Proper Category SSOT) - ✅ RESOLVED
+
+**Status:** ✅ **RESOLVED** (2026-01-12, SPEC-037)
 
 **Problem:** Current category filtering uses `/events` which works but isn't Kalshi's intended pattern.
 
@@ -336,25 +338,16 @@ Options to address:
 > GET /series?category=Politics   # Get series in that category
 > GET /markets?series_ticker=...  # Get markets for those series"
 
-**Current state:**
-- We use `/events` + `Event.category` (works but deprecated)
-- `/series` endpoint not implemented in our client
-- `/search/tags_by_categories` not implemented
+**Resolution:**
+SPEC-037 implemented the series discovery endpoints:
+- ✅ `GET /series` → `get_series_list()` in `src/kalshi_research/api/client.py`
+- ✅ `GET /series/{ticker}` → `get_series()` in `src/kalshi_research/api/client.py`
+- ✅ `GET /search/tags_by_categories` → `get_tags_by_categories()` in `src/kalshi_research/api/client.py`
+- ✅ Golden fixtures: `series_list_response.json`, `series_single_response.json`, `tags_by_categories_response.json`
 
-**Design questions:**
-1. Is this worth implementing now, or wait until Kalshi removes `Event.category`?
-2. Should we implement as future-proofing or as response to deprecation?
-
-**Effort:** Medium (new API methods + migration of category logic)
-
----
-
-**Blocked by:** Wait until Kalshi removes `Event.category` field
-
-**Related items (blocked by this):**
-- Category ticker prefix mapping (`hacks.md` 3.1)
-- Missing `/search/tags_by_categories` (`hacks.md` 1.2)
-- Missing `/search/filters_by_sport` (`hacks.md` 1.3)
+**Remaining work:**
+- Migrate CLI commands to use series-first pattern (optional, `/events` still works)
+- `GET /search/filters_by_sport` (P3, sports-specific)
 
 ---
 
@@ -392,7 +385,7 @@ Options to address:
 | B1 | Exa research pipeline | High | Large | P1 | ⏸️ Blocked (FUTURE-001) |
 | B2 | Adversarial research | High | Medium | P1 | ⏸️ Blocked (FUTURE-001) |
 | B3 | New market alerts | Medium | Medium | P2 | 📋 Needs spec |
-| C1 | `/series` endpoint | Low | Medium | P3 | Blocked |
+| C1 | `/series` endpoint | Low | Medium | P3 | ✅ RESOLVED (SPEC-037) |
 | C2 | Jan 15 cleanup | Medium | Small | P2 | Scheduled |
 
 ---
@@ -421,11 +414,13 @@ None for Section A.
 3. **B2**: Included in FUTURE-001 (bull/bear case generation)
 
 ### Needs Spec
-4. **B3**: Create SPEC-037 for new market alerts
+4. **B3**: Create SPEC-039 (New Market Alerts)
 
 ### Scheduled
 5. **C2**: Wait for Jan 15, 2026, then cleanup
-6. **C1**: React when Kalshi removes `Event.category`
+
+### Recently Resolved
+6. **C1**: ✅ RESOLVED (2026-01-12) - Series endpoints implemented via SPEC-037
 
 ---
 
@@ -459,7 +454,7 @@ None for Section A.
 > - Default filters are permissive (`--min-volume=0`, `--max-spread=100`)
 > - The REAL filter is unpriced markets (bid=0, ask=100) being skipped in scanner.py:220-224
 > - `created_time` field EXISTS on Market model - we CAN detect new markets
-> - **Next step:** Create SPEC-037 with `--include-unpriced` flag option
+> - **Next step:** Create SPEC-039 with `--include-unpriced` flag option
 >
 > **Review checklist:**
 > - [x] Search `scan opportunities` for volume/liquidity filters ✅ Done (see B3)

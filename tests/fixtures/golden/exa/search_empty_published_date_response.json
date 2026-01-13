@@ -1,0 +1,20 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-13T00:00:00+00:00",
+    "endpoint": "/search",
+    "environment": "prod",
+    "sanitized": false,
+    "note": "Regression fixture: Exa may return publishedDate as an empty string for some results. Observed via `kalshi research topic` live usage."
+  },
+  "response": {
+    "requestId": "req_regression_empty_published_date",
+    "results": [
+      {
+        "id": "https://example.com/article",
+        "url": "https://example.com/article",
+        "title": "Example",
+        "publishedDate": ""
+      }
+    ]
+  }
+}

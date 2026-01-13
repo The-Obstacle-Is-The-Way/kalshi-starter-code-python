@@ -28,14 +28,6 @@ class OrderType(str, Enum):
     MARKET = "market"
 
 
-class OrderStatus(str, Enum):
-    """Status of the order."""
-
-    RESTING = "resting"
-    CANCELED = "canceled"
-    EXECUTED = "executed"
-
-
 class CreateOrderRequest(BaseModel):
     """Request to create an order."""
 
@@ -72,23 +64,3 @@ class OrderResponse(BaseModel):
 
     order_id: str
     order_status: str = Field(validation_alias=AliasChoices("order_status", "status"))
-
-
-class Order(BaseModel):
-    """Order details."""
-
-    model_config = ConfigDict(frozen=True)
-
-    order_id: str
-    client_order_id: str
-    ticker: str
-    side: OrderSide
-    action: OrderAction
-    type: OrderType
-    yes_price: int
-    count: int
-    status: OrderStatus
-    created_time: str
-    expiration_time: str | None = None
-    close_cancel_count: int | None = None
-    # Add other fields as needed

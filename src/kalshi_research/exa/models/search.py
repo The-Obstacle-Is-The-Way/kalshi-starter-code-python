@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 from kalshi_research.exa.models.common import ContentsRequest, CostDollars
 
@@ -78,6 +78,13 @@ class SearchResult(BaseModel):
     highlight_scores: list[float] | None = Field(default=None, alias="highlightScores")
     subpages: list[SearchResult] | None = None
     extras: dict[str, Any] | None = None
+
+    @field_validator("published_date", mode="before")
+    @classmethod
+    def coerce_empty_published_date(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
 
 class SearchResponse(BaseModel):

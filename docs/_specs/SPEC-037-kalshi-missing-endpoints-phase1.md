@@ -1,6 +1,6 @@
 # SPEC-037: Kalshi Missing Endpoints (Discovery + Order Ops Parity)
 
-**Status:** Draft
+**Status:** Phase 1 Complete, Phases 2-3 Pending
 **Priority:** P1 (Foundation robustness for discovery + safe automation)
 **Created:** 2026-01-12
 **Owner:** Solo
@@ -92,57 +92,47 @@ Acceptance is purely SSOT-based: fixtures + model validation must pass.
 
 ---
 
-## Phase 1 (P2): Category + Series Discovery (High Leverage)
+## Phase 1 (P2): Category + Series Discovery (High Leverage) - ✅ COMPLETE
 
-### 1.1 `GET /search/tags_by_categories`
+**Implemented:** 2026-01-12
+
+### 1.1 `GET /search/tags_by_categories` ✅
 
 Purpose: discover valid Kalshi categories and their tags (enables a real category UI).
 
 - OpenAPI response schema: `GetTagsForSeriesCategoriesResponse`
   - wrapper key: `tags_by_categories` (object)
-- New model file: `src/kalshi_research/api/models/search.py`
-  - `TagsByCategoriesResponse(tags_by_categories: dict[str, list[str]])`
-- Client method:
-  - `async def get_tags_by_categories(self) -> dict[str, list[str]]`
-- Fixture:
-  - `tests/fixtures/golden/tags_by_categories_response.json`
-- Tests:
-  - validate fixture parses into model
-  - verify client unwraps `tags_by_categories`
+- ✅ Model: `src/kalshi_research/api/models/search.py`
+- ✅ Client method: `get_tags_by_categories()` in `src/kalshi_research/api/client.py`
+- ✅ Fixture: `tests/fixtures/golden/tags_by_categories_response.json`
+- ✅ Tests: golden fixture validation + client unit test
 
-### 1.2 `GET /series` and `GET /series/{series_ticker}`
+### 1.2 `GET /series` and `GET /series/{series_ticker}` ✅
 
-Purpose: implement Kalshi’s intended browse pattern:
+Purpose: implement Kalshi's intended browse pattern:
 
 1) `GET /search/tags_by_categories` → categories/tags
 2) `GET /series?category=...` → series
 3) `GET /markets?series_ticker=...` → markets
 
-OpenAPI schemas:
-- `GetSeriesListResponse` → wrapper key: `series` (array)
-- `GetSeriesResponse` → wrapper key: `series` (object)
-- entity schema: `Series`
+- ✅ Models: `src/kalshi_research/api/models/series.py`
+  - `Series`, `SeriesListResponse`, `SeriesResponse`
+- ✅ Client methods:
+  - `get_series_list()` in `src/kalshi_research/api/client.py`
+  - `get_series()` in `src/kalshi_research/api/client.py`
+- ✅ Fixtures:
+  - `tests/fixtures/golden/series_list_response.json`
+  - `tests/fixtures/golden/series_single_response.json`
+- ✅ Tests: golden fixture validation + client unit tests
 
-Models:
-- New file: `src/kalshi_research/api/models/series.py`
-  - `Series` (match OpenAPI)
-  - `SeriesListResponse(series: list[Series])`
-  - `SeriesResponse(series: Series)`
-
-Client methods:
-- `get_series_list_page(...) -> tuple[list[Series], str | None]` (if cursor exists)
-- `get_series(series_ticker: str, *, include_volume: bool = False) -> Series`
-
-Fixtures:
-- `tests/fixtures/golden/series_list_response.json`
-- `tests/fixtures/golden/series_single_response.json`
-
-### 1.3 Optional (P3): `GET /series/fee_changes`
+### 1.3 `GET /series/fee_changes` ✅
 
 Useful for fee-aware backtests and avoiding surprise changes.
 
-- OpenAPI schema: `GetSeriesFeeChangesResponse` → `series_fee_change_arr`
-- Fixture: `tests/fixtures/golden/series_fee_changes_response.json`
+- ✅ Model: `SeriesFeeChange`, `SeriesFeeChangesResponse`
+- ✅ Client method: `get_series_fee_changes()`
+- ✅ Fixture: `tests/fixtures/golden/series_fee_changes_response.json`
+- ⚠️ Note: Fixture has empty array (no fee changes at recording time)
 
 ---
 
