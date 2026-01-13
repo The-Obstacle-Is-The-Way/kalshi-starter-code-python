@@ -99,7 +99,7 @@ uv run kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH] 
 uv run kalshi research context TICKER [--max-news 10] [--max-papers 5] [--days 30] [--json]
 uv run kalshi research topic "TOPIC" [--no-summary] [--json]
 uv run kalshi research similar URL [-n 10] [--json]
-uv run kalshi research deep "TOPIC" [--model exa-research-fast|exa-research|exa-research-pro] [--wait] [--schema FILE] [--json]  # Paid API (exa-research-fast is supported but not always documented)
+uv run kalshi research deep "TOPIC" [--model exa-research-fast|exa-research|exa-research-pro] [--wait] [--schema FILE] [--json]  # Paid API (exa-research-fast may be undocumented; fall back to exa-research if it fails)
 uv run kalshi research cache clear [--all] [--cache-dir DIR]
 uv run kalshi research thesis create "TITLE" -m T1,T2 --your-prob 0.7 --market-prob 0.5 --confidence 0.8 [--with-research] [-y]
 uv run kalshi research thesis list [--full]
