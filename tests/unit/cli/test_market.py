@@ -1,108 +1,92 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+import re
+from typing import Any
 
+import respx
+from httpx import Response
 from typer.testing import CliRunner
 
-from kalshi_research.api.models.candlestick import (
-    CandlePrice,
-    CandleSide,
-    Candlestick,
-    CandlestickResponse,
-)
-from kalshi_research.api.models.orderbook import Orderbook
+from kalshi_research.api.models.market import Market
 from kalshi_research.cli import app
+from tests.unit.cli.fixtures import (
+    KALSHI_PROD_BASE_URL,
+    load_candlesticks_batch_fixture,
+    load_events_list_fixture,
+    load_market_fixture,
+    load_series_candlesticks_fixture,
+)
 
 runner = CliRunner()
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_get(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
+@respx.mock
+def test_market_get() -> None:
+    fixture = load_market_fixture()
+    ticker = fixture["market"]["ticker"]
 
-    mock_market = MagicMock()
-    mock_market.ticker = "TEST-MARKET"
-    mock_market.title = "Test Market"
-    mock_market.event_ticker = "TEST-EVENT"
-    mock_market.status.value = "active"
-    mock_market.yes_bid_cents = 50
-    mock_market.yes_ask_cents = 52
-    mock_market.no_bid_cents = 48
-    mock_market.no_ask_cents = 50
-    mock_market.volume_24h = 1000
-    mock_market.open_interest = 500
-    mock_market.open_time.isoformat.return_value = "2024-01-01T00:00:00"
-    mock_market.created_time = MagicMock()
-    mock_market.created_time.isoformat.return_value = "2023-12-15T17:50:26"
-    mock_market.close_time.isoformat.return_value = "2025-01-01T00:00:00"
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/{ticker}").mock(
+        return_value=Response(200, json=fixture)
+    )
 
-    mock_client.get_market.return_value = mock_market
+    market = Market.model_validate(fixture["market"])
+    expected_yes = f"{market.yes_bid_cents}¢ / {market.yes_ask_cents}¢"
 
-    result = runner.invoke(app, ["market", "get", "TEST-MARKET"])
+    result = runner.invoke(app, ["market", "get", ticker])
 
     assert result.exit_code == 0
-    assert "Market: TEST-MARKET" in result.stdout
-    assert "Test Market" in result.stdout
-    assert "50¢ / 52¢" in result.stdout
+    assert f"Market: {ticker}" in result.stdout
+    assert market.title[:30] in result.stdout
+    assert expected_yes in result.stdout
     assert "Open Time" in result.stdout
-    assert "Created Time" in result.stdout
     assert "Close Time" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_get_without_created_time(mock_client_cls: MagicMock) -> None:
+@respx.mock
+def test_market_get_without_created_time() -> None:
     """Test that market get works when created_time is None."""
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
+    fixture = load_market_fixture()
+    ticker = fixture["market"]["ticker"]
+    fixture["market"]["created_time"] = None
 
-    mock_market = MagicMock()
-    mock_market.ticker = "TEST-MARKET"
-    mock_market.title = "Test Market"
-    mock_market.event_ticker = "TEST-EVENT"
-    mock_market.status.value = "active"
-    mock_market.yes_bid_cents = 50
-    mock_market.yes_ask_cents = 52
-    mock_market.no_bid_cents = 48
-    mock_market.no_ask_cents = 50
-    mock_market.volume_24h = 1000
-    mock_market.open_interest = 500
-    mock_market.open_time.isoformat.return_value = "2024-01-01T00:00:00"
-    mock_market.created_time = None
-    mock_market.close_time.isoformat.return_value = "2025-01-01T00:00:00"
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/{ticker}").mock(
+        return_value=Response(200, json=fixture)
+    )
 
-    mock_client.get_market.return_value = mock_market
-
-    result = runner.invoke(app, ["market", "get", "TEST-MARKET"])
+    result = runner.invoke(app, ["market", "get", ticker])
 
     assert result.exit_code == 0
-    assert "Market: TEST-MARKET" in result.stdout
+    assert f"Market: {ticker}" in result.stdout
     assert "Open Time" in result.stdout
     assert "Close Time" in result.stdout
     # Should not show Created Time when it's None
     assert "Created Time" not in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_list(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
+@respx.mock
+def test_market_get_fails_when_response_missing_required_field() -> None:
+    fixture = load_market_fixture()
+    ticker = fixture["market"]["ticker"]
 
-    mock_market = MagicMock()
-    mock_market.ticker = "TEST-MARKET"
-    mock_market.title = "Test Market"
-    mock_market.status.value = "active"
-    mock_market.yes_bid_cents = 50
-    mock_market.volume_24h = 1000
+    bad_market = dict(fixture["market"])
+    bad_market.pop("ticker", None)
 
-    mock_client.get_markets.return_value = [mock_market]
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/{ticker}").mock(
+        return_value=Response(200, json={"market": bad_market})
+    )
+
+    result = runner.invoke(app, ["market", "get", ticker])
+
+    assert result.exit_code == 1
+    assert "Error:" in result.stdout
+
+
+@respx.mock
+def test_market_list(make_market) -> None:
+    market = make_market(ticker="TEST-MARKET", title="Test Market")
+    response = {"markets": [market], "cursor": None}
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(return_value=Response(200, json=response))
 
     result = runner.invoke(app, ["market", "list"])
 
@@ -111,13 +95,8 @@ def test_market_list(mock_client_cls: MagicMock) -> None:
     assert "Test Market" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_list_full_flag_disables_truncation(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
-
+@respx.mock
+def test_market_list_full_flag_disables_truncation(make_market) -> None:
     ticker_prefix = "KXTHISISAREALLYLONGTICKER-"
     ticker_suffix = "TAILTICKER"
     long_ticker = f"{ticker_prefix}{'X' * 30}{ticker_suffix}"
@@ -128,14 +107,11 @@ def test_market_list_full_flag_disables_truncation(mock_client_cls: MagicMock) -
     long_title = f"{title_prefix}{title_suffix}"
     assert len(long_title) > 40
 
-    mock_market = MagicMock()
-    mock_market.ticker = long_ticker
-    mock_market.title = long_title
-    mock_market.status.value = "active"
-    mock_market.yes_bid_cents = 50
-    mock_market.volume_24h = 1000
+    market = make_market(ticker=long_ticker, title=long_title)
+    response = {"markets": [market], "cursor": None}
 
-    mock_client.get_markets.return_value = [mock_market]
+    route = respx.get(f"{KALSHI_PROD_BASE_URL}/markets")
+    route.side_effect = [Response(200, json=response), Response(200, json=response)]
 
     result_default = runner.invoke(app, ["market", "list"])
     assert result_default.exit_code == 0
@@ -148,45 +124,36 @@ def test_market_list_full_flag_disables_truncation(mock_client_cls: MagicMock) -
     assert title_suffix in result_full.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_list_filters_by_category(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
+@respx.mock
+def test_market_list_filters_by_category(make_market) -> None:
+    econ_market = make_market(ticker="ECON-MARKET", event_ticker="KXFEDRATE-26JAN")
+    sports_market = make_market(ticker="SPORTS-MARKET", event_ticker="KXNFLAFCCHAMP-26JAN")
 
-    econ_market = MagicMock()
-    econ_market.ticker = "ECON-MARKET"
-    econ_market.event_ticker = "KXFEDRATE-26JAN"
-    econ_market.title = "Economics Market"
-    econ_market.status.value = "active"
-    econ_market.yes_bid_cents = 50
-    econ_market.volume_24h = 1000
+    events_fixture = load_events_list_fixture()
+    template = events_fixture["events"][0]
 
-    sports_market = MagicMock()
-    sports_market.ticker = "SPORTS-MARKET"
-    sports_market.event_ticker = "KXNFLAFCCHAMP-26JAN"
-    sports_market.title = "Sports Market"
-    sports_market.status.value = "active"
-    sports_market.yes_bid_cents = 50
-    sports_market.volume_24h = 1000
+    econ_event: dict[str, Any] = dict(template)
+    econ_event.update(
+        {
+            "event_ticker": econ_market["event_ticker"],
+            "category": "Economics",
+            "title": "Economics Event",
+            "markets": [econ_market],
+        }
+    )
 
-    econ_event = MagicMock()
-    econ_event.event_ticker = econ_market.event_ticker
-    econ_event.category = "Economics"
-    econ_event.markets = [econ_market]
+    sports_event: dict[str, Any] = dict(template)
+    sports_event.update(
+        {
+            "event_ticker": sports_market["event_ticker"],
+            "category": "Sports",
+            "title": "Sports Event",
+            "markets": [sports_market],
+        }
+    )
 
-    sports_event = MagicMock()
-    sports_event.event_ticker = sports_market.event_ticker
-    sports_event.category = "Sports"
-    sports_event.markets = [sports_market]
-
-    async def event_gen(*args: object, **kwargs: object):
-        _ = args, kwargs
-        yield econ_event
-        yield sports_event
-
-    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+    response = {"events": [econ_event, sports_event], "cursor": None}
+    respx.get(f"{KALSHI_PROD_BASE_URL}/events").mock(return_value=Response(200, json=response))
 
     result = runner.invoke(app, ["market", "list", "--category", "econ"])
 
@@ -195,45 +162,36 @@ def test_market_list_filters_by_category(mock_client_cls: MagicMock) -> None:
     assert "SPORTS-MARKET" not in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_list_excludes_category(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
+@respx.mock
+def test_market_list_excludes_category(make_market) -> None:
+    econ_market = make_market(ticker="ECON-MARKET", event_ticker="KXFEDRATE-26JAN")
+    sports_market = make_market(ticker="SPORTS-MARKET", event_ticker="KXNFLAFCCHAMP-26JAN")
 
-    econ_market = MagicMock()
-    econ_market.ticker = "ECON-MARKET"
-    econ_market.event_ticker = "KXFEDRATE-26JAN"
-    econ_market.title = "Economics Market"
-    econ_market.status.value = "active"
-    econ_market.yes_bid_cents = 50
-    econ_market.volume_24h = 1000
+    events_fixture = load_events_list_fixture()
+    template = events_fixture["events"][0]
 
-    sports_market = MagicMock()
-    sports_market.ticker = "SPORTS-MARKET"
-    sports_market.event_ticker = "KXNFLAFCCHAMP-26JAN"
-    sports_market.title = "Sports Market"
-    sports_market.status.value = "active"
-    sports_market.yes_bid_cents = 50
-    sports_market.volume_24h = 1000
+    econ_event: dict[str, Any] = dict(template)
+    econ_event.update(
+        {
+            "event_ticker": econ_market["event_ticker"],
+            "category": "Economics",
+            "title": "Economics Event",
+            "markets": [econ_market],
+        }
+    )
 
-    econ_event = MagicMock()
-    econ_event.event_ticker = econ_market.event_ticker
-    econ_event.category = "Economics"
-    econ_event.markets = [econ_market]
+    sports_event: dict[str, Any] = dict(template)
+    sports_event.update(
+        {
+            "event_ticker": sports_market["event_ticker"],
+            "category": "Sports",
+            "title": "Sports Event",
+            "markets": [sports_market],
+        }
+    )
 
-    sports_event = MagicMock()
-    sports_event.event_ticker = sports_market.event_ticker
-    sports_event.category = "Sports"
-    sports_event.markets = [sports_market]
-
-    async def event_gen(*args: object, **kwargs: object):
-        _ = args, kwargs
-        yield econ_event
-        yield sports_event
-
-    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+    response = {"events": [econ_event, sports_event], "cursor": None}
+    respx.get(f"{KALSHI_PROD_BASE_URL}/events").mock(return_value=Response(200, json=response))
 
     result = runner.invoke(app, ["market", "list", "--exclude-category", "sports"])
 
@@ -242,45 +200,35 @@ def test_market_list_excludes_category(mock_client_cls: MagicMock) -> None:
     assert "SPORTS-MARKET" not in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_list_filters_by_event_prefix(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
+@respx.mock
+def test_market_list_filters_by_event_prefix(make_market) -> None:
+    fed_market = make_market(ticker="FED-MARKET", event_ticker="KXFEDRATE-26JAN")
+    other_market = make_market(ticker="OTHER-MARKET", event_ticker="KXBTC-26JAN")
 
-    fed_market = MagicMock()
-    fed_market.ticker = "FED-MARKET"
-    fed_market.event_ticker = "KXFEDRATE-26JAN"
-    fed_market.title = "Fed Market"
-    fed_market.status.value = "active"
-    fed_market.yes_bid_cents = 50
-    fed_market.volume_24h = 1000
+    events_fixture = load_events_list_fixture()
+    template = events_fixture["events"][0]
 
-    other_market = MagicMock()
-    other_market.ticker = "OTHER-MARKET"
-    other_market.event_ticker = "KXBTC-26JAN"
-    other_market.title = "Other Market"
-    other_market.status.value = "active"
-    other_market.yes_bid_cents = 50
-    other_market.volume_24h = 1000
+    fed_event: dict[str, Any] = dict(template)
+    fed_event.update(
+        {
+            "event_ticker": fed_market["event_ticker"],
+            "category": "Economics",
+            "title": "Fed Event",
+            "markets": [fed_market],
+        }
+    )
+    other_event: dict[str, Any] = dict(template)
+    other_event.update(
+        {
+            "event_ticker": other_market["event_ticker"],
+            "category": "Financials",
+            "title": "Other Event",
+            "markets": [other_market],
+        }
+    )
 
-    fed_event = MagicMock()
-    fed_event.event_ticker = fed_market.event_ticker
-    fed_event.category = "Economics"
-    fed_event.markets = [fed_market]
-
-    other_event = MagicMock()
-    other_event.event_ticker = other_market.event_ticker
-    other_event.category = "Financials"
-    other_event.markets = [other_market]
-
-    async def event_gen(*args: object, **kwargs: object):
-        _ = args, kwargs
-        yield fed_event
-        yield other_event
-
-    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+    response = {"events": [fed_event, other_event], "cursor": None}
+    respx.get(f"{KALSHI_PROD_BASE_URL}/events").mock(return_value=Response(200, json=response))
 
     result = runner.invoke(app, ["market", "list", "--event-prefix", "KXFED"])
 
@@ -289,22 +237,12 @@ def test_market_list_filters_by_event_prefix(mock_client_cls: MagicMock) -> None
     assert "OTHER-MARKET" not in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_list_maps_active_to_open(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
-
-    mock_market = MagicMock()
-    mock_market.ticker = "TEST-MARKET"
-    mock_market.title = "Test Market"
-    mock_market.status.value = "active"
-    mock_market.yes_bid_cents = 50
-    mock_market.volume_24h = 1000
-
-    mock_client.get_markets.return_value = [mock_market]
-
+@respx.mock
+def test_market_list_maps_active_to_open(make_market) -> None:
+    response = {"markets": [make_market(ticker="TEST-MARKET")], "cursor": None}
+    route = respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+        return_value=Response(200, json=response)
+    )
     result = runner.invoke(app, ["market", "list", "--status", "active"])
 
     assert result.exit_code == 0
@@ -312,31 +250,33 @@ def test_market_list_maps_active_to_open(mock_client_cls: MagicMock) -> None:
     assert "--status" in result.stdout
     assert "open'." in result.stdout
     assert "TEST-MARKET" in result.stdout
-    mock_client.get_markets.assert_awaited_once_with(status="open", event_ticker=None, limit=20)
+    assert route.call_count == 1
+    assert route.calls[0].request.url.params["status"] == "open"
+    assert route.calls[0].request.url.params["limit"] == "20"
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_list_rejects_invalid_status(mock_client_cls: MagicMock) -> None:
+def test_market_list_rejects_invalid_status() -> None:
     result = runner.invoke(app, ["market", "list", "--status", "nope"])
 
     assert result.exit_code == 2
     assert "Invalid status filter" in result.stdout
-    mock_client_cls.assert_not_called()
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_liquidity(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
-
-    mock_market = MagicMock()
-    mock_market.volume_24h = 7000
-    mock_market.open_interest = 3000
-    mock_client.get_market.return_value = mock_market
-
-    mock_client.get_orderbook.return_value = Orderbook(yes=[(47, 500)], no=[(53, 500)])
+@respx.mock
+def test_market_liquidity(make_market) -> None:
+    ticker = "TEST-MARKET"
+    market = make_market(
+        ticker=ticker,
+        volume_24h=7000,
+        open_interest=3000,
+    )
+    orderbook = {"yes": [[47, 500]], "no": [[53, 500]]}
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/{ticker}").mock(
+        return_value=Response(200, json={"market": market})
+    )
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/{ticker}/orderbook").mock(
+        return_value=Response(200, json={"orderbook": orderbook})
+    )
 
     result = runner.invoke(app, ["market", "liquidity", "TEST-MARKET", "--depth", "5"])
 
@@ -345,21 +285,23 @@ def test_market_liquidity(mock_client_cls: MagicMock) -> None:
     assert "Score" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_liquidity_renders_zero_prices(mock_client_cls: MagicMock) -> None:
+@respx.mock
+def test_market_liquidity_renders_zero_prices(make_market) -> None:
     """Ensure 0c best prices render as numbers (not treated as falsey)."""
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
-
-    mock_market = MagicMock()
-    mock_market.volume_24h = 7000
-    mock_market.open_interest = 3000
-    mock_client.get_market.return_value = mock_market
-
+    ticker = "TEST-MARKET"
+    market = make_market(
+        ticker=ticker,
+        volume_24h=7000,
+        open_interest=3000,
+    )
     # NO bid at 100c implies a YES ask at 0c; this is a valid numeric best price.
-    mock_client.get_orderbook.return_value = Orderbook(yes=[(0, 500)], no=[(100, 500)])
+    orderbook = {"yes": [[0, 500]], "no": [[100, 500]]}
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/{ticker}").mock(
+        return_value=Response(200, json={"market": market})
+    )
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/{ticker}/orderbook").mock(
+        return_value=Response(200, json={"orderbook": orderbook})
+    )
 
     result = runner.invoke(app, ["market", "liquidity", "TEST-MARKET", "--depth", "5"])
 
@@ -368,29 +310,14 @@ def test_market_liquidity_renders_zero_prices(mock_client_cls: MagicMock) -> Non
     assert "N/A" not in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_history_calls_get_candlesticks(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
+@respx.mock
+def test_market_history_calls_get_candlesticks() -> None:
+    ticker = "TEST-MARKET"
+    fixture = load_candlesticks_batch_fixture()
+    fixture["markets"][0]["market_ticker"] = ticker
 
-    mock_client.get_candlesticks = AsyncMock(
-        return_value=[
-            CandlestickResponse(
-                market_ticker="TEST-MARKET",
-                candlesticks=[
-                    Candlestick(
-                        end_period_ts=1700003600,
-                        open_interest=123,
-                        volume=1000,
-                        price=CandlePrice(close=47),
-                        yes_bid=CandleSide(),
-                        yes_ask=CandleSide(),
-                    )
-                ],
-            )
-        ]
+    route = respx.get(f"{KALSHI_PROD_BASE_URL}/markets/candlesticks").mock(
+        return_value=Response(200, json=fixture)
     )
 
     result = runner.invoke(
@@ -410,35 +337,29 @@ def test_market_history_calls_get_candlesticks(mock_client_cls: MagicMock) -> No
 
     assert result.exit_code == 0
     assert "Candlestick History: TEST-MARKET" in result.stdout
-    assert "47¢" in result.stdout
-    mock_client.get_candlesticks.assert_awaited_once_with(
-        market_tickers=["TEST-MARKET"],
-        start_ts=1700000000,
-        end_ts=1700100000,
-        period_interval=60,
+    close = fixture["markets"][0]["candlesticks"][0]["price"].get("close")
+    if close is not None:
+        assert f"{close}¢" in result.stdout
+
+    assert route.call_count == 1
+    assert route.calls[0].request.url.params["market_tickers"] == ticker
+    assert int(route.calls[0].request.url.params["start_ts"]) == 1700000000
+    assert int(route.calls[0].request.url.params["end_ts"]) == 1700100000
+    assert int(route.calls[0].request.url.params["period_interval"]) == 60
+
+
+@respx.mock
+def test_market_history_with_series_uses_series_endpoint() -> None:
+    ticker = "TEST-MARKET"
+    series_ticker = "TEST-SERIES"
+    series_fixture = load_series_candlesticks_fixture()
+
+    series_route = respx.get(
+        f"{KALSHI_PROD_BASE_URL}/series/{series_ticker}/markets/{ticker}/candlesticks"
+    ).mock(return_value=Response(200, json=series_fixture))
+    batch_route = respx.get(f"{KALSHI_PROD_BASE_URL}/markets/candlesticks").mock(
+        return_value=Response(200, json={"markets": []})
     )
-
-
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_history_with_series_uses_series_endpoint(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
-
-    mock_client.get_series_candlesticks = AsyncMock(
-        return_value=[
-            Candlestick(
-                end_period_ts=1700003600,
-                open_interest=123,
-                volume=1000,
-                price=CandlePrice(close=47),
-                yes_bid=CandleSide(),
-                yes_ask=CandleSide(),
-            )
-        ]
-    )
-    mock_client.get_candlesticks = AsyncMock()
 
     result = runner.invoke(
         app,
@@ -459,14 +380,8 @@ def test_market_history_with_series_uses_series_endpoint(mock_client_cls: MagicM
 
     assert result.exit_code == 0
     assert "Candlestick History: TEST-MARKET" in result.stdout
-    mock_client.get_series_candlesticks.assert_awaited_once_with(
-        series_ticker="TEST-SERIES",
-        ticker="TEST-MARKET",
-        start_ts=1700000000,
-        end_ts=1700100000,
-        period_interval=60,
-    )
-    mock_client.get_candlesticks.assert_not_awaited()
+    assert series_route.call_count == 1
+    assert batch_route.call_count == 0
 
 
 def test_market_history_rejects_invalid_interval() -> None:
@@ -529,14 +444,11 @@ def test_market_history_rejects_start_ts_after_end_ts() -> None:
     assert "start-ts must be < end-ts" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_history_no_candles_prints_message(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
-
-    mock_client.get_candlesticks = AsyncMock(return_value=[])
+@respx.mock
+def test_market_history_no_candles_prints_message() -> None:
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/candlesticks").mock(
+        return_value=Response(200, json={"markets": []})
+    )
 
     result = runner.invoke(
         app,
@@ -557,29 +469,13 @@ def test_market_history_no_candles_prints_message(mock_client_cls: MagicMock) ->
     assert "No candlesticks returned" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_history_json_output(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
-
-    mock_client.get_candlesticks = AsyncMock(
-        return_value=[
-            CandlestickResponse(
-                market_ticker="TEST-MARKET",
-                candlesticks=[
-                    Candlestick(
-                        end_period_ts=1700003600,
-                        open_interest=123,
-                        volume=1000,
-                        price=CandlePrice(close=47),
-                        yes_bid=CandleSide(),
-                        yes_ask=CandleSide(),
-                    )
-                ],
-            )
-        ]
+@respx.mock
+def test_market_history_json_output() -> None:
+    ticker = "TEST-MARKET"
+    fixture = load_candlesticks_batch_fixture()
+    fixture["markets"][0]["market_ticker"] = ticker
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/candlesticks").mock(
+        return_value=Response(200, json=fixture)
     )
 
     result = runner.invoke(
@@ -599,21 +495,22 @@ def test_market_history_json_output(mock_client_cls: MagicMock) -> None:
     )
 
     assert result.exit_code == 0
-    payload = json.loads(result.stdout)
-    assert payload[0]["end_period_ts"] == 1700003600
-    assert payload[0]["price"]["close"] == 47
+    stdout = result.stdout
+    start_match = re.search(r"(?m)^\[", stdout)
+    assert start_match is not None
+    json_tail = stdout[start_match.start() :]
+    payload, _ = json.JSONDecoder().raw_decode(json_tail)
+
+    expected = fixture["markets"][0]["candlesticks"][0]
+    assert payload[0]["end_period_ts"] == expected["end_period_ts"]
+    assert payload[0]["price"]["close"] == expected["price"]["close"]
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_history_api_error_exits_with_error(mock_client_cls: MagicMock) -> None:
-    from kalshi_research.api.exceptions import KalshiAPIError
-
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
-
-    mock_client.get_candlesticks = AsyncMock(side_effect=KalshiAPIError(400, "Bad request"))
+@respx.mock
+def test_market_history_api_error_exits_with_error() -> None:
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/candlesticks").mock(
+        return_value=Response(400, json={"error": "Bad request"})
+    )
 
     result = runner.invoke(
         app,
@@ -634,14 +531,9 @@ def test_market_history_api_error_exits_with_error(mock_client_cls: MagicMock) -
     assert "API Error 400" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_market_history_unexpected_error_exits_with_error(mock_client_cls: MagicMock) -> None:
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
-
-    mock_client.get_candlesticks = AsyncMock(side_effect=RuntimeError("boom"))
+@respx.mock
+def test_market_history_unexpected_error_exits_with_error() -> None:
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/candlesticks").mock(side_effect=RuntimeError("boom"))
 
     result = runner.invoke(
         app,

@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
+import respx
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from httpx import Response
 from typer.testing import CliRunner
 
 from kalshi_research.cli import app
+from tests.unit.cli.fixtures import KALSHI_DEMO_BASE_URL, load_portfolio_balance_fixture
 
 runner = CliRunner()
 
@@ -44,28 +50,31 @@ def test_portfolio_balance_invalid_private_key_b64_exits_cleanly() -> None:
     assert "Invalid base64 private key" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiClient")
-def test_portfolio_balance_loads_dotenv(mock_client_cls: MagicMock) -> None:
-    from kalshi_research.api.models.portfolio import PortfolioBalance
-
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.get_balance = AsyncMock(
-        return_value=PortfolioBalance(balance=123, portfolio_value=456)
-    )
-    mock_client_cls.return_value = mock_client
-
+@respx.mock
+def test_portfolio_balance_loads_dotenv() -> None:
     with runner.isolated_filesystem():
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        private_key_b64 = base64.b64encode(pem).decode("utf-8")
+
         Path(".env").write_text(
             "\n".join(
                 [
                     "KALSHI_KEY_ID=test-key-id",
-                    "KALSHI_PRIVATE_KEY_B64=test-private-key-b64",
+                    f"KALSHI_PRIVATE_KEY_B64={private_key_b64}",
                     "KALSHI_ENVIRONMENT=demo",
                     "",
                 ]
             )
+        )
+
+        fixture = load_portfolio_balance_fixture()
+        respx.get(f"{KALSHI_DEMO_BASE_URL}/portfolio/balance").mock(
+            return_value=Response(200, json=fixture)
         )
 
         with patch.dict(os.environ, {}, clear=True):
