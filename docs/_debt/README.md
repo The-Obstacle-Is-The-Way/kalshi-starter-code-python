@@ -4,7 +4,7 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**4 active debt items.**
+**5 active debt items.**
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
@@ -12,6 +12,7 @@ This directory tracks **known debt** and **audit checklists** for the repository
 | **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (Needs Design) |
 | **[DEBT-016](DEBT-016-fixture-drift-ci.md)** | Automate Fixture Drift Detection + Weekly Re-Recording | P2 | 🟡 Partially Implemented |
 | **[DEBT-015](DEBT-015-missing-api-endpoints.md)** | Missing API Endpoints (45+ endpoints) | P2-P3 | Open (Partially Resolved) |
+| **[DEBT-023](DEBT-023-production-maturity-gaps.md)** | Production Maturity Gaps (Senior Engineer Audit) | P3 | Open (Reference Doc) |
 
 ### Recommended Order
 
@@ -28,7 +29,7 @@ DEBT-014 (Friction/Design) ← Feature work
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-023**
+**DEBT-024**
 
 ---
 
@@ -40,6 +41,7 @@ Use this ID for the next debt item:
 | `DEBT-016-fixture-drift-ci.md` | **Active debt P2** - CI automation for fixture drift detection |
 | `DEBT-015-missing-api-endpoints.md` | **Active debt P2-P3** - 45+ missing Kalshi API endpoints |
 | `DEBT-014-friction-residuals.md` | **Active debt P1-P3** - friction, design decisions |
+| `DEBT-023-production-maturity-gaps.md` | **Active debt P3** - Senior engineer audit findings (reference doc) |
 | `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
 
 ## Archived Reference Docs

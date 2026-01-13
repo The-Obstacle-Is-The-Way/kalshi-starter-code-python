@@ -19,6 +19,7 @@ from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
 
 if TYPE_CHECKING:
     from kalshi_research.api.models.market import Market
+    from kalshi_research.exa.models.research import ResearchTask
     from kalshi_research.research.context import MarketResearch, ResearchSource
     from kalshi_research.research.thesis import ThesisEvidence
     from kalshi_research.research.thesis_research import ResearchedThesisData
@@ -935,6 +936,66 @@ def research_similar(
         console.print(f"[dim]Cost: ${response.cost_dollars.total:.4f}[/dim]")
 
 
+def _load_research_output_schema(output_schema: Path | None) -> dict[str, Any] | None:
+    if output_schema is None:
+        return None
+
+    try:
+        schema_raw = json.loads(output_schema.read_text(encoding="utf-8"))
+    except OSError as exc:
+        console.print(f"[red]Error:[/red] Failed to read schema file: {exc}")
+        raise typer.Exit(1) from None
+    except json.JSONDecodeError as exc:
+        console.print(f"[red]Error:[/red] Schema file is not valid JSON: {exc}")
+        raise typer.Exit(1) from None
+
+    if not isinstance(schema_raw, dict):
+        console.print("[red]Error:[/red] Schema JSON must be an object at the root.")
+        raise typer.Exit(1) from None
+
+    return schema_raw
+
+
+async def _run_deep_research(
+    topic: str,
+    *,
+    model: str,
+    wait: bool,
+    poll_interval: float,
+    timeout: float,
+    output_schema: Path | None,
+) -> "ResearchTask":
+    from kalshi_research.exa import ExaClient
+
+    schema = _load_research_output_schema(output_schema)
+    instructions = (
+        f"Research the following topic and return key findings with citations:\n\n{topic.strip()}"
+    )
+
+    try:
+        async with ExaClient.from_env() as exa:
+            task = await exa.create_research_task(
+                instructions=instructions,
+                model=model,
+                output_schema=schema,
+            )
+            if wait:
+                try:
+                    task = await exa.wait_for_research(
+                        task.research_id,
+                        poll_interval=poll_interval,
+                        timeout=timeout,
+                    )
+                except TimeoutError as exc:
+                    console.print(f"[red]Error:[/red] {exc}")
+                    raise typer.Exit(1) from None
+            return task
+    except ValueError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+        raise typer.Exit(1) from None
+
+
 @app.command("deep")
 def research_deep(
     topic: Annotated[str, typer.Argument(help="Topic or question for deep research.")],
@@ -967,54 +1028,22 @@ def research_deep(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
 ) -> None:
     """Run Exa async deep research via /research/v1 (paid API)."""
-    from kalshi_research.exa import ExaClient
-    from kalshi_research.exa.models.research import ResearchTask
-
-    async def _run() -> ResearchTask:
-        try:
-            schema: dict[str, Any] | None = None
-            if output_schema is not None:
-                try:
-                    schema_raw = json.loads(output_schema.read_text(encoding="utf-8"))
-                except OSError as exc:
-                    console.print(f"[red]Error:[/red] Failed to read schema file: {exc}")
-                    raise typer.Exit(1) from None
-                except json.JSONDecodeError as exc:
-                    console.print(f"[red]Error:[/red] Schema file is not valid JSON: {exc}")
-                    raise typer.Exit(1) from None
-
-                if not isinstance(schema_raw, dict):
-                    console.print("[red]Error:[/red] Schema JSON must be an object at the root.")
-                    raise typer.Exit(1) from None
-                schema = schema_raw
-
-            instructions = (
-                "Research the following topic and return key findings with citations:\\n\\n"
-                f"{topic.strip()}"
+    try:
+        task = asyncio.run(
+            _run_deep_research(
+                topic,
+                model=model,
+                wait=wait,
+                poll_interval=poll_interval,
+                timeout=timeout,
+                output_schema=output_schema,
             )
-            async with ExaClient.from_env() as exa:
-                task = await exa.create_research_task(
-                    instructions=instructions,
-                    model=model,
-                    output_schema=schema,
-                )
-                if wait:
-                    try:
-                        task = await exa.wait_for_research(
-                            task.research_id,
-                            poll_interval=poll_interval,
-                            timeout=timeout,
-                        )
-                    except TimeoutError as exc:
-                        console.print(f"[red]Error:[/red] {exc}")
-                        raise typer.Exit(1) from None
-                return task
-        except ValueError as e:
-            console.print(f"[red]Error:[/red] {e}")
-            console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
-            raise typer.Exit(1) from None
-
-    task = asyncio.run(_run())
+        )
+    except typer.Exit:
+        raise
+    except Exception as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(1) from None
 
     if output_json:
         console.print(

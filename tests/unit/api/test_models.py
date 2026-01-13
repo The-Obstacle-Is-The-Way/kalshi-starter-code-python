@@ -377,6 +377,28 @@ class TestOrderbookModel:
         assert orderbook.best_yes_bid == 50
         assert orderbook.best_no_bid == 1
 
+    def test_orderbook_dollar_conversion_rounds_half_up(self) -> None:
+        """Dollar string conversion rounds to the nearest cent (half up)."""
+        orderbook = Orderbook(
+            yes_dollars=[("0.015", 100)],  # 1.5¢ -> 2¢
+            no_dollars=[("0.985", 100)],  # 98.5¢ -> 99¢
+        )
+
+        assert orderbook.best_yes_bid == 2
+        assert orderbook.best_no_bid == 99
+
+    def test_orderbook_dollar_conversion_rejects_out_of_range_prices(self) -> None:
+        """Dollar string conversion rejects values outside [0, 1] dollars."""
+        orderbook = Orderbook(yes_dollars=[("1.01", 1)])
+        with pytest.raises(ValueError, match="out of range"):
+            _ = orderbook.best_yes_bid
+
+    def test_orderbook_dollar_conversion_rejects_invalid_numbers(self) -> None:
+        """Dollar string conversion raises on invalid numeric strings."""
+        orderbook = Orderbook(yes_dollars=[("not-a-number", 1)])
+        with pytest.raises(ValueError, match="Invalid orderbook price"):
+            _ = orderbook.best_yes_bid
+
     # === Level accessor tests (forward-compatible API) ===
 
     def test_orderbook_yes_levels_from_legacy(self) -> None:

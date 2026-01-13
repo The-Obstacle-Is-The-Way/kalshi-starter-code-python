@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, Any
 
@@ -210,17 +211,33 @@ class ExaClient:
 
     def _parse_retry_after(self, response: httpx.Response) -> int:
         retry_after_header = response.headers.get("retry-after")
-        if retry_after_header:
-            try:
-                return int(float(retry_after_header))
-            except ValueError:
-                try:
-                    retry_at = parsedate_to_datetime(retry_after_header)
-                    now = datetime.now(retry_at.tzinfo) if retry_at.tzinfo else datetime.now()
-                    return max(0, int((retry_at - now).total_seconds()))
-                except Exception:
-                    return int(self._config.retry_delay_seconds)
-        return int(self._config.retry_delay_seconds)
+        if not retry_after_header:
+            return int(self._config.retry_delay_seconds)
+
+        retry_after_header = retry_after_header.strip()
+        try:
+            retry_after_seconds: int = math.ceil(float(retry_after_header))
+        except (OverflowError, TypeError, ValueError):
+            pass
+        else:
+            return max(0, retry_after_seconds)
+
+        try:
+            retry_at = parsedate_to_datetime(retry_after_header)
+        except (OverflowError, TypeError, ValueError):
+            return int(self._config.retry_delay_seconds)
+
+        if retry_at.tzinfo is None:
+            now = datetime.now()
+        else:
+            now = datetime.now(UTC).astimezone(retry_at.tzinfo)
+
+        delay = (retry_at - now).total_seconds()
+        try:
+            delay_seconds: int = math.ceil(delay)
+        except OverflowError:
+            return int(self._config.retry_delay_seconds)
+        return max(0, delay_seconds)
 
     async def search(
         self,

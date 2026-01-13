@@ -381,6 +381,11 @@ def test_parse_retry_after_supports_http_date() -> None:
     assert _client()._parse_retry_after(response) == 0
 
 
+def test_parse_retry_after_ceils_fractional_seconds() -> None:
+    response = Response(429, headers={"retry-after": "1.1"})
+    assert _client()._parse_retry_after(response) == 2
+
+
 @pytest.mark.asyncio
 @respx.mock
 async def test_rate_limit_exhaustion_raises_rate_limit_error() -> None:

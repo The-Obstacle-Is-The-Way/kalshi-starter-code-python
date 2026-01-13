@@ -294,3 +294,44 @@ class TestSettlementRepository:
         recent = await repo.get_settled_after(now - timedelta(hours=12))
         assert len(recent) == 1
         assert recent[0].ticker == "MKT3"
+
+    @pytest.mark.asyncio
+    async def test_upsert_preserves_nullable_fields_when_incoming_is_null(
+        self, async_session: AsyncSession
+    ) -> None:
+        """Upsert should not clobber existing nullable fields with NULLs."""
+        repo = SettlementRepository(async_session)
+        now = datetime.now(UTC)
+
+        initial = Settlement(
+            ticker="MKT1",
+            event_ticker="EVT1",
+            result="yes",
+            settled_at=now,
+            final_yes_price=99,
+            final_no_price=1,
+            yes_payout=100,
+            no_payout=0,
+        )
+        await repo.upsert(initial)
+        await repo.commit()
+
+        partial = Settlement(
+            ticker="MKT1",
+            event_ticker="EVT1",
+            result="yes",
+            settled_at=now,
+            final_yes_price=None,
+            final_no_price=None,
+            yes_payout=None,
+            no_payout=None,
+        )
+        await repo.upsert(partial)
+        await repo.commit()
+
+        fetched = await repo.get("MKT1")
+        assert fetched is not None
+        assert fetched.final_yes_price == 99
+        assert fetched.final_no_price == 1
+        assert fetched.yes_payout == 100
+        assert fetched.no_payout == 0

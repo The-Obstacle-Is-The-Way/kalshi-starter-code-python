@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from pydantic import BaseModel, ConfigDict
 
@@ -14,7 +14,15 @@ def _dollar_to_cents(dollar_str: str) -> int:
     This handles the Kalshi API migration from integer cents to dollar strings.
     After Jan 15, 2026, the API will only return dollar-denominated fields.
     """
-    return int(Decimal(dollar_str) * 100)
+    try:
+        cents = (Decimal(dollar_str.strip()) * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    except (AttributeError, InvalidOperation, ValueError) as exc:
+        raise ValueError(f"Invalid orderbook price: {dollar_str!r}") from exc
+
+    cents_int = int(cents)
+    if cents_int < 0 or cents_int > 100:
+        raise ValueError(f"Orderbook price out of range: {dollar_str}")
+    return cents_int
 
 
 class Orderbook(BaseModel):
