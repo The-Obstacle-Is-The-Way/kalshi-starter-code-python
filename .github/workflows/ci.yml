@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '0 0 * * 0' # weekly, Sunday 00:00 UTC
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -93,3 +96,21 @@ jobs:
           echo "$DEMO_KEYFILE_CONTENT_B64" | base64 -d > /tmp/demo_key.pem
           export DEMO_KEYFILE=/tmp/demo_key.pem
           uv run pytest tests/integration -m integration --timeout=60
+
+  fixture-freshness:
+    name: Fixture Freshness (Weekly)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python
+        run: uv python install 3.11
+      - name: Install dependencies
+        run: uv sync --all-extras
+      - name: Check fixture freshness
+        run: uv run python scripts/check_fixture_freshness.py
+        continue-on-error: true
