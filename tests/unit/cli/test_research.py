@@ -190,6 +190,15 @@ def test_research_deep_wait_json_output() -> None:
     assert payload["output"]["content"] == "Done"
 
 
+def test_research_deep_schema_missing_file_exits_with_error(tmp_path: Path) -> None:
+    schema_file = tmp_path / "missing-schema.json"
+
+    result = runner.invoke(app, ["research", "deep", "Test topic", "--schema", str(schema_file)])
+
+    assert result.exit_code == 1
+    assert "Failed to read schema file" in result.stdout
+
+
 def test_research_deep_schema_invalid_json_exits_with_error(tmp_path: Path) -> None:
     schema_file = tmp_path / "schema.json"
     schema_file.write_text("{not json", encoding="utf-8")
@@ -208,6 +217,43 @@ def test_research_deep_schema_root_not_object_exits_with_error(tmp_path: Path) -
 
     assert result.exit_code == 1
     assert "Schema JSON must be an object" in result.stdout
+
+
+def test_research_deep_schema_valid_object_passes_to_client(tmp_path: Path) -> None:
+    from kalshi_research.exa.models.research import ResearchStatus, ResearchTask
+
+    schema = {"type": "object"}
+    schema_file = tmp_path / "schema.json"
+    schema_file.write_text(json.dumps(schema), encoding="utf-8")
+
+    task = ResearchTask(
+        research_id="research-1",
+        status=ResearchStatus.PENDING,
+        created_at=1700000000,
+        model="exa-research",
+        instructions="Test",
+    )
+
+    mock_exa = AsyncMock()
+    mock_exa.__aenter__.return_value = mock_exa
+    mock_exa.__aexit__.return_value = AsyncMock()
+    mock_exa.create_research_task = AsyncMock(return_value=task)
+
+    with patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa):
+        result = runner.invoke(
+            app,
+            [
+                "research",
+                "deep",
+                "Test topic",
+                "--schema",
+                str(schema_file),
+                "--json",
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert mock_exa.create_research_task.await_args.kwargs["output_schema"] == schema
 
 
 def test_research_deep_wait_timeout_exits_with_error() -> None:
@@ -270,6 +316,17 @@ def test_research_deep_table_output_renders_task_data() -> None:
     assert "Output" in result.stdout
     assert "Done" in result.stdout
     assert "Cost:" in result.stdout
+
+
+def test_research_deep_unexpected_exception_exits_with_error() -> None:
+    with patch(
+        "kalshi_research.cli.research._run_deep_research",
+        new=AsyncMock(side_effect=RuntimeError("boom")),
+    ):
+        result = runner.invoke(app, ["research", "deep", "Test topic"])
+
+    assert result.exit_code == 1
+    assert "boom" in result.stdout
 
 
 def test_thesis_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
@@ -445,6 +502,19 @@ def test_research_thesis_show() -> None:
     assert "Test Thesis" in result.stdout
 
 
+def test_research_thesis_show_missing_thesis_exits_with_not_found() -> None:
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        thesis_file.write_text(
+            json.dumps({"theses": [{"id": "thesis-12345678"}]}), encoding="utf-8"
+        )
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(app, ["research", "thesis", "show", "missing"])
+
+    assert result.exit_code == 2
+    assert "Thesis not found" in result.stdout
+
+
 def test_research_thesis_resolve() -> None:
     with runner.isolated_filesystem():
         thesis_file = Path("theses.json")
@@ -469,6 +539,67 @@ def test_research_thesis_resolve() -> None:
 
     assert result.exit_code == 0
     assert "resolved" in result.stdout.lower()
+
+
+def test_research_thesis_resolve_missing_thesis_exits_with_not_found() -> None:
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        thesis_file.write_text(
+            json.dumps({"theses": [{"id": "thesis-12345678"}]}), encoding="utf-8"
+        )
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(
+                app,
+                [
+                    "research",
+                    "thesis",
+                    "resolve",
+                    "missing",
+                    "--outcome",
+                    "yes",
+                ],
+            )
+
+    assert result.exit_code == 2
+    assert "Thesis not found" in result.stdout
+
+
+def test_research_thesis_check_invalidation_missing_thesis_exits_with_not_found(
+    tmp_path: Path,
+) -> None:
+    thesis_file = tmp_path / "theses.json"
+    thesis_file.write_text(
+        json.dumps(
+            {
+                "theses": [
+                    {
+                        "id": "thesis-12345678",
+                        "title": "Test Thesis",
+                        "market_tickers": ["MKT1"],
+                        "your_probability": 0.7,
+                        "market_probability": 0.5,
+                        "confidence": 0.8,
+                        "bull_case": "Bull",
+                        "bear_case": "Bear",
+                        "key_assumptions": [],
+                        "invalidation_criteria": [],
+                        "status": "active",
+                        "created_at": datetime.now(UTC).isoformat(),
+                        "resolved_at": None,
+                        "actual_outcome": None,
+                        "updates": [],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        result = runner.invoke(app, ["research", "thesis", "check-invalidation", "missing"])
+
+    assert result.exit_code == 2
+    assert "Thesis not found" in result.stdout
 
 
 def test_research_thesis_check_invalidation_no_signals(tmp_path: Path) -> None:

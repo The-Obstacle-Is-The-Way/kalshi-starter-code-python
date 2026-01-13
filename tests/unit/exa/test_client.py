@@ -300,6 +300,13 @@ async def test_list_research_tasks_success() -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_research_tasks_rejects_invalid_limit() -> None:
+    client = _client()
+    with pytest.raises(ValueError):
+        await client.list_research_tasks(limit=0)
+
+
+@pytest.mark.asyncio
 @respx.mock
 async def test_find_recent_research_task_fetches_full_task() -> None:
     list_json = _load_golden_exa_fixture("research_task_list_response.json")
@@ -326,6 +333,56 @@ async def test_find_recent_research_task_fetches_full_task() -> None:
     assert get_route.call_count == 1
     assert task is not None
     assert task.research_id == research_id
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_find_recent_research_task_filters_and_paginates() -> None:
+    from kalshi_research.exa.models.research import ResearchStatus
+
+    list_route = respx.get("https://api.exa.ai/research/v1")
+    list_route.side_effect = [
+        Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "researchId": "r1",
+                        "status": "completed",
+                        "createdAt": 300,
+                        "instructions": "Other instructions",
+                    },
+                    {
+                        "researchId": "r2",
+                        "status": "completed",
+                        "createdAt": 100,
+                        "instructions": "Wanted match",
+                    },
+                    {
+                        "researchId": "r3",
+                        "status": "pending",
+                        "createdAt": 300,
+                        "instructions": "Wanted match",
+                    },
+                ],
+                "hasMore": True,
+                "nextCursor": "cursor2",
+            },
+        ),
+        Response(200, json={"data": [], "hasMore": False, "nextCursor": None}),
+    ]
+
+    async with _client() as exa:
+        task = await exa.find_recent_research_task(
+            instructions_prefix="Wanted",
+            created_after=200,
+            status=ResearchStatus.COMPLETED,
+        )
+
+    assert task is None
+    assert list_route.call_count == 2
+    assert list_route.calls[0].request.url.params.get("cursor") is None
+    assert list_route.calls[1].request.url.params.get("cursor") == "cursor2"
 
 
 @pytest.mark.asyncio
@@ -384,6 +441,34 @@ def test_parse_retry_after_supports_http_date() -> None:
 def test_parse_retry_after_ceils_fractional_seconds() -> None:
     response = Response(429, headers={"retry-after": "1.1"})
     assert _client()._parse_retry_after(response) == 2
+
+
+def test_parse_retry_after_missing_header_returns_default_delay() -> None:
+    response = Response(429)
+    assert _client()._parse_retry_after(response) == 1
+
+
+def test_parse_retry_after_invalid_http_date_returns_default_delay() -> None:
+    response = Response(429, headers={"retry-after": "not-a-number"})
+    with patch(
+        "kalshi_research.exa.client.parsedate_to_datetime", side_effect=ValueError("bad date")
+    ):
+        assert _client()._parse_retry_after(response) == 1
+
+
+def test_parse_retry_after_handles_naive_datetime() -> None:
+    response = Response(429, headers={"retry-after": "not-a-number"})
+    with patch("kalshi_research.exa.client.parsedate_to_datetime", return_value=datetime.now()):
+        assert _client()._parse_retry_after(response) == 0
+
+
+def test_parse_retry_after_overflow_returns_default_delay() -> None:
+    response = Response(429, headers={"retry-after": "not-a-number"})
+    with (
+        patch("kalshi_research.exa.client.parsedate_to_datetime", return_value=datetime.now(UTC)),
+        patch("kalshi_research.exa.client.math.ceil", side_effect=OverflowError),
+    ):
+        assert _client()._parse_retry_after(response) == 1
 
 
 @pytest.mark.asyncio
