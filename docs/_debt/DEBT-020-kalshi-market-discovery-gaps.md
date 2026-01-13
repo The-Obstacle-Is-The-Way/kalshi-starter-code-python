@@ -68,32 +68,34 @@ When paginating through events and markets, we may be missing markets that:
 
 ---
 
-## Proposed Fixes
+## Fix Path
 
-### Phase 1: Diagnostic (P2)
+### The Real Fix: SPEC-029 / SPEC-037 (API Coverage)
 
-Add `kalshi market search` command that:
-1. Searches local DB cache by title keyword
-2. Warns if market not found and suggests sync
+**This is already planned.** The root cause is incomplete API coverage, not missing local search.
 
-```bash
-kalshi market search "Jony Ive OpenAI"
-# Returns: KXOAIHARDWARE (if in local DB)
-# Or: "Not found in local DB. Run 'kalshi data sync-markets' first."
-```
-
-### Phase 2: API Coverage (P2-P3)
-
-Per SPEC-029, add missing endpoints:
-- `GET /events/multivariate` - for multivariate events
+Per SPEC-029 and SPEC-037:
+- `GET /events/multivariate` - for multivariate events (excluded from `/events`)
 - `GET /series` - for series-based discovery
 - Full `GET /markets` filter support (status, category, etc.)
+- Structured targets browsing
 
-### Phase 3: External Search (P3)
+Once we sync comprehensive data, local keyword search becomes trivially useful.
 
-If Kalshi never adds keyword search:
-- Index market titles in local SQLite with FTS5
-- Build local full-text search over synced markets
+### Why "Local DB Search" Alone is NOT the Fix
+
+```
+Problem: KXOAIHARDWARE wasn't in local DB because API never returned it.
+         Local search on incomplete data = useless workaround.
+
+Fix:     Get comprehensive data FIRST (SPEC-029/037), then local search works.
+```
+
+### Optional Enhancement: Local Keyword Search (Post-SPEC-029)
+
+After SPEC-029 is implemented and we have comprehensive synced data:
+- Simple `SELECT * FROM markets WHERE title LIKE '%keyword%'` is sufficient
+- FTS5 only needed if performance becomes an issue (unlikely)
 
 ---
 
@@ -109,10 +111,13 @@ If Kalshi never adds keyword search:
 
 | Item | Relationship |
 |------|--------------|
-| SPEC-029 | Kalshi endpoint coverage - addresses multivariate events |
+| **SPEC-029** | **THE FIX** - Kalshi endpoint coverage strategy |
+| **SPEC-037** | **THE FIX** - Series discovery (Phase 1 of SPEC-029) |
 | SPEC-031 | Scanner quality profiles - affected by discovery gaps |
 | DEBT-015 | Missing API endpoints - overlapping concerns |
 | `_vendor-docs/kalshi-api-reference.md` | SSOT for available endpoints |
+
+**Resolution:** This debt is resolved by implementing SPEC-029/037. No separate fix needed.
 
 ---
 
