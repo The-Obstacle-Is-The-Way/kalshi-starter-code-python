@@ -164,5 +164,6 @@ Before running portfolio or authenticated commands:
 When you find drift, bugs, or technical debt, record them in the appropriate tracker:
 
 - Active bugs: `docs/_bugs/README.md`
-- Active tasks: `docs/_todo/README.md`
+- Active specs: `docs/_specs/README.md`
+- Backlog (blocked/deferred): `docs/_future/README.md`
 - Technical debt: `docs/_debt/README.md`

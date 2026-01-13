@@ -36,7 +36,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-075**
+**BUG-076**
 
 ---
 
@@ -45,6 +45,12 @@ All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
+### Recently Archived (2026-01-13)
+
+| ID | Title | Status |
+|---|---|---|
+| **BUG-075** | Settlement Sync Timezone Comparison | ✅ Fixed |
 
 ### Recently Archived (2026-01-12)
 

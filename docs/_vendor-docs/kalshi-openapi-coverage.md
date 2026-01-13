@@ -1,6 +1,6 @@
-# DEBT-021: Kalshi API Coverage Master Reference
+# Kalshi OpenAPI Coverage Reference
 
-**Priority:** Reference Document (Tracks what needs implementing)
+**Type:** Internal reference (derived from Kalshi OpenAPI)
 **Status:** Living Document
 **Created:** 2026-01-13
 **Source:** OpenAPI audit at `https://docs.kalshi.com/openapi.yaml`

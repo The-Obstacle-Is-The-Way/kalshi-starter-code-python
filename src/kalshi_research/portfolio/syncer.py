@@ -319,15 +319,21 @@ class PortfolioSyncer:
         synced_count = 0
         now = datetime.now(UTC)
 
+        def _normalize_utc(dt: datetime) -> datetime:
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=UTC)
+            return dt.astimezone(UTC)
+
         async with self.db.session_factory() as session, session.begin():
             existing_keys_result = await session.execute(
                 select(PortfolioSettlement.ticker, PortfolioSettlement.settled_at)
             )
-            existing_keys = {(row[0], row[1]) for row in existing_keys_result.all()}
+            existing_keys = {(row[0], _normalize_utc(row[1])) for row in existing_keys_result.all()}
 
             for settlement in settlements:
                 settled_at = datetime.fromisoformat(settlement.settled_time.replace("Z", "+00:00"))
-                key = (settlement.ticker, settled_at)
+                settled_at_utc = _normalize_utc(settled_at)
+                key = (settlement.ticker, settled_at_utc)
                 if key in existing_keys:
                     continue
 
@@ -342,10 +348,11 @@ class PortfolioSyncer:
                     revenue=settlement.revenue,
                     fee_cost_dollars=settlement.fee_cost,
                     value=settlement.value,
-                    settled_at=settled_at,
+                    settled_at=settled_at_utc,
                     synced_at=now,
                 )
                 session.add(record)
+                existing_keys.add(key)
                 synced_count += 1
 
                 if synced_count % 1000 == 0:
