@@ -451,7 +451,7 @@ Async deep research with structured output support.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `instructions` | string | Required. Research guidelines (max 4096 chars) |
-| `model` | enum | `exa-research-fast`, `exa-research`, `exa-research-pro` (official docs + OpenAPI spec v1.2.0 document `exa-research`/`exa-research-pro`; the API also accepts `exa-research-fast` — verified via live `/research/v1` create on 2026-01-13) |
+| `model` | enum | `exa-research-fast`, `exa-research`, `exa-research-pro` (official docs list all three; the Exa OpenAPI spec repo currently omits `exa-research-fast`, but the API accepts it — verified via live `/research/v1` create on 2026-01-13) |
 | `outputSchema` | object | JSON Schema for structured output |
 
 ### Get Parameters

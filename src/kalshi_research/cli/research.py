@@ -1006,10 +1006,7 @@ def research_deep(
         str,
         typer.Option(
             "--model",
-            help=(
-                "Exa research model tier (exa-research-fast, exa-research, exa-research-pro). "
-                "Note: exa-research-fast is not always documented; if it fails, use exa-research."
-            ),
+            help=("Exa research model tier (exa-research-fast, exa-research, exa-research-pro)."),
         ),
     ] = "exa-research",
     wait: Annotated[
