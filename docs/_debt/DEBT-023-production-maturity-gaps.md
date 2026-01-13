@@ -9,7 +9,10 @@
 
 ## Summary
 
-This debt documents **production maturity gaps** identified during a rigorous senior-engineer-level audit. These are NOT bugs or broken functionality - they're gaps between "works as a research CLI" and "production-grade service."
+This is a **reference document**, not a mandate to “productionize” the repo.
+
+It captures **service-oriented patterns** that are common in production systems, and explains why most of them are
+**intentionally out of scope** for this project today.
 
 **Important context:** This codebase is a **research tool for a solo trader**, not a multi-user service. Many of these gaps are intentionally deferred as YAGNI (You Ain't Gonna Need It).
 
@@ -43,48 +46,33 @@ The codebase is **NOT AI slop**. It demonstrates:
 
 ---
 
-## Gaps Identified (Prioritized)
+## Non-Goals (Avoid Cargo-Cult “Production Patterns”)
 
-### P2: May Want Eventually
+These are legitimate patterns in the right context, but implementing them here would be over-engineering.
 
-#### 1. No HTTP Connection Pool Configuration
-**File:** `src/kalshi_research/api/client.py:82-86`
-**Issue:** `httpx.AsyncClient` uses default pool settings. Under high-throughput sync (1000+ markets), may exhaust connections.
-**Impact:** Latency spikes or socket errors under load.
-**Fix:** Add `limits=httpx.Limits(max_connections=100, max_keepalive_connections=20)`
-**Effort:** 5 minutes
+| Pattern | Why it’s the wrong fit for this repo |
+|---|---|
+| Explicit httpx connection pool limits | `httpx.AsyncClient` already defaults to `Limits(max_connections=100, max_keepalive_connections=20)`; hardcoding the same values is a no-op. Only revisit if we add real concurrency and see pool-related errors. |
+| Circuit breaker | This is a **CLI**, not a long-lived service. Most commands are one-shot; retry/backoff already provides the right UX (“try again briefly, then fail”). A circuit breaker adds state and complexity with little to no benefit here. |
+| Prometheus / OpenTelemetry metrics & tracing | There is no metrics backend or dashboard for a solo CLI. Logs are the right tool; adding metrics packages would be complexity without an operational consumer. |
+| Request ID correlation | For a single-process CLI, logs are already naturally ordered; correlation IDs are most useful for distributed or multi-worker systems. |
+| Dependency injection for global config | The current global config pattern is appropriate for a CLI where we control the process lifecycle. DI only becomes important if the package becomes a broadly consumed library. |
 
-#### 2. No Circuit Breaker
-**Files:** `api/client.py`, `exa/client.py`
-**Issue:** If Kalshi/Exa API is down, every CLI command retries max_retries times before failing.
-**Impact:** Slow, unhelpful error messages. In a service, would cascade to dependency exhaustion.
-**Fix:** Add `circuitbreaker` or `tenacity` circuit breaker pattern.
-**Effort:** 30 minutes
+This is what “best practices” means for this repo: **choose the right tool for the job**, not “implement every
+enterprise pattern.”
 
-#### 3. SQLite Concurrency Documentation
-**File:** `src/kalshi_research/data/database.py`
-**Issue:** SQLite locks entire DB on write. Running concurrent `data sync-markets` commands will cause "database is locked" errors.
-**Impact:** User confusion if they run parallel syncs.
-**Fix:** Document in CLAUDE.md that sync commands must not run concurrently, OR implement file locking.
-**Effort:** 15 minutes (doc) / 1 hour (file lock)
+## Legitimate, CLI-Scoped Improvements (If/When They Matter)
 
-### P3: Production Service Only (Not Needed for CLI)
+These are the kinds of “10/10” improvements that actually fit an internal research tool.
 
-#### 4. No Metrics/Tracing
-**Issue:** No counters, gauges, latency histograms. Structured logging exists but no distributed tracing.
-**Impact:** Can't debug "the sync is slow" without metrics in production.
-**Why P3:** For CLI, `--verbose` and logs are sufficient. Only needed if this becomes a service.
+1. **Exit code consistency (optional)**
+   Many commands use `typer.Exit(1)` for runtime errors and `typer.Exit(2)` for usage/validation errors. Some “not
+   found” paths print a warning and return success (e.g., thesis/alert removal). Decide on a convention and apply it
+   consistently if this matters for scripting.
 
-#### 5. Global Config Singleton
-**File:** `src/kalshi_research/api/config.py:40`
-**Issue:** `_config = APIConfig()` is mutable global state, not thread-safe.
-**Impact:** Tests that set different environments can interfere.
-**Why P3:** Fine for CLI. Would need fix if this becomes a library.
-
-#### 6. No Request ID Tracing
-**Issue:** When a CLI command makes multiple API calls, no way to correlate them.
-**Impact:** Hard to debug in production logs.
-**Why P3:** Not needed for single-user CLI.
+2. **SQLite concurrency footnote (doc-only)**
+   SQLite writes lock the DB. In practice, avoid running two write-heavy commands (e.g., `data sync-markets`) at the
+   same time. A one-line note in agent/runbook docs is sufficient.
 
 ---
 
@@ -103,14 +91,13 @@ The automated audit made some incorrect claims that I corrected:
 
 ## Recommendations
 
-### If staying as research CLI: Do nothing.
-The current implementation is appropriate for a single-user research tool.
+### For this repo (internal research CLI): keep it simple.
+The current implementation is appropriate for a single-user research tool. Prefer correctness, tests, and clear UX over
+production-service infrastructure.
 
-### If evolving to production service:
-1. **First:** Add connection pool limits (5 min)
-2. **Second:** Document SQLite concurrency limitations (15 min)
-3. **Later:** Add circuit breaker if experiencing API downtime issues
-4. **Service-only:** Add metrics/tracing only if deploying as multi-user service
+### If this ever becomes a service:
+Re-evaluate the “Non-Goals” section. Those patterns become relevant **only** when there’s a long-lived process,
+multi-user concurrency, or operational ownership (dashboards, alerts, SLOs).
 
 ---
 
@@ -128,7 +115,7 @@ The current implementation is appropriate for a single-user research tool.
 
 This audit was performed by:
 1. Reading all core modules: `api/client.py`, `exa/client.py`, `data/database.py`, `data/fetcher.py`
-2. Checking for common production antipatterns (circuit breakers, connection pools, metrics)
+2. Checking for common production-service patterns (circuit breakers, connection pools, metrics)
 3. Verifying test coverage exists and is meaningful
 4. Running unit test suite (`uv run pytest tests/unit`) (633 tests passed)
 5. Cross-referencing agent findings with actual code

@@ -1,3 +1,5 @@
+"""Typer CLI commands for database setup and data synchronization."""
+
 import asyncio
 from pathlib import Path
 from typing import Annotated

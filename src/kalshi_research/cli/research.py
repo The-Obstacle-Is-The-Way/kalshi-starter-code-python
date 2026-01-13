@@ -1,3 +1,5 @@
+"""Typer CLI commands for research workflows and thesis tracking."""
+
 import asyncio
 import json
 import uuid

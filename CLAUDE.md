@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Intent (Avoid Over-Engineering)
+
+This repository is an **internal, single-user research CLI** (plus local SQLite cache) for a solo trader.
+It is **not** a multi-user production service.
+
+- Prefer **simple, testable** changes over “enterprise patterns”.
+- Do **not** add service infrastructure (circuit breakers, Prometheus/Otel, request tracing, DI) unless a SPEC/BUG
+  explicitly requires it.
+- Keep dependencies minimal; focus on correctness, clear UX, and robust error handling.
+
 ## Agent Skills
 
 This repository includes Agent Skills for enhanced CLI navigation and documentation auditing:

@@ -1,3 +1,5 @@
+"""Typer CLI commands for portfolio tracking and P&L reporting."""
+
 import asyncio
 import os
 from pathlib import Path

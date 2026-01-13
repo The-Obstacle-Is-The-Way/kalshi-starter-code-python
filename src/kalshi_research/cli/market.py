@@ -1,3 +1,5 @@
+"""Typer CLI commands for market lookup and exploration."""
+
 from __future__ import annotations
 
 import asyncio

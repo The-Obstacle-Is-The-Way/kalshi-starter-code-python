@@ -1,3 +1,5 @@
+"""Typer CLI commands for creating and monitoring alerts."""
+
 import asyncio
 import subprocess
 import sys
