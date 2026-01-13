@@ -133,12 +133,13 @@ def test_alerts_remove() -> None:
 
 
 def test_alerts_remove_not_found() -> None:
+    """Removing a non-existent alert should return exit code 2 (not found)."""
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
         with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "remove", "nonexistent"])
 
-    assert result.exit_code == 0
+    assert result.exit_code == 2  # Unix convention: 2 = not found / usage error
     assert "not found" in result.stdout.lower()
 
 

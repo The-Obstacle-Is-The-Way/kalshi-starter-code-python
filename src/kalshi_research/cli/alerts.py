@@ -314,7 +314,8 @@ def alerts_remove(
             console.print(f"[green]✓[/green] Alert removed: {removed['label']}")
             return
 
-    console.print(f"[yellow]Alert not found: {alert_id}[/yellow]")
+    console.print(f"[red]Error:[/red] Alert not found: {alert_id}")
+    raise typer.Exit(2)
 
 
 @app.command("monitor")

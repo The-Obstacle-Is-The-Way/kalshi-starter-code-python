@@ -61,14 +61,17 @@ These are legitimate patterns in the right context, but implementing them here w
 This is what “best practices” means for this repo: **choose the right tool for the job**, not “implement every
 enterprise pattern.”
 
-## Legitimate, CLI-Scoped Improvements (If/When They Matter)
+## Legitimate, CLI-Scoped Improvements
 
-These are the kinds of “10/10” improvements that actually fit an internal research tool.
+These are "10/10" improvements that actually fit an internal research tool.
 
-1. **Exit code consistency (optional)**
-   Many commands use `typer.Exit(1)` for runtime errors and `typer.Exit(2)` for usage/validation errors. Some “not
-   found” paths print a warning and return success (e.g., thesis/alert removal). Decide on a convention and apply it
-   consistently if this matters for scripting.
+1. **Exit code consistency** ✅ **FIXED (2026-01-13)**
+   All "not found" paths now return `Exit(2)` per Unix convention:
+   - `git show <missing>` → Exit 128 (error)
+   - `kubectl get <missing>` → Exit 1 (error)
+   - `rm <missing>` → Exit 1 (error), `rm -f` → Exit 0 (explicit flag)
+
+   Fixed commands: `alerts remove`, `thesis show`, `thesis resolve`, `thesis check-invalidation`.
 
 2. **SQLite concurrency footnote (doc-only)**
    SQLite writes lock the DB. In practice, avoid running two write-heavy commands (e.g., `data sync-markets`) at the
@@ -84,7 +87,7 @@ The automated audit made some incorrect claims that I corrected:
 |-------|---------|
 | "No integration tests" | **FALSE** - `tests/integration/` has 12 `test_*.py` modules (plus `__init__.py`) covering API, data/DB, CLI, Exa, and news |
 | "Exa cache has no expiration" | **FALSE** - `cache.py:64-67` expires entries, `clear_expired()` exists |
-| "Inconsistent CLI error handling" | **PARTIAL** - Many commands use `typer.Exit(1)` for runtime errors and `Exit(2)` for usage errors, but some \"not found\" paths return success (e.g., `thesis show`, `alerts remove`) |
+| "Inconsistent CLI error handling" | **FIXED** - All "not found" paths now return `Exit(2)`. Verified against `git`, `kubectl`, `rm` conventions. |
 | "Rate limiter doesn't honor server feedback" | **PARTIAL** - `_wait_with_retry_after()` honors `Retry-After` for GET retries; write endpoints currently use exponential wait even when `Retry-After` is present |
 
 ---

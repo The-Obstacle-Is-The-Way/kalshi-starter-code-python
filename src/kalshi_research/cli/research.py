@@ -345,8 +345,8 @@ def research_thesis_show(  # noqa: PLR0915
             break
 
     if not thesis:
-        console.print(f"[yellow]Thesis not found: {thesis_id}[/yellow]")
-        return
+        console.print(f"[red]Error:[/red] Thesis not found: {thesis_id}")
+        raise typer.Exit(2)
 
     # Display
     console.print(f"\n[bold]{thesis['title']}[/bold]")
@@ -473,7 +473,8 @@ def research_thesis_resolve(
             console.print(f"Outcome: {outcome}")
             return
 
-    console.print(f"[yellow]Thesis not found: {thesis_id}[/yellow]")
+    console.print(f"[red]Error:[/red] Thesis not found: {thesis_id}")
+    raise typer.Exit(2)
 
 
 @thesis_app.command("check-invalidation")
@@ -501,8 +502,8 @@ def research_thesis_check_invalidation(
                     break
 
         if not thesis:
-            console.print(f"[yellow]Thesis not found: {thesis_id}[/yellow]")
-            return
+            console.print(f"[red]Error:[/red] Thesis not found: {thesis_id}")
+            raise typer.Exit(2)
 
         console.print(f"\n[bold]Thesis:[/bold] {thesis.title}")
         console.print(f"Your probability: {thesis.your_probability:.0%} YES")
