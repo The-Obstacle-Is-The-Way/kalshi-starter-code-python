@@ -243,6 +243,12 @@ def alerts_add(
     """Add a new alert condition."""
     from kalshi_research.alerts import ConditionType
 
+    alert_type = alert_type.strip().lower()
+
+    if above is not None and below is not None:
+        console.print("[red]Error:[/red] Specify only one of --above or --below")
+        raise typer.Exit(1)
+
     if above is None and below is None:
         console.print("[red]Error:[/red] Must specify either --above or --below")
         raise typer.Exit(1)
@@ -254,7 +260,7 @@ def alerts_add(
 
     # Map alert type to condition type
     type_map: dict[str, ConditionType] = {
-        "price": ConditionType.PRICE_ABOVE if above else ConditionType.PRICE_BELOW,
+        "price": ConditionType.PRICE_ABOVE if above is not None else ConditionType.PRICE_BELOW,
         "volume": ConditionType.VOLUME_ABOVE,
         "spread": ConditionType.SPREAD_ABOVE,
         "sentiment": ConditionType.SENTIMENT_SHIFT,
@@ -292,9 +298,9 @@ def alerts_add(
 
 @app.command("remove")
 def alerts_remove(
-    alert_id: Annotated[str, typer.Argument(help="Alert ID to remove")],
+    alert_id: Annotated[str, typer.Argument(help="Alert ID prefix to remove")],
 ) -> None:
-    """Remove an alert by ID."""
+    """Remove an alert by ID prefix."""
     data = _load_alerts()
     conditions = data.get("conditions", [])
 

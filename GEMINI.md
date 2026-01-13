@@ -57,7 +57,7 @@ This platform enables users to:
 * **Analyze Markets:** Perform calibration analysis, detect edges, scan for arbitrage, and identify significant price movers.
 * **Track Theses:** Create and track research theses, link them to positions, and resolve them to measure accuracy.
 * **Monitor Portfolios:** View current positions, calculate P&L, and analyze trade history.
-* **Alerting:** Set up alerts for price, volume, and spread conditions.
+* **Alerting:** Set up alerts for price, volume, spread, and sentiment shift conditions.
 * **News & Research:** Collect news via Exa API, run sentiment analysis, research topics, and manage async deep research tasks (with crash recovery).
 
 ### Key Technologies

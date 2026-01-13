@@ -43,7 +43,7 @@ kalshi-starter-code-python/
 │   └── cli/                       # Typer CLI (kalshi command)
 ├── tests/
 │   ├── unit/                      # Mirrors src/ layout
-│   └── integration/               # Requires live credentials
+│   └── integration/               # Integration tests (live API tests opt-in via env vars/creds)
 ├── docs/
 │   ├── _bugs/                     # Active bug reports
 │   ├── _specs/                    # Active implementation specs

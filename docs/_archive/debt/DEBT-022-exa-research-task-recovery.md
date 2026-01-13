@@ -10,9 +10,12 @@
 
 ## Summary
 
-Our `ExaClient` implements `create_research_task()` and `get_research_task()` but NOT `list_research_tasks()`.
+This debt existed because our `ExaClient` originally implemented `create_research_task()` and
+`get_research_task()` but did not include `list_research_tasks()`.
 
 This creates a **single point of failure**: if the process crashes while waiting for a research task, the task ID is lost and you cannot retrieve the results (despite paying for them).
+
+This is now resolved by implementing `list_research_tasks()` plus a recovery helper `find_recent_research_task()`.
 
 ---
 
@@ -30,10 +33,10 @@ result = await exa.wait_for_research(task.research_id, timeout=300)
 
 This works for synchronous, single-task workflows where nothing goes wrong.
 
-### What We're Missing
+### What Was Missing (Now Implemented)
 
 ```python
-# List all research tasks (missing)
+# List all research tasks (implemented)
 tasks = await exa.list_research_tasks(cursor=None, limit=10)
 for task in tasks.data:
     cost_total = task.cost_dollars.total if task.cost_dollars else None
@@ -113,7 +116,7 @@ async def list_research_tasks(
 ) -> ResearchTaskListResponse:
     """List research tasks with pagination."""
     params = {"limit": limit}
-    if cursor:
+    if cursor is not None:
         params["cursor"] = cursor
 
     data = await self._request("GET", "/research/v1", params=params)
@@ -176,7 +179,7 @@ async def test_list_research_tasks_success() -> None:
     async with _client() as exa:
         result = await exa.list_research_tasks(limit=10)
 
-    assert isinstance(result.items, list)
+    assert isinstance(result.data, list)
 ```
 
 ---

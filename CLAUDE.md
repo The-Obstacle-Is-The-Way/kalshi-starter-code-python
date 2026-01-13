@@ -126,7 +126,7 @@ src/kalshi_research/
 │   ├── categories.py    # Category aliases/helpers
 │   └── visualization.py # Plotting helpers
 ├── alerts/        # Alert system
-│   ├── conditions.py    # Alert conditions (price, volume, spread)
+│   ├── conditions.py    # Alert conditions (price, volume, spread, sentiment)
 │   ├── monitor.py       # AlertMonitor (async polling)
 │   └── notifiers.py     # Console, file, webhook notifiers
 ├── research/      # Research tools
