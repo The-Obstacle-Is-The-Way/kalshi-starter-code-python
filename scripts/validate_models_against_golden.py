@@ -99,6 +99,7 @@ MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
     # Exa endpoints (fixtures live under tests/fixtures/golden/exa/)
     "exa/search_response.json": [("response", SearchResponse)],
     "exa/search_and_contents_response.json": [("response", SearchResponse)],
+    "exa/search_empty_published_date_response.json": [("response", SearchResponse)],
     "exa/get_contents_response.json": [("response", ContentsResponse)],
     "exa/find_similar_response.json": [("response", FindSimilarResponse)],
     "exa/answer_response.json": [("response", AnswerResponse)],

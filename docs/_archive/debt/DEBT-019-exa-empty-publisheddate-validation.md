@@ -1,9 +1,11 @@
 # DEBT-019: Exa Empty `publishedDate` Validation Bug
 
 **Priority:** P2 (Breaks CLI research commands)
-**Status:** Open
+**Status:** ✅ Resolved
 **Found:** 2026-01-12
+**Fixed:** 2026-01-13
 **Source:** Live testing of `kalshi research topic` command
+**Archived:** 2026-01-13
 
 ---
 
@@ -53,7 +55,7 @@ Pydantic tries to parse `""` as a datetime and fails.
 
 ## Fix
 
-Add a Pydantic `field_validator` to coerce empty strings to `None`:
+Add a Pydantic `field_validator` to coerce empty/whitespace strings to `None`:
 
 ```python
 from pydantic import field_validator
@@ -64,16 +66,15 @@ class SearchResult(BaseModel):
 
     @field_validator("published_date", mode="before")
     @classmethod
-    def empty_string_to_none(cls, v: Any) -> Any:
-        if v == "":
+    def empty_string_to_none(cls, v: object) -> object:
+        if isinstance(v, str) and not v.strip():
             return None
         return v
 ```
 
 **Files to update:**
-- `src/kalshi_research/exa/models/search.py` - `SearchResult` class
-- `src/kalshi_research/exa/models/answer.py` - `AnswerCitation` class (same field)
-- `src/kalshi_research/exa/models/similar.py` - if applicable
+- `src/kalshi_research/exa/models/search.py` - `SearchResult`
+- `src/kalshi_research/exa/models/answer.py` - `Citation`
 
 ---
 
@@ -82,13 +83,13 @@ class SearchResult(BaseModel):
 | Model | File | Field |
 |-------|------|-------|
 | `SearchResult` | `exa/models/search.py:68` | `published_date` |
-| `AnswerCitation` | `exa/models/answer.py:21` | `published_date` |
+| `Citation` | `exa/models/answer.py:21` | `published_date` |
 
 ---
 
 ## Test Cases
 
-Add golden fixture test case with empty publishedDate:
+Add a golden fixture regression case with empty `publishedDate`:
 
 ```json
 {
@@ -105,6 +106,14 @@ Add golden fixture test case with empty publishedDate:
 ```
 
 ---
+
+## Verification
+
+- Unit tests: `uv run pytest tests/unit/exa/test_models.py -v`
+- Golden fixture validation:
+  - `tests/fixtures/golden/exa/search_empty_published_date_response.json`
+  - `uv run python scripts/validate_models_against_golden.py`
+- CLI regression (requires `EXA_API_KEY`): `uv run kalshi research topic "<query>" --no-summary --json`
 
 ## Cross-References
 

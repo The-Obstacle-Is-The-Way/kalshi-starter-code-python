@@ -14,6 +14,9 @@
       "search_and_contents_response.json",
       "search_response.json"
     ],
+    "regression_fixtures": [
+      "search_empty_published_date_response.json"
+    ],
     "include_research": true
   }
 }

@@ -4,13 +4,12 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**6 active debt items.**
+**5 active debt items.**
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
 | **[DEBT-018](DEBT-018-test-ssot-stabilization.md)** | Test SSOT Stabilization (Fixtures, Mocks, Exa Coverage) | **P1** | 🟡 In Progress |
 | **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (Needs Design) |
-| **[DEBT-019](DEBT-019-exa-empty-publisheddate-validation.md)** | Exa Empty `publishedDate` Validation Bug | **P2** | Open |
 | **[DEBT-020](DEBT-020-kalshi-market-discovery-gaps.md)** | Kalshi Market Discovery Gaps (Keyword Search) | **P2** | Open |
 | **[DEBT-016](DEBT-016-fixture-drift-ci.md)** | Automate Fixture Drift Detection + Weekly Re-Recording | P2 | 🟡 Partially Implemented |
 | **[DEBT-015](DEBT-015-missing-api-endpoints.md)** | Missing API Endpoints (45+ endpoints) | P2-P3 | Open (Partially Resolved) |
@@ -39,7 +38,6 @@ Use this ID for the next debt item:
 | File | Purpose |
 |------|---------|
 | `DEBT-020-kalshi-market-discovery-gaps.md` | **Active debt P2** - Kalshi keyword search, market state filtering |
-| `DEBT-019-exa-empty-publisheddate-validation.md` | **Active debt P2** - Empty string validation bug |
 | `DEBT-018-test-ssot-stabilization.md` | **Active debt P1** - Exa fixtures, test mock drift, validation gaps |
 | `DEBT-016-fixture-drift-ci.md` | **Active debt P2** - CI automation for fixture drift detection |
 | `DEBT-015-missing-api-endpoints.md` | **Active debt P2-P3** - 45+ missing Kalshi API endpoints |
@@ -102,6 +100,7 @@ All resolved debt items are stored in
 | ID | Title | Status |
 |---|---|---|
 | **[DEBT-017](../_archive/debt/DEBT-017-model-architecture-cleanup.md)** | Model Architecture Cleanup (Duplicate Order Models + Validation Gaps) | ✅ Complete |
+| **[DEBT-019](../_archive/debt/DEBT-019-exa-empty-publisheddate-validation.md)** | Exa Empty `publishedDate` Validation Bug | ✅ Complete |
 
 ---
 

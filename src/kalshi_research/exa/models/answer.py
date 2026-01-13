@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from kalshi_research.exa.models.common import CostDollars
 
@@ -22,6 +22,13 @@ class Citation(BaseModel):
     text: str | None = None
     image: str | None = None
     favicon: str | None = None
+
+    @field_validator("published_date", mode="before")
+    @classmethod
+    def coerce_empty_published_date(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
 
 class AnswerRequest(BaseModel):
