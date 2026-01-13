@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
 
     stale_fixtures: list[tuple[str, int]] = []
     now = datetime.now(UTC)
-    verbose = bool(args.verbose)
+    verbose = args.verbose
 
     for fixture_path in GOLDEN_DIR.rglob("*.json"):
         if fixture_path.name.startswith("_"):

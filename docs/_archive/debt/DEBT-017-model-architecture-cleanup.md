@@ -45,8 +45,8 @@ The `amend_order` API response has TWO Order objects:
 
 ```json
 {
-  "old_order": { /* Order object */ },
-  "order": { /* Order object */ }
+  "old_order": { "order_id": "...", "status": "...", "...": "Order fields" },
+  "order": { "order_id": "...", "status": "...", "...": "Order fields" }
 }
 ```
 
