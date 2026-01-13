@@ -67,10 +67,11 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
-| `GET /structured_targets` | List structured targets | P3 |
+| `GET /structured_targets` | List structured targets (filters: `type`, `competition`) | P3 |
 | `GET /structured_targets/{id}` | Structured target details | P3 |
 
 **Impact:** Low - Advanced market mechanics only
+**Note:** SSOT reference: `docs/_vendor-docs/kalshi-api-reference.md` documents filter params (`type`, `competition`).
 
 ### 5. Milestones & Live Data (4 endpoints) - P3
 

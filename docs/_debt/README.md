@@ -29,7 +29,7 @@ DEBT-014 (Friction/Design) ← Feature work
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-021**
+**DEBT-022**
 
 ---
 
@@ -37,6 +37,7 @@ Use this ID for the next debt item:
 
 | File | Purpose |
 |------|---------|
+| `DEBT-021-api-coverage-audit-2026-01-13.md` | **Reference doc** - Full OpenAPI audit, confirms no unnecessary workarounds |
 | `DEBT-020-kalshi-market-discovery-gaps.md` | **Active debt P2** - Kalshi keyword search, market state filtering |
 | `DEBT-018-test-ssot-stabilization.md` | **Active debt P1** - Exa fixtures, test mock drift, validation gaps |
 | `DEBT-016-fixture-drift-ci.md` | **Active debt P2** - CI automation for fixture drift detection |

@@ -2,7 +2,7 @@
 
 **Source:** [docs.kalshi.com](https://docs.kalshi.com/welcome)
 **OpenAPI Spec:** [docs.kalshi.com/openapi.yaml](https://docs.kalshi.com/openapi.yaml)
-**Last Verified:** 2026-01-11
+**Last Verified:** 2026-01-13
 **Changelog RSS:** [docs.kalshi.com/changelog.rss](https://docs.kalshi.com/changelog.rss)
 
 ---
@@ -137,6 +137,15 @@ Only these count against **write** limits:
 | `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Event forecast percentile history (auth required) |
 | `GET /structured_targets` | List structured targets (cursor + `page_size`) |
 | `GET /structured_targets/{structured_target_id}` | Structured target details |
+
+### GET /structured_targets Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `type` | string | Filter by structured target type (e.g., `PLAYER_STATS`, `GAME_EVENT`) |
+| `competition` | string | Filter by competition (e.g., `NFL`, `NBA`, `EPL`) |
+| `page_size` | int | Page size (1-2000, default: 100) |
+| `cursor` | string | Pagination cursor |
 
 > **Docs conflict (market data auth):** Kalshi’s quickstart docs describe market-data REST endpoints as public, but
 > the OpenAPI spec marks some (notably orderbook) as requiring auth headers. As of 2026-01-08, unauthenticated
@@ -368,6 +377,8 @@ For multivariate event markets:
 | `GET /portfolio/subaccounts/balances` | List subaccount balances |
 | `POST /portfolio/subaccounts/transfer` | Transfer between subaccounts |
 | `GET /portfolio/subaccounts/transfers` | List subaccount transfers |
+
+> **Note:** The `/portfolio/subaccounts/transfer` endpoint is for **internal** transfers between your own subaccounts. External **fiat/crypto deposits and withdrawals are NOT available** via the Trading API. These must be done via the Kalshi web UI or separate banking integration (e.g., Aeropay).
 
 ### `GET /portfolio/balance` response keys
 
