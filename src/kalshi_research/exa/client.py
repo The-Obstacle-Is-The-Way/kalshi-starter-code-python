@@ -27,6 +27,7 @@ from kalshi_research.exa.models import (
     ResearchRequest,
     ResearchStatus,
     ResearchTask,
+    ResearchTaskListResponse,
     SearchRequest,
     SearchResponse,
     SummaryOptions,
@@ -138,13 +139,19 @@ class ExaClient:
         method: str,
         path: str,
         *,
+        params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         last_exception: Exception | None = None
 
         for attempt in range(self._config.max_retries):
             try:
-                response = await self.client.request(method=method, url=path, json=json_body)
+                response = await self.client.request(
+                    method=method,
+                    url=path,
+                    params=params,
+                    json=json_body,
+                )
 
                 if response.status_code == 401:
                     raise ExaAuthError("Invalid API key", status_code=401)
@@ -422,6 +429,53 @@ class ExaClient:
     async def get_research_task(self, research_id: str) -> ResearchTask:
         data = await self._request("GET", f"/research/v1/{research_id}")
         return ResearchTask.model_validate(data)
+
+    async def list_research_tasks(
+        self,
+        *,
+        cursor: str | None = None,
+        limit: int = 10,
+    ) -> ResearchTaskListResponse:
+        if limit < 1 or limit > 50:
+            raise ValueError("limit must be between 1 and 50")
+        params: dict[str, Any] = {"limit": limit}
+        if cursor is not None:
+            params["cursor"] = cursor
+        data = await self._request("GET", "/research/v1", params=params)
+        return ResearchTaskListResponse.model_validate(data)
+
+    async def find_recent_research_task(
+        self,
+        *,
+        instructions_prefix: str | None = None,
+        created_after: int | None = None,
+        status: ResearchStatus | None = None,
+        page_limit: int = 50,
+        max_pages: int = 3,
+    ) -> ResearchTask | None:
+        """
+        Find a recent research task matching simple criteria.
+
+        Useful for crash recovery: list tasks, find a likely match, then fetch by ID.
+        """
+        cursor: str | None = None
+        pages_searched = 0
+
+        while True:
+            page = await self.list_research_tasks(cursor=cursor, limit=page_limit)
+            for item in page.data:
+                if instructions_prefix and not item.instructions.startswith(instructions_prefix):
+                    continue
+                if created_after is not None and item.created_at < created_after:
+                    continue
+                if status is not None and item.status != status:
+                    continue
+                return await self.get_research_task(item.research_id)
+
+            pages_searched += 1
+            if pages_searched >= max_pages or not page.has_more or page.next_cursor is None:
+                return None
+            cursor = page.next_cursor
 
     async def wait_for_research(
         self,

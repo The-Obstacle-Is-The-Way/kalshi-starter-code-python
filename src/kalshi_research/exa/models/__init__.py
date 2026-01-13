@@ -29,6 +29,7 @@ from kalshi_research.exa.models.research import (
     ResearchRequest,
     ResearchStatus,
     ResearchTask,
+    ResearchTaskListResponse,
 )
 from kalshi_research.exa.models.search import (
     SearchCategory,
@@ -66,6 +67,7 @@ __all__ = [
     "ResearchRequest",
     "ResearchStatus",
     "ResearchTask",
+    "ResearchTaskListResponse",
     "SearchCategory",
     "SearchRequest",
     "SearchResponse",

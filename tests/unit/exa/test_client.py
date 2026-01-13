@@ -280,6 +280,56 @@ async def test_create_research_task_posts_payload() -> None:
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_list_research_tasks_success() -> None:
+    response_json = _load_golden_exa_fixture("research_task_list_response.json")
+    route = respx.get("https://api.exa.ai/research/v1").mock(
+        return_value=Response(
+            200,
+            json=response_json,
+        )
+    )
+
+    async with _client() as exa:
+        resp = await exa.list_research_tasks(limit=1)
+
+    assert route.call_count == 1
+    assert route.calls[0].request.url.params.get("limit") == "1"
+    assert resp.has_more == response_json["hasMore"]
+    assert resp.next_cursor == response_json["nextCursor"]
+    assert len(resp.data) == len(response_json["data"])
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_find_recent_research_task_fetches_full_task() -> None:
+    list_json = _load_golden_exa_fixture("research_task_list_response.json")
+    assert isinstance(list_json["data"], list)
+    assert list_json["data"]
+    research_id = list_json["data"][0]["researchId"]
+
+    terminal_json = _load_golden_exa_fixture("research_task_response.json")
+
+    list_route = respx.get("https://api.exa.ai/research/v1").mock(
+        return_value=Response(200, json=list_json)
+    )
+    get_route = respx.get(f"https://api.exa.ai/research/v1/{research_id}").mock(
+        return_value=Response(200, json=terminal_json)
+    )
+
+    async with _client() as exa:
+        task = await exa.find_recent_research_task(
+            instructions_prefix="Summarize https://example.com",
+            max_pages=1,
+        )
+
+    assert list_route.call_count == 1
+    assert get_route.call_count == 1
+    assert task is not None
+    assert task.research_id == research_id
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_wait_for_research_polls_until_terminal_status() -> None:
     terminal = _load_golden_exa_fixture("research_task_response.json")
     research_id = terminal["researchId"]

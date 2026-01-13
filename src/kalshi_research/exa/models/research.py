@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class ResearchModel(str, Enum):
     """Exa research model tiers."""
 
+    FAST = "exa-research-fast"
     STANDARD = "exa-research"
     PRO = "exa-research-pro"
 
@@ -79,3 +80,13 @@ class ResearchTask(BaseModel):
     citations: list[Citation] | None = None
     cost_dollars: ResearchCostDollars | None = Field(default=None, alias="costDollars")
     error: str | None = None
+
+
+class ResearchTaskListResponse(BaseModel):
+    """Response from GET /research/v1 (list)."""
+
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
+    data: list[ResearchTask]
+    has_more: bool = Field(alias="hasMore")
+    next_cursor: str | None = Field(alias="nextCursor")
