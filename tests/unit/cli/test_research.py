@@ -32,7 +32,7 @@ def test_research_context_missing_exa_key_exits_with_error(make_market) -> None:
 
     mock_kalshi = AsyncMock()
     mock_kalshi.__aenter__.return_value = mock_kalshi
-    mock_kalshi.__aexit__.return_value = AsyncMock()
+    mock_kalshi.__aexit__.return_value = None
     mock_kalshi.get_market = AsyncMock(return_value=market)
 
     with (
@@ -44,6 +44,21 @@ def test_research_context_missing_exa_key_exits_with_error(make_market) -> None:
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
     assert "Set EXA_API_KEY" in result.stdout
+
+
+def test_research_context_ticker_not_found_exits() -> None:
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    mock_kalshi = AsyncMock()
+    mock_kalshi.__aenter__.return_value = mock_kalshi
+    mock_kalshi.__aexit__.return_value = None
+    mock_kalshi.get_market = AsyncMock(side_effect=KalshiAPIError(404, "nope"))
+
+    with patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi):
+        result = runner.invoke(app, ["research", "context", "MISSING"])
+
+    assert result.exit_code == 2
+    assert "API Error 404" in result.stdout
 
 
 def test_research_topic_missing_exa_key_exits_with_error() -> None:

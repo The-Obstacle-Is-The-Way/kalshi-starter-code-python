@@ -65,6 +65,19 @@ def test_market_get_without_created_time() -> None:
 
 
 @respx.mock
+def test_market_get_ticker_not_found_exits() -> None:
+    ticker = "MISSING"
+    respx.get(f"{KALSHI_PROD_BASE_URL}/markets/{ticker}").mock(
+        return_value=Response(404, text="nope")
+    )
+
+    result = runner.invoke(app, ["market", "get", ticker])
+
+    assert result.exit_code == 2
+    assert "API Error 404" in result.stdout
+
+
+@respx.mock
 def test_market_get_fails_when_response_missing_required_field() -> None:
     fixture = load_market_fixture()
     ticker = fixture["market"]["ticker"]

@@ -1,9 +1,10 @@
 # DEBT-024: CLI exit code policy (not found vs empty results)
 
 **Priority:** P3 (Quality + automation ergonomics; not core correctness)
-**Status:** Open
+**Status:** ✅ Complete
 **Found:** 2026-01-13
 **Verified:** 2026-01-13 - CLI behavior audit + reproduction
+**Resolved:** 2026-01-13
 
 ---
 
@@ -43,14 +44,16 @@ Optional refinement:
 ## Current State (Known Cases)
 
 - ✅ Fixed: `alerts remove`, `research thesis show|resolve|check-invalidation` now return `Exit(2)` when missing (6f67f7a).
-- ❌ Bug: `portfolio link` exits `0` on missing position (BUG-076).
-- Mixed: some “missing DB file” checks use `Exit(1)` rather than `Exit(2)` (policy decision, not urgent).
+- ✅ Fixed: `portfolio link` returns `Exit(2)` when the requested open position doesn't exist (BUG-076).
+- ✅ Fixed: `news track` and `news untrack` return `Exit(2)` for missing tickers / not-tracked items.
+- ✅ Fixed: market-lookup commands return `Exit(2)` when Kalshi returns HTTP 404 for the requested ticker.
+- Mixed (accepted): some “missing DB file” checks use `Exit(1)` rather than `Exit(2)` (policy decision; not urgent).
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Decide and document the exit code contract (this doc is the draft SSOT).
-- [ ] Update CLI commands to follow the policy for “specific resource not found”.
-- [ ] Add/adjust unit tests to lock in behavior (CLI exit codes).
-- [ ] Ensure docs stay accurate (`docs/_debt/DEBT-023-production-maturity-gaps.md`, `docs/developer/cli-reference.md` if needed).
+- [x] Decide and document the exit code contract (this doc is the draft SSOT).
+- [x] Update CLI commands to follow the policy for “specific resource not found”.
+- [x] Add/adjust unit tests to lock in behavior (CLI exit codes).
+- [x] Ensure docs stay accurate (`docs/_debt/DEBT-023-production-maturity-gaps.md`, `docs/developer/cli-reference.md` if needed).

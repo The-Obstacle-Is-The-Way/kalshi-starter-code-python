@@ -95,7 +95,7 @@ def test_portfolio_link_success(mock_db_cls: MagicMock) -> None:
 
     mock_session = AsyncMock()
     mock_session.__aenter__.return_value = mock_session
-    mock_session.__aexit__.return_value = AsyncMock()
+    mock_session.__aexit__.return_value = None
     mock_session.execute = AsyncMock(return_value=mock_result)
     mock_session.commit = AsyncMock()
     # Mock session.begin() - use MagicMock (not AsyncMock) that returns async context manager
@@ -109,7 +109,7 @@ def test_portfolio_link_success(mock_db_cls: MagicMock) -> None:
 
     mock_db = AsyncMock()
     mock_db.__aenter__.return_value = mock_db
-    mock_db.__aexit__.return_value = AsyncMock()
+    mock_db.__aexit__.return_value = None
     mock_db.session_factory = mock_session_factory
     mock_db_cls.return_value = mock_db
 
@@ -127,7 +127,7 @@ def test_portfolio_link_position_not_found(mock_db_cls: MagicMock) -> None:
 
     mock_session = AsyncMock()
     mock_session.__aenter__.return_value = mock_session
-    mock_session.__aexit__.return_value = AsyncMock()
+    mock_session.__aexit__.return_value = None
     mock_session.execute = AsyncMock(return_value=mock_result)
     # Mock session.begin() - use MagicMock (not AsyncMock) that returns async context manager
     begin_cm = AsyncMock()
@@ -140,14 +140,14 @@ def test_portfolio_link_position_not_found(mock_db_cls: MagicMock) -> None:
 
     mock_db = AsyncMock()
     mock_db.__aenter__.return_value = mock_db
-    mock_db.__aexit__.return_value = AsyncMock()
+    mock_db.__aexit__.return_value = None
     mock_db.session_factory = mock_session_factory
     mock_db_cls.return_value = mock_db
 
     with patch("pathlib.Path.exists", return_value=True):
         result = runner.invoke(app, ["portfolio", "link", "NONEXISTENT", "--thesis", "thesis-123"])
 
-    assert result.exit_code == 0
+    assert result.exit_code == 2
     assert "not found" in result.stdout.lower() or "no open position" in result.stdout.lower()
 
 

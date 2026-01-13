@@ -66,19 +66,22 @@ enterprise pattern.”
 
 These are "10/10" improvements that actually fit an internal research tool.
 
-1. **Exit code correctness for missing identifiers** ✅ **PARTIALLY FIXED (2026-01-13)**
-   Fixed the most misleading behavior: commands that previously returned **success** when a requested resource
-   didn't exist now return a non-zero exit code (`Exit(2)`), consistent with common Unix CLI expectations:
+1. **Exit code correctness for missing identifiers** ✅ **FIXED (2026-01-13)**
+   Commands that previously returned **success** when a requested resource didn't exist now return a non-zero
+   exit code (`Exit(2)`), consistent with common Unix CLI expectations:
    - `git show <missing>` → Exit 128 (error)
    - `kubectl get <missing>` → Exit 1 (error)
    - `rm <missing>` → Exit 1 (error), `rm -f` → Exit 0 (explicit flag)
 
-   Fixed commands: `alerts remove`, `thesis show`, `thesis resolve`, `thesis check-invalidation`.
+   Fixed commands include:
+   - Thesis + alerts: `alerts remove`, `thesis show`, `thesis resolve`, `thesis check-invalidation`
+   - Portfolio: `portfolio link`
+   - News: `news track`, `news untrack`
+   - Market lookup: `market get` (and other ticker-based lookups)
+   - Research: `research context` (when the market ticker doesn't exist)
 
-   Remaining policy work (optional): the repo does not yet define a single exit code contract across all commands.
-   Trackers:
-   - `docs/_bugs/BUG-076-portfolio-link-exits-success-on-missing-position.md`
-   - `docs/_debt/DEBT-024-cli-exit-code-policy.md`
+   Exit code policy is now documented and complete:
+   - `docs/_archive/debt/DEBT-024-cli-exit-code-policy.md`
 
 2. **SQLite concurrency footnote (doc-only)** ✅ **FIXED (2026-01-13)**
    Added note to `CLAUDE.md`, `AGENTS.md`, and `GEMINI.md`: "Avoid running two write-heavy commands simultaneously.
@@ -94,7 +97,7 @@ The automated audit made some incorrect claims that I corrected:
 |-------|---------|
 | "No integration tests" | **FALSE** - `tests/integration/` has 12 `test_*.py` modules (plus `__init__.py`) covering API, data/DB, CLI, Exa, and news |
 | "Exa cache has no expiration" | **FALSE** - `cache.py:64-67` expires entries, `clear_expired()` exists |
-| "Inconsistent CLI error handling" | **PARTIAL** - the worst-case exit-0-on-missing paths were fixed for thesis/alerts, but a repo-wide exit code policy is still tracked in DEBT-024 (and BUG-076 is open). |
+| "Inconsistent CLI error handling" | **FIXED** - identifier-based "not found" paths return `Exit(2)`, and the repo exit code policy is documented in `docs/_archive/debt/DEBT-024-cli-exit-code-policy.md`. |
 | "Rate limiter doesn't honor server feedback" | **PARTIAL** - `_wait_with_retry_after()` honors `Retry-After` for GET retries; write endpoints currently use exponential wait even when `Retry-After` is present |
 
 ---

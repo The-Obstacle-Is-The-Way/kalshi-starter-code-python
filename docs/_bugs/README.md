@@ -6,7 +6,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Priority | Status | Verified |
 |---|---|---|---|---|
-| **[BUG-076](BUG-076-portfolio-link-exits-success-on-missing-position.md)** | `portfolio link` exits 0 when position missing | P2 | Open | ✅ |
+| (none) | | | | |
 
 ### Verification Note (2026-01-12)
 
@@ -36,7 +36,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-076**
+**BUG-077**
 
 ---
 
@@ -50,6 +50,7 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-076** | `portfolio link` exits 0 when position missing | ✅ Fixed |
 | **BUG-075** | Settlement Sync Timezone Comparison | ✅ Fixed |
 
 ### Recently Archived (2026-01-12)

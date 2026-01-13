@@ -1,9 +1,10 @@
 # BUG-076: `kalshi portfolio link` exits 0 when the position doesn't exist
 
 **Priority:** P2 (Incorrect success signal; breaks scripting and user expectations)
-**Status:** Open
+**Status:** ✅ Fixed
 **Found:** 2026-01-13
 **Verified:** 2026-01-13 - Reproduced locally
+**Fixed:** 2026-01-13
 **Affected Code:** `portfolio_link()` in `src/kalshi_research/cli/portfolio.py`
 
 ---
@@ -26,7 +27,7 @@ but exits successfully (exit code `0`). This is misleading and makes automation 
 
 ## Reproduction
 
-This reproduces on a brand-new empty DB:
+This reproduced on a brand-new empty DB:
 
 ```bash
 tmpdb=$(mktemp -t kalshi_test_XXXX.db)
@@ -35,7 +36,9 @@ echo $?
 rm -f "$tmpdb"
 ```
 
-**Observed:** prints the warning, exits `0`.
+**Observed (pre-fix):** prints the warning, exits `0`.
+
+**Observed (post-fix):** prints the warning, exits `2`.
 
 ---
 
@@ -64,8 +67,15 @@ rm -f "$tmpdb"
 
 ---
 
+## Implemented Fix
+
+- `kalshi portfolio link` now treats a missing open position as "not found" and exits with `typer.Exit(2)`.
+- Unit test updated to lock in behavior: `tests/unit/cli/test_portfolio.py::test_portfolio_link_position_not_found`.
+
+---
+
 ## Related
 
 | Item | Relationship |
 |------|--------------|
-| `docs/_debt/DEBT-024-cli-exit-code-policy.md` | Defines/standardizes exit code behavior across the CLI |
+| `docs/_archive/debt/DEBT-024-cli-exit-code-policy.md` | Standardized exit code behavior across the CLI |

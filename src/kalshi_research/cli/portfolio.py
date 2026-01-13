@@ -502,7 +502,7 @@ def portfolio_link(
                 if not position:
                     console.print(f"[yellow]No open position found for {ticker}[/yellow]")
                     console.print(PORTFOLIO_SYNC_TIP)
-                    return
+                    raise typer.Exit(2) from None
 
                 # Update thesis_id
                 position.thesis_id = thesis

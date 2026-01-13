@@ -761,7 +761,7 @@ async def _fetch_market(ticker: str) -> "Market":
             return await kalshi.get_market(ticker)
         except KalshiAPIError as e:
             console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-            raise typer.Exit(1) from None
+            raise typer.Exit(2 if e.status_code == 404 else 1) from None
         except Exception as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None
