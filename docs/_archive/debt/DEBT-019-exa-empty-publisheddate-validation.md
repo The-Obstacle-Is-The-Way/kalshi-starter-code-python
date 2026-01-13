@@ -5,6 +5,7 @@
 **Found:** 2026-01-12
 **Fixed:** 2026-01-13
 **Source:** Live testing of `kalshi research topic` command
+**Fixed In:** d2e21ff
 **Archived:** 2026-01-13
 
 ---
