@@ -25,9 +25,8 @@ sqlite3 data/kalshi.db "SELECT DISTINCT ticker, side FROM trades"
 uv run kalshi market get TICKER
 ```
 
-**Important**: `market get` does **not** currently display `open_time` / `created_time` (see SPEC-025).
-
-**Workaround (use SQLite)**:
+`market get` displays timing fields like **Open Time / Created Time / Close Time**. If you want to cross-check
+against your local cache:
 ```bash
 # Ensure market metadata is current
 uv run kalshi data sync-markets
@@ -35,8 +34,6 @@ uv run kalshi data sync-markets
 # DB columns: open_time, created_at, close_time
 sqlite3 data/kalshi.db "SELECT open_time, created_at, close_time FROM markets WHERE ticker = 'TICKER'"
 ```
-
-Use `market get` for current prices/volume and `markets.open_time` for timing validation.
 
 ### Step 3: Temporal Validation (CRITICAL)
 
@@ -279,7 +276,7 @@ Since CLI has no search option, use database queries:
 
 ```bash
 # Find by keyword in title
-sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE title LIKE '%Super Bowl%' AND status = 'open'"
+sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE title LIKE '%Super Bowl%' AND status = 'active'"
 
 # Find by partial ticker
 sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE ticker LIKE 'KXFED%'"

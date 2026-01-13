@@ -940,7 +940,10 @@ def research_deep(
     topic: Annotated[str, typer.Argument(help="Topic or question for deep research.")],
     model: Annotated[
         str,
-        typer.Option("--model", help="Exa research model tier (exa-research, exa-research-pro)."),
+        typer.Option(
+            "--model",
+            help="Exa research model tier (exa-research-fast, exa-research, exa-research-pro).",
+        ),
     ] = "exa-research",
     wait: Annotated[
         bool,

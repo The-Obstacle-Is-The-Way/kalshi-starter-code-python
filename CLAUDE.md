@@ -119,10 +119,12 @@ src/kalshi_research/
 ├── news/          # News collection and sentiment analysis
 ├── analysis/      # Research analytics
 │   ├── calibration.py   # Brier scores, calibration curves
-│   ├── edge.py          # Edge detection (thesis, spread, volume)
-│   ├── scanner.py       # Market scanner (close races, movers)
 │   ├── correlation.py   # Event correlation, arbitrage detection
-│   └── metrics.py       # Probability tracking
+│   ├── edge.py          # Edge utilities (thesis deltas, etc.)
+│   ├── liquidity.py     # Liquidity + orderbook analysis
+│   ├── scanner.py       # Market scanner (close races, movers, expiring soon)
+│   ├── categories.py    # Category aliases/helpers
+│   └── visualization.py # Plotting helpers
 ├── alerts/        # Alert system
 │   ├── conditions.py    # Alert conditions (price, volume, spread)
 │   ├── monitor.py       # AlertMonitor (async polling)
@@ -135,12 +137,18 @@ src/kalshi_research/
 │   ├── models.py        # Position, Trade models
 │   ├── pnl.py           # P&L calculator
 │   └── syncer.py        # Sync from Kalshi API
+├── execution/     # Execution safety harness (not exposed via CLI today)
+│   ├── executor.py
+│   ├── models.py
+│   └── audit.py
 └── cli/           # Typer CLI package (kalshi command)
 ```
 
 ### Key Patterns
 
 **API Clients**: Use async context managers. `KalshiPublicClient` for research (no auth), `KalshiClient` for portfolio sync (requires API key).
+
+**Exa deep research**: `/research/v1` runs asynchronously; use `ExaClient.list_research_tasks()` / `find_recent_research_task()` to recover results after crashes.
 
 **Repository Pattern**: Prefer repositories in `data/repositories/` for shared persistence logic. For
 small, one-off queries in CLI commands, direct `select()` usage is acceptable when it avoids unnecessary abstraction,
@@ -156,19 +164,22 @@ but don't duplicate repository behavior in multiple places.
 
 ```
 kalshi
-├── data        # init, sync-markets, sync-settlements, snapshot, collect, export, stats
-├── market      # get, list, orderbook
-├── scan        # opportunities, arbitrage, movers
-├── alerts      # list, add, remove, monitor
-├── analysis    # calibration, correlation, metrics
-├── research    # thesis (create/list/show/resolve), backtest, context, topic
+├── version, status
+├── data        # init, migrate, sync-markets, sync-settlements, sync-trades, snapshot, collect, export, stats, prune, vacuum
+├── market      # list, get, orderbook, liquidity, history
+├── scan        # opportunities, movers, arbitrage
+├── alerts      # list, add, remove, monitor, trim-log
+├── analysis    # metrics, calibration, correlation
+├── research    # backtest, context, topic, similar, deep, thesis, cache
+│   ├── thesis  # create, list, show, resolve, check-invalidation, suggest
+│   └── cache   # clear
 ├── news        # track, untrack, list-tracked, collect, sentiment
-└── portfolio   # sync, positions, pnl, balance, history, link, suggest-links
+└── portfolio   # balance, sync, positions, pnl, history, link, suggest-links
 ```
 
 ## Test Organization
 
-Tests mirror source structure: `tests/unit/api/`, `tests/unit/data/`, etc. Integration tests requiring API keys go in `tests/integration/`.
+Tests mirror source structure: `tests/unit/api/`, `tests/unit/data/`, etc. Integration tests live in `tests/integration/` (live API tests are opt-in via env vars).
 
 Fixtures in `conftest.py` provide `make_market`, `make_orderbook`, `make_trade` factories that return dicts matching API response structure.
 
@@ -207,7 +218,7 @@ uv run kalshi portfolio pnl            # Reads local DB cache
 These operations may incur real costs:
 
 - **Order placement** (`create_order`) - Real money on prod environment
-- **Exa API calls** (`research context`, `research topic`, `news collect`) - Exa API usage costs
+- **Exa API calls** (`research context`, `research topic`, `research deep`, `research thesis create --with-research`, `news collect`) - Exa API usage costs
 
 ### Pre-flight Checklist for Authenticated Commands
 

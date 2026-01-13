@@ -58,7 +58,7 @@ This platform enables users to:
 * **Track Theses:** Create and track research theses, link them to positions, and resolve them to measure accuracy.
 * **Monitor Portfolios:** View current positions, calculate P&L, and analyze trade history.
 * **Alerting:** Set up alerts for price, volume, and spread conditions.
-* **News & Research:** Collect news via Exa API, run sentiment analysis, research topics.
+* **News & Research:** Collect news via Exa API, run sentiment analysis, research topics, and manage async deep research tasks (with crash recovery).
 
 ### Key Technologies
 * **Language:** Python 3.11+
@@ -118,13 +118,18 @@ The application is accessed via the `kalshi` command (run via `uv run`).
 * **Research & Theses:**
   ```bash
   # Create a new thesis
-  uv run kalshi research thesis create "Bitcoin > 100k" --markets KXBTC --your-prob 0.65 --market-prob 0.45
+  uv run kalshi research thesis create "Bitcoin > 100k" \
+    --markets KXBTC \
+    --your-prob 0.65 \
+    --market-prob 0.45 \
+    --confidence 0.8
 
   # List theses
   uv run kalshi research thesis list
 
-  # Exa-powered research
-  uv run kalshi research topic "Will the Fed cut rates in 2026?"
+  # Exa-powered research (requires EXA_API_KEY)
+  EXA_API_KEY=... uv run kalshi research topic "Will the Fed cut rates in 2026?"
+  EXA_API_KEY=... uv run kalshi research deep "Summarize what could cause this market to resolve YES." --model exa-research-fast --wait
   ```
 
 * **News Monitoring:**
@@ -133,7 +138,7 @@ The application is accessed via the `kalshi` command (run via `uv run`).
   uv run kalshi news track TICKER
 
   # Collect news and sentiment
-  uv run kalshi news collect
+  EXA_API_KEY=... uv run kalshi news collect
   ```
 
 * **Analysis:**
@@ -230,7 +235,7 @@ uv run kalshi portfolio pnl            # Reads local DB cache
 These operations may incur real costs:
 
 - **Order placement** (`create_order`) - Real money on prod environment
-- **Exa API calls** (`research context`, `research topic`, `news collect`) - Exa API usage costs
+- **Exa API calls** (`research context`, `research topic`, `research deep`, `research thesis create --with-research`, `news collect`) - Exa API usage costs
 
 ### Pre-flight Checklist for Authenticated Commands
 

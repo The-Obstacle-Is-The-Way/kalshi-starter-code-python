@@ -62,7 +62,7 @@ git add . && git commit -m "Your message"
   - `news/`: News collection and sentiment analysis
   - `analysis/`, `research/`, `alerts/`, `portfolio/`: domain modules
   - `cli/`: Typer CLI package entrypoint (`kalshi`)
-- `tests/`: `unit/` mirrors `src/`; `integration/` hits real API (needs creds)
+- `tests/`: `unit/` mirrors `src/`; `integration/` covers DB/migrations/CLI (live API tests are opt-in via env vars/creds)
 - `docs/`: usage guides plus specs/bug tracker (`docs/_specs/`, `docs/_bugs/`)
 - `alembic/`, `alembic.ini`: database migrations
 - `data/`: local runtime artifacts (e.g., `data/kalshi.db`, exports)
@@ -97,7 +97,7 @@ uv run pytest -m "not integration and not slow"  # fast local suite (CI-like)
 
 - **ALWAYS run `uv run pre-commit run --all-files` before committing**
 - Use atomic commits; follow the repo's common pattern: `[BUG-###] Fix: ...`, `[SPEC-###] Implement: ...`, `[FEATURE] Add: ...`, `[QUALITY-###] Fix: ...`.
-- PRs should include: what changed, how it was tested (commands run), and any user-facing doc updates (often `docs/how-to/usage.md` / `docs/tutorials/quickstart.md`).
+- PRs should include: what changed, how it was tested (commands run), and any user-facing doc updates (often `docs/getting-started/usage.md` / `docs/getting-started/quickstart.md`).
 - Before review, ensure local checks match CI: `ruff`, `mypy`, and `pytest` are green.
 
 ## Security & Configuration Tips
@@ -141,7 +141,7 @@ uv run kalshi portfolio pnl            # Reads local DB cache
 These operations may incur real costs:
 
 - **Order placement** (`create_order`) - Real money on prod environment
-- **Exa API calls** (`research context`, `research topic`, `news collect`) - Exa API usage costs
+- **Exa API calls** (`research context`, `research topic`, `research deep`, `research thesis create --with-research`, `news collect`) - Exa API usage costs
 
 ### Pre-flight Checklist for Authenticated Commands
 
@@ -167,3 +167,11 @@ When you find drift, bugs, or technical debt, record them in the appropriate tra
 - Active specs: `docs/_specs/README.md`
 - Backlog (blocked/deferred): `docs/_future/README.md`
 - Technical debt: `docs/_debt/README.md`
+
+## Ralph Wiggum Loop (Optional)
+
+This repo supports the Ralph Wiggum autonomous loop via the root state files:
+
+- `PROGRESS.md` — loop state (task queue + work log)
+- `PROMPT.md` — iteration prompt
+- Reference: `docs/_ralph-wiggum/protocol.md`

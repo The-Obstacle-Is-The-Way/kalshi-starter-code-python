@@ -49,6 +49,9 @@ KALSHI_PRIVATE_KEY_PATH=/path/to/private_key.pem
 KALSHI_PRIVATE_KEY_B64=base64-encoded-key
 
 KALSHI_ENVIRONMENT=demo  # or "prod"
+
+# Optional: tune authenticated rate limits (only used for portfolio commands)
+KALSHI_RATE_TIER=basic  # basic|advanced|premier|prime
 ```
 
 The CLI loads `.env` automatically.
@@ -116,6 +119,7 @@ Check your account balance:
 ```bash
 uv run kalshi portfolio balance
 uv run kalshi portfolio balance --env demo
+uv run kalshi portfolio balance --rate-tier advanced
 ```
 
 ### Sync
@@ -124,6 +128,7 @@ Sync positions, fills, and settlements from Kalshi:
 
 ```bash
 uv run kalshi portfolio sync --db data/kalshi.db
+uv run kalshi portfolio sync --db data/kalshi.db --rate-tier advanced
 ```
 
 ### View Positions

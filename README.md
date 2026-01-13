@@ -17,7 +17,7 @@ Research tools for Kalshi prediction market analysis.
 - **Alerts** - Local alert conditions + monitoring loop (console/file/webhook), daemon mode + log trimming
 - **Portfolio (authenticated)** - Sync positions/fills/settlements, compute FIFO cost basis + P&L (realized + unrealized)
 - **Thesis tracking** - Create/list/show/resolve theses (local JSON)
-- **Exa (optional)** - Market context/topic research, find similar pages, deep research, news tracking + sentiment
+- **Exa (optional)** - Market context/topic research, find similar pages, deep research tasks (with crash recovery), news tracking + sentiment
 - **Notebooks** - Jupyter templates for exploration
 
 Notes:
@@ -52,17 +52,21 @@ uv run kalshi data migrate
 # Sync markets from Kalshi (start small)
 uv run kalshi data sync-markets --max-pages 1
 
+# Take a price snapshot (needed for movers/correlation)
+uv run kalshi data snapshot --max-pages 1
+
 # Scan for opportunities
 uv run kalshi scan opportunities --filter close-race --max-pages 1 --full
 
 # Get market details
-uv run kalshi market get TICKER-NAME
+uv run kalshi market get <TICKER>
 
 # Start continuous data collection (interval is in minutes)
 uv run kalshi data collect --interval 15
 
 # (Optional) Exa-powered research
 # EXA_API_KEY=... uv run kalshi research context TICKER-NAME --max-news 5 --max-papers 3
+# (Paid API) EXA_API_KEY=... uv run kalshi research deep "What could make this market resolve YES?" --wait
 ```
 
 ## CLI Reference
@@ -80,6 +84,7 @@ See `uv run kalshi --help` for all commands.
 
 Build the docs site locally with MkDocs Material:
 - `uv run mkdocs serve`
+- `uv run mkdocs build --strict`
 
 ## Agent Skills
 
@@ -90,13 +95,16 @@ Build the docs site locally with MkDocs Material:
 
 ```bash
 # Run tests
-uv run pytest
+uv run pytest -m "not integration and not slow"
 
 # Run linting
 uv run ruff check .
 
 # Run type checking
 uv run mypy src/
+
+# Run the full local quality gate suite (what CI runs)
+uv run pre-commit run --all-files
 ```
 
 ## License

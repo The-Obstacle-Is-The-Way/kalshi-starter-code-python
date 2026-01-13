@@ -223,7 +223,7 @@ Sentiment analysis results for articles.
 -- Find markets by keyword (substitute for --search)
 SELECT ticker, title, status
 FROM markets
-WHERE title LIKE '%Super Bowl%' AND status = 'open';
+WHERE title LIKE '%Super Bowl%' AND status = 'active';
 
 -- Find markets by partial ticker
 SELECT ticker, title
