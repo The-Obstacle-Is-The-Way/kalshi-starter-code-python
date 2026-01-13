@@ -1,9 +1,19 @@
-# DEBT-020: Kalshi Market Discovery Gaps (Keyword Search, Special States)
+# DEBT-020: Kalshi Market Discovery Gaps (Closed - User Error)
 
 **Priority:** P2 (Blocks market research workflows)
-**Status:** Open
+**Status:** Closed (false positive / user error)
 **Found:** 2026-01-12
+**Closed:** 2026-01-13
 **Source:** Live testing - failed to find `KXOAIHARDWARE` market via API
+
+---
+
+## Closure Note
+
+This report was caused by **user error**: the tested ticker `KXOAIHARDWARE` was not the correct
+market ticker. The correct ticker is `KXOAIHARDWARE-27`, which is discoverable via the API.
+
+No actionable debt item remains, so this document is archived for historical context.
 
 ---
 

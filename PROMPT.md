@@ -21,7 +21,7 @@ Then read the relevant documentation:
 ```bash
 cat docs/_bugs/README.md
 cat docs/_debt/README.md
-cat docs/_todo/README.md
+cat docs/_future/README.md
 cat docs/_specs/README.md
 ```
 
@@ -51,7 +51,7 @@ If yes, **THIS ITERATION IS A REVIEW ITERATION**:
 
 1. Check for unreviewed SPEC-* (see above) - if found, do review, then exit
 2. Find the **FIRST** unchecked `[ ]` item in PROGRESS.md
-3. Read the corresponding doc: `docs/_bugs/BUG-XXX*.md`, `docs/_debt/DEBT-XXX*.md`, `docs/_todo/TODO-XXX*.md`, or `docs/_specs/SPEC-XXX*.md`
+3. Read the corresponding doc: `docs/_bugs/BUG-XXX*.md`, `docs/_debt/DEBT-XXX*.md`, `docs/_specs/SPEC-XXX*.md`, or `docs/_future/(FUTURE|TODO)-*.md`
 4. **READ THE ACCEPTANCE CRITERIA** in the task doc - you MUST complete ALL of them
 5. Apply the **Critical Review Prompt** (below) to any external feedback and to your own assumptions
 6. Complete that ONE item fully (all acceptance criteria met, tests pass, quality checks pass)
@@ -176,7 +176,7 @@ git commit -m "[TASK-ID] Brief description"
 
 - Bugs: `docs/_bugs/BUG-*.md`
 - Debt: `docs/_debt/DEBT-*.md`
-- TODOs: `docs/_todo/TODO-*.md`
+- Future: `docs/_future/*.md`
 - Specs: `docs/_specs/SPEC-*.md`
 - Source: `src/kalshi_research/`
 - Tests: `tests/unit/`, `tests/integration/`

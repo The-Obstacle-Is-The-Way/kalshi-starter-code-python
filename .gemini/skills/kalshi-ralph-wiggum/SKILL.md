@@ -110,7 +110,7 @@ If the most recently completed item is a `SPEC-*` and lacks a `[REVIEWED]` marke
 |------|----------|---------|
 | Bugs | `docs/_bugs/BUG-*.md` | BUG-048 |
 | Debt | `docs/_debt/DEBT-*.md` | DEBT-001 |
-| TODOs | `docs/_todo/TODO-*.md` | TODO-005 |
+| Future | `docs/_future/*.md` | FUTURE-001 |
 | Specs | `docs/_specs/SPEC-*.md` | SPEC-028 |
 
 ## Quality Gates

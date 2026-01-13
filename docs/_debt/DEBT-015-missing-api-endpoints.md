@@ -67,18 +67,19 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
-| `GET /structured_targets` | List structured targets | P3 |
-| `GET /structured_targets/{id}` | Structured target details | P3 |
+| `GET /structured_targets` | List structured targets (filters: `type`, `competition`) | P3 |
+| `GET /structured_targets/{structured_target_id}` | Structured target details | P3 |
 
 **Impact:** Low - Advanced market mechanics only
+**Note:** SSOT reference: `docs/_vendor-docs/kalshi-api-reference.md` documents filter params (`type`, `competition`).
 
 ### 5. Milestones & Live Data (4 endpoints) - P3
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
 | `GET /milestones` | List milestones | P3 |
-| `GET /milestones/{id}` | Milestone details | P3 |
-| `GET /live_data/{type}/milestone/{id}` | Live data for milestone | P3 |
+| `GET /milestones/{milestone_id}` | Milestone details | P3 |
+| `GET /live_data/{type}/milestone/{milestone_id}` | Live data for milestone | P3 |
 | `GET /live_data/batch` | Batch live data | P3 |
 
 **Impact:** Low - Used for real-time event tracking
@@ -88,9 +89,9 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
 | `POST /portfolio/orders/batched` | Batch create up to 20 orders | **P2** |
-| `POST /portfolio/orders/{id}/decrease` | Decrease order size | P2 |
-| `GET /portfolio/orders/{id}` | Single order details | P2 |
-| `GET /portfolio/orders/{id}/queue_position` | Queue position for one order | P2 |
+| `POST /portfolio/orders/{order_id}/decrease` | Decrease order size | P2 |
+| `GET /portfolio/orders/{order_id}` | Single order details | P2 |
+| `GET /portfolio/orders/{order_id}/queue_position` | Queue position for one order | P2 |
 | `GET /portfolio/orders/queue_positions` | Queue positions for multiple | P2 |
 | `GET /portfolio/summary/total_resting_order_value` | Total resting order value | P3 |
 
@@ -102,9 +103,9 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 |----------|-------------|----------|
 | `GET /portfolio/order_groups` | List order groups | P3 |
 | `POST /portfolio/order_groups/create` | Create order group | P3 |
-| `GET /portfolio/order_groups/{id}` | Get order group details | P3 |
-| `DELETE /portfolio/order_groups/{id}` | Delete order group | P3 |
-| `PUT /portfolio/order_groups/{id}/reset` | Reset order group | P3 |
+| `GET /portfolio/order_groups/{order_group_id}` | Get order group details | P3 |
+| `DELETE /portfolio/order_groups/{order_group_id}` | Delete order group | P3 |
+| `PUT /portfolio/order_groups/{order_group_id}/reset` | Reset order group | P3 |
 
 **Impact:** Low - Advanced order management
 
@@ -115,14 +116,14 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 | `GET /communications/id` | Get communications ID | P3 |
 | `POST /communications/rfqs` | Create RFQ | P3 |
 | `GET /communications/rfqs` | List RFQs | P3 |
-| `GET /communications/rfqs/{id}` | RFQ details | P3 |
-| `DELETE /communications/rfqs/{id}` | Delete RFQ | P3 |
+| `GET /communications/rfqs/{rfq_id}` | RFQ details | P3 |
+| `DELETE /communications/rfqs/{rfq_id}` | Delete RFQ | P3 |
 | `POST /communications/quotes` | Create quote | P3 |
 | `GET /communications/quotes` | List quotes | P3 |
-| `GET /communications/quotes/{id}` | Quote details | P3 |
-| `DELETE /communications/quotes/{id}` | Delete quote | P3 |
-| `PUT /communications/quotes/{id}/accept` | Accept quote | P3 |
-| `PUT /communications/quotes/{id}/confirm` | Confirm quote | P3 |
+| `GET /communications/quotes/{quote_id}` | Quote details | P3 |
+| `DELETE /communications/quotes/{quote_id}` | Delete quote | P3 |
+| `PUT /communications/quotes/{quote_id}/accept` | Accept quote | P3 |
+| `PUT /communications/quotes/{quote_id}/confirm` | Confirm quote | P3 |
 
 **Impact:** Low for research use - RFQ is for large block trades
 
@@ -131,10 +132,10 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
 | `GET /multivariate_event_collections` | List collections | P3 |
-| `GET /multivariate_event_collections/{ticker}` | Collection details | P3 |
-| `POST /multivariate_event_collections/{ticker}` | Create/update | P3 |
-| `GET /multivariate_event_collections/{ticker}/lookup` | Lookup tickers | P3 |
-| `PUT /multivariate_event_collections/{ticker}/lookup` | Update lookup | P3 |
+| `GET /multivariate_event_collections/{collection_ticker}` | Collection details | P3 |
+| `POST /multivariate_event_collections/{collection_ticker}` | Create/update | P3 |
+| `GET /multivariate_event_collections/{collection_ticker}/lookup` | Lookup tickers | P3 |
+| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | Update lookup | P3 |
 
 **Impact:** Low - Sports parlay combinations
 
@@ -145,7 +146,7 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 | `GET /api_keys` | List API keys | P3 |
 | `POST /api_keys` | Create API key | P3 |
 | `POST /api_keys/generate` | Generate new key | P3 |
-| `DELETE /api_keys/{id}` | Delete API key | P3 |
+| `DELETE /api_keys/{api_key}` | Delete API key | P3 |
 
 **Impact:** Low - Can manage via web UI
 
@@ -158,14 +159,14 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 **Impact:** Low - Institutional only
 
-### 12. Event Metadata (2 endpoints) - P3
+### 12. Event Metadata & MVEs (2 endpoints) - P2/P3
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
-| `GET /events/{ticker}/metadata` | Event metadata | P3 |
-| `GET /events/multivariate` | Multivariate events only | P3 |
+| `GET /events/{event_ticker}/metadata` | Event metadata | P3 |
+| `GET /events/multivariate` | Multivariate events only | **P2** |
 
-**Impact:** Low - Specialized queries
+**Impact:** `/events/multivariate` is **P2 critical** - MVEs excluded from `/events` endpoint (data incomplete without it). Metadata is P3.
 
 ---
 
@@ -181,8 +182,8 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 ### Phase 2: Order Efficiency (P2) - PENDING
 4. `POST /portfolio/orders/batched` - 10x more efficient
-5. `GET /portfolio/orders/{id}/queue_position` - Market making
-6. `POST /portfolio/orders/{id}/decrease` - Order management
+5. `GET /portfolio/orders/{order_id}/queue_position` - Market making
+6. `POST /portfolio/orders/{order_id}/decrease` - Order management
 
 ### Phase 3: Everything Else (P3)
 - Implement as needed

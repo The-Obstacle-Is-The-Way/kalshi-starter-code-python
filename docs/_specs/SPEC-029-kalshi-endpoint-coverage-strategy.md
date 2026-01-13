@@ -33,7 +33,7 @@ clear workflows and can be tested deterministically.
    - `/markets/trades` (public trades)
    - `/markets/candlesticks` (batch OHLC)
    - `/series/{series_ticker}/markets/{ticker}/candlesticks` (already in client)
-   - `/events/{ticker}/candlesticks` (if needed for event-level analysis)
+   - `/series/{series_ticker}/events/{ticker}/candlesticks` (if needed for event-level analysis)
 3. Keep code SOLID: pure clients + repositories + deterministic orchestration.
 4. Make everything match SSOT:
    - vendor reference in `../_vendor-docs/kalshi-api-reference.md`

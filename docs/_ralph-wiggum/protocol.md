@@ -679,7 +679,7 @@ git checkout -b ralph-wiggum-cleanup
 # (They should already be there - permanent location)
 ls PROGRESS.md PROMPT.md
 
-# 3. Ensure spec docs exist for each task (docs/_bugs/, docs/_debt/, docs/_todo/)
+# 3. Ensure spec docs exist for each task (docs/_bugs/, docs/_debt/, docs/_specs/, docs/_future/)
 
 # 4. Start tmux
 tmux new -s ralph

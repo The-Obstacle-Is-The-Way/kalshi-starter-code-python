@@ -1,6 +1,6 @@
 ---
 name: kalshi-doc-audit
-description: Audits and corrects Kalshi Research Platform documentation/specs against SSOT (code, CLI help, vendor docs), and records any drift in docs/_bugs, docs/_todo, or docs/_debt.
+description: Audits and corrects Kalshi Research Platform documentation/specs against SSOT (code, CLI help, vendor docs), and records any drift in docs/_bugs, docs/_future, or docs/_debt.
 ---
 
 # Documentation Audit
@@ -24,10 +24,10 @@ description: Audits and corrects Kalshi Research Platform documentation/specs ag
    - Fix the doc/spec directly.
    - If it's a known limitation or a deliberate compromise, record it in:
      - `docs/_bugs/` (active bug), or
-     - `docs/_todo/` (planned work), or
+     - `docs/_future/` (planned/deferred work), or
      - `docs/_debt/` (accepted technical debt).
    - Keep trackers consistent with their indexes:
-     - `docs/_bugs/README.md`, `docs/_todo/README.md`, `docs/_debt/README.md`
+     - `docs/_bugs/README.md`, `docs/_future/README.md`, `docs/_debt/README.md`
 5. Run quality gates before committing:
    - `uv run pre-commit run --all-files`
 

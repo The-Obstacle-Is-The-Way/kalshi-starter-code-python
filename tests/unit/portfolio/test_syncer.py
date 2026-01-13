@@ -354,6 +354,50 @@ async def test_sync_settlements_saves_new_settlements() -> None:
 
 
 @pytest.mark.asyncio
+async def test_sync_settlements_skips_existing_when_db_datetime_is_naive() -> None:
+    from kalshi_research.api.models.portfolio import Settlement, SettlementPage
+
+    client = AsyncMock()
+    client.get_settlements.return_value = SettlementPage(
+        settlements=[
+            Settlement(
+                ticker="TICK",
+                event_ticker="EVENT",
+                market_result="yes",
+                yes_count=10,
+                yes_total_cost=450,
+                no_count=0,
+                no_total_cost=0,
+                revenue=1000,
+                settled_time="2026-01-10T00:00:00Z",
+                fee_cost="0.5000",
+                value=None,
+            )
+        ],
+        cursor=None,
+    )
+
+    existing_keys_result = MagicMock()
+    existing_keys_result.all.return_value = [("TICK", datetime(2026, 1, 10, 0, 0, 0))]
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=existing_keys_result)
+    session.commit = AsyncMock()
+    _mock_session_begin(session)
+
+    session_cm = AsyncMock()
+    session_cm.__aenter__.return_value = session
+    session_cm.__aexit__.return_value = None
+
+    db = MagicMock()
+    db.session_factory.return_value = session_cm
+
+    syncer = PortfolioSyncer(client=client, db=db)
+    assert await syncer.sync_settlements() == 0
+    session.add.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_portfolio_syncer_full_sync_returns_sync_result() -> None:
     syncer = PortfolioSyncer(client=MagicMock(), db=MagicMock())
     with (

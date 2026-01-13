@@ -47,7 +47,7 @@ kalshi-starter-code-python/
 │   ├── _bugs/                     # Active bug reports
 │   ├── _specs/                    # Active implementation specs
 │   ├── _debt/                     # Technical debt tracker
-│   ├── _todo/                     # Active TODOs
+│   ├── _future/                   # Blocked/deferred backlog
 │   ├── _vendor-docs/              # Kalshi/Exa API references
 │   └── _ralph-wiggum/             # Loop protocol reference
 ├── alembic/                       # Database migrations
