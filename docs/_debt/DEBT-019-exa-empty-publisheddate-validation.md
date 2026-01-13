@@ -1,0 +1,115 @@
+# DEBT-019: Exa Empty `publishedDate` Validation Bug
+
+**Priority:** P2 (Breaks CLI research commands)
+**Status:** Open
+**Found:** 2026-01-12
+**Source:** Live testing of `kalshi research topic` command
+
+---
+
+## Summary
+
+The Exa API sometimes returns an empty string `""` for `publishedDate` field in search results. Our Pydantic model expects `datetime | None`, which fails validation when given an empty string.
+
+**Error observed:**
+```
+ValidationError: 2 validation errors for SearchResponse
+results.9.publishedDate
+  Input should be a valid datetime or date, input is too short
+  [type=datetime_from_date_parsing, input_value='', input_type=str]
+results.10.publishedDate
+  Input should be a valid datetime or date, input is too short
+  [type=datetime_from_date_parsing, input_value='', input_type=str]
+```
+
+---
+
+## Root Cause
+
+**SSOT:** `src/kalshi_research/exa/models/search.py:68`
+
+```python
+published_date: datetime | None = Field(default=None, alias="publishedDate")
+```
+
+The model expects either:
+- A valid ISO 8601 datetime string (e.g., `"2026-01-12T00:00:00.000Z"`)
+- `null` / missing field (becomes `None`)
+
+But Exa API sometimes returns:
+- `"publishedDate": ""` (empty string)
+
+Pydantic tries to parse `""` as a datetime and fails.
+
+---
+
+## Impact
+
+- `kalshi research topic` fails mid-execution when search results include empty dates
+- The Answer portion succeeds (cached separately), but SearchAndContents fails validation
+- User sees a traceback instead of clean research output
+
+---
+
+## Fix
+
+Add a Pydantic `field_validator` to coerce empty strings to `None`:
+
+```python
+from pydantic import field_validator
+
+class SearchResult(BaseModel):
+    # ... existing fields ...
+    published_date: datetime | None = Field(default=None, alias="publishedDate")
+
+    @field_validator("published_date", mode="before")
+    @classmethod
+    def empty_string_to_none(cls, v: Any) -> Any:
+        if v == "":
+            return None
+        return v
+```
+
+**Files to update:**
+- `src/kalshi_research/exa/models/search.py` - `SearchResult` class
+- `src/kalshi_research/exa/models/answer.py` - `AnswerCitation` class (same field)
+- `src/kalshi_research/exa/models/similar.py` - if applicable
+
+---
+
+## Affected Models
+
+| Model | File | Field |
+|-------|------|-------|
+| `SearchResult` | `exa/models/search.py:68` | `published_date` |
+| `AnswerCitation` | `exa/models/answer.py:21` | `published_date` |
+
+---
+
+## Test Cases
+
+Add golden fixture test case with empty publishedDate:
+
+```json
+{
+  "results": [
+    {
+      "id": "https://example.com/article",
+      "title": "Test Article",
+      "url": "https://example.com/article",
+      "publishedDate": "",
+      "author": null
+    }
+  ]
+}
+```
+
+---
+
+## Cross-References
+
+| Item | Relationship |
+|------|--------------|
+| DEBT-018 | Test SSOT - add golden fixture for edge case |
+| SPEC-030 | Exa endpoint strategy - affected by this bug |
+| `_vendor-docs/exa-api-reference.md` | SSOT for Exa API behavior |
