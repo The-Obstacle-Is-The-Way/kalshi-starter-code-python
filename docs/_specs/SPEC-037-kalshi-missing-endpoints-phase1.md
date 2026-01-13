@@ -211,9 +211,26 @@ Endpoints:
 - `GET /portfolio/order_groups`
 - `POST /portfolio/order_groups/create`
 - `GET /portfolio/order_groups/{order_group_id}`
+- `DELETE /portfolio/order_groups/{order_group_id}`
 - `PUT /portfolio/order_groups/{order_group_id}/reset`
 
 Implementation is deferred unless/until TradeExecutor needs it for “group cancel” semantics.
+
+### 3.5 `GET /portfolio/orders/{order_id}` (Single order details)
+
+Purpose: retrieve authoritative order status/details after create/amend/decrease, without relying on local DB state.
+
+- OpenAPI response wrapper: `GetOrderResponse` → `order`
+- Client method: `get_order(order_id: str) -> Order`
+- Fixture: `tests/fixtures/golden/portfolio_order_single_response.json` (env: prod, sanitized)
+
+### 3.6 `GET /portfolio/summary/total_resting_order_value` (P3)
+
+Purpose: compute portfolio risk / exposure to resting orders (useful for TradeExecutor guardrails).
+
+- OpenAPI response wrapper: `GetTotalRestingOrderValueResponse` → `total_resting_order_value`
+- Client method: `get_total_resting_order_value() -> int`
+- Fixture: `tests/fixtures/golden/portfolio_total_resting_order_value_response.json` (env: prod, sanitized)
 
 ---
 
@@ -221,7 +238,9 @@ Implementation is deferred unless/until TradeExecutor needs it for “group canc
 
 Endpoints:
 - `POST /portfolio/subaccounts` → `CreateSubaccountResponse` (`subaccount_number`)
-- balances/transfers endpoints for managing funds between subaccounts
+- `GET /portfolio/subaccounts/balances`
+- `POST /portfolio/subaccounts/transfer`
+- `GET /portfolio/subaccounts/transfers`
 
 This is lower priority unless/until you actively trade with multiple isolated strategies.
 
