@@ -167,6 +167,7 @@ Before running portfolio or authenticated commands:
 - **NEVER delete `data/kalshi.db`** to "fix" issues (e.g. `database disk image is malformed`).
 - Diagnose first (`sqlite3 data/kalshi.db "PRAGMA integrity_check;"`) and recover when needed (`sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`).
 - `data/exa_cache/` is disposable cache; the SQLite DB is not.
+- **SQLite concurrency:** Avoid running two write-heavy commands simultaneously (e.g., two `data sync-markets` in parallel). SQLite locks the entire DB on write; concurrent writers will get "database is locked" errors.
 - See the skills GOTCHAS.md for the full "Critical Anti-Patterns" section.
 
 ## Documentation Tracking
