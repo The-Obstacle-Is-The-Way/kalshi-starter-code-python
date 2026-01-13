@@ -159,14 +159,14 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 **Impact:** Low - Institutional only
 
-### 12. Event Metadata (2 endpoints) - P3
+### 12. Event Metadata & MVEs (2 endpoints) - P2/P3
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
 | `GET /events/{event_ticker}/metadata` | Event metadata | P3 |
-| `GET /events/multivariate` | Multivariate events only | P3 |
+| `GET /events/multivariate` | Multivariate events only | **P2** |
 
-**Impact:** Low - Specialized queries
+**Impact:** `/events/multivariate` is **P2 critical** - MVEs excluded from `/events` endpoint (data incomplete without it). Metadata is P3.
 
 ---
 
