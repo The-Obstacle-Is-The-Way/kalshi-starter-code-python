@@ -167,7 +167,7 @@ uv run kalshi alerts remove <ALERT_ID_PREFIX>
 
 Notes:
 
-- `volume`, `spread`, and `sentiment` alerts support `--above` only (no `--below`).
+- `--below` is only valid for `price` alerts; `volume`/`spread`/`sentiment` will error if you pass `--below`.
 - `sentiment` alerts trigger on absolute change in rolling sentiment; they depend on news/sentiment data being present
   in `data/kalshi.db` (run `kalshi news collect` periodically).
 

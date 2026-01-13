@@ -17,15 +17,14 @@ No actionable debt item remains, so this document is archived for historical con
 
 ---
 
-## Summary
+## Summary (Invalidated)
 
-When attempting to find the "What kind of device will Jony Ive and OpenAI announce?" market (`KXOAIHARDWARE`), the following issues were observed:
+This report was invalidated by the closure note above: the investigation used the wrong ticker (`KXOAIHARDWARE`).
+The correct ticker (`KXOAIHARDWARE-27`) is discoverable via the API, so the "market exists on UI but not via API"
+conclusion was incorrect.
 
-1. **Direct ticker lookup returned 404** - Market exists on web UI but not via API
-2. **Keyword search not possible** - No way to search markets by title/description
-3. **Event pagination didn't surface it** - Market not found in any event listing
-
-The market URL works in browser (`kalshi.com/markets/kxoaihardware/...`) but the API returns no results.
+The sections below are preserved as historical notes/hypotheses from the original investigation, not as current
+findings.
 
 ---
 

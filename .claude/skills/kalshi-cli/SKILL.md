@@ -24,7 +24,7 @@ uv run kalshi --help
 | `KALSHI_PRIVATE_KEY_B64` | Portfolio commands | Alternative: Base64-encoded key |
 | `KALSHI_ENVIRONMENT` | All | `prod` or `demo` (default: prod) |
 | `KALSHI_RATE_TIER` | API calls | `basic`/`advanced`/`premier`/`prime` |
-| `EXA_API_KEY` | Exa-powered research/news | API key for Exa (`research context/topic/similar/deep`, `research thesis create --with-research`, `news collect`) |
+| `EXA_API_KEY` | Exa-powered research/news | API key for Exa (`research context/topic/similar/deep`, `research thesis create --with-research`, `research thesis check-invalidation`, `research thesis suggest`, `news collect`) |
 | `EXA_BASE_URL` | Exa-powered research/news | Override Exa base URL (default: https://api.exa.ai) |
 | `EXA_TIMEOUT` | Exa-powered research/news | Exa request timeout seconds (default: 30) |
 | `EXA_MAX_RETRIES` | Exa-powered research/news | Exa max retries (default: 3) |
@@ -99,7 +99,7 @@ uv run kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH] 
 uv run kalshi research context TICKER [--max-news 10] [--max-papers 5] [--days 30] [--json]
 uv run kalshi research topic "TOPIC" [--no-summary] [--json]
 uv run kalshi research similar URL [-n 10] [--json]
-uv run kalshi research deep "TOPIC" [--model exa-research-fast|exa-research|exa-research-pro] [--wait] [--schema FILE] [--json]  # Paid API
+uv run kalshi research deep "TOPIC" [--model exa-research-fast|exa-research|exa-research-pro] [--wait] [--schema FILE] [--json]  # Paid API (exa-research-fast is supported but not always documented)
 uv run kalshi research cache clear [--all] [--cache-dir DIR]
 uv run kalshi research thesis create "TITLE" -m T1,T2 --your-prob 0.7 --market-prob 0.5 --confidence 0.8 [--with-research] [-y]
 uv run kalshi research thesis list [--full]

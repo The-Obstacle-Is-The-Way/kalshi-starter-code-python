@@ -6,8 +6,8 @@
 - Search API: [exa-openapi-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-openapi-spec.yaml)
 - Websets API: [exa-websets-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-websets-spec.yaml)
 **Python SDK:** `pip install exa-py` (module: `exa_py`)
-**Last Verified:** 2026-01-10
-**Verified Against:** Official docs via llms.txt, OpenAPI specs (August 2025)
+**Last Verified:** 2026-01-13
+**Verified Against:** Official docs via llms.txt, Exa OpenAPI specs, and live API probes where noted
 
 ---
 
@@ -451,7 +451,7 @@ Async deep research with structured output support.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `instructions` | string | Required. Research guidelines (max 4096 chars) |
-| `model` | enum | `exa-research-fast`, `exa-research`, `exa-research-pro` (SDK default: `exa-research-fast`; OpenAPI spec v1.2.0 documents `exa-research`/`exa-research-pro`) |
+| `model` | enum | `exa-research-fast`, `exa-research`, `exa-research-pro` (official docs + OpenAPI spec v1.2.0 document `exa-research`/`exa-research-pro`; the API also accepts `exa-research-fast`, and SDKs may default to it) |
 | `outputSchema` | object | JSON Schema for structured output |
 
 ### Get Parameters

@@ -86,7 +86,7 @@ Note: Kalshi's **response** `status` values (e.g. `active`) differ from the `/ma
 
 - `kalshi alerts list`
 - `kalshi alerts add <price|volume|spread|sentiment> <TICKER> (--above FLOAT | --below FLOAT)`
-  - `volume`, `spread`, and `sentiment` support `--above` only (no `--below`)
+  - `--below` is only valid for `price` alerts; `volume`/`spread`/`sentiment` will error if you pass `--below`.
 - `kalshi alerts remove <ALERT_ID_PREFIX>`
 - `kalshi alerts monitor [--once] [--interval SEC] [--max-pages N] [--daemon] [--output-file PATH] [--webhook-url URL]`
   - `--daemon` starts a detached background process and writes logs to `data/alert_monitor.log`.
@@ -96,9 +96,9 @@ Alerts are stored locally at `data/alerts.json`.
 
 ## `kalshi analysis`
 
-- `kalshi analysis metrics <TICKER> --db PATH`
-- `kalshi analysis calibration [--days N] [--output FILE] --db PATH`
-- `kalshi analysis correlation --db PATH (--event EVT | --tickers T1,T2,...) [--min FLOAT] [--top N]`
+- `kalshi analysis metrics <TICKER> [--db PATH]`
+- `kalshi analysis calibration [--db PATH] [--days N] [--output FILE]`
+- `kalshi analysis correlation [--db PATH] (--event EVT | --tickers T1,T2,...) [--min FLOAT] [--top N]`
 
 ## `kalshi research`
 

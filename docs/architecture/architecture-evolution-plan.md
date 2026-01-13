@@ -2,6 +2,10 @@
 
 This document is a cleaned-up, Markdown-formatted version of an externally drafted architecture plan. The intent is to preserve the original content while making it readable and actionable for this repo.
 
+Note: This is a forward-looking roadmap. It discusses potential architecture directions and research references;
+where the original draft quoted specific benchmark numbers, this doc intentionally avoids repeating exact figures
+to prevent accidental misquotation. Treat the linked papers as the source of truth for empirical results.
+
 ## Summary
 
 - Default to a **single orchestrator** for tool-heavy, sequential workflows.
@@ -12,23 +16,23 @@ This document is a cleaned-up, Markdown-formatted version of an externally draft
 
 ## Empirical Guidance: Agent Architecture Should Match the Task
 
-Key takeaways from *Towards a Science of Scaling Agent Systems* (arXiv:2512.08296, Dec 2025), as relevant to this repo:
+Key takeaways from *Towards a Science of Scaling Agent Systems* (arXiv:2512.08296, Dec 2025), as relevant to this repo
+(see the paper for exact benchmark numbers):
 
-- **Tool-heavy + sequential** workflows often get worse with multi-agent coordination overhead (especially under fixed budgets).
-- For **sequential reasoning** tasks, multi-agent variants degraded performance by **~39–70%** in the paper’s benchmarks.
-- There is an “**ability saturation**” ceiling: once a single-agent baseline exceeds **~45%** task success, adding agents tends to give diminishing or negative returns.
-- **Independent agents amplify errors** dramatically (reported **~17.2×**), while **centralized supervisor/judge** coordination contains error amplification via a validation bottleneck (reported **~4.4×**).
-- Multi-agent systems can still help when the problem is **decomposable/parallelizable** (e.g., **+80.8%** reported on a parallelizable financial reasoning benchmark, Finance-Agent) or in certain interactive navigation settings (decentralized variants showed modest gains there).
+- **Tool-heavy + sequential** workflows can get worse with multi-agent coordination overhead (especially under fixed budgets).
+- Multi-agent variants can underperform a strong single-agent baseline on **sequential reasoning/tool-use** tasks.
+- Gains are more plausible when the problem is **decomposable/parallelizable**, or when using a **centralized supervisor/judge** pattern rather than independent agents.
+- Decentralized independent-agent schemes can amplify errors; centralized supervision can contain error propagation via a validation bottleneck.
 
 Bottom line: **architecture-task alignment wins**. Start single-agent for our default pipeline, keep a centralized multi-agent upgrade path for justified cases.
 
 ## Architecture Recommendation (Single vs. Multi-Agent)
 
-For the goal of “surfacing mispriced prediction markets using AI research,” a single-agent architecture is the prudent starting point. The DeepMind study indicates that adding agents can hurt tool-heavy, sequential tasks. In fact, multi-agent setups showed 39–70% performance degradation on sequential reasoning tasks, which fits our use-case (gather data → analyze → synthesize). A single capable agent using tools sequentially will avoid the coordination overhead that multi-agent teams impose on tool usage.
+For the goal of “surfacing mispriced prediction markets using AI research,” a single-agent architecture is the prudent starting point. The referenced agent-systems work suggests that adding agents can hurt tool-heavy, sequential tasks, which fits our use-case (gather data → analyze → synthesize). A single capable agent using tools sequentially avoids the coordination overhead that multi-agent teams impose on tool usage.
 
 If we later find clear sub-tasks that benefit from parallelization (e.g. fetching independent data sources concurrently), we can introduce a centralized multi-agent pattern. The DeepMind paper suggests a central “Supervisor” agent delegating to specialist sub-agents can preserve quality better than agents working independently. In a centralized scheme, a primary agent would coordinate specialized helpers (for research, history, arbitrage), then integrate their outputs. This avoids the large error amplification seen in fully independent agents.
 
-However, initial implementation will stay single-agent until there’s a justified need for concurrency or specialization. This aligns with the principle “start simple, add complexity only when justified.” We expect a single agent (using structured tools) to achieve a strong baseline – per the paper, coordination only yields gains if the single-agent performance is low (below ~45% task success). Given modern model capabilities, one agent will likely suffice at first. In summary, optimize for a single orchestrator agent now for reliability, and keep the door open for a centralized multi-agent upgrade if scaling demands it.
+However, initial implementation will stay single-agent until there’s a justified need for concurrency or specialization. This aligns with the principle “start simple, add complexity only when justified.” In summary, optimize for a single orchestrator agent now for reliability, and keep the door open for a centralized multi-agent upgrade if scaling demands it.
 
 ## Agent Design & Coordination Pattern
 

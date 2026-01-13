@@ -68,10 +68,11 @@ These are "10/10" improvements that actually fit an internal research tool.
 
 1. **Exit code correctness for missing identifiers** ✅ **FIXED (2026-01-13)**
    Commands that previously returned **success** when a requested resource didn't exist now return a non-zero
-   exit code (`Exit(2)`), consistent with common Unix CLI expectations:
+   exit code (`Exit(2)`), consistent with common Unix CLI expectations for "not found" errors:
    - `git show <missing>` → Exit 128 (error)
-   - `kubectl get <missing>` → Exit 1 (error)
-   - `rm <missing>` → Exit 1 (error), `rm -f` → Exit 0 (explicit flag)
+   - `rm <missing>` → Exit 1 (error), `rm -f <missing>` → Exit 0 (explicit flag)
+   - Note: some tools (e.g. `kubectl`) vary by context and don't consistently distinguish "empty" vs "not found"
+     via exit codes; prefer structured output parsing (`-o json`, inspect `.items`) where it matters.
 
    Fixed commands include:
    - Thesis + alerts: `alerts remove`, `thesis show`, `thesis resolve`, `thesis check-invalidation`
@@ -120,7 +121,7 @@ multi-user concurrency, or operational ownership (dashboards, alerts, SLOs).
 |------|--------------|
 | DEBT-018 | Test SSOT stabilization (separate scope) |
 | DEBT-014 | Friction residuals (design decisions, separate) |
-| CLAUDE.md | Should document SQLite concurrency if we don't implement locking |
+| CLAUDE.md / AGENTS.md / GEMINI.md | SQLite concurrency documented (see CLI-Scoped Improvements above) |
 
 ---
 
@@ -130,7 +131,7 @@ This audit was performed by:
 1. Reading all core modules: `api/client.py`, `exa/client.py`, `data/database.py`, `data/fetcher.py`
 2. Checking for common production-service patterns (circuit breakers, connection pools, metrics)
 3. Verifying test coverage exists and is meaningful
-4. Running unit test suite (`uv run pytest tests/unit`) (633 tests passed)
+4. Running unit test suite (`uv run pytest tests/unit`)
 5. Cross-referencing agent findings with actual code
 
 The verdict: **Production-grade for single-user CLI, with documented gaps for service evolution.**

@@ -56,4 +56,4 @@ Optional refinement:
 - [x] Decide and document the exit code contract (this doc is the draft SSOT).
 - [x] Update CLI commands to follow the policy for “specific resource not found”.
 - [x] Add/adjust unit tests to lock in behavior (CLI exit codes).
-- [x] Ensure docs stay accurate (`docs/_debt/DEBT-023-production-maturity-gaps.md`, `docs/developer/cli-reference.md` if needed).
+- [x] Ensure docs stay accurate (`docs/_archive/debt/DEBT-023-production-maturity-gaps.md`, `docs/developer/cli-reference.md` if needed).

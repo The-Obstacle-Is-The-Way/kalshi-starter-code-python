@@ -246,7 +246,7 @@ uv run kalshi portfolio pnl            # Reads local DB cache
 These operations may incur real costs:
 
 - **Order placement** (`create_order`) - Real money on prod environment
-- **Exa API calls** (`research context`, `research topic`, `research deep`, `research thesis create --with-research`, `news collect`) - Exa API usage costs
+- **Exa API calls** (`research context`, `research topic`, `research similar`, `research deep`, `research thesis create --with-research`, `research thesis check-invalidation`, `research thesis suggest`, `news collect`) - Exa API usage costs
 
 ### Pre-flight Checklist for Authenticated Commands
 

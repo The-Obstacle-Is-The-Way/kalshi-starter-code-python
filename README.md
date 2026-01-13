@@ -9,6 +9,9 @@
 
 Research tools for Kalshi prediction market analysis.
 
+Project intent: this is a **single-user research CLI** (plus local SQLite cache) for internal workflows. It is **not**
+intended as a multi-user production service.
+
 ## Features
 
 - **Data pipeline** - Sync markets/events/settlements, take price snapshots, export to Parquet/CSV, run DB migrations

@@ -11,7 +11,7 @@ Without backtesting, you're flying blind:
 - You might think you're good at predictions, but you're just lucky
 - You might avoid certain markets that you're actually good at
 - You can't optimize position sizing without historical performance data
-- You can't calculate risk metrics (Sharpe ratio, max drawdown)
+- You can't calculate risk metrics (e.g., Sharpe ratio)
 
 Backtesting uses your resolved theses + historical settlement data to simulate what would have happened.
 
@@ -72,24 +72,30 @@ After simulating all trades, you get:
 ```python
 @dataclass
 class BacktestResult:
+    thesis_id: str
+    period_start: datetime
+    period_end: datetime
+
+    trades: list[BacktestTrade] = field(default_factory=list)
+
     # Trade statistics
-    total_trades: int
-    winning_trades: int
-    losing_trades: int
+    total_trades: int = 0
+    winning_trades: int = 0
+    losing_trades: int = 0
 
     # P&L
-    total_pnl: float       # Total P&L in cents
-    avg_pnl: float         # Average P&L per trade
-    max_win: float
-    max_loss: float
+    total_pnl: float = 0.0       # Total P&L in cents
+    avg_pnl: float = 0.0         # Average P&L per trade
+    max_win: float = 0.0
+    max_loss: float = 0.0
 
     # Accuracy metrics
-    accuracy: float        # % predictions correct
-    brier_score: float     # Brier score of predictions
-    win_rate: float        # % of trades profitable
+    accuracy: float = 0.0        # % predictions correct
+    brier_score: float = 0.0     # Brier score of predictions
+    win_rate: float = 0.0        # % of trades profitable
 
     # Risk metrics
-    sharpe_ratio: float    # Simplified Sharpe
+    sharpe_ratio: float = 0.0    # Simplified Sharpe
 ```
 
 ### Understanding the Metrics
@@ -188,18 +194,7 @@ Markets that settle as "void" are skipped in backtesting - they don't affect P&L
 - CLI command: `src/kalshi_research/cli/research.py`
 - Settlement model: `src/kalshi_research/data/models.py`
 
-## Example Output
-
-```text
-Backtest Results (thesis-abc123):
-  Period: 2024-01-01 to 2024-12-31
-  Trades: 15 (10W / 5L)
-  Win Rate: 66.7%
-  Total P&L: +350c
-  Avg P&L: +23.3c/trade
-  Brier Score: 0.1823
-  Accuracy: 73.3%
-```
+The CLI prints a summary plus a per-thesis results table (P&L, win rate, Brier score, Sharpe).
 
 ## See Also
 
