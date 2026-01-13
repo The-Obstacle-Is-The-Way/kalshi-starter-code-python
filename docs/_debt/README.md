@@ -28,7 +28,7 @@ DEBT-014 (Friction/Design) ← Feature work
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-022**
+**DEBT-025**
 
 ---
 
@@ -105,6 +105,9 @@ All resolved debt items are stored in
 | **[DEBT-017](../_archive/debt/DEBT-017-model-architecture-cleanup.md)** | Model Architecture Cleanup (Duplicate Order Models + Validation Gaps) | ✅ Complete |
 | **[DEBT-019](../_archive/debt/DEBT-019-exa-empty-publisheddate-validation.md)** | Exa Empty `publishedDate` Validation Bug | ✅ Complete |
 | **[DEBT-020](../_archive/debt/DEBT-020-kalshi-market-discovery-gaps.md)** | Kalshi Market Discovery Gaps (false positive / user error) | ✅ Closed |
+| **[DEBT-022](../_archive/debt/DEBT-022-exa-research-task-recovery.md)** | Exa Research Task Recovery (`list_research_tasks()` crash recovery) | ✅ Complete |
+| **[DEBT-023](../_archive/debt/DEBT-023-production-maturity-gaps.md)** | Production Maturity Gaps (Senior Engineer Audit) | ✅ Complete (Reference Doc) |
+| **[DEBT-024](../_archive/debt/DEBT-024-cli-exit-code-policy.md)** | CLI exit code policy (not found vs empty results) | ✅ Complete |
 
 ---
 

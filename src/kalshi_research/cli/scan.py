@@ -1,3 +1,5 @@
+"""Typer CLI commands for scanning markets and surfacing opportunities."""
+
 from __future__ import annotations
 
 import asyncio

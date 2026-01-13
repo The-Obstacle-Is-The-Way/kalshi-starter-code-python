@@ -1,3 +1,5 @@
+"""Typer CLI commands for market lookup and exploration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -62,7 +64,7 @@ def market_get(
                 market = await client.get_market(ticker)
             except KalshiAPIError as e:
                 console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                raise typer.Exit(2 if e.status_code == 404 else 1) from None
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -104,7 +106,7 @@ def market_orderbook(
                 orderbook = await client.get_orderbook(ticker, depth=depth)
             except KalshiAPIError as e:
                 console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                raise typer.Exit(2 if e.status_code == 404 else 1) from None
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -162,7 +164,7 @@ def market_liquidity(
                 orderbook = await client.get_orderbook(ticker, depth=depth)
             except KalshiAPIError as e:
                 console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                raise typer.Exit(2 if e.status_code == 404 else 1) from None
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -322,7 +324,7 @@ def market_history(
                     candles = responses[0].candlesticks if responses else []
             except KalshiAPIError as e:
                 console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                raise typer.Exit(2 if e.status_code == 404 else 1) from None
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None

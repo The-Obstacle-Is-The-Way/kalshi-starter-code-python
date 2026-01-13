@@ -141,14 +141,14 @@ def test_news_track_ticker_not_found_exits(tmp_path) -> None:
     with patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi):
         result = runner.invoke(app, ["news", "track", "MISSING", "--db", str(db_path)])
 
-    assert result.exit_code == 1
+    assert result.exit_code == 2
     assert "Ticker not found" in result.stdout
 
 
 def test_news_untrack_not_tracked_exits(tmp_path) -> None:
     db_path = tmp_path / "news.db"
     result = runner.invoke(app, ["news", "untrack", "NOPE", "--db", str(db_path)])
-    assert result.exit_code == 1
+    assert result.exit_code == 2
     assert "Not tracked" in result.stdout
 
 

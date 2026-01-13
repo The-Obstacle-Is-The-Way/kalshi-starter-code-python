@@ -99,147 +99,164 @@ async def _record_get(
     exa: ExaClient,
     name: str,
     endpoint: str,
+    params: dict[str, Any] | None = None,
     metadata: dict[str, Any],
 ) -> dict[str, Any]:
     print(f"Recording: GET {endpoint} -> {name}_response.json")
-    raw = await exa._request("GET", endpoint)
+    raw = await exa._request("GET", endpoint, params=params)
     save_golden(name=name, response=raw, metadata={"endpoint": endpoint, **metadata})
     return raw
 
 
-async def record_exa_fixtures(*, include_research: bool, only_research: bool) -> None:
-    api_key = os.getenv("EXA_API_KEY")
-    if not api_key:
-        raise RuntimeError("EXA_API_KEY not configured (check .env)")
+async def _record_core_endpoints(*, exa: ExaClient) -> None:
+    query = "Example Domain"
+    stable_domain = "example.com"
+    example_url = "https://example.com"
 
-    async with ExaClient.from_env() as exa:
-        query = "Example Domain"
-        stable_domain = "example.com"
-        example_url = "https://example.com"
+    # 1) /search (no contents)
+    search_request = SearchRequest(query=query, num_results=1, include_domains=[stable_domain])
+    await _record_post(
+        exa=exa,
+        name="search",
+        endpoint="/search",
+        json_body=search_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        metadata={"query": query, "num_results": 1, "include_domains": [stable_domain]},
+    )
 
-        if not only_research:
-            # 1) /search (no contents)
-            search_request = SearchRequest(
-                query=query, num_results=1, include_domains=[stable_domain]
-            )
-            await _record_post(
-                exa=exa,
-                name="search",
-                endpoint="/search",
-                json_body=search_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
-                metadata={"query": query, "num_results": 1, "include_domains": [stable_domain]},
-            )
+    # 2) /search (with contents)
+    contents = ContentsRequest(
+        text=TextContentsOptions(max_characters=500),
+        highlights=HighlightsOptions(query=query, num_sentences=2, highlights_per_url=1),
+    )
+    search_contents_request = SearchRequest(
+        query=query,
+        num_results=1,
+        include_domains=[stable_domain],
+        contents=contents,
+    )
+    await _record_post(
+        exa=exa,
+        name="search_and_contents",
+        endpoint="/search",
+        json_body=search_contents_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        metadata={
+            "query": query,
+            "num_results": 1,
+            "include_domains": [stable_domain],
+            "note": "Recorded via /search with a contents object",
+        },
+    )
 
-            # 2) /search (with contents)
-            contents = ContentsRequest(
-                text=TextContentsOptions(max_characters=500),
-                highlights=HighlightsOptions(query=query, num_sentences=2, highlights_per_url=1),
-            )
-            search_contents_request = SearchRequest(
-                query=query,
-                num_results=1,
-                include_domains=[stable_domain],
-                contents=contents,
-            )
-            search_contents_payload = search_contents_request.model_dump(
-                by_alias=True, exclude_none=True, mode="json"
-            )
-            await _record_post(
-                exa=exa,
-                name="search_and_contents",
-                endpoint="/search",
-                json_body=search_contents_payload,
+    # 3) /contents
+    contents_request = GetContentsRequest(
+        urls=[example_url],
+        text=TextContentsOptions(max_characters=800),
+    )
+    await _record_post(
+        exa=exa,
+        name="get_contents",
+        endpoint="/contents",
+        json_body=contents_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        metadata={"urls": [example_url]},
+    )
+
+    # 4) /findSimilar
+    find_similar_request = FindSimilarRequest(url=example_url, num_results=3)
+    find_similar_payload = find_similar_request.model_dump(
+        by_alias=True, exclude_none=True, mode="json"
+    )
+    await _record_post(
+        exa=exa,
+        name="find_similar",
+        endpoint="/findSimilar",
+        json_body=find_similar_payload,
+        metadata={"url": example_url, "num_results": 3},
+    )
+
+    # 5) /answer
+    answer_query = "What is Example Domain?"
+    answer_request = AnswerRequest(query=answer_query, text=False)
+    await _record_post(
+        exa=exa,
+        name="answer",
+        endpoint="/answer",
+        json_body=answer_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        metadata={"query": answer_query},
+    )
+
+
+def _is_safe_research_task_list_response(*, response: dict[str, Any], research_id: str) -> bool:
+    data = response.get("data")
+    if not isinstance(data, list):
+        return False
+    if not data:
+        return True
+    if not isinstance(data[0], dict):
+        return False
+    return data[0].get("researchId") == research_id
+
+
+async def _record_research_endpoints(*, exa: ExaClient) -> None:
+    # NOTE: /research/v1 can be higher cost/latency. Keep the task small.
+    instructions = "Summarize https://example.com in 1 short sentence."
+    research_request = ResearchRequest(instructions=instructions)
+
+    print("Recording: POST /research/v1 -> research_task_create_response.json")
+    created = await exa._request(
+        "POST",
+        "/research/v1",
+        json_body=research_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
+    )
+    save_golden(
+        name="research_task_create",
+        response=created,
+        metadata={"endpoint": "/research/v1", "instructions": instructions},
+    )
+
+    research_id = created.get("researchId")
+    if not isinstance(research_id, str) or not research_id:
+        raise RuntimeError("Unexpected /research/v1 create response: missing researchId")
+
+    # 0) /research/v1 (list) - keep limit=1 to avoid capturing unrelated tasks/instructions.
+    list_limit = 1
+    print("Recording: GET /research/v1 (list) -> research_task_list_response.json")
+    list_response = await exa._request("GET", "/research/v1", params={"limit": list_limit})
+    if not _is_safe_research_task_list_response(response=list_response, research_id=research_id):
+        raise RuntimeError(
+            "Refusing to record research task list fixture: "
+            "response did not include the created task."
+        )
+    save_golden(
+        name="research_task_list",
+        response=list_response,
+        metadata={
+            "endpoint": "/research/v1",
+            "limit": list_limit,
+            "note": "Recorded after creating example.com task; limit=1 avoids unrelated tasks.",
+        },
+    )
+
+    print("Polling: GET /research/v1/{researchId} until terminal status...")
+    deadline = time.monotonic() + 180.0
+    while True:
+        task = await exa._request("GET", f"/research/v1/{research_id}")
+        status = task.get("status")
+        if status in ("completed", "failed", "canceled"):
+            save_golden(
+                name="research_task",
+                response=task,
                 metadata={
-                    "query": query,
-                    "num_results": 1,
-                    "include_domains": [stable_domain],
-                    "note": "Recorded via /search with a contents object",
+                    "endpoint": f"/research/v1/{research_id}",
+                    "note": "Terminal response",
                 },
             )
+            return
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Research task did not reach a terminal status in time")
+        await asyncio.sleep(5.0)
 
-            # 3) /contents
-            contents_request = GetContentsRequest(
-                urls=[example_url],
-                text=TextContentsOptions(max_characters=800),
-            )
-            await _record_post(
-                exa=exa,
-                name="get_contents",
-                endpoint="/contents",
-                json_body=contents_request.model_dump(
-                    by_alias=True, exclude_none=True, mode="json"
-                ),
-                metadata={"urls": [example_url]},
-            )
 
-            # 4) /findSimilar
-            find_similar_request = FindSimilarRequest(url=example_url, num_results=3)
-            find_similar_payload = find_similar_request.model_dump(
-                by_alias=True, exclude_none=True, mode="json"
-            )
-            await _record_post(
-                exa=exa,
-                name="find_similar",
-                endpoint="/findSimilar",
-                json_body=find_similar_payload,
-                metadata={"url": example_url, "num_results": 3},
-            )
-
-            # 5) /answer
-            answer_query = "What is Example Domain?"
-            answer_request = AnswerRequest(query=answer_query, text=False)
-            await _record_post(
-                exa=exa,
-                name="answer",
-                endpoint="/answer",
-                json_body=answer_request.model_dump(by_alias=True, exclude_none=True, mode="json"),
-                metadata={"query": answer_query},
-            )
-
-        if include_research:
-            # NOTE: /research/v1 can be higher cost/latency. Keep the task small.
-            instructions = "Summarize https://example.com in 1 short sentence."
-            research_request = ResearchRequest(instructions=instructions)
-
-            print("Recording: POST /research/v1 -> research_task_create_response.json")
-            research_payload = research_request.model_dump(
-                by_alias=True, exclude_none=True, mode="json"
-            )
-            created = await exa._request(
-                "POST",
-                "/research/v1",
-                json_body=research_payload,
-            )
-            save_golden(
-                name="research_task_create",
-                response=created,
-                metadata={"endpoint": "/research/v1", "instructions": instructions},
-            )
-
-            research_id = created.get("researchId")
-            if not isinstance(research_id, str) or not research_id:
-                raise RuntimeError("Unexpected /research/v1 create response: missing researchId")
-
-            print("Polling: GET /research/v1/{researchId} until terminal status...")
-            deadline = time.monotonic() + 180.0
-            while True:
-                task = await exa._request("GET", f"/research/v1/{research_id}")
-                status = task.get("status")
-                if status in ("completed", "failed", "canceled"):
-                    terminal_metadata = {
-                        "endpoint": f"/research/v1/{research_id}",
-                        "note": "Terminal response",
-                    }
-                    save_golden(
-                        name="research_task",
-                        response=task,
-                        metadata=terminal_metadata,
-                    )
-                    break
-                if time.monotonic() >= deadline:
-                    raise TimeoutError("Research task did not reach a terminal status in time")
-                await asyncio.sleep(5.0)
-
+def _write_exa_recording_summary(*, include_research: bool) -> None:
     summary_path = GOLDEN_EXA_DIR / "_recording_summary.json"
     summary_path.write_text(
         json.dumps(
@@ -260,6 +277,19 @@ async def record_exa_fixtures(*, include_research: bool, only_research: bool) ->
         )
     )
     print(f"\nSaved Exa summary: {summary_path}")
+
+
+async def record_exa_fixtures(*, include_research: bool, only_research: bool) -> None:
+    if not os.getenv("EXA_API_KEY"):
+        raise RuntimeError("EXA_API_KEY not configured (check .env)")
+
+    async with ExaClient.from_env() as exa:
+        if not only_research:
+            await _record_core_endpoints(exa=exa)
+        if include_research:
+            await _record_research_endpoints(exa=exa)
+
+    _write_exa_recording_summary(include_research=include_research)
 
 
 async def main() -> None:

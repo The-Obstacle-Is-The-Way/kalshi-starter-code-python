@@ -6,8 +6,8 @@
 - Search API: [exa-openapi-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-openapi-spec.yaml)
 - Websets API: [exa-websets-spec.yaml](https://raw.githubusercontent.com/exa-labs/openapi-spec/refs/heads/master/exa-websets-spec.yaml)
 **Python SDK:** `pip install exa-py` (module: `exa_py`)
-**Last Verified:** 2026-01-10
-**Verified Against:** Official docs via llms.txt, OpenAPI specs (August 2025)
+**Last Verified:** 2026-01-13
+**Verified Against:** Official docs via llms.txt, Exa OpenAPI specs, and live API probes where noted
 
 ---
 
@@ -427,12 +427,31 @@ for citation in result.citations:
 
 Async deep research with structured output support.
 
+### List Parameters (GET /research/v1)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `cursor` | string | - | Cursor for pagination (use `nextCursor` from prior response) |
+| `limit` | int | 10 | Number of results (OpenAPI: 1–50) |
+
+### List Response (200)
+
+```json
+{
+  "data": [],
+  "hasMore": false,
+  "nextCursor": null
+}
+```
+
+> **Note:** The list endpoint wraps items under `data` (not `items`) and uses `nextCursor` (not `cursor`).
+
 ### Create Request Body
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `instructions` | string | Required. Research guidelines (max 4096 chars) |
-| `model` | enum | `exa-research-fast`, `exa-research`, `exa-research-pro` (SDK default: `exa-research-fast`; OpenAPI spec v1.2.0 documents `exa-research`/`exa-research-pro`) |
+| `model` | enum | `exa-research-fast`, `exa-research`, `exa-research-pro` (official docs list all three; the Exa OpenAPI spec repo currently omits `exa-research-fast`, but the API accepts it — verified via live `/research/v1` create on 2026-01-13) |
 | `outputSchema` | object | JSON Schema for structured output |
 
 ### Get Parameters
@@ -441,6 +460,8 @@ Async deep research with structured output support.
 |-----------|------|---------|-------------|
 | `stream` | boolean | false | Stream Server-Sent Events (SSE) |
 | `events` | boolean | false | Include `events` in non-streaming responses |
+
+> **OpenAPI note:** The raw `exa-openapi-spec.yaml` currently marks `stream`/`events` as required query params and types them as `string`; observed API usage (and SDKs) treat them as optional booleans.
 
 ### Response (create: 201)
 

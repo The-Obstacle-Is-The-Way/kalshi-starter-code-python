@@ -2,6 +2,16 @@
 
 This file provides guidance to Gemini CLI and Gemini Code Assist when working with this repository.
 
+## Project Intent (Avoid Over-Engineering)
+
+This repository is an **internal, single-user research CLI** (plus local SQLite cache) for a solo trader.
+It is **not** a multi-user production service.
+
+- Prefer **simple, testable** changes over “enterprise patterns”.
+- Do **not** add service infrastructure (circuit breakers, Prometheus/Otel, request tracing, DI) unless a SPEC/BUG
+  explicitly requires it.
+- Keep dependencies minimal; focus on correctness, clear UX, and robust error handling.
+
 ## Agent Skills
 
 This repository includes Agent Skills for enhanced CLI navigation and documentation auditing:
@@ -57,8 +67,8 @@ This platform enables users to:
 * **Analyze Markets:** Perform calibration analysis, detect edges, scan for arbitrage, and identify significant price movers.
 * **Track Theses:** Create and track research theses, link them to positions, and resolve them to measure accuracy.
 * **Monitor Portfolios:** View current positions, calculate P&L, and analyze trade history.
-* **Alerting:** Set up alerts for price, volume, and spread conditions.
-* **News & Research:** Collect news via Exa API, run sentiment analysis, research topics.
+* **Alerting:** Set up alerts for price, volume, spread, and sentiment shift conditions.
+* **News & Research:** Collect news via Exa API, run sentiment analysis, research topics, and manage async deep research tasks (with crash recovery).
 
 ### Key Technologies
 * **Language:** Python 3.11+
@@ -118,13 +128,18 @@ The application is accessed via the `kalshi` command (run via `uv run`).
 * **Research & Theses:**
   ```bash
   # Create a new thesis
-  uv run kalshi research thesis create "Bitcoin > 100k" --markets KXBTC --your-prob 0.65 --market-prob 0.45
+  uv run kalshi research thesis create "Bitcoin > 100k" \
+    --markets KXBTC \
+    --your-prob 0.65 \
+    --market-prob 0.45 \
+    --confidence 0.8
 
   # List theses
   uv run kalshi research thesis list
 
-  # Exa-powered research
-  uv run kalshi research topic "Will the Fed cut rates in 2026?"
+  # Exa-powered research (requires EXA_API_KEY)
+  EXA_API_KEY=... uv run kalshi research topic "Will the Fed cut rates in 2026?"
+  EXA_API_KEY=... uv run kalshi research deep "Summarize what could cause this market to resolve YES." --model exa-research-fast --wait
   ```
 
 * **News Monitoring:**
@@ -133,7 +148,7 @@ The application is accessed via the `kalshi` command (run via `uv run`).
   uv run kalshi news track TICKER
 
   # Collect news and sentiment
-  uv run kalshi news collect
+  EXA_API_KEY=... uv run kalshi news collect
   ```
 
 * **Analysis:**
@@ -178,6 +193,7 @@ This will automatically check:
   - `sqlite3 data/kalshi.db "PRAGMA integrity_check;"`
   - `sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`
 - `data/exa_cache/` is safe to delete; the SQLite DB is not.
+- **SQLite concurrency:** Avoid running two write-heavy commands simultaneously (e.g., two `data sync-markets` in parallel). SQLite locks the entire DB on write; concurrent writers will get "database is locked" errors.
 - See `.gemini/skills/kalshi-cli/GOTCHAS.md` for the full "Critical Anti-Patterns" section.
 
 ### Directory Structure
@@ -230,7 +246,7 @@ uv run kalshi portfolio pnl            # Reads local DB cache
 These operations may incur real costs:
 
 - **Order placement** (`create_order`) - Real money on prod environment
-- **Exa API calls** (`research context`, `research topic`, `news collect`) - Exa API usage costs
+- **Exa API calls** (`research context`, `research topic`, `research similar`, `research deep`, `research thesis create --with-research`, `research thesis check-invalidation`, `research thesis suggest`, `news collect`) - Exa API usage costs
 
 ### Pre-flight Checklist for Authenticated Commands
 

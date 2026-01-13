@@ -1,3 +1,5 @@
+"""Shared utilities for CLI commands (console output, JSON storage)."""
+
 import json
 import uuid
 from pathlib import Path

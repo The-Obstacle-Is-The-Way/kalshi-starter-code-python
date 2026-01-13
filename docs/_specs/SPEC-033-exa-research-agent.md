@@ -85,6 +85,16 @@ Stop early when the next step would exceed `budget_usd`:
 - mark remaining steps as skipped
 - produce partial `ResearchSummary` with `budget_exhausted=True` (SPEC-032 schema field)
 
+### 2b) Crash recovery for `/research/v1` tasks (required)
+
+Any `deep` run that creates a `/research/v1` task must be recoverable after a crash:
+
+- Persist `research_id` (and a short instructions hash) **before** polling.
+- On restart, call `ExaClient.list_research_tasks()` to reconcile orphaned tasks and recover results.
+- Prefer `ExaClient.find_recent_research_task()` as a convenience helper when the ID is missing.
+
+This is a hard dependency for robust budget tracking and cost auditing (DEBT-022).
+
 ### 3) Output schema
 
 The agent outputs:

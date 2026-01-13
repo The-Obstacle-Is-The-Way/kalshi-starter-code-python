@@ -1,3 +1,5 @@
+"""Typer CLI commands for market analysis."""
+
 import asyncio
 import json
 from datetime import UTC, datetime, timedelta

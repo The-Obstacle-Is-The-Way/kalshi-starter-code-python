@@ -10,6 +10,8 @@ while true; do
 done
 ```
 
+If `PROGRESS.md` has no unchecked items, exit cleanly without making changes.
+
 ## First Action: Read State
 
 **IMMEDIATELY** read state files:
@@ -51,6 +53,7 @@ If yes, **THIS ITERATION IS A REVIEW ITERATION**:
 
 1. Check for unreviewed SPEC-* (see above) - if found, do review, then exit
 2. Find the **FIRST** unchecked `[ ]` item in PROGRESS.md
+   - If there are no unchecked items, exit cleanly (do not invent new tasks).
 3. Read the corresponding doc: `docs/_bugs/BUG-XXX*.md`, `docs/_debt/DEBT-XXX*.md`, `docs/_specs/SPEC-XXX*.md`, or `docs/_future/(FUTURE|TODO)-*.md`
 4. **READ THE ACCEPTANCE CRITERIA** in the task doc - you MUST complete ALL of them
 5. Apply the **Critical Review Prompt** (below) to any external feedback and to your own assumptions
@@ -171,6 +174,8 @@ git commit -m "[TASK-ID] Brief description"
 - Any quality gate failed
 - You haven't committed
 - Task doc has unchecked acceptance criteria but PROGRESS.md shows `[x]`
+
+If you made no changes (because there were no active tasks), exit without committing.
 
 ## File Locations
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from kalshi_research.data.models import Settlement
@@ -38,10 +38,14 @@ class SettlementRepository(BaseRepository[Settlement]):
                 "event_ticker": stmt.excluded.event_ticker,
                 "settled_at": stmt.excluded.settled_at,
                 "result": stmt.excluded.result,
-                "final_yes_price": stmt.excluded.final_yes_price,
-                "final_no_price": stmt.excluded.final_no_price,
-                "yes_payout": stmt.excluded.yes_payout,
-                "no_payout": stmt.excluded.no_payout,
+                "final_yes_price": func.coalesce(
+                    stmt.excluded.final_yes_price, Settlement.final_yes_price
+                ),
+                "final_no_price": func.coalesce(
+                    stmt.excluded.final_no_price, Settlement.final_no_price
+                ),
+                "yes_payout": func.coalesce(stmt.excluded.yes_payout, Settlement.yes_payout),
+                "no_payout": func.coalesce(stmt.excluded.no_payout, Settlement.no_payout),
             },
         )
         await self._session.execute(stmt)

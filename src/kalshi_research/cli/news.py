@@ -141,7 +141,7 @@ def news_track(
         )
     except ValueError:
         console.print(f"[red]Error:[/red] Ticker not found: {ticker}")
-        raise typer.Exit(1) from None
+        raise typer.Exit(2) from None
 
     console.print(f"[green]✓[/green] Now tracking: {tracked_ticker} ({item_type})")
     console.print(f"[dim]Queries: {search_queries}[/dim]")
@@ -165,7 +165,7 @@ def news_untrack(
             removed = await tracker.untrack(ticker)
         if not removed:
             console.print(f"[yellow]Not tracked:[/yellow] {ticker}")
-            raise typer.Exit(1)
+            raise typer.Exit(2)
         console.print(f"[green]✓[/green] Untracked: {ticker}")
 
     asyncio.run(_untrack())

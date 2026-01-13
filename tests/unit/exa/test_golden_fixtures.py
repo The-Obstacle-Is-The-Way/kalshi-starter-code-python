@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from kalshi_research.exa.models.answer import AnswerResponse
 from kalshi_research.exa.models.contents import ContentsResponse
-from kalshi_research.exa.models.research import ResearchTask
+from kalshi_research.exa.models.research import ResearchTask, ResearchTaskListResponse
 from kalshi_research.exa.models.search import SearchResponse
 from kalshi_research.exa.models.similar import FindSimilarResponse
 from tests.golden_fixtures import load_golden_response
@@ -40,3 +40,9 @@ def test_exa_research_task_create_fixture_matches_model() -> None:
 
 def test_exa_research_task_fixture_matches_model() -> None:
     ResearchTask.model_validate(load_golden_response("exa", "research_task_response.json"))
+
+
+def test_exa_research_task_list_fixture_matches_model() -> None:
+    ResearchTaskListResponse.model_validate(
+        load_golden_response("exa", "research_task_list_response.json")
+    )

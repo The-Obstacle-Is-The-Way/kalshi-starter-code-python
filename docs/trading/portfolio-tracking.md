@@ -49,6 +49,9 @@ KALSHI_PRIVATE_KEY_PATH=/path/to/private_key.pem
 KALSHI_PRIVATE_KEY_B64=base64-encoded-key
 
 KALSHI_ENVIRONMENT=demo  # or "prod"
+
+# Optional: tune authenticated rate limits (only used for portfolio commands)
+KALSHI_RATE_TIER=basic  # basic|advanced|premier|prime
 ```
 
 The CLI loads `.env` automatically.
@@ -116,6 +119,7 @@ Check your account balance:
 ```bash
 uv run kalshi portfolio balance
 uv run kalshi portfolio balance --env demo
+uv run kalshi portfolio balance --rate-tier advanced
 ```
 
 ### Sync
@@ -124,6 +128,7 @@ Sync positions, fills, and settlements from Kalshi:
 
 ```bash
 uv run kalshi portfolio sync --db data/kalshi.db
+uv run kalshi portfolio sync --db data/kalshi.db --rate-tier advanced
 ```
 
 ### View Positions
@@ -142,17 +147,8 @@ uv run kalshi portfolio positions --db data/kalshi.db --ticker TRUMP-2024
 uv run kalshi portfolio pnl --db data/kalshi.db
 ```
 
-Output:
-
-```text
-P&L Summary (Synced History)
-Realized P&L:    +$45.20
-Unrealized P&L:  +$12.50
-Total P&L:       +$57.70
-
-Total Trades:    42
-Win Rate:        55.0%
-```
+This prints a summary table including realized/unrealized/total P&L plus trade stats (win rate, average win/loss,
+profit factor).
 
 ### Trade History
 
@@ -219,14 +215,12 @@ settlement_pnl_cents = revenue - yes_total_cost - no_total_cost - fee_cents
 
 ## Performance Metrics
 
-The portfolio can calculate:
+The CLI currently reports:
 
-- **Total Return**: (ending value - starting value) / starting value
-- **Win Rate**: % of trades that were profitable
-- **Average Win**: Average P&L on winning trades
-- **Average Loss**: Average P&L on losing trades
-- **Profit Factor**: Total wins / Total losses
-- **Max Drawdown**: Largest peak-to-trough decline
+- **Realized / unrealized / total P&L**
+- **Trade stats**: total trades, win rate, average win/loss, profit factor
+- **Data quality notes**: missing mark prices/cost basis (unrealized P&L may be partial) and orphan sell quantity
+  skipped (trade history incomplete; trade stats are partial)
 
 ## Key Code
 

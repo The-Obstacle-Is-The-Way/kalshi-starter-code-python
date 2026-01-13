@@ -34,6 +34,7 @@ kalshi-starter-code-python/
 │   │   ├── fetcher.py             # API → DB coordination
 │   │   └── export.py              # DuckDB/Parquet export
 │   ├── exa/                       # Exa API client + models
+│   ├── execution/                 # Trade execution safety harness (models + guardrails)
 │   ├── news/                      # News collection, sentiment
 │   ├── analysis/                  # Scanner, liquidity, calibration
 │   ├── research/                  # Thesis workflow, Exa research
@@ -42,7 +43,7 @@ kalshi-starter-code-python/
 │   └── cli/                       # Typer CLI (kalshi command)
 ├── tests/
 │   ├── unit/                      # Mirrors src/ layout
-│   └── integration/               # Requires live credentials
+│   └── integration/               # Integration tests (live API tests opt-in via env vars/creds)
 ├── docs/
 │   ├── _bugs/                     # Active bug reports
 │   ├── _specs/                    # Active implementation specs
@@ -104,14 +105,18 @@ Don't mutate them. Create new instances if needed.
 
 ```
 kalshi
-├── data        # init, sync-markets, snapshot, collect, export
-├── market      # get, list, orderbook, liquidity
+├── version     # version info
+├── status      # exchange status
+├── data        # init, migrate, sync-markets, sync-settlements, sync-trades, snapshot, collect, export, stats, prune, vacuum
+├── market      # get, list, orderbook, liquidity, history
 ├── scan        # opportunities, arbitrage, movers
-├── alerts      # list, add, remove, monitor
+├── alerts      # list, add, remove, monitor, trim-log
 ├── analysis    # calibration, correlation, metrics
-├── research    # thesis, context, topic
-├── news        # track, collect, sentiment
-└── portfolio   # sync, positions, pnl, balance
+├── research    # backtest, context, topic, similar, deep, thesis*, cache*
+│   ├── thesis  # create, list, show, resolve, check-invalidation, suggest
+│   └── cache   # clear
+├── news        # track, untrack, list-tracked, collect, sentiment
+└── portfolio   # sync, positions, pnl, balance, history, link, suggest-links
 ```
 
 ## Quality Gates

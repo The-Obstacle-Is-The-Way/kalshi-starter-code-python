@@ -1,20 +1,20 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-12T21:09:45.248759+00:00",
-    "endpoint": "/research/v1/r_01ket0nq2k24446e21cmbz6jkx",
+    "recorded_at": "2026-01-13T17:24:14.532563+00:00",
+    "endpoint": "/research/v1/r_01kew659h3e69dy76xf7p8j0s6",
     "environment": "prod",
     "sanitized": false,
     "note": "Terminal response"
   },
   "response": {
-    "researchId": "r_01ket0nq2k24446e21cmbz6jkx",
-    "createdAt": 1768252169299,
+    "researchId": "r_01kew659h3e69dy76xf7p8j0s6",
+    "createdAt": 1768325031459,
     "model": "exa-research",
     "instructions": "Summarize https://example.com in 1 short sentence.",
-    "finishedAt": 1768252181887,
+    "finishedAt": 1768325048549,
     "status": "completed",
     "output": {
-      "content": "The domain example.com is intended for use in documentation examples and should not be used in operations [Example Domain](https://example.com)."
+      "content": "The domain https://example.com is for use in documentation examples and should not be used in operations [https://example.com/]."
     },
     "citations": [
       {

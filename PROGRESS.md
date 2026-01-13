@@ -1,51 +1,42 @@
-# Kalshi Research Platform - Progress Tracker
+# Kalshi Research Platform — Ralph Wiggum Progress Tracker
 
-**Last Updated:** 2026-01-10
-**Purpose:** State file for Ralph Wiggum loop - implements specs, fixes bugs, debt, and TODOs
-
----
-
-## Phase 1-8: Completed (Bug/Debt/TODO Cleanup)
-
-All phases 1-8 are complete. See Work Log below for history.
+**Last Updated:** 2026-01-13
+**Status:** Idle (no active queue)
+**Purpose:** State file for the Ralph Wiggum loop (see `docs/_ralph-wiggum/protocol.md`)
 
 ---
 
-## Phase 9: Feature Specs (Active Queue)
+## Active Queue
 
-**Implementation Order** (respects dependencies):
+No active items.
 
-### Foundation Specs
+To start a new loop run:
 
-- [ ] **SPEC-028**: Topic search & market discovery (FTS5) → `data/search.py`, `cli/market.py`
-- [ ] **SPEC-029**: Kalshi endpoint coverage (tickers, timestamps, series) → `api/client.py`
+1. Create a sandbox branch for Ralph work.
+2. Add tasks below as checklist items (one task per line).
+3. Run the loop using `PROMPT.md`.
 
-### Research Quality Specs
+Guidelines:
 
-- [ ] **SPEC-030**: Exa endpoint strategy (cost-bounded, verifiable) → `exa/policy.py`
-- [ ] **SPEC-031**: Scanner quality profiles (slop filtering) → `analysis/scanner.py`, `cli/scan.py`
+- Prefer referencing an existing task doc: `docs/_bugs/BUG-*.md`, `docs/_debt/DEBT-*.md`, `docs/_specs/SPEC-*.md`, `docs/_future/*.md`.
+- SPEC-* tasks require a follow-up review iteration and a `[REVIEWED]` marker.
 
-### Agent System Specs (depends on SPEC-030)
-
-- [ ] **SPEC-032**: Agent system orchestration (single-agent default) → `agent/orchestrator.py`
-- [ ] **SPEC-033**: Exa research agent (deterministic, budgeted) → `agent/providers/exa.py`
-
-### Safety Harness (depends on SPEC-032)
-
-- [ ] **SPEC-034**: TradeExecutor safety harness (safe-by-default) → `execution/executor.py`
-
----
-
-## Phase 10: Final Verification
-
-- [ ] **FINAL-SPECS**: All SPEC-* tasks have `[REVIEWED]` markers
-- [ ] **FINAL-GATES**: All quality gates pass (ruff, mypy, pytest, mkdocs)
-- [ ] **FINAL-CLEAN**: Clean git working tree
+<!-- Template (uncomment and edit when ready)
+  ## Phase 1: Bugs
+  - [ ] **BUG-###**: Short description → docs/_bugs/BUG-###-....
+  ## Phase 2: Debt
+  - [ ] **DEBT-###**: Short description → docs/_debt/DEBT-###-....
+  ## Phase 3: Specs
+  - [ ] **SPEC-###**: Short description → docs/_specs/SPEC-###-....
+  ## Phase 4: Final Verification
+  - [ ] **FINAL-GATES**: All quality gates pass
+-->
 
 ---
 
 ## Work Log
 
+- 2026-01-13: Reset PROGRESS.md/PROMPT.md templates (idle queue).
 - 2026-01-10: Fixed portfolio P&L integrity (FIFO realized P&L + unknown handling), updated BUG-056/057, ran `uv run pre-commit run --all-files` and `uv run mkdocs build --strict`
 - 2026-01-10: Skills refactor - created `kalshi-ralph-wiggum` skill, simplified `kalshi-codebase`, enhanced PROMPT.md with SPEC-* self-review protocol, verified SPEC-029/032 against SSOT
 - 2026-01-10: Prep for spec implementation (audited SPEC-028..034, added `kalshi-codebase` skill, updated Ralph prompt/protocol)
@@ -55,10 +46,5 @@ All phases 1-8 are complete. See Work Log below for history.
 
 ## Completion Criteria
 
-When ALL boxes are checked AND all quality gates pass, the current Ralph Wiggum work queue is complete.
-The loop operator verifies completion by checking this file's state (all `[x]}` and all SPEC-* have `[REVIEWED]`).
-
-**A++ Standard:** Every acceptance criterion in every task doc MUST be checked off,
-not just the PROGRESS.md line item. Partial implementations are NOT acceptable.
-
-**Self-Review Required:** SPEC-* tasks require a follow-up review iteration to add `[REVIEWED]` marker.
+The queue is complete when there are no unchecked items (no lines matching the unchecked-task pattern at column 0).
+The loop operator should verify completion via this file’s state, not by parsing model output.

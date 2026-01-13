@@ -54,7 +54,7 @@ Notes:
 
 - `kalshi data init`
 - `kalshi data migrate [--dry-run|--apply]`
-- `kalshi data sync-markets [--status open] [--max-pages N]`
+- `kalshi data sync-markets [--status open] [--max-pages N] [--mve-filter exclude|only]`
 - `kalshi data sync-settlements [--max-pages N]`
 - `kalshi data sync-trades [--ticker TICKER] [--limit N] [--min-ts TS] [--max-ts TS] [--output FILE] [--json]`
 - `kalshi data snapshot [--status open] [--max-pages N]`
@@ -86,7 +86,7 @@ Note: Kalshi's **response** `status` values (e.g. `active`) differ from the `/ma
 
 - `kalshi alerts list`
 - `kalshi alerts add <price|volume|spread|sentiment> <TICKER> (--above FLOAT | --below FLOAT)`
-  - `volume`, `spread`, and `sentiment` support `--above` only (no `--below`)
+  - `--below` is only valid for `price` alerts; `volume`/`spread`/`sentiment` will error if you pass `--below`.
 - `kalshi alerts remove <ALERT_ID_PREFIX>`
 - `kalshi alerts monitor [--once] [--interval SEC] [--max-pages N] [--daemon] [--output-file PATH] [--webhook-url URL]`
   - `--daemon` starts a detached background process and writes logs to `data/alert_monitor.log`.
@@ -96,9 +96,9 @@ Alerts are stored locally at `data/alerts.json`.
 
 ## `kalshi analysis`
 
-- `kalshi analysis metrics <TICKER> --db PATH`
-- `kalshi analysis calibration [--days N] [--output FILE] --db PATH`
-- `kalshi analysis correlation --db PATH (--event EVT | --tickers T1,T2,...) [--min FLOAT] [--top N]`
+- `kalshi analysis metrics <TICKER> [--db PATH]`
+- `kalshi analysis calibration [--db PATH] [--days N] [--output FILE]`
+- `kalshi analysis correlation [--db PATH] (--event EVT | --tickers T1,T2,...) [--min FLOAT] [--top N]`
 
 ## `kalshi research`
 
@@ -106,12 +106,13 @@ Alerts are stored locally at `data/alerts.json`.
 - `kalshi research context <TICKER> [--max-news N] [--max-papers N] [--days N] [--json]`
 - `kalshi research topic <TOPIC> [--no-summary] [--json]`
 - `kalshi research similar <URL> [--num-results N] [--json]`
-- `kalshi research deep <TOPIC> [--model exa-research|exa-research-pro] [--wait] [--schema FILE] [--json]`
+- `kalshi research deep <TOPIC> [--model exa-research-fast|exa-research|exa-research-pro] [--wait] [--poll-interval SEC] [--timeout SEC] [--schema FILE] [--json]`
 - `kalshi research cache clear [--all] [--cache-dir DIR]`
 - `kalshi research thesis create <TITLE> --markets T1,T2 --your-prob P --market-prob P --confidence P [--bull TEXT] [--bear TEXT]`
   - optional: `--with-research` (requires `EXA_API_KEY`)
+  - optional: `--yes/-y` (accept research suggestions without prompting; only relevant with `--with-research`)
 - `kalshi research thesis list [--full]`
-- `kalshi research thesis show <THESIS_ID_PREFIX>`
+- `kalshi research thesis show <THESIS_ID_PREFIX> [--with-positions] [--db PATH]`
 - `kalshi research thesis resolve <THESIS_ID_PREFIX> --outcome yes|no|void`
 - `kalshi research thesis check-invalidation <THESIS_ID_PREFIX> [--hours N]`
 - `kalshi research thesis suggest [--category TEXT]`
@@ -138,8 +139,8 @@ The CLI loads `.env` automatically. Authenticated commands require:
 
 Commands:
 
-- `kalshi portfolio balance [--env demo|prod]`
-- `kalshi portfolio sync [--db PATH] [--env demo|prod] [--skip-mark-prices]`
+- `kalshi portfolio balance [--env demo|prod] [--rate-tier basic|advanced|premier|prime]`
+- `kalshi portfolio sync [--db PATH] [--env demo|prod] [--rate-tier basic|advanced|premier|prime] [--skip-mark-prices]`
 - `kalshi portfolio positions [--db PATH] [--ticker TICKER]`
 - `kalshi portfolio pnl [--db PATH] [--ticker TICKER]`
 - `kalshi portfolio history [--db PATH] [--limit N] [--ticker TICKER]`

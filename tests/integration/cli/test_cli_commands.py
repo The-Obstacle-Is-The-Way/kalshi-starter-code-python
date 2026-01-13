@@ -671,7 +671,7 @@ def test_portfolio_commands_smoke(runner: CliRunner) -> None:
         link = runner.invoke(
             app, ["portfolio", "link", "MKT1", "--thesis", "123", "--db", str(db_path)]
         )
-        assert link.exit_code == 0
+        assert link.exit_code == 2
         assert "No open position found" in link.stdout
 
         suggest = runner.invoke(app, ["portfolio", "suggest-links", "--db", str(db_path)])

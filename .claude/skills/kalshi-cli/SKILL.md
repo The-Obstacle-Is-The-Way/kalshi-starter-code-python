@@ -24,7 +24,7 @@ uv run kalshi --help
 | `KALSHI_PRIVATE_KEY_B64` | Portfolio commands | Alternative: Base64-encoded key |
 | `KALSHI_ENVIRONMENT` | All | `prod` or `demo` (default: prod) |
 | `KALSHI_RATE_TIER` | API calls | `basic`/`advanced`/`premier`/`prime` |
-| `EXA_API_KEY` | Exa-powered research/news | API key for Exa (`research context/topic`, `news collect`) |
+| `EXA_API_KEY` | Exa-powered research/news | API key for Exa (`research context/topic/similar/deep`, `research thesis create --with-research`, `research thesis check-invalidation`, `research thesis suggest`, `news collect`) |
 | `EXA_BASE_URL` | Exa-powered research/news | Override Exa base URL (default: https://api.exa.ai) |
 | `EXA_TIMEOUT` | Exa-powered research/news | Exa request timeout seconds (default: 30) |
 | `EXA_MAX_RETRIES` | Exa-powered research/news | Exa max retries (default: 3) |
@@ -45,58 +45,68 @@ uv run kalshi --help
 
 ## CLI Command Groups
 
+### status/version - Utilities
+```bash
+uv run kalshi status [--json]             # Exchange status
+uv run kalshi version                     # CLI version info
+```
+
 ### data - Data Management
 ```bash
-uv run kalshi data init                    # Initialize database
-uv run kalshi data migrate                 # Preview migrations (dry-run default)
-uv run kalshi data migrate --apply         # Apply migrations
-uv run kalshi data sync-markets            # Sync markets from API
-uv run kalshi data sync-settlements        # Sync resolved outcomes
-uv run kalshi data sync-trades             # Fetch public trade history (CSV/JSON output)
-uv run kalshi data snapshot                # Take price snapshot
+uv run kalshi data init [--db PATH]                        # Initialize database
+uv run kalshi data migrate [--dry-run|--apply]             # Migrations (dry-run default)
+uv run kalshi data sync-markets [--status open] [--max-pages N] [--mve-filter exclude|only]
+uv run kalshi data sync-settlements [--max-pages N]        # Sync settled outcomes
+uv run kalshi data sync-trades [--ticker TICKER] [--limit N] [--min-ts TS] [--max-ts TS] [--output FILE] [--json]
+uv run kalshi data snapshot [--status open] [--max-pages N]  # Take price snapshot
 uv run kalshi data collect [--interval 15] [--once] [--max-pages N]  # Continuous collection
-uv run kalshi data prune                   # Preview pruning (dry-run default)
-uv run kalshi data prune --apply           # Apply pruning
-uv run kalshi data vacuum                  # Reclaim DB space after deletes
-uv run kalshi data export [-f csv|parquet] # Export data
-uv run kalshi data stats                   # Show statistics
+uv run kalshi data export [--format parquet|csv] [--output DIR]      # Export data
+uv run kalshi data stats                                   # Show statistics
+uv run kalshi data prune [--snapshots-older-than-days N] [--news-older-than-days N] [--dry-run|--apply]
+uv run kalshi data vacuum                                  # Reclaim DB space after deletes
 ```
 
 ### market - Market Lookup
 ```bash
-uv run kalshi market get TICKER            # Fetch single market
 uv run kalshi market list [--status open] [--event EVT] [--event-prefix PREFIX] [--category TEXT] [--exclude-category TEXT] [--limit N] [--full]  # List markets (NO --search!)
-uv run kalshi market orderbook TICKER      # Get orderbook
+uv run kalshi market get TICKER                                    # Fetch single market
+uv run kalshi market orderbook TICKER [--depth 5]                  # Get orderbook
+uv run kalshi market liquidity TICKER [--depth 25] [--max-slippage-cents 3]
+uv run kalshi market history TICKER [--series SERIES] [--interval 1h] [--days 7] [--start-ts TS] [--end-ts TS] [--json]
 ```
 
 ### scan - Opportunity Scanning
 ```bash
 uv run kalshi scan opportunities [--filter close-race] [--category TEXT] [--no-sports] [--event-prefix PREFIX] [--top 10] [--max-pages N] [--full]
-uv run kalshi scan arbitrage [--threshold 0.1] [--top 10] [--max-pages N] [--full]
-uv run kalshi scan movers [--period 24h] [--top 10] [--max-pages N] [--full]
+uv run kalshi scan arbitrage [--db PATH] [--threshold 0.1] [--top 10] [--tickers-limit N] [--max-pages N] [--full]
+uv run kalshi scan movers [--db PATH] [--period 24h] [--top 10] [--max-pages N] [--full]
 ```
 
 ### portfolio - Portfolio Tracking (Requires Auth)
 ```bash
-uv run kalshi portfolio sync               # Sync positions, fills, settlements
-uv run kalshi portfolio positions          # View positions
-uv run kalshi portfolio pnl                # View P&L
-uv run kalshi portfolio balance            # View balance
-uv run kalshi portfolio history [-n 20]    # Trade history
-uv run kalshi portfolio link TICKER --thesis ID  # Link to thesis
-uv run kalshi portfolio suggest-links      # Suggest thesis links for positions
+uv run kalshi portfolio sync [--db PATH] [--env demo|prod] [--rate-tier basic|advanced|premier|prime] [--skip-mark-prices]
+uv run kalshi portfolio positions [--db PATH] [--ticker TICKER]
+uv run kalshi portfolio pnl [--db PATH] [--ticker TICKER]
+uv run kalshi portfolio balance [--env demo|prod] [--rate-tier basic|advanced|premier|prime]
+uv run kalshi portfolio history [-n 20] [--db PATH] [--ticker TICKER]
+uv run kalshi portfolio link TICKER --thesis ID [--db PATH]  # Link position to thesis
+uv run kalshi portfolio suggest-links [--db PATH]
 ```
 
-### research - Thesis Management
+### research - Research & Thesis Tracking
 ```bash
-uv run kalshi research context TICKER          # Exa: market context research
-uv run kalshi research topic "TOPIC"           # Exa: topic research / ideation
-uv run kalshi research cache clear [--all]     # Exa cache maintenance (expired-only default)
-uv run kalshi research thesis create "TITLE" -m TICKER --your-prob 0.7 --market-prob 0.5 --confidence 0.8
+uv run kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH]  # End date is inclusive
+uv run kalshi research context TICKER [--max-news 10] [--max-papers 5] [--days 30] [--json]
+uv run kalshi research topic "TOPIC" [--no-summary] [--json]
+uv run kalshi research similar URL [-n 10] [--json]
+uv run kalshi research deep "TOPIC" [--model exa-research-fast|exa-research|exa-research-pro] [--wait] [--schema FILE] [--json]  # Paid API
+uv run kalshi research cache clear [--all] [--cache-dir DIR]
+uv run kalshi research thesis create "TITLE" -m T1,T2 --your-prob 0.7 --market-prob 0.5 --confidence 0.8 [--with-research] [-y]
 uv run kalshi research thesis list [--full]
-uv run kalshi research thesis show ID [--with-positions]
+uv run kalshi research thesis show ID [--with-positions] [--db PATH]
 uv run kalshi research thesis resolve ID --outcome yes|no|void
-uv run kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD  # End date is inclusive
+uv run kalshi research thesis check-invalidation ID [--hours 48]
+uv run kalshi research thesis suggest [--category TEXT]
 ```
 
 ### news - News Monitoring & Sentiment (Exa-Powered)
@@ -111,18 +121,17 @@ uv run kalshi news untrack TICKER                              # Stop tracking
 ### alerts - Alert System
 ```bash
 uv run kalshi alerts list
-uv run kalshi alerts add price|volume|spread TICKER [--above N] [--below N]
-uv run kalshi alerts remove ALERT_ID
-uv run kalshi alerts monitor [--interval 60] [--daemon] [--once] [--max-pages N]
-uv run kalshi alerts trim-log               # Preview log trim (dry-run default)
-uv run kalshi alerts trim-log --apply       # Apply trimming
+uv run kalshi alerts add price|volume|spread|sentiment TICKER (--above N | --below N)
+uv run kalshi alerts remove ALERT_ID_PREFIX
+uv run kalshi alerts monitor [--interval 60] [--daemon] [--once] [--max-pages N] [--output-file PATH] [--webhook-url URL]
+uv run kalshi alerts trim-log [--log PATH] [--max-mb N] [--keep-mb N] [--dry-run|--apply]
 ```
 
 ### analysis - Market Analysis
 ```bash
-uv run kalshi analysis calibration [--days 30]
-uv run kalshi analysis metrics TICKER
-uv run kalshi analysis correlation [--min 0.5]
+uv run kalshi analysis calibration [--db PATH] [--days 30] [--output FILE]
+uv run kalshi analysis metrics TICKER [--db PATH]
+uv run kalshi analysis correlation [--db PATH] [--event EVT] [--tickers T1,T2] [--min 0.5] [--top 10]
 ```
 
 ---
@@ -134,6 +143,7 @@ uv run kalshi analysis correlation [--min 0.5]
 3. **Always use `uv run kalshi`** prefix - commands require virtual environment.
 4. **Check `--help`** before assuming options exist.
 5. **`news track` defaults to 2 queries** (title + title + "news"), so `news collect` usually makes 2 Exa calls per tracked item.
+6. **Cost warning**: `research deep` (and `research thesis create --with-research`) can incur Exa API costs.
 
 ---
 

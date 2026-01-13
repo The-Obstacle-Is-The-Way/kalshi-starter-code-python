@@ -196,8 +196,8 @@ Add `--full/-F` to disable truncation in table output.
 ### Opportunities
 
 ```bash
---min-volume 1000    # Minimum 24h volume
---max-spread 10      # Maximum spread in cents
+--min-volume 1000    # Minimum 24h volume (close-race filter only)
+--max-spread 10      # Maximum spread in cents (close-race filter only)
 --max-pages 10       # Optional pagination safety limit (omit for full)
 --top 10             # Number of results to show
 --category ai        # Filter by category (e.g. Politics, Economics, AI)
@@ -294,7 +294,7 @@ uv run kalshi data collect --interval 15
 
 ```bash
 # Morning: What moved overnight?
-uv run kalshi scan movers --period 12h --top 20
+uv run kalshi scan movers --period 24h --top 20
 
 # Find close races worth researching
 uv run kalshi scan opportunities --filter close-race --min-volume 5000 --top 10

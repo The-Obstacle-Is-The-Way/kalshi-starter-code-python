@@ -16,6 +16,28 @@ uv run kalshi [OPTIONS] COMMAND
 
 ---
 
+## Utility Commands
+
+### version
+Show version information.
+
+```bash
+uv run kalshi version [OPTIONS]
+```
+
+### status
+Show Kalshi exchange operational status.
+
+```bash
+uv run kalshi status [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--json` | False | Output as JSON |
+
+---
+
 ## data - Data Management
 
 ### data init
@@ -53,6 +75,7 @@ uv run kalshi data sync-markets [OPTIONS]
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
 | `--status`, `-s` | None | Filter by status (open, closed, etc.) |
 | `--max-pages` | None | Pagination safety limit (None = all) |
+| `--mve-filter` | None | Filter multivariate events: `exclude` (skip sports parlays) or `only` |
 
 ### data sync-settlements
 Sync settled market outcomes from Kalshi API to database.
@@ -218,6 +241,23 @@ uv run kalshi market liquidity TICKER [OPTIONS]
 | `TICKER` | Required | Market ticker |
 | `--depth`, `-d` | `25` | Orderbook depth levels to fetch for analysis |
 | `--max-slippage-cents` | `3` | Max slippage (cents) for the "max safe size" calculation |
+
+### market history
+Fetch candlestick history for a market.
+
+```bash
+uv run kalshi market history TICKER [OPTIONS]
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `TICKER` | Required | Market ticker to fetch candlesticks for |
+| `--series` | None | Optional series ticker (uses series candlesticks endpoint) |
+| `--interval`, `-i` | `1h` | Candle interval: `1m`, `1h`, `1d` |
+| `--days` | `7` | Lookback window in days (used when `--start-ts` is not set) |
+| `--start-ts` | None | Start timestamp (Unix seconds) |
+| `--end-ts` | None | End timestamp (Unix seconds; defaults to now) |
+| `--json` | False | Output as JSON |
 
 ---
 
@@ -389,6 +429,8 @@ uv run kalshi research thesis create "TITLE" [OPTIONS]
 | `--confidence` | Required | Your confidence (0-1) |
 | `--bull` | "Why YES" | Bull case reasoning |
 | `--bear` | "Why NO" | Bear case reasoning |
+| `--with-research` | False | Attach Exa research evidence to this thesis (requires `EXA_API_KEY`) |
+| `--yes`, `-y` | False | Accept research suggestions without prompting (only relevant with `--with-research`) |
 
 ### research thesis list
 List all theses.
@@ -425,6 +467,29 @@ uv run kalshi research thesis resolve THESIS_ID --outcome OUTCOME
 |-----------------|---------|-------------|
 | `THESIS_ID` | Required | Thesis ID to resolve |
 | `--outcome` | Required | Outcome: `yes`, `no`, or `void` |
+
+### research thesis check-invalidation
+Check for signals that might invalidate your thesis.
+
+```bash
+uv run kalshi research thesis check-invalidation THESIS_ID [OPTIONS]
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `THESIS_ID` | Required | Thesis ID to check |
+| `--hours`, `-h` | `48` | Lookback hours |
+
+### research thesis suggest
+Generate thesis ideas from Exa research.
+
+```bash
+uv run kalshi research thesis suggest [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--category`, `-c` | None | Optional category filter (crypto, politics, etc.) |
 
 ### research backtest
 Run backtests on resolved theses using historical settlements.
@@ -470,6 +535,40 @@ uv run kalshi research topic TOPIC [OPTIONS]
 |-----------------|---------|-------------|
 | `TOPIC` | Required | Topic or question to research |
 | `--no-summary` | False | Skip summary generation |
+| `--json` | False | Output as JSON |
+
+Requires `EXA_API_KEY`.
+
+### research similar
+Find pages similar to a URL using Exa's /findSimilar endpoint.
+
+```bash
+uv run kalshi research similar [OPTIONS] URL
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `URL` | Required | Seed URL to find similar pages for |
+| `--num-results`, `-n` | `10` | Number of results |
+| `--json` | False | Output as JSON |
+
+Requires `EXA_API_KEY`.
+
+### research deep
+Run Exa async deep research via /research/v1 (paid API).
+
+```bash
+uv run kalshi research deep [OPTIONS] TOPIC
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `TOPIC` | Required | Topic or question for deep research |
+| `--model` | `exa-research` | Exa research model tier: `exa-research-fast`, `exa-research`, `exa-research-pro` |
+| `--wait` | False | Wait for completion and print results (incurs additional Exa cost) |
+| `--poll-interval` | `5.0` | Polling interval in seconds (when `--wait`) |
+| `--timeout` | `300.0` | Timeout in seconds (when `--wait`) |
+| `--schema` | None | Optional JSON schema file for structured output |
 | `--json` | False | Output as JSON |
 
 Requires `EXA_API_KEY`.
@@ -578,18 +677,18 @@ uv run kalshi alerts add ALERT_TYPE TICKER [OPTIONS]
 
 | Argument/Option | Default | Description |
 |-----------------|---------|-------------|
-| `ALERT_TYPE` | Required | Type: `price`, `volume`, `spread` |
+| `ALERT_TYPE` | Required | Type: `price`, `volume`, `spread`, `sentiment` |
 | `TICKER` | Required | Market ticker to monitor |
 | `--above` | None | Trigger when above threshold |
 | `--below` | None | Trigger when below threshold |
 
-**Note**: `volume` and `spread` only support `--above`.
+**Note**: `volume`, `spread`, and `sentiment` only support `--above`.
 
 ### alerts remove
-Remove an alert by ID.
+Remove an alert by ID prefix.
 
 ```bash
-uv run kalshi alerts remove ALERT_ID
+uv run kalshi alerts remove ALERT_ID_PREFIX
 ```
 
 ### alerts monitor
@@ -605,6 +704,8 @@ uv run kalshi alerts monitor [OPTIONS]
 | `--daemon` | False | Run in background |
 | `--once` | False | Single check cycle and exit |
 | `--max-pages` | None | Pagination safety limit |
+| `--output-file` | None | Write triggered alerts to a JSONL file (one alert per line) |
+| `--webhook-url` | None | POST triggered alerts to a webhook URL (Slack/Discord style payload) |
 
 ### alerts trim-log
 Trim the alerts monitor log to keep disk usage bounded.

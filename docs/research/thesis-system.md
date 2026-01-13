@@ -169,6 +169,9 @@ uv run kalshi research thesis list --full
 # View details
 uv run kalshi research thesis show <ID_PREFIX>
 
+# View details + linked positions (reads from your local DB)
+uv run kalshi research thesis show <ID_PREFIX> --with-positions --db data/kalshi.db
+
 # Resolve when market settles
 uv run kalshi research thesis resolve <ID_PREFIX> --outcome yes
 ```

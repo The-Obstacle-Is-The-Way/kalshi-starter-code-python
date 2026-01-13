@@ -37,6 +37,26 @@ def test_alerts_add_price() -> None:
         assert len(stored["conditions"]) == 1
 
 
+def test_alerts_add_price_above_zero_is_above() -> None:
+    with runner.isolated_filesystem():
+        alerts_file = Path("alerts.json")
+        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+            result = runner.invoke(app, ["alerts", "add", "price", "TEST-TICKER", "--above", "0"])
+
+        assert result.exit_code == 0
+        stored = json.loads(alerts_file.read_text(encoding="utf-8"))
+        assert stored["conditions"][0]["condition_type"] == "price_above"
+
+
+def test_alerts_add_rejects_both_above_and_below() -> None:
+    result = runner.invoke(
+        app,
+        ["alerts", "add", "price", "TEST-TICKER", "--above", "60", "--below", "40"],
+    )
+    assert result.exit_code == 1
+    assert "Specify only one of --above or --below" in result.stdout
+
+
 def test_alerts_add_volume() -> None:
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
@@ -113,12 +133,13 @@ def test_alerts_remove() -> None:
 
 
 def test_alerts_remove_not_found() -> None:
+    """Removing a non-existent alert should return exit code 2 (not found)."""
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
         with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "remove", "nonexistent"])
 
-    assert result.exit_code == 0
+    assert result.exit_code == 2  # Unix convention: 2 = not found / usage error
     assert "not found" in result.stdout.lower()
 
 

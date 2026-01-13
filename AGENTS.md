@@ -2,6 +2,16 @@
 
 This file provides guidance to AI coding agents (Claude Code, OpenAI Codex, Gemini CLI, etc.) when working with this repository.
 
+## Project Intent (Avoid Over-Engineering)
+
+This repository is an **internal, single-user research CLI** (plus local SQLite cache) for a solo trader.
+It is **not** a multi-user production service.
+
+- Prefer **simple, testable** changes over “enterprise patterns”.
+- Do **not** add service infrastructure (circuit breakers, Prometheus/Otel, request tracing, DI) unless a SPEC/BUG
+  explicitly requires it.
+- Keep dependencies minimal; focus on correctness, clear UX, and robust error handling.
+
 ## Agent Skills
 
 This repository includes Agent Skills for enhanced CLI navigation and documentation auditing:
@@ -62,7 +72,7 @@ git add . && git commit -m "Your message"
   - `news/`: News collection and sentiment analysis
   - `analysis/`, `research/`, `alerts/`, `portfolio/`: domain modules
   - `cli/`: Typer CLI package entrypoint (`kalshi`)
-- `tests/`: `unit/` mirrors `src/`; `integration/` hits real API (needs creds)
+- `tests/`: `unit/` mirrors `src/`; `integration/` covers DB/migrations/CLI (live API tests are opt-in via env vars/creds)
 - `docs/`: usage guides plus specs/bug tracker (`docs/_specs/`, `docs/_bugs/`)
 - `alembic/`, `alembic.ini`: database migrations
 - `data/`: local runtime artifacts (e.g., `data/kalshi.db`, exports)
@@ -97,7 +107,7 @@ uv run pytest -m "not integration and not slow"  # fast local suite (CI-like)
 
 - **ALWAYS run `uv run pre-commit run --all-files` before committing**
 - Use atomic commits; follow the repo's common pattern: `[BUG-###] Fix: ...`, `[SPEC-###] Implement: ...`, `[FEATURE] Add: ...`, `[QUALITY-###] Fix: ...`.
-- PRs should include: what changed, how it was tested (commands run), and any user-facing doc updates (often `docs/how-to/usage.md` / `docs/tutorials/quickstart.md`).
+- PRs should include: what changed, how it was tested (commands run), and any user-facing doc updates (often `docs/getting-started/usage.md` / `docs/getting-started/quickstart.md`).
 - Before review, ensure local checks match CI: `ruff`, `mypy`, and `pytest` are green.
 
 ## Security & Configuration Tips
@@ -141,7 +151,7 @@ uv run kalshi portfolio pnl            # Reads local DB cache
 These operations may incur real costs:
 
 - **Order placement** (`create_order`) - Real money on prod environment
-- **Exa API calls** (`research context`, `research topic`, `news collect`) - Exa API usage costs
+- **Exa API calls** (`research context`, `research topic`, `research similar`, `research deep`, `research thesis create --with-research`, `research thesis check-invalidation`, `research thesis suggest`, `news collect`) - Exa API usage costs
 
 ### Pre-flight Checklist for Authenticated Commands
 
@@ -157,6 +167,7 @@ Before running portfolio or authenticated commands:
 - **NEVER delete `data/kalshi.db`** to "fix" issues (e.g. `database disk image is malformed`).
 - Diagnose first (`sqlite3 data/kalshi.db "PRAGMA integrity_check;"`) and recover when needed (`sqlite3 data/kalshi.db ".recover" | sqlite3 data/recovered.db`).
 - `data/exa_cache/` is disposable cache; the SQLite DB is not.
+- **SQLite concurrency:** Avoid running two write-heavy commands simultaneously (e.g., two `data sync-markets` in parallel). SQLite locks the entire DB on write; concurrent writers will get "database is locked" errors.
 - See the skills GOTCHAS.md for the full "Critical Anti-Patterns" section.
 
 ## Documentation Tracking
@@ -167,3 +178,11 @@ When you find drift, bugs, or technical debt, record them in the appropriate tra
 - Active specs: `docs/_specs/README.md`
 - Backlog (blocked/deferred): `docs/_future/README.md`
 - Technical debt: `docs/_debt/README.md`
+
+## Ralph Wiggum Loop (Optional)
+
+This repo supports the Ralph Wiggum autonomous loop via the root state files:
+
+- `PROGRESS.md` — loop state (task queue + work log)
+- `PROMPT.md` — iteration prompt
+- Reference: `docs/_ralph-wiggum/protocol.md`
