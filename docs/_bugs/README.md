@@ -6,7 +6,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Priority | Status | Verified |
 |---|---|---|---|---|
-| (none) | | | | |
+| **[BUG-076](BUG-076-portfolio-link-exits-success-on-missing-position.md)** | `portfolio link` exits 0 when position missing | P2 | Open | ✅ |
 
 ### Verification Note (2026-01-12)
 
