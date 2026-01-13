@@ -373,7 +373,6 @@ For multivariate event markets:
 | `GET /portfolio/settlements` | Settlement records (includes trade fees, event ticker) |
 | `GET /portfolio/summary/total_resting_order_value` | Total value of resting orders |
 | `POST /portfolio/subaccounts` | Create subaccount |
-| `GET /portfolio/subaccounts` | List subaccounts |
 | `GET /portfolio/subaccounts/balances` | List subaccount balances |
 | `POST /portfolio/subaccounts/transfer` | Transfer between subaccounts |
 | `GET /portfolio/subaccounts/transfers` | List subaccount transfers |

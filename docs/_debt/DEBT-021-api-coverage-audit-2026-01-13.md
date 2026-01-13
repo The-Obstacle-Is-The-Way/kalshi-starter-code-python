@@ -19,25 +19,26 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 ## Coverage Summary
 
-| Category | OpenAPI | Implemented | Coverage | Spec |
-|----------|---------|-------------|----------|------|
-| **Exchange** | 5 | 1 | 20% | SPEC-029 |
+| Category | OpenAPI Ops | Implemented | Coverage | Spec |
+|----------|-------------|-------------|----------|------|
+| **Exchange** | 4 | 1 | 25% | - |
 | **Markets (Core)** | 5 | 5 | **100%** | Done |
-| **Markets (Filters)** | 6 params | 2 params | 33% | SPEC-029 |
+| **Markets (Filters)** | 11 params | 3 params | 27% | SPEC-029 |
 | **Series** | 4 | 4 | **100%** | SPEC-037 Phase 1 ✅ |
-| **Search/Discovery** | 2 | 1 | 50% | SPEC-029 |
-| **Events** | 5 | 3 | 60% | SPEC-037 Phase 2 |
+| **Search/Discovery** | 2 | 1 | 50% | - |
+| **Events** | 6 | 2 | 33% | SPEC-037 Phase 2 |
 | **Structured Targets** | 2 | 0 | 0% | SPEC-029 |
 | **Portfolio (Read)** | 6 | 5 | 83% | Done |
-| **Portfolio (Orders)** | 10 | 3 | 30% | SPEC-037 Phase 3 |
+| **Portfolio (Orders)** | 9 | 3 | 33% | SPEC-037 Phase 3 |
 | **Order Groups** | 5 | 0 | 0% | SPEC-037 Phase 3 |
-| **Subaccounts** | 5 | 0 | 0% | SPEC-037 Phase 4 |
+| **Subaccounts** | 4 | 0 | 0% | SPEC-037 Phase 4 |
 | **RFQ/Communications** | 11 | 0 | 0% | Not planned |
-| **Milestones** | 2 | 0 | 0% | SPEC-029 |
-| **Multivariate Collections** | 5 | 0 | 0% | SPEC-029 |
+| **Milestones & Live Data** | 4 | 0 | 0% | - |
+| **Multivariate Collections** | 5 | 0 | 0% | - |
+| **Incentive Programs** | 1 | 0 | 0% | - |
 | **API Keys** | 4 | 0 | 0% | Not planned |
 | **FCM** | 2 | 0 | 0% | Not planned |
-| **TOTAL** | ~80 | ~27 | **~34%** | - |
+| **TOTAL** | 74 | 21 | **28%** | - |
 
 ---
 
@@ -53,15 +54,14 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 ---
 
-### 1. Exchange & System (5 endpoints)
+### 1. Exchange & System (4 endpoints)
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
 | `GET /exchange/status` | ✅ | Done | `get_exchange_status()` |
-| `GET /exchange/announcements` | 🔲 | SPEC-029 | P3 - informational |
-| `GET /exchange/schedule` | 🔲 | SPEC-029 | P3 - trading hours |
+| `GET /exchange/announcements` | ⬜ | - | P3 - informational |
+| `GET /exchange/schedule` | ⬜ | - | P3 - trading hours |
 | `GET /exchange/user_data_timestamp` | ⬜ | - | P3 - rarely needed |
-| `GET /series/fee_changes` | ✅ | SPEC-037 | `get_series_fee_changes()` |
 
 ---
 
@@ -104,11 +104,11 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
 | `GET /search/tags_by_categories` | ✅ | SPEC-037 Phase 1 | `get_tags_by_categories()` |
-| `GET /search/filters_by_sport` | 🔲 | SPEC-029 | P3 - sports-specific |
+| `GET /search/filters_by_sport` | ⬜ | - | P3 - sports-specific |
 
 ---
 
-### 5. Events (5 endpoints)
+### 5. Events (6 endpoints)
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
@@ -116,7 +116,8 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `GET /events/{event_ticker}` | ✅ | Done | `get_event()` |
 | `GET /events/multivariate` | 🔲 | **SPEC-037 Phase 2** | **P2 - Critical gap** |
 | `GET /events/{event_ticker}/metadata` | 🔲 | SPEC-037 Phase 2 | P3 |
-| `GET /series/.../events/.../candlesticks` | 🔲 | SPEC-029 | Event-level candlesticks |
+| `GET /series/{series_ticker}/events/{ticker}/candlesticks` | 🔲 | SPEC-029 | Event-level candlesticks |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | ⬜ | - | P3 - auth required |
 
 ---
 
@@ -125,7 +126,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
 | `GET /structured_targets` | 🔲 | SPEC-029 | P3 - sports props |
-| `GET /structured_targets/{id}` | 🔲 | SPEC-029 | P3 |
+| `GET /structured_targets/{structured_target_id}` | 🔲 | SPEC-029 | P3 |
 
 **Filter Parameters:**
 - `type` (e.g., `PLAYER_STATS`, `GAME_EVENT`)
@@ -147,7 +148,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 ---
 
-### 8. Portfolio - Orders (10 endpoints)
+### 8. Portfolio - Orders (9 endpoints)
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
@@ -169,18 +170,17 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 |----------|--------|------|-------|
 | `GET /portfolio/order_groups` | 🔲 | SPEC-037 Phase 3 | P3 |
 | `POST /portfolio/order_groups/create` | 🔲 | SPEC-037 Phase 3 | P3 |
-| `GET /portfolio/order_groups/{id}` | 🔲 | SPEC-037 Phase 3 | P3 |
-| `DELETE /portfolio/order_groups/{id}` | 🔲 | SPEC-037 Phase 3 | P3 |
-| `PUT /portfolio/order_groups/{id}/reset` | 🔲 | SPEC-037 Phase 3 | P3 |
+| `GET /portfolio/order_groups/{order_group_id}` | 🔲 | SPEC-037 Phase 3 | P3 |
+| `DELETE /portfolio/order_groups/{order_group_id}` | 🔲 | SPEC-037 Phase 3 | P3 |
+| `PUT /portfolio/order_groups/{order_group_id}/reset` | 🔲 | SPEC-037 Phase 3 | P3 |
 
 ---
 
-### 10. Subaccounts (5 endpoints)
+### 10. Subaccounts (4 endpoints)
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
 | `POST /portfolio/subaccounts` | 🔲 | SPEC-037 Phase 4 | P3 |
-| `GET /portfolio/subaccounts` | 🔲 | SPEC-037 Phase 4 | P3 |
 | `GET /portfolio/subaccounts/balances` | 🔲 | SPEC-037 Phase 4 | P3 |
 | `POST /portfolio/subaccounts/transfer` | 🔲 | SPEC-037 Phase 4 | Internal only |
 | `GET /portfolio/subaccounts/transfers` | 🔲 | SPEC-037 Phase 4 | P3 |
@@ -193,10 +193,10 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
-| `GET /milestones` | 🔲 | SPEC-029 | P3 |
-| `GET /milestones/{id}` | 🔲 | SPEC-029 | P3 |
-| `GET /live_data/{type}/milestone/{id}` | 🔲 | SPEC-029 | P3 |
-| `GET /live_data/batch` | 🔲 | SPEC-029 | P3 |
+| `GET /milestones` | ⬜ | - | P3 |
+| `GET /milestones/{milestone_id}` | ⬜ | - | P3 |
+| `GET /live_data/{type}/milestone/{milestone_id}` | ⬜ | - | P3 |
+| `GET /live_data/batch` | ⬜ | - | P3 |
 
 ---
 
@@ -204,11 +204,11 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
-| `GET /multivariate_event_collections` | 🔲 | SPEC-029 | P3 |
-| `GET /multivariate_event_collections/{ticker}` | 🔲 | SPEC-029 | Auth required |
-| `POST /multivariate_event_collections/{ticker}` | ⬜ | - | Auth required |
-| `GET /.../lookup` | ⬜ | - | Auth required |
-| `PUT /.../lookup` | ⬜ | - | Auth required |
+| `GET /multivariate_event_collections` | ⬜ | - | P3 |
+| `GET /multivariate_event_collections/{collection_ticker}` | ⬜ | - | P3 |
+| `POST /multivariate_event_collections/{collection_ticker}` | ⬜ | - | Auth required |
+| `GET /multivariate_event_collections/{collection_ticker}/lookup` | ⬜ | - | P3 |
+| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | ⬜ | - | Auth required |
 
 ---
 
@@ -217,10 +217,16 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | Endpoint | Status | Notes |
 |----------|--------|-------|
 | `GET /communications/id` | ⬜ | Large block trades only |
-| `POST/GET/DELETE /communications/rfqs` | ⬜ | Institutional use |
-| `POST/GET/DELETE /communications/quotes` | ⬜ | Institutional use |
-| `PUT /communications/quotes/{id}/accept` | ⬜ | Institutional use |
-| `PUT /communications/quotes/{id}/confirm` | ⬜ | Institutional use |
+| `GET /communications/rfqs` | ⬜ | Institutional use |
+| `POST /communications/rfqs` | ⬜ | Institutional use |
+| `GET /communications/rfqs/{rfq_id}` | ⬜ | Institutional use |
+| `DELETE /communications/rfqs/{rfq_id}` | ⬜ | Institutional use |
+| `GET /communications/quotes` | ⬜ | Institutional use |
+| `POST /communications/quotes` | ⬜ | Institutional use |
+| `GET /communications/quotes/{quote_id}` | ⬜ | Institutional use |
+| `DELETE /communications/quotes/{quote_id}` | ⬜ | Institutional use |
+| `PUT /communications/quotes/{quote_id}/accept` | ⬜ | Institutional use |
+| `PUT /communications/quotes/{quote_id}/confirm` | ⬜ | Institutional use |
 
 **Why not planned:** RFQ is for negotiating large block trades. Not relevant for research or retail automation.
 
@@ -233,7 +239,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `GET /api_keys` | ⬜ | Manage via web UI |
 | `POST /api_keys` | ⬜ | Manage via web UI |
 | `POST /api_keys/generate` | ⬜ | Manage via web UI |
-| `DELETE /api_keys/{id}` | ⬜ | Manage via web UI |
+| `DELETE /api_keys/{api_key}` | ⬜ | Manage via web UI |
 
 **Why not planned:** Key management is better done via web UI with proper RBAC.
 
@@ -254,7 +260,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
-| `GET /incentive_programs` | 🔲 | SPEC-029 | P3 - bonus tracking |
+| `GET /incentive_programs` | ⬜ | - | P3 - bonus tracking |
 
 ---
 
@@ -272,7 +278,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 |----------|--------------|
 | `POST /portfolio/orders/batched` | 10x more efficient for market making |
 | `DELETE /portfolio/orders/batched` | Efficient order cleanup |
-| `GET /portfolio/orders/{id}/queue_position` | Market making edge |
+| `GET /portfolio/orders/{order_id}/queue_position` | Market making edge |
 | `POST /portfolio/orders/{order_id}/decrease` | Order management |
 | Market timestamp filters (`min_*_ts`) | Avoid "fetch all" pattern |
 
@@ -305,7 +311,7 @@ These are NOT bugs in our code - they are Kalshi platform limitations:
 | **SPEC-029** | Strategic endpoint coverage (client + CLI) | Draft |
 | **SPEC-037** | SSOT-driven implementation with fixtures | Phase 1 ✅, Phases 2-4 pending |
 
-**All needed endpoints have spec coverage.** No new specs required.
+**All planned endpoints have spec coverage.** No new specs required.
 
 ---
 

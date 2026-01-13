@@ -36,6 +36,7 @@ When unblocked, verify:
 - [ ] `kalshi market get <ticker>` shows correct prices
 - [ ] `kalshi scan opportunities` works without errors
 - [ ] Portfolio sync handles new field format
+- [ ] WebSocket ticker updates still parse (run `kalshi alerts monitor --once` and confirm no validation errors)
 - [ ] All unit tests still pass
 - [ ] No ValidationError from Pydantic on real API data
 
