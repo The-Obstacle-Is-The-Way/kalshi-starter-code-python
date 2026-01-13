@@ -320,7 +320,7 @@ Options to address:
 
 **Effort:** Medium (new scan filter + optional Exa integration)
 
-**Next step:** Create SPEC-037 for new market alerts with appropriate filter logic
+**Next step:** Create SPEC-039 (New Market Alerts) with appropriate filter logic
 
 ---
 
@@ -414,7 +414,7 @@ None for Section A.
 3. **B2**: Included in FUTURE-001 (bull/bear case generation)
 
 ### Needs Spec
-4. **B3**: Create SPEC-037 for new market alerts
+4. **B3**: Create SPEC-039 (New Market Alerts)
 
 ### Scheduled
 5. **C2**: Wait for Jan 15, 2026, then cleanup
@@ -454,7 +454,7 @@ None for Section A.
 > - Default filters are permissive (`--min-volume=0`, `--max-spread=100`)
 > - The REAL filter is unpriced markets (bid=0, ask=100) being skipped in scanner.py:220-224
 > - `created_time` field EXISTS on Market model - we CAN detect new markets
-> - **Next step:** Create SPEC-037 with `--include-unpriced` flag option
+> - **Next step:** Create SPEC-039 with `--include-unpriced` flag option
 >
 > **Review checklist:**
 > - [x] Search `scan opportunities` for volume/liquidity filters ✅ Done (see B3)

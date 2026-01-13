@@ -189,7 +189,7 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 ## Relationship to Other Debt/Bugs
 
-- **DEBT-014 Section C1**: Already tracks "Missing `/series` endpoint" as blocked
+- **DEBT-014 Section C1**: Tracks the `/series` endpoint work; now ✅ resolved via SPEC-037 (kept for context)
 - **BUG-064**: Missing order safety parameters (different issue - params vs endpoints)
 
 ---

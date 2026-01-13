@@ -43,8 +43,13 @@ Use this ID for the next debt item:
 | `DEBT-015-missing-api-endpoints.md` | **Active debt P2-P3** - 45+ missing Kalshi API endpoints |
 | `DEBT-014-friction-residuals.md` | **Active debt P1-P3** - friction, design decisions |
 | `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
-| `technical-debt.md` | Living register with historical context |
-| `security-audit.md` | Deep security audit findings (Agent Safety, Injection Risks) |
+
+## Archived Reference Docs
+
+These are still useful references, but were moved under the archive during consolidation:
+
+- `docs/_archive/debt/technical-debt.md` - Living register with historical context
+- `docs/_archive/debt/security-audit.md` - Security findings (agent safety, injection risks)
 
 ## Archived Source Documents (2026-01-11)
 
@@ -111,4 +116,4 @@ None. All debt items resolved or elevated to specs.
 | Item | Resolution | Date |
 |------|------------|------|
 | DEBT-004 | Implemented via [SPEC-027](../_archive/specs/SPEC-027-settlement-timestamp.md) | 2026-01-09 |
-| DEBT-002 Phase 2-3 | Closed as "Won't Fix" (see `technical-debt.md`) | 2026-01-09 |
+| DEBT-002 Phase 2-3 | Closed as "Won't Fix" (see `docs/_archive/debt/technical-debt.md`) | 2026-01-09 |
