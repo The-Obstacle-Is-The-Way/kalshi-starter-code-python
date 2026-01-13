@@ -1,7 +1,7 @@
 # DEBT-016: Automate Fixture Drift Detection + Weekly Re-Recording
 
 **Priority:** P2 (Important for long-term reliability)
-**Status:** Open (Proposed)
+**Status:** 🟡 Partially Implemented
 **Created:** 2026-01-12
 **Related:** BUG-071, BUG-072, BUG-073
 
@@ -14,6 +14,10 @@ We currently rely on **manual script execution** and **one-time JSON fixture rec
 **Status update (2026-01-12):**
 - ✅ CI now runs `scripts/validate_models_against_golden.py` on PRs (SSOT mismatch fails fast)
 - 🔴 Remaining: automated re-recording + drift PRs + (optional) JSON Schema validation
+
+**Status update (2026-01-13):**
+- ✅ Added `scripts/check_fixture_freshness.py` (warn-only staleness detection using `_metadata.recorded_at`)
+- ✅ Added a scheduled CI job (`fixture-freshness`) to surface stale fixture age weekly (non-blocking)
 
 We want to evolve to a "gold standard" workflow where:
 

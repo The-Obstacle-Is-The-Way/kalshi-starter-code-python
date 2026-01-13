@@ -1,7 +1,7 @@
 # DEBT-018: Test SSOT Stabilization (Fixtures, Mocks, Exa Coverage)
 
 **Priority:** P1 (Foundation stability before new features)
-**Status:** Open
+**Status:** 🟡 In Progress
 **Created:** 2026-01-12
 **Related:** DEBT-016, DEBT-017, BUG-071
 
@@ -18,6 +18,12 @@ Deep analysis revealed that while Kalshi API golden fixtures exist, the test sui
 - ✅ Exa SSOT baseline added (golden fixtures + model validation + unit tests)
 - ✅ Kalshi public SSOT gaps closed (trades + candlesticks fixtures + unit tests)
 - 🔴 Remaining: CLI test architecture cleanup (Phase 4) + optional “inline mock drift” guard (Phase 2 optional)
+
+**Status update (2026-01-13):**
+- ✅ Phase 4 completed for core CLI entrypoints (`market`, `portfolio balance`, `scan`):
+  - CLI tests now mock at the HTTP boundary (`respx`) and exercise real Pydantic parsing.
+  - Added a smoke test proving malformed API payloads fail the CLI cleanly.
+- 🔴 Remaining: Phase 2 optional drift guard (and lower-priority CLI test modules still using patch-based clients).
 
 This debt must be paid before adding new features to ensure a stable foundation.
 
@@ -440,13 +446,13 @@ def compare_to_golden(inline_dict: dict, model_type: str) -> list[str]:
 - [x] Record `series_candlesticks_response.json` and add test
 
 ### Phase 4: CLI Test Architecture (P3)
-- [ ] Create `tests/unit/cli/fixtures.py` with golden fixture loaders
-- [ ] Refactor `test_market.py` to use `@respx.mock` + golden fixtures (20 tests)
-- [ ] Refactor `test_portfolio.py` to use `@respx.mock` for API calls (16 tests)
-- [ ] Refactor `test_scan.py` to use `@respx.mock` (~5 tests)
-- [ ] Remove all `MagicMock()` market/order/position returns from CLI tests
-- [ ] All CLI tests still pass with real Pydantic model parsing
-- [ ] Add smoke test: intentionally break a model field, verify CLI test fails
+- [x] Create `tests/unit/cli/fixtures.py` with golden fixture loaders
+- [x] Refactor `test_market.py` to use `@respx.mock` + real API-shaped JSON
+- [x] Refactor `test_portfolio.py` to use `@respx.mock` for API calls (`portfolio balance`)
+- [x] Refactor `test_scan.py` to use `@respx.mock` + real API-shaped JSON
+- [x] Remove `MagicMock()` *market* returns from the Phase 4 CLI tests
+- [x] All Phase 4 CLI tests still pass with real Pydantic model parsing
+- [x] Add smoke test: intentionally break a required field and assert the CLI fails
 
 ---
 

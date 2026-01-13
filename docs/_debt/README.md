@@ -4,16 +4,15 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**7 active debt items.**
+**6 active debt items.**
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-| **[DEBT-018](DEBT-018-test-ssot-stabilization.md)** | Test SSOT Stabilization (Fixtures, Mocks, Exa Coverage) | **P1** | Open |
+| **[DEBT-018](DEBT-018-test-ssot-stabilization.md)** | Test SSOT Stabilization (Fixtures, Mocks, Exa Coverage) | **P1** | 🟡 In Progress |
 | **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (Needs Design) |
 | **[DEBT-019](DEBT-019-exa-empty-publisheddate-validation.md)** | Exa Empty `publishedDate` Validation Bug | **P2** | Open |
 | **[DEBT-020](DEBT-020-kalshi-market-discovery-gaps.md)** | Kalshi Market Discovery Gaps (Keyword Search) | **P2** | Open |
-| **[DEBT-016](DEBT-016-fixture-drift-ci.md)** | Automate Fixture Drift Detection + Weekly Re-Recording | P2 | Open (Proposed) |
-| **[DEBT-017](DEBT-017-model-architecture-cleanup.md)** | Model Architecture Cleanup (Duplicate Order Models) | P3 | Open |
+| **[DEBT-016](DEBT-016-fixture-drift-ci.md)** | Automate Fixture Drift Detection + Weekly Re-Recording | P2 | 🟡 Partially Implemented |
 | **[DEBT-015](DEBT-015-missing-api-endpoints.md)** | Missing API Endpoints (45+ endpoints) | P2-P3 | Open (Partially Resolved) |
 
 ### Recommended Order
@@ -22,8 +21,6 @@ This directory tracks **known debt** and **audit checklists** for the repository
 DEBT-018 (Test SSOT) ← DO THIS FIRST
     ↓
 DEBT-016 (CI Automation)
-    ↓
-DEBT-017 (Model Cleanup)
     ↓
 DEBT-015 (Missing Endpoints) ← Only after foundation solid
     ↓
@@ -44,7 +41,6 @@ Use this ID for the next debt item:
 | `DEBT-020-kalshi-market-discovery-gaps.md` | **Active debt P2** - Kalshi keyword search, market state filtering |
 | `DEBT-019-exa-empty-publisheddate-validation.md` | **Active debt P2** - Empty string validation bug |
 | `DEBT-018-test-ssot-stabilization.md` | **Active debt P1** - Exa fixtures, test mock drift, validation gaps |
-| `DEBT-017-model-architecture-cleanup.md` | **Active debt P3** - Duplicate Order models |
 | `DEBT-016-fixture-drift-ci.md` | **Active debt P2** - CI automation for fixture drift detection |
 | `DEBT-015-missing-api-endpoints.md` | **Active debt P2-P3** - 45+ missing Kalshi API endpoints |
 | `DEBT-014-friction-residuals.md` | **Active debt P1-P3** - friction, design decisions |
@@ -100,6 +96,12 @@ All resolved debt items are stored in
 | ID | Title | Status |
 |---|---|---|
 | **[DEBT-013](../_archive/debt/DEBT-013-category-filtering-events-ssot.md)** | Category filtering SSOT: use `/events` (avoid `/markets` pagination traps) | ✅ Complete |
+
+### Recently Resolved (2026-01-13)
+
+| ID | Title | Status |
+|---|---|---|
+| **[DEBT-017](../_archive/debt/DEBT-017-model-architecture-cleanup.md)** | Model Architecture Cleanup (Duplicate Order Models + Validation Gaps) | ✅ Complete |
 
 ---
 
