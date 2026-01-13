@@ -23,7 +23,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 |----------|-------------|-------------|----------|------|
 | **Exchange** | 4 | 1 | 25% | - |
 | **Markets (Core)** | 5 | 5 | **100%** | Done |
-| **Markets (Filters)** | 11 params | 3 params | 27% | SPEC-029 |
+| **Markets (Filters)** | 11 params | 4 params | 36% | SPEC-029 |
 | **Series** | 4 | 4 | **100%** | SPEC-037 Phase 1 ✅ |
 | **Search/Discovery** | 2 | 1 | 50% | - |
 | **Events** | 6 | 2 | 33% | SPEC-037 Phase 2 |
@@ -84,7 +84,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `series_ticker` | ✅ | Done | Filter by series |
 | `tickers` | 🔲 | SPEC-029 | Batch lookup (comma-separated) |
 | `min_*_ts` / `max_*_ts` | 🔲 | SPEC-029 | Timestamp filters (6 params) |
-| `mve_filter` | 🔲 | SPEC-029 | Multivariate filtering |
+| `mve_filter` | ✅ | Done | Multivariate filtering |
 
 ---
 
