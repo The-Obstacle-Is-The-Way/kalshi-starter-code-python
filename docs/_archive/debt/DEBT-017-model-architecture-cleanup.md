@@ -83,7 +83,7 @@ The `old_order` field is NOT validated against the Order model.
 
 | Item | Relationship |
 |------|--------------|
-| `api/models/order.py` | Contains minimal Order |
+| `api/models/order.py` | Minimal `Order` removed (single authoritative model lives in `portfolio.py`) |
 | `api/models/portfolio.py` | Contains full Order |
 | `scripts/validate_models_against_golden.py` | Uses portfolio.Order |
 | DEBT-016 | Related fixture validation work |

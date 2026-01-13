@@ -103,7 +103,7 @@ Purpose: discover valid Kalshi categories and their tags (enables a real categor
 - OpenAPI response schema: `GetTagsForSeriesCategoriesResponse`
   - wrapper key: `tags_by_categories` (object)
 - ✅ Model: `src/kalshi_research/api/models/search.py`
-- ✅ Client method: `get_tags_by_categories()` at `client.py:474`
+- ✅ Client method: `get_tags_by_categories()` in `src/kalshi_research/api/client.py`
 - ✅ Fixture: `tests/fixtures/golden/tags_by_categories_response.json`
 - ✅ Tests: golden fixture validation + client unit test
 
@@ -118,8 +118,8 @@ Purpose: implement Kalshi's intended browse pattern:
 - ✅ Models: `src/kalshi_research/api/models/series.py`
   - `Series`, `SeriesListResponse`, `SeriesResponse`
 - ✅ Client methods:
-  - `get_series_list()` at `client.py:483`
-  - `get_series()` at `client.py:510`
+  - `get_series_list()` in `src/kalshi_research/api/client.py`
+  - `get_series()` in `src/kalshi_research/api/client.py`
 - ✅ Fixtures:
   - `tests/fixtures/golden/series_list_response.json`
   - `tests/fixtures/golden/series_single_response.json`

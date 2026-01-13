@@ -9,6 +9,7 @@ This is a lightweight drift signal for scheduled CI:
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from datetime import UTC, datetime
@@ -25,13 +26,27 @@ def _parse_recorded_at(recorded_at: str) -> datetime | None:
         return None
 
 
-def main() -> int:
+def _debug(verbose: bool, message: str) -> None:
+    if verbose:
+        print(message, file=sys.stderr)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Warn if golden fixtures are older than N days.")
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print debug info for fixtures skipped due to missing/invalid metadata.",
+    )
+    args = parser.parse_args(argv)
+
     if not GOLDEN_DIR.exists():
         print(f"ERROR: Golden fixtures directory not found: {GOLDEN_DIR}")
         return 2
 
     stale_fixtures: list[tuple[str, int]] = []
     now = datetime.now(UTC)
+    verbose = bool(args.verbose)
 
     for fixture_path in GOLDEN_DIR.rglob("*.json"):
         if fixture_path.name.startswith("_"):
@@ -40,17 +55,24 @@ def main() -> int:
         try:
             data = json.loads(fixture_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
+            _debug(verbose, f"Skipping {fixture_path}: invalid JSON")
             continue
 
         if not isinstance(data, dict):
+            _debug(verbose, f"Skipping {fixture_path}: root JSON is not an object")
             continue
 
         recorded_at = data.get("_metadata", {}).get("recorded_at")
         if not isinstance(recorded_at, str) or not recorded_at:
+            _debug(verbose, f"Skipping {fixture_path}: missing _metadata.recorded_at")
             continue
 
         recorded_dt = _parse_recorded_at(recorded_at)
         if recorded_dt is None:
+            _debug(
+                verbose,
+                f"Skipping {fixture_path}: invalid _metadata.recorded_at {recorded_at!r}",
+            )
             continue
 
         age_days = (now - recorded_dt).days

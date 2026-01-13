@@ -84,7 +84,7 @@ Once we sync comprehensive data, local keyword search becomes trivially useful.
 
 ### Why "Local DB Search" Alone is NOT the Fix
 
-```
+```text
 Problem: KXOAIHARDWARE wasn't in local DB because API never returned it.
          Local search on incomplete data = useless workaround.
 

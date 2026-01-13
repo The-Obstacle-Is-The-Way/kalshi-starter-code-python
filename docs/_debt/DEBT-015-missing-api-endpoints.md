@@ -19,6 +19,8 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 - Queue position monitoring
 - Live data feeds
 
+**Why this is "Partially Resolved":** SPEC-037 implemented the Phase 1 discovery endpoints (`/search/tags_by_categories`, `/series`, `/series/{ticker}`, `/series/fee_changes`). All other items in this doc remain missing.
+
 ---
 
 ## Missing Endpoint Categories

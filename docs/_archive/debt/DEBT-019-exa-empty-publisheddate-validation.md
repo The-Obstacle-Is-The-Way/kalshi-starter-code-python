@@ -15,7 +15,7 @@
 The Exa API sometimes returns an empty string `""` for `publishedDate` field in search results. Our Pydantic model expects `datetime | None`, which fails validation when given an empty string.
 
 **Error observed:**
-```
+```text
 ValidationError: 2 validation errors for SearchResponse
 results.9.publishedDate
   Input should be a valid datetime or date, input is too short
@@ -67,7 +67,7 @@ class SearchResult(BaseModel):
 
     @field_validator("published_date", mode="before")
     @classmethod
-    def empty_string_to_none(cls, v: object) -> object:
+    def coerce_empty_published_date(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip():
             return None
         return v

@@ -340,9 +340,9 @@ Options to address:
 
 **Resolution:**
 SPEC-037 implemented the series discovery endpoints:
-- ✅ `GET /series` → `get_series_list()` in `client.py:483`
-- ✅ `GET /series/{ticker}` → `get_series()` in `client.py:510`
-- ✅ `GET /search/tags_by_categories` → `get_tags_by_categories()` in `client.py:474`
+- ✅ `GET /series` → `get_series_list()` in `src/kalshi_research/api/client.py`
+- ✅ `GET /series/{ticker}` → `get_series()` in `src/kalshi_research/api/client.py`
+- ✅ `GET /search/tags_by_categories` → `get_tags_by_categories()` in `src/kalshi_research/api/client.py`
 - ✅ Golden fixtures: `series_list_response.json`, `series_single_response.json`, `tags_by_categories_response.json`
 
 **Remaining work:**
