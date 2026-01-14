@@ -113,7 +113,7 @@ uv run pytest -m "not integration and not slow"  # fast local suite (CI-like)
 ## Security & Configuration Tips
 
 - Copy `.env.example` → `.env`; never commit `.env`, API keys, or private key material.
-- Public endpoints work without creds; portfolio features/integration tests require `KALSHI_KEY_ID` plus a key (`KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`).
+- Public endpoints work without creds; portfolio features/integration tests require Kalshi creds (prod: `KALSHI_KEY_ID` + `KALSHI_PRIVATE_KEY_*`; demo: `KALSHI_DEMO_KEY_ID` + `KALSHI_DEMO_PRIVATE_KEY_*` (falls back to prod vars)).
 - Exa-powered commands require `EXA_API_KEY`.
 
 ## Runtime Environment & API Access
@@ -158,7 +158,7 @@ These operations may incur real costs:
 Before running portfolio or authenticated commands:
 
 1. Read `.env` to confirm `KALSHI_ENVIRONMENT` is set correctly
-2. Verify `KALSHI_KEY_ID` and `KALSHI_PRIVATE_KEY_PATH` are configured
+2. Verify creds for that environment are configured (prod: `KALSHI_KEY_ID` + `KALSHI_PRIVATE_KEY_*`; demo: `KALSHI_DEMO_KEY_ID` + `KALSHI_DEMO_PRIVATE_KEY_*` (falls back to prod vars))
 3. Run `uv run kalshi portfolio sync` to populate local DB
 4. Then run read commands like `portfolio positions`
 

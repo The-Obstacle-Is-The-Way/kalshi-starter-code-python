@@ -1,12 +1,13 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-14T00:00:00+00:00",
+    "recorded_at": "2026-01-14T20:18:16.029643+00:00",
     "endpoint": "order_queue_position",
     "environment": "demo",
-    "sanitized": false,
-    "note": "SYNTHETIC: Derived from Kalshi OpenAPI (demo auth unavailable)"
+    "sanitized": true,
+    "order_id": "6c170f2d-31ac-5a52-aa49-396c7be13455",
+    "note": "RAW API response (SSOT) - demo queue position; Sensitive data replaced with example values"
   },
   "response": {
-    "queue_position": 12
+    "queue_position": 103
   }
 }

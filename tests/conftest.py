@@ -33,10 +33,18 @@ load_dotenv()
 @pytest.fixture(scope="session")
 def api_credentials() -> dict[str, str | None]:
     """API credentials from environment (may be None for public-only tests)."""
+    from kalshi_research.api.credentials import resolve_kalshi_auth_env
+
+    environment = os.getenv("KALSHI_ENVIRONMENT", "demo")
+    try:
+        key_id, private_key_path, private_key_b64 = resolve_kalshi_auth_env(environment=environment)
+    except ValueError:
+        key_id, private_key_path, private_key_b64 = None, None, None
     return {
-        "key_id": os.getenv("KALSHI_KEY_ID"),
-        "private_key_path": os.getenv("KALSHI_PRIVATE_KEY_PATH"),
-        "environment": os.getenv("KALSHI_ENVIRONMENT", "demo"),
+        "key_id": key_id,
+        "private_key_path": private_key_path,
+        "private_key_b64": private_key_b64,
+        "environment": environment,
     }
 
 

@@ -52,16 +52,24 @@ def _validate_environment_override(environment: str | None) -> str | None:
         raise typer.Exit(1) from None
 
 
-def _require_auth_env(*, purpose: str) -> tuple[str, str | None, str | None]:
-    key_id = os.getenv("KALSHI_KEY_ID")
-    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
-    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
+def _require_auth_env(
+    *, purpose: str, environment: str | None
+) -> tuple[str, str | None, str | None]:
+    from kalshi_research.api.credentials import (
+        get_kalshi_auth_env_var_names,
+        resolve_kalshi_auth_env,
+    )
+
+    key_id, private_key_path, private_key_b64 = resolve_kalshi_auth_env(environment=environment)
+    key_id_var, private_key_path_var, private_key_b64_var = get_kalshi_auth_env_var_names(
+        environment=environment
+    )
 
     if not key_id or (not private_key_path and not private_key_b64):
         console.print(f"[red]Error:[/red] {purpose} requires authentication.")
         console.print(
-            "[dim]Set KALSHI_KEY_ID and KALSHI_PRIVATE_KEY_PATH "
-            "(or KALSHI_PRIVATE_KEY_B64) to enable authenticated commands.[/dim]"
+            f"[dim]Set {key_id_var} and {private_key_path_var} "
+            f"(or {private_key_b64_var}) to enable authenticated commands.[/dim]"
         )
         raise typer.Exit(1)
 
@@ -120,7 +128,9 @@ def portfolio_sync(
     from kalshi_research.portfolio.syncer import PortfolioSyncer
 
     environment_override = _validate_environment_override(environment)
-    key_id, private_key_path, private_key_b64 = _require_auth_env(purpose="Portfolio sync")
+    key_id, private_key_path, private_key_b64 = _require_auth_env(
+        purpose="Portfolio sync", environment=environment_override
+    )
     rate_tier_override = _resolve_rate_tier_override(rate_tier)
 
     async def _sync() -> None:
@@ -380,7 +390,9 @@ def portfolio_balance(
     from kalshi_research.api.exceptions import KalshiAPIError
 
     environment_override = _validate_environment_override(environment)
-    key_id, private_key_path, private_key_b64 = _require_auth_env(purpose="Balance")
+    key_id, private_key_path, private_key_b64 = _require_auth_env(
+        purpose="Balance", environment=environment_override
+    )
     rate_tier_override = _resolve_rate_tier_override(rate_tier)
 
     async def _balance() -> None:

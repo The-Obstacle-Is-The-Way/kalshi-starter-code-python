@@ -10,6 +10,7 @@ import respx
 from httpx import Response
 
 from kalshi_research.api.client import KalshiClient
+from kalshi_research.api.exceptions import KalshiAPIError
 from kalshi_research.api.models.order import CreateOrderRequest, OrderAction, OrderSide
 from tests.golden_fixtures import load_golden_response
 
@@ -108,7 +109,9 @@ class TestOrderOperationsPhase2:
 
         assert len(result.orders) == len(response_json["orders"])
         assert result.orders[0].order is not None
-        assert result.orders[1].error is not None
+        assert result.orders[1].order is not None
+        assert result.orders[0].error is None
+        assert result.orders[1].error is None
 
     @pytest.mark.asyncio
     @respx.mock
@@ -205,8 +208,8 @@ class TestOrderOperationsPhase2:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_get_total_resting_order_value(self, mock_auth: None) -> None:
-        response_json = load_golden_response("portfolio_total_resting_order_value_response.json")
+    async def test_get_total_resting_order_value_parses_success(self, mock_auth: None) -> None:
+        response_json = {"total_resting_order_value": 12345}
         route = respx.get(
             "https://demo-api.kalshi.co/trade-api/v2/portfolio/summary/total_resting_order_value"
         ).mock(return_value=Response(200, json=response_json))
@@ -222,3 +225,20 @@ class TestOrderOperationsPhase2:
             "GET", "/portfolio/summary/total_resting_order_value"
         )
         assert total == response_json["total_resting_order_value"]
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_total_resting_order_value_403_raises(self, mock_auth: None) -> None:
+        response_json = load_golden_response("portfolio_total_resting_order_value_response.json")
+        route = respx.get(
+            "https://demo-api.kalshi.co/trade-api/v2/portfolio/summary/total_resting_order_value"
+        ).mock(return_value=Response(403, json=response_json))
+
+        async with KalshiClient(
+            key_id="test-key", private_key_b64="fake", environment="demo"
+        ) as client:
+            client._rate_limiter = AsyncMock()
+            with pytest.raises(KalshiAPIError):
+                await client.get_total_resting_order_value()
+
+        assert route.called

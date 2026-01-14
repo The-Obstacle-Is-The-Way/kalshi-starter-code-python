@@ -339,7 +339,10 @@ uv run kalshi scan movers [OPTIONS]
 
 ## portfolio - Portfolio Tracking
 
-**Requires authentication**: Set `KALSHI_KEY_ID` and either `KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`.
+**Requires authentication**:
+
+- Prod: `KALSHI_KEY_ID` + (`KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`)
+- Demo: `KALSHI_DEMO_KEY_ID` + (`KALSHI_DEMO_PRIVATE_KEY_PATH` or `KALSHI_DEMO_PRIVATE_KEY_B64`) (falls back to prod vars)
 
 ### portfolio sync
 Sync positions and trades from Kalshi API.

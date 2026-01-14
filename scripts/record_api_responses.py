@@ -19,7 +19,13 @@ Output:
     tests/fixtures/golden/<endpoint>_response.json
 
 Note:
-    All operations are READ-ONLY.
+    Public + portfolio recordings are read-only.
+
+    Order write fixtures (create/cancel/amend/batch/decrease) require explicit opt-in and MUST
+    be recorded from the demo environment:
+        uv run python scripts/record_api_responses.py --env demo --endpoint authenticated
+            --include-writes
+
     Run sanitize_golden_fixtures.py before committing to remove sensitive data.
 """
 
@@ -30,6 +36,7 @@ import asyncio
 import json
 import os
 import sys
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final
@@ -38,6 +45,8 @@ from dotenv import load_dotenv
 
 from kalshi_research.api.client import KalshiClient, KalshiPublicClient
 from kalshi_research.api.config import Environment, get_config, set_environment
+from kalshi_research.api.credentials import get_kalshi_auth_env_var_names, resolve_kalshi_auth_env
+from kalshi_research.api.exceptions import KalshiAPIError
 
 load_dotenv()
 
@@ -203,6 +212,99 @@ async def _record_auth_get(
     results[save_as] = raw
     save_golden(save_as, raw, metadata)
     return raw
+
+
+async def _auth_request_raw(
+    client: KalshiClient,
+    *,
+    method: str,
+    path: str,
+    params: dict[str, Any] | None = None,
+    json_body: dict[str, Any] | None = None,
+    batch_size: int = 0,
+) -> dict[str, Any]:
+    method_upper = method.strip().upper()
+    await client._rate_limiter.acquire(method_upper, path, batch_size=batch_size)
+
+    full_path = client.API_PATH + path
+    headers = client._auth.get_headers(method_upper, full_path)
+
+    response = await client._client.request(
+        method_upper,
+        path,
+        params=params,
+        json=json_body,
+        headers=headers,
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"HTTP {response.status_code}: {response.text}")
+
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise TypeError(f"Unexpected response type: {type(payload)!r} (expected JSON object)")
+    return payload
+
+
+async def _record_auth_request(
+    client: KalshiClient,
+    *,
+    label: str,
+    method: str,
+    path: str,
+    params: dict[str, Any] | None = None,
+    json_body: dict[str, Any] | None = None,
+    batch_size: int = 0,
+    save_as: str,
+    metadata: dict[str, Any] | None = None,
+    results: dict[str, Any],
+) -> dict[str, Any] | None:
+    print(f"Recording: {label}")
+    try:
+        raw = await _auth_request_raw(
+            client,
+            method=method,
+            path=path,
+            params=params,
+            json_body=json_body,
+            batch_size=batch_size,
+        )
+    except Exception as e:
+        print(f"  ERROR: {e}")
+        results[save_as] = {"error": str(e)}
+        return None
+
+    results[save_as] = raw
+    save_golden(save_as, raw, metadata)
+    return raw
+
+
+def _select_market_for_order_writes(raw_markets: dict[str, Any]) -> tuple[str, int, int] | None:
+    markets = raw_markets.get("markets")
+    if not isinstance(markets, list) or not markets:
+        return None
+
+    for market in markets:
+        if not isinstance(market, dict):
+            continue
+        ticker = market.get("ticker")
+        if not isinstance(ticker, str) or not ticker:
+            continue
+        status = market.get("status")
+        if status not in {"active"}:
+            continue
+        yes_ask = market.get("yes_ask")
+        if not isinstance(yes_ask, int) or not (2 <= yes_ask <= 99):
+            continue
+
+        yes_bid = market.get("yes_bid")
+        yes_bid_int = yes_bid if isinstance(yes_bid, int) else 0
+        # Ensure this order cannot cross the spread.
+        safe_price = max(1, min(yes_bid_int, yes_ask - 1))
+        if safe_price >= yes_ask:
+            continue
+        return ticker, safe_price, yes_ask
+
+    return None
 
 
 async def _record_series_discovery_endpoints(
@@ -488,18 +590,434 @@ async def record_public_endpoints() -> dict[str, Any]:
     return results
 
 
-async def record_authenticated_endpoints() -> dict[str, Any]:
+def _save_result(
+    save_as: str,
+    raw: dict[str, Any],
+    *,
+    metadata: dict[str, Any],
+    results: dict[str, Any],
+) -> None:
+    results[save_as] = raw
+    save_golden(save_as, raw, metadata)
+
+
+def _extract_order_id(raw: dict[str, Any] | None) -> str | None:
+    if not isinstance(raw, dict):
+        return None
+    order_obj = raw.get("order")
+    if not isinstance(order_obj, dict):
+        return None
+    order_id = order_obj.get("order_id")
+    if not isinstance(order_id, str) or not order_id:
+        return None
+    return order_id
+
+
+async def _auth_get_with_not_found_retry(
+    client: KalshiClient,
+    path: str,
+    *,
+    attempts: int = 30,
+    delay_seconds: float = 1.0,
+) -> dict[str, Any] | None:
+    for attempt in range(attempts):
+        print(f"Recording: GET {path} (attempt {attempt + 1}/{attempts})")
+        try:
+            return await client._auth_get(path)
+        except KalshiAPIError as exc:
+            if exc.status_code != 404:
+                raise
+            await asyncio.sleep(delay_seconds)
+
+    print(f"  ERROR: Not found after retries: {path}")
+    return None
+
+
+async def _record_portfolio_reads(client: KalshiClient, *, results: dict[str, Any]) -> None:
+    print("\n=== AUTHENTICATED ENDPOINTS ===\n")
+    await _record_auth_get(
+        client,
+        label="GET /portfolio/balance",
+        path="/portfolio/balance",
+        save_as="portfolio_balance",
+        metadata={"note": "RAW API response (SSOT)"},
+        results=results,
+    )
+    await _record_auth_get(
+        client,
+        label="GET /portfolio/positions",
+        path="/portfolio/positions",
+        save_as="portfolio_positions",
+        metadata={"note": "RAW API response (SSOT)"},
+        results=results,
+    )
+    await _record_auth_get(
+        client,
+        label="GET /portfolio/orders",
+        path="/portfolio/orders",
+        params={"limit": 5},
+        save_as="portfolio_orders",
+        metadata={"limit": 5, "note": "RAW API response (SSOT)"},
+        results=results,
+    )
+    await _record_auth_get(
+        client,
+        label="GET /portfolio/fills",
+        path="/portfolio/fills",
+        params={"limit": 5},
+        save_as="portfolio_fills",
+        metadata={"limit": 5, "note": "RAW API response (SSOT)"},
+        results=results,
+    )
+    await _record_auth_get(
+        client,
+        label="GET /portfolio/settlements",
+        path="/portfolio/settlements",
+        params={"limit": 5},
+        save_as="portfolio_settlements",
+        metadata={"limit": 5, "note": "RAW API response (SSOT)"},
+        results=results,
+    )
+
+
+async def _record_total_resting_order_value(
+    client: KalshiClient, *, results: dict[str, Any]
+) -> None:
+    print("Recording: GET /portfolio/summary/total_resting_order_value")
+    path = "/portfolio/summary/total_resting_order_value"
+    await client._rate_limiter.acquire("GET", path)
+    headers = client._auth.get_headers("GET", client.API_PATH + path)
+    response = await client._client.get(path, headers=headers)
+    payload = response.json()
+
+    if not isinstance(payload, dict):
+        print(f"  ERROR: Unexpected response type: {type(payload)!r}")
+        return
+
+    _save_result(
+        "portfolio_total_resting_order_value",
+        payload,
+        metadata={
+            "http_status": response.status_code,
+            "note": "RAW API response (SSOT); permissioned endpoint may return 403",
+        },
+        results=results,
+    )
+
+
+async def _record_single_order_fixtures(
+    client: KalshiClient,
+    *,
+    market_ticker: str,
+    safe_price: int,
+    results: dict[str, Any],
+) -> None:
+    client_order_id = str(uuid.uuid4())
+    create_raw = await _record_auth_request(
+        client,
+        label="POST /portfolio/orders",
+        method="POST",
+        path="/portfolio/orders",
+        json_body={
+            "ticker": market_ticker,
+            "action": "buy",
+            "side": "yes",
+            "count": 2,
+            "type": "limit",
+            "yes_price": safe_price,
+            "client_order_id": client_order_id,
+            "post_only": True,
+        },
+        save_as="create_order",
+        metadata={
+            "ticker": market_ticker,
+            "yes_price": safe_price,
+            "count": 2,
+            "note": "RAW API response (SSOT) - demo write fixture",
+        },
+        results=results,
+    )
+
+    order_id = _extract_order_id(create_raw)
+    if not order_id:
+        print("  ERROR: Could not extract order_id from create_order response.")
+        return
+
+    order_raw = await _auth_get_with_not_found_retry(client, f"/portfolio/orders/{order_id}")
+    if order_raw is not None:
+        _save_result(
+            "portfolio_order_single",
+            order_raw,
+            metadata={"order_id": order_id, "note": "RAW API response (SSOT) - demo order lookup"},
+            results=results,
+        )
+
+    queue_raw = await _auth_get_with_not_found_retry(
+        client, f"/portfolio/orders/{order_id}/queue_position"
+    )
+    if queue_raw is not None:
+        _save_result(
+            "order_queue_position",
+            queue_raw,
+            metadata={
+                "order_id": order_id,
+                "note": "RAW API response (SSOT) - demo queue position",
+            },
+            results=results,
+        )
+
+    await _record_auth_get(
+        client,
+        label=f"GET /portfolio/orders/queue_positions?market_tickers={market_ticker}",
+        path="/portfolio/orders/queue_positions",
+        params={"market_tickers": market_ticker},
+        save_as="order_queue_positions",
+        metadata={
+            "market_tickers": [market_ticker],
+            "note": "RAW API response (SSOT) - demo queue positions",
+        },
+        results=results,
+    )
+
+    await _record_auth_request(
+        client,
+        label=f"POST /portfolio/orders/{order_id}/decrease",
+        method="POST",
+        path=f"/portfolio/orders/{order_id}/decrease",
+        json_body={"reduce_by": 1},
+        save_as="decrease_order",
+        metadata={
+            "order_id": order_id,
+            "reduce_by": 1,
+            "note": "RAW API response (SSOT) - demo decrease",
+        },
+        results=results,
+    )
+
+    await _record_total_resting_order_value(client, results=results)
+
+    await _record_auth_request(
+        client,
+        label=f"DELETE /portfolio/orders/{order_id}",
+        method="DELETE",
+        path=f"/portfolio/orders/{order_id}",
+        save_as="cancel_order",
+        metadata={"order_id": order_id, "note": "RAW API response (SSOT) - demo cancel"},
+        results=results,
+    )
+
+
+async def _record_amend_order_fixture(
+    client: KalshiClient,
+    *,
+    market_ticker: str,
+    safe_price: int,
+    yes_ask: int,
+    results: dict[str, Any],
+) -> None:
+    amend_client_order_id = str(uuid.uuid4())
+    print("Recording: POST /portfolio/orders (for amend)")
+
+    try:
+        create_raw = await _auth_request_raw(
+            client,
+            method="POST",
+            path="/portfolio/orders",
+            json_body={
+                "ticker": market_ticker,
+                "action": "buy",
+                "side": "yes",
+                "count": 1,
+                "type": "limit",
+                "yes_price": safe_price,
+                "client_order_id": amend_client_order_id,
+                "post_only": True,
+            },
+        )
+    except Exception as exc:
+        print(f"  ERROR: {exc}")
+        return
+
+    amend_order_id = _extract_order_id(create_raw)
+    if not amend_order_id:
+        print("  ERROR: Could not extract order_id for amend fixture.")
+        return
+
+    updated_client_order_id = str(uuid.uuid4())
+    new_price = max(1, min(safe_price + 1, yes_ask - 1))
+    if new_price == safe_price:
+        new_price = max(1, safe_price - 1)
+
+    amend_raw = await _record_auth_request(
+        client,
+        label=f"POST /portfolio/orders/{amend_order_id}/amend",
+        method="POST",
+        path=f"/portfolio/orders/{amend_order_id}/amend",
+        json_body={
+            "ticker": market_ticker,
+            "side": "yes",
+            "action": "buy",
+            "client_order_id": amend_client_order_id,
+            "updated_client_order_id": updated_client_order_id,
+            "yes_price": new_price,
+        },
+        save_as="amend_order",
+        metadata={
+            "order_id": amend_order_id,
+            "ticker": market_ticker,
+            "yes_price": new_price,
+            "note": "RAW API response (SSOT) - demo amend",
+        },
+        results=results,
+    )
+
+    cancel_target_id = amend_order_id
+    cancel_order_id = _extract_order_id(amend_raw)
+    if cancel_order_id:
+        cancel_target_id = cancel_order_id
+
+    print(f"Recording: DELETE /portfolio/orders/{cancel_target_id} (post-amend cleanup)")
+    try:
+        await _auth_request_raw(
+            client, method="DELETE", path=f"/portfolio/orders/{cancel_target_id}"
+        )
+    except Exception as exc:
+        print(f"  ERROR: {exc}")
+
+
+async def _record_batch_order_fixtures(
+    client: KalshiClient,
+    *,
+    market_ticker: str,
+    safe_price: int,
+    results: dict[str, Any],
+) -> None:
+    batch_orders = [
+        {
+            "ticker": market_ticker,
+            "action": "buy",
+            "side": "yes",
+            "count": 1,
+            "type": "limit",
+            "yes_price": safe_price,
+            "client_order_id": str(uuid.uuid4()),
+            "post_only": True,
+        },
+        {
+            "ticker": market_ticker,
+            "action": "buy",
+            "side": "yes",
+            "count": 1,
+            "type": "limit",
+            "yes_price": safe_price,
+            "client_order_id": str(uuid.uuid4()),
+            "post_only": True,
+        },
+    ]
+
+    batch_create_raw = await _record_auth_request(
+        client,
+        label="POST /portfolio/orders/batched",
+        method="POST",
+        path="/portfolio/orders/batched",
+        json_body={"orders": batch_orders},
+        batch_size=len(batch_orders),
+        save_as="batch_create_orders",
+        metadata={
+            "ticker": market_ticker,
+            "orders": len(batch_orders),
+            "note": "RAW API response (SSOT)",
+        },
+        results=results,
+    )
+
+    batch_order_ids: list[str] = []
+    if isinstance(batch_create_raw, dict):
+        orders_obj = batch_create_raw.get("orders")
+        if isinstance(orders_obj, list):
+            for item in orders_obj:
+                if not isinstance(item, dict):
+                    continue
+                order_obj = item.get("order")
+                if not isinstance(order_obj, dict):
+                    continue
+                oid = order_obj.get("order_id")
+                if isinstance(oid, str) and oid:
+                    batch_order_ids.append(oid)
+
+    if not batch_order_ids:
+        print("  ERROR: Unable to extract order IDs from batch create response.")
+        return
+
+    await _record_auth_request(
+        client,
+        label="DELETE /portfolio/orders/batched",
+        method="DELETE",
+        path="/portfolio/orders/batched",
+        json_body={"ids": batch_order_ids},
+        batch_size=len(batch_order_ids),
+        save_as="batch_cancel_orders",
+        metadata={"orders": len(batch_order_ids), "note": "RAW API response (SSOT)"},
+        results=results,
+    )
+
+
+async def _record_order_write_fixtures(client: KalshiClient, *, results: dict[str, Any]) -> None:
+    print("\n=== ORDER WRITE ENDPOINTS (DEMO ONLY) ===\n")
+    raw_markets = await client._get("/markets", {"status": "open", "limit": 50})
+    market_pick = _select_market_for_order_writes(raw_markets)
+    if not market_pick:
+        print("  ERROR: Unable to find an active market suitable for order write fixtures.")
+        return
+
+    market_ticker, safe_price, yes_ask = market_pick
+    print(f"  Using market: {market_ticker} (yes_ask={yes_ask}, safe_price={safe_price})")
+
+    await _record_single_order_fixtures(
+        client, market_ticker=market_ticker, safe_price=safe_price, results=results
+    )
+    await _record_amend_order_fixture(
+        client,
+        market_ticker=market_ticker,
+        safe_price=safe_price,
+        yes_ask=yes_ask,
+        results=results,
+    )
+    await _record_batch_order_fixtures(
+        client, market_ticker=market_ticker, safe_price=safe_price, results=results
+    )
+
+
+async def record_authenticated_endpoints(
+    *, include_writes: bool, record_portfolio_reads: bool
+) -> dict[str, Any]:
     """Record responses from authenticated endpoints (portfolio, orders)."""
     config = get_config()
     results: dict[str, Any] = {}
 
-    key_id = os.getenv("KALSHI_KEY_ID")
-    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
-    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
+    key_id, private_key_path, private_key_b64 = resolve_kalshi_auth_env(
+        environment=config.environment
+    )
+    key_id_var, private_key_path_var, private_key_b64_var = get_kalshi_auth_env_var_names(
+        environment=config.environment
+    )
 
     if not key_id:
         print("\n=== AUTHENTICATED ENDPOINTS ===\n")
-        print("  SKIPPED: No KALSHI_KEY_ID configured")
+        print(f"  SKIPPED: No {key_id_var} configured")
+        if key_id_var != "KALSHI_KEY_ID":
+            print("           (Fallback also supports KALSHI_KEY_ID)")
+        return results
+
+    if not private_key_path and not private_key_b64:
+        print("\n=== AUTHENTICATED ENDPOINTS ===\n")
+        print(f"  SKIPPED: No {private_key_path_var} configured")
+        print(f"           (or {private_key_b64_var})")
+        if private_key_path_var != "KALSHI_PRIVATE_KEY_PATH":
+            print(
+                "           (Fallback also supports KALSHI_PRIVATE_KEY_PATH / "
+                "KALSHI_PRIVATE_KEY_B64)"
+            )
         return results
 
     try:
@@ -509,51 +1027,15 @@ async def record_authenticated_endpoints() -> dict[str, Any]:
             private_key_b64=private_key_b64,
             environment=config.environment.value,
         ) as client:
-            print("\n=== AUTHENTICATED ENDPOINTS ===\n")
+            if record_portfolio_reads:
+                await _record_portfolio_reads(client, results=results)
 
-            await _record_auth_get(
-                client,
-                label="GET /portfolio/balance",
-                path="/portfolio/balance",
-                save_as="portfolio_balance",
-                metadata={"note": "RAW API response (SSOT)"},
-                results=results,
-            )
-            await _record_auth_get(
-                client,
-                label="GET /portfolio/positions",
-                path="/portfolio/positions",
-                save_as="portfolio_positions",
-                metadata={"note": "RAW API response (SSOT)"},
-                results=results,
-            )
-            await _record_auth_get(
-                client,
-                label="GET /portfolio/orders",
-                path="/portfolio/orders",
-                params={"limit": 5},
-                save_as="portfolio_orders",
-                metadata={"limit": 5, "note": "RAW API response (SSOT)"},
-                results=results,
-            )
-            await _record_auth_get(
-                client,
-                label="GET /portfolio/fills",
-                path="/portfolio/fills",
-                params={"limit": 5},
-                save_as="portfolio_fills",
-                metadata={"limit": 5, "note": "RAW API response (SSOT)"},
-                results=results,
-            )
-            await _record_auth_get(
-                client,
-                label="GET /portfolio/settlements",
-                path="/portfolio/settlements",
-                params={"limit": 5},
-                save_as="portfolio_settlements",
-                metadata={"limit": 5, "note": "RAW API response (SSOT)"},
-                results=results,
-            )
+            if include_writes:
+                if config.environment != Environment.DEMO:
+                    print("\n=== ORDER WRITE ENDPOINTS ===\n")
+                    print("  SKIPPED: Order write fixtures are demo-only (use --env demo).")
+                else:
+                    await _record_order_write_fixtures(client, results=results)
 
     except Exception as e:
         print(f"\n  AUTH ERROR: {e}")
@@ -572,9 +1054,14 @@ async def main() -> None:
     )
     parser.add_argument(
         "--endpoint",
-        choices=["public", "authenticated", "all"],
+        choices=["public", "authenticated", "order_ops", "all"],
         default="all",
         help="Which endpoints to record",
+    )
+    parser.add_argument(
+        "--include-writes",
+        action="store_true",
+        help="Also record order write fixtures (demo only).",
     )
     parser.add_argument(
         "--yes",
@@ -597,9 +1084,16 @@ async def main() -> None:
     print(f"RECORDING API RESPONSES FROM: {env.upper()}")
     print(f"{'=' * 60}")
 
+    wants_writes = args.include_writes or args.endpoint == "order_ops"
+
+    if wants_writes and env != "demo":
+        print("\nERROR: Refusing to record order write fixtures outside demo.")
+        print("Re-run with: --env demo --include-writes")
+        return
+
     if env == "prod":
         print("\nWARNING: Using PRODUCTION API")
-        print("All operations are READ-ONLY, but be aware this hits real API.")
+        print("Recording is read-only, but be aware this hits the real API.")
         if not args.yes:
             if not sys.stdin.isatty():
                 print("Refusing to record from prod in non-interactive mode without --yes.")
@@ -615,7 +1109,14 @@ async def main() -> None:
         all_results["public"] = await record_public_endpoints()
 
     if args.endpoint in ("authenticated", "all"):
-        all_results["authenticated"] = await record_authenticated_endpoints()
+        all_results["authenticated"] = await record_authenticated_endpoints(
+            include_writes=args.include_writes, record_portfolio_reads=True
+        )
+
+    if args.endpoint == "order_ops":
+        all_results["order_ops"] = await record_authenticated_endpoints(
+            include_writes=True, record_portfolio_reads=False
+        )
 
     # Save summary
     summary_path = GOLDEN_DIR / "_recording_summary.json"

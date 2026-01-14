@@ -203,6 +203,7 @@ def main() -> None:
         "portfolio_settlements_response.json",
         "portfolio_order_single_response.json",
         "portfolio_total_resting_order_value_response.json",
+        "order_queue_position_response.json",
         "order_queue_positions_response.json",
         # Trading fixtures also contain user_id, order_id, client_order_id
         "create_order_response.json",

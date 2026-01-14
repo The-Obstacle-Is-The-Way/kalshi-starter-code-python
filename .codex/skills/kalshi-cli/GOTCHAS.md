@@ -465,7 +465,9 @@ Market doesn't exist or ticker is wrong. Get exact ticker from database.
 ### "unauthorized" (401)
 
 Missing or invalid authentication. Check:
-- `KALSHI_KEY_ID` is set
+- `KALSHI_ENVIRONMENT` is correct (`demo` vs `prod`)
+- Prod: `KALSHI_KEY_ID` + (`KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`)
+- Demo: `KALSHI_DEMO_KEY_ID` + (`KALSHI_DEMO_PRIVATE_KEY_PATH` or `KALSHI_DEMO_PRIVATE_KEY_B64`) (falls back to prod vars)
 - Private key path/base64 is correct
 - Key hasn't expired
 

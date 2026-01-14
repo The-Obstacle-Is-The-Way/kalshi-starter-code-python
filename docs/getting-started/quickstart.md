@@ -100,6 +100,11 @@ Populate:
 - `KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`
 - `KALSHI_ENVIRONMENT` (`demo` or `prod`)
 
+If you keep both demo + prod credentials in the same `.env`, set the demo-prefixed vars too:
+
+- `KALSHI_DEMO_KEY_ID`
+- `KALSHI_DEMO_PRIVATE_KEY_PATH` or `KALSHI_DEMO_PRIVATE_KEY_B64`
+
 Then:
 
 ```bash
