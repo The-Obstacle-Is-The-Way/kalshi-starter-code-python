@@ -817,6 +817,18 @@ async def test_get_event_category_falls_back_when_event_has_no_category() -> Non
     assert category == "Economics"
 
 
+@pytest.mark.asyncio
+async def test_get_event_category_falls_back_on_api_error() -> None:
+    from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.scan import _get_event_category
+
+    client = AsyncMock()
+    client.get_event = AsyncMock(side_effect=KalshiAPIError(500, "boom"))
+
+    category = await _get_event_category(client, "KXFED-TEST", category_by_event={})
+    assert category == "Economics"
+
+
 def test_format_opportunity_tickers() -> None:
     from kalshi_research.cli.scan import _format_opportunity_tickers
 

@@ -179,11 +179,14 @@ async def _get_event_category(
     if cached is not None:
         return cached
 
+    import httpx
+
     from kalshi_research.analysis.categories import classify_by_event_ticker
+    from kalshi_research.api.exceptions import KalshiAPIError
 
     try:
         event = await client.get_event(event_ticker)
-    except Exception:
+    except (KalshiAPIError, httpx.HTTPError):
         category = classify_by_event_ticker(event_ticker)
     else:
         if isinstance(event.category, str) and event.category.strip():
