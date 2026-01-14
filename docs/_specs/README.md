@@ -24,13 +24,14 @@ This directory contains **active** design specifications - work happening NOW.
 | SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft |
 | SPEC-037 | [Kalshi Missing Endpoints (Discovery + Order Ops Parity)](SPEC-037-kalshi-missing-endpoints-phase1.md) | ✅ Phase 1 Complete |
 | SPEC-038 | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](SPEC-038-exa-websets-endpoint-coverage.md) | 📝 Draft |
+| SPEC-039 | [New Market Alerts (Information Arbitrage Window)](SPEC-039-new-market-alerts.md) | 📝 Draft |
 
 ---
 
 ## Next ID Tracker
 
 Use this ID for the next specification:
-**SPEC-039**
+**SPEC-040**
 
 ---
 

@@ -257,7 +257,7 @@ searches for both bullish AND bearish signals.
 
 ### B3. New Market Alert System (Information Arbitrage)
 
-**Status:** 📋 **NEEDS SPEC** (not covered by FUTURE-001)
+**Status:** ✅ **SPECCED** → See [SPEC-039](../_specs/SPEC-039-new-market-alerts.md)
 
 **Problem:** Best edge exists on newly opened markets where crowd hasn't priced in information yet.
 
@@ -320,7 +320,7 @@ Options to address:
 
 **Effort:** Medium (new scan filter + optional Exa integration)
 
-**Next step:** Create SPEC-039 (New Market Alerts) with appropriate filter logic
+**Next step:** Implement SPEC-039 (New Market Alerts)
 
 ---
 
@@ -384,7 +384,7 @@ SPEC-037 implemented the series discovery endpoints:
 | A6 | Clarify DB cents comment | Low | 5 min | P3 | ✅ COMPLETED |
 | B1 | Exa research pipeline | High | Large | P1 | ⏸️ Blocked (FUTURE-001) |
 | B2 | Adversarial research | High | Medium | P1 | ⏸️ Blocked (FUTURE-001) |
-| B3 | New market alerts | Medium | Medium | P2 | 📋 Needs spec |
+| B3 | New market alerts | Medium | Medium | P2 | ✅ Specced (SPEC-039) |
 | C1 | `/series` endpoint | Low | Medium | P3 | ✅ RESOLVED (SPEC-037) |
 | C2 | Jan 15 cleanup | Medium | Small | P2 | Scheduled |
 
@@ -413,8 +413,8 @@ None for Section A.
 2. **B1**: Implement `ResearchAgent` from FUTURE-001 spec
 3. **B2**: Included in FUTURE-001 (bull/bear case generation)
 
-### Needs Spec
-4. **B3**: Create SPEC-039 (New Market Alerts)
+### Ready for Implementation
+4. **B3**: Implement SPEC-039 (New Market Alerts)
 
 ### Scheduled
 5. **C2**: Wait for Jan 15, 2026, then cleanup
@@ -447,14 +447,14 @@ None for Section A.
 > **Key decisions made:**
 > - B1: Auto-research always → BLOCKED BY FUTURE-001
 > - B2: Always show bull/bear → BLOCKED BY FUTURE-001
-> - B3: Alert on new markets → NEEDS SPEC (see investigation below)
+> - B3: Alert on new markets → SPECCED (SPEC-039)
 >
 > **✅ RESOLVED (B3 Liquidity Concern):**
 > Investigated on 2026-01-11. See B3 section for full findings. Summary:
 > - Default filters are permissive (`--min-volume=0`, `--max-spread=100`)
 > - The REAL filter is unpriced markets (bid=0, ask=100) being skipped in scanner.py:220-224
 > - `created_time` field EXISTS on Market model - we CAN detect new markets
-> - **Next step:** Create SPEC-039 with `--include-unpriced` flag option
+> - **Next step:** Implement SPEC-039 (`kalshi scan new-markets` command)
 >
 > **Review checklist:**
 > - [x] Search `scan opportunities` for volume/liquidity filters ✅ Done (see B3)
