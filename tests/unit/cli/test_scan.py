@@ -727,6 +727,14 @@ def test_market_yes_price_display_shows_half_cent_midpoints() -> None:
     assert _market_yes_price_display(market) == "49.5¢"
 
 
+def test_format_opportunity_tickers() -> None:
+    from kalshi_research.cli.scan import _format_opportunity_tickers
+
+    assert _format_opportunity_tickers(["A", "B"], full=False) == "A, B"
+    assert _format_opportunity_tickers(["A", "B", "C"], full=False) == "A, B, +1"
+    assert _format_opportunity_tickers(["A", "B", "C"], full=True) == "A, B, C"
+
+
 def test_scan_new_markets_filters_by_created_time(
     make_market: Callable[..., dict[str, object]],
 ) -> None:

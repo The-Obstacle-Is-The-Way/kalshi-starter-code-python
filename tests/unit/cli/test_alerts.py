@@ -198,6 +198,58 @@ def test_alerts_monitor_once_exits(
     assert "Single check complete" in result.stdout
 
 
+@pytest.mark.asyncio
+async def test_alert_monitor_loop_prints_utc_timestamp_when_alerts_trigger(monkeypatch) -> None:
+    """Triggered alerts should display a timezone-aware UTC timestamp."""
+    import kalshi_research.api as api_module
+    from kalshi_research.cli import alerts as alerts_cli
+
+    printed: list[str] = []
+
+    def fake_print(*args, **kwargs) -> None:
+        del kwargs
+        if args:
+            printed.append(str(args[0]))
+
+    monkeypatch.setattr(alerts_cli.console, "print", fake_print)
+
+    class DummyClient:
+        def __init__(self, *args, **kwargs) -> None:
+            del args, kwargs
+
+        async def __aenter__(self) -> DummyClient:
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:
+            del exc_type, exc, tb
+
+        async def get_all_markets(self, *args, **kwargs):
+            del args, kwargs
+            if False:  # pragma: no cover
+                yield None
+
+    monkeypatch.setattr(api_module, "KalshiPublicClient", DummyClient)
+
+    class DummyMonitor:
+        def list_conditions(self) -> list[object]:
+            return []
+
+        async def check_conditions(self, *args, **kwargs) -> list[object]:
+            del args, kwargs
+            return [object()]
+
+    await alerts_cli._run_alert_monitor_loop(
+        interval=1,
+        once=True,
+        max_pages=None,
+        monitor=DummyMonitor(),
+    )
+
+    triggered_lines = [line for line in printed if "triggered at" in line]
+    assert triggered_lines
+    assert "+00:00" in triggered_lines[0]
+
+
 @patch("kalshi_research.cli.alerts._load_alerts")
 @patch("kalshi_research.api.KalshiPublicClient")
 def test_alerts_monitor_continuous_shows_ctrl_c(

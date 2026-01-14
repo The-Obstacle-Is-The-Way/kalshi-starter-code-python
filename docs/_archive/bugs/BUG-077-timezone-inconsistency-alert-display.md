@@ -3,7 +3,7 @@
 **Priority:** P4 (Cosmetic)
 **Status:** ✅ Fixed
 **Found:** 2026-01-13
-**Verified:** 2026-01-14 - Manual run + code inspection
+**Verified:** 2026-01-14 - Added unit test
 **Fixed:** 2026-01-14
 **Affected Code:** `_run_alert_monitor_loop()` in `src/kalshi_research/cli/alerts.py`
 
@@ -42,6 +42,4 @@ console.print(
 
 ## Verification
 
-1. Run `uv run kalshi alerts monitor`
-2. Trigger an alert
-3. Confirm the printed timestamp includes `+00:00`
+- `tests/unit/cli/test_alerts.py::test_alert_monitor_loop_prints_utc_timestamp_when_alerts_trigger`

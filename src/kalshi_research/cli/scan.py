@@ -919,7 +919,7 @@ def _render_arbitrage_opportunities_table(
     table.add_column("Confidence", style="green")
 
     for opp in opportunities:
-        tickers_str = ", ".join(opp.tickers[:2])
+        tickers_str = _format_opportunity_tickers(opp.tickers, full=full)
         table.add_row(
             tickers_str,
             opp.opportunity_type,
@@ -931,6 +931,14 @@ def _render_arbitrage_opportunities_table(
     output_console = console if not full else Console(width=200)
     output_console.print(table)
     output_console.print(f"\n[dim]Found {len(opportunities)} opportunities[/dim]")
+
+
+def _format_opportunity_tickers(tickers: list[str], *, full: bool) -> str:
+    if full or len(tickers) <= 2:
+        return ", ".join(tickers)
+
+    extra = len(tickers) - 2
+    return f"{', '.join(tickers[:2])}, +{extra}"
 
 
 async def _scan_arbitrage_async(
