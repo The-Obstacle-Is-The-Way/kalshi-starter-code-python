@@ -1,31 +1,30 @@
 # DEBT-015: Missing API Endpoints
 
-**Priority:** P2-P3 (Non-blocking but limiting)
-**Status:** Open (Partially Resolved)
+**Priority:** P3 (Nice-to-have - critical paths complete)
+**Status:** Mostly Resolved (Phase 1-2 Complete)
 **Found:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
-**Updated:** 2026-01-12 - Phase 1 (Series Discovery) implemented via SPEC-037
+**Updated:** 2026-01-14 - Phase 1 (Market Filters) + Phase 2 (Order Operations) complete via SPEC-040
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---
 
 ## Summary
 
-The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Discovery) is now complete.** Remaining gaps limit advanced features like:
+The Kalshi API client was missing 45+ documented endpoints. **Phases 1-2 are now complete (29/74 = 39% coverage).** Remaining gaps are P3 (nice-to-have):
 - ~~Category/tag discovery (proper market browsing)~~ ✅ DONE
 - ~~Series-based filtering (Kalshi's intended pattern)~~ ✅ DONE
+- ~~Batch order operations~~ ✅ DONE (SPEC-040 Phase 2)
+- ~~Queue position monitoring~~ ✅ DONE (SPEC-040 Phase 2)
 - Order groups (batch management)
-- RFQ system (large block trades)
-- Queue position monitoring
+- RFQ system (large block trades) - NOT PLANNED (institutional only)
 - Live data feeds
 
-**Why this is "Partially Resolved":** SPEC-037 implemented the Phase 1 discovery endpoints (`/search/tags_by_categories`, `/series`, `/series/{ticker}`, `/series/fee_changes`). All other items in this doc remain missing.
-
 **Status update (2026-01-14):**
-- ✅ Implemented `GET /events/multivariate` (P2 critical) with unit tests + golden fixture.
-  - Client: `KalshiPublicClient.get_multivariate_events*()` in `src/kalshi_research/api/client.py`
-  - Fixture: `tests/fixtures/golden/events_multivariate_list_response.json`
-  - Sync: `kalshi data sync-markets --include-mve-events`
+- ✅ **SPEC-040 Phase 1 Complete**: Market filter parameters (`tickers`, timestamp filters)
+- ✅ **SPEC-040 Phase 2 Complete**: Order operations (batch create/cancel, get order, decrease, queue positions, resting value)
+- ✅ Implemented `GET /events/multivariate` (P2 critical) with unit tests + golden fixture
+- 🔲 Phase 3 (Discovery) and Phase 4 (Operational) remain for future work
 
 ---
 
@@ -90,19 +89,21 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 **Impact:** Low - Used for real-time event tracking
 
-### 6. Order Management Advanced (7 endpoints) - P2
+### 6. Order Management Advanced (7 endpoints) - ✅ COMPLETE
 
-| Endpoint | Description | Priority |
-|----------|-------------|----------|
-| `POST /portfolio/orders/batched` | Batch create up to 20 orders | **P2** |
-| `DELETE /portfolio/orders/batched` | Cancel orders in batch | P2 |
-| `POST /portfolio/orders/{order_id}/decrease` | Decrease order size | P2 |
-| `GET /portfolio/orders/{order_id}` | Single order details | P2 |
-| `GET /portfolio/orders/{order_id}/queue_position` | Queue position for one order | P2 |
-| `GET /portfolio/orders/queue_positions` | Queue positions for multiple | P2 |
-| `GET /portfolio/summary/total_resting_order_value` | Total resting order value | P3 |
+| Endpoint | Description | Priority | Status |
+|----------|-------------|----------|--------|
+| `POST /portfolio/orders/batched` | Batch create up to 20 orders | **P2** | ✅ **DONE** |
+| `DELETE /portfolio/orders/batched` | Cancel orders in batch | P2 | ✅ **DONE** |
+| `POST /portfolio/orders/{order_id}/decrease` | Decrease order size | P2 | ✅ **DONE** |
+| `GET /portfolio/orders/{order_id}` | Single order details | P2 | ✅ **DONE** |
+| `GET /portfolio/orders/{order_id}/queue_position` | Queue position for one order | P2 | ✅ **DONE** |
+| `GET /portfolio/orders/queue_positions` | Queue positions for multiple | P2 | ✅ **DONE** |
+| `GET /portfolio/summary/total_resting_order_value` | Total resting order value | P3 | ✅ **DONE** |
 
-**Impact:** Medium - Batch orders are 10x more efficient for market making
+**Impact:** ~~Medium~~ **Resolved** - All order operations implemented via SPEC-040 Phase 2 (2026-01-14)
+
+**Note:** Phase 2 fixtures are SYNTHETIC (demo auth unavailable). Client methods are tested against expected schema.
 
 ### 7. Order Groups (5 endpoints) - P3
 
@@ -179,7 +180,14 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 ## Recommended Implementation Order
 
-### Phase 1: Category Discovery (P2) - ✅ COMPLETE
+### Phase 1: Market Filters (P2) - ✅ COMPLETE
+- ~~`tickers` parameter~~ ✅ Batch market lookup
+- ~~Timestamp filters (`min_*_ts`, `max_*_ts`)~~ ✅ 6 params implemented
+- Client-side validation for incompatible filter combinations
+
+**Implemented:** SPEC-040 Phase 1 (2026-01-14)
+
+### Phase 1 (Legacy): Category Discovery (P2) - ✅ COMPLETE
 1. ~~`GET /search/tags_by_categories`~~ ✅ `get_tags_by_categories()`
 2. ~~`GET /series`~~ ✅ `get_series_list()`
 3. ~~`GET /series/{ticker}`~~ ✅ `get_series()`
@@ -187,14 +195,28 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 **Implemented:** SPEC-037 (2026-01-12)
 
-### Phase 2: Order Efficiency (P2) - PENDING
-4. `POST /portfolio/orders/batched` - 10x more efficient
-5. `DELETE /portfolio/orders/batched` - Batch cancel (pairs with batch create)
-6. `GET /portfolio/orders/{order_id}/queue_position` - Market making
-7. `POST /portfolio/orders/{order_id}/decrease` - Order management
+### Phase 2: Order Efficiency (P2) - ✅ COMPLETE
+1. ~~`POST /portfolio/orders/batched`~~ ✅ `batch_create_orders()` - 10x more efficient
+2. ~~`DELETE /portfolio/orders/batched`~~ ✅ `batch_cancel_orders()` - Batch cancel
+3. ~~`GET /portfolio/orders/{order_id}`~~ ✅ `get_order()` - Single order detail
+4. ~~`POST /portfolio/orders/{order_id}/decrease`~~ ✅ `decrease_order()` - Order management
+5. ~~`GET /portfolio/orders/{order_id}/queue_position`~~ ✅ `get_order_queue_position()` - Market making
+6. ~~`GET /portfolio/orders/queue_positions`~~ ✅ `get_orders_queue_positions()` - Batch queue positions
+7. ~~`GET /portfolio/summary/total_resting_order_value`~~ ✅ `get_total_resting_order_value()`
 
-### Phase 3: Everything Else (P3)
-- Implement as needed
+**Implemented:** SPEC-040 Phase 2 (2026-01-14)
+
+### Phase 3: Discovery (P3) - 🔲 NOT STARTED
+- `GET /events/{event_ticker}/metadata`
+- `GET /structured_targets`, `GET /structured_targets/{id}`
+- `GET /search/filters_by_sport`
+- Event candlesticks, forecast percentile history
+
+### Phase 4: Operational (P3) - 🔲 NOT STARTED
+- Exchange schedule/announcements
+- Order groups
+- Milestones/live data
+- Incentive programs
 
 ---
 
