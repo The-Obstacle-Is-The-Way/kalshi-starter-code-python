@@ -57,9 +57,15 @@ class ExaClient:
 
     @classmethod
     def from_env(cls) -> ExaClient:
+        """Create an `ExaClient` using environment configuration.
+
+        Raises:
+            ValueError: If required environment variables (e.g., `EXA_API_KEY`) are missing.
+        """
         return cls(ExaConfig.from_env())
 
     async def open(self) -> None:
+        """Initialize the underlying `httpx.AsyncClient` if needed."""
         if self._client is not None:
             return
 
@@ -74,6 +80,7 @@ class ExaClient:
         )
 
     async def close(self) -> None:
+        """Close the underlying `httpx.AsyncClient` if it is open."""
         if self._client is None:
             return
         await self._client.aclose()
@@ -93,6 +100,11 @@ class ExaClient:
 
     @property
     def client(self) -> httpx.AsyncClient:
+        """Return the initialized `httpx.AsyncClient`.
+
+        Raises:
+            RuntimeError: If `open()` has not been called yet.
+        """
         if self._client is None:
             raise RuntimeError(
                 "ExaClient not initialized. Use 'async with ExaClient(...)' or call open()."
@@ -262,6 +274,37 @@ class ExaClient:
         exclude_domains: list[str] | None = None,
         category: str | None = None,
     ) -> SearchResponse:
+        """Search Exa and optionally request document contents.
+
+        Args:
+            query: Search query string.
+            search_type: Exa search type (defaults to `"auto"`).
+            additional_queries: Optional list of additional queries for diversification.
+            num_results: Number of results to return.
+            start_published_date: Optional lower bound for published date filtering.
+            end_published_date: Optional upper bound for published date filtering.
+            start_crawl_date: Optional lower bound for crawl date filtering.
+            end_crawl_date: Optional upper bound for crawl date filtering.
+            user_location: Optional user location for localization.
+            moderation: Optional moderation flag.
+            include_text: Optional list of required text terms.
+            exclude_text: Optional list of excluded text terms.
+            text: Whether to include full text in results (or `TextContentsOptions`).
+            highlights: Whether to include highlights in results (or `HighlightsOptions`).
+            summary: Whether to include summaries in results (or `SummaryOptions`).
+            context: Whether to include contextual snippets in results (or `ContextOptions`).
+            include_domains: Optional allowlist of domains.
+            exclude_domains: Optional blocklist of domains.
+            category: Optional Exa category filter.
+
+        Returns:
+            Parsed `SearchResponse`.
+
+        Raises:
+            ExaAuthError: If the API key is invalid.
+            ExaRateLimitError: If rate-limited and retries are exhausted.
+            ExaAPIError: For other API/network/response errors.
+        """
         contents: ContentsRequest | None = None
         text_option = self._normalize_text_option(text)
         highlights_option = self._normalize_highlights_option(highlights)
@@ -355,6 +398,24 @@ class ExaClient:
         context: bool | ContextOptions | None = False,
         livecrawl: str = "fallback",
     ) -> ContentsResponse:
+        """Fetch document contents for a list of URLs.
+
+        Args:
+            urls: URLs to fetch content for.
+            text: Whether to include full text in results (or `TextContentsOptions`).
+            highlights: Whether to include highlights in results (or `HighlightsOptions`).
+            summary: Whether to include summaries in results (or `SummaryOptions`).
+            context: Whether to include contextual snippets in results (or `ContextOptions`).
+            livecrawl: Exa livecrawl mode (defaults to `"fallback"`).
+
+        Returns:
+            Parsed `ContentsResponse`.
+
+        Raises:
+            ExaAuthError: If the API key is invalid.
+            ExaRateLimitError: If rate-limited and retries are exhausted.
+            ExaAPIError: For other API/network/response errors.
+        """
         request = GetContentsRequest(
             urls=urls,
             text=self._normalize_text_option(text),
@@ -382,6 +443,26 @@ class ExaClient:
         include_domains: list[str] | None = None,
         exclude_domains: list[str] | None = None,
     ) -> FindSimilarResponse:
+        """Find documents similar to a given URL.
+
+        Args:
+            url: URL to find similar documents for.
+            num_results: Number of results to return.
+            text: Whether to include full text in results (or `TextContentsOptions`).
+            highlights: Whether to include highlights in results (or `HighlightsOptions`).
+            summary: Whether to include summaries in results (or `SummaryOptions`).
+            context: Whether to include contextual snippets in results (or `ContextOptions`).
+            include_domains: Optional allowlist of domains.
+            exclude_domains: Optional blocklist of domains.
+
+        Returns:
+            Parsed `FindSimilarResponse`.
+
+        Raises:
+            ExaAuthError: If the API key is invalid.
+            ExaRateLimitError: If rate-limited and retries are exhausted.
+            ExaAPIError: For other API/network/response errors.
+        """
         contents: ContentsRequest | None = None
         text_option = self._normalize_text_option(text)
         highlights_option = self._normalize_highlights_option(highlights)
@@ -416,6 +497,20 @@ class ExaClient:
         return FindSimilarResponse.model_validate(data)
 
     async def answer(self, query: str, *, text: bool = False) -> AnswerResponse:
+        """Generate an answer for a query via Exa `/answer`.
+
+        Args:
+            query: Question to answer.
+            text: Whether to request full text for citations.
+
+        Returns:
+            Parsed `AnswerResponse`.
+
+        Raises:
+            ExaAuthError: If the API key is invalid.
+            ExaRateLimitError: If rate-limited and retries are exhausted.
+            ExaAPIError: For other API/network/response errors.
+        """
         request = AnswerRequest(query=query, text=text)
         data = await self._request(
             "POST",
@@ -431,6 +526,21 @@ class ExaClient:
         model: str = "exa-research",
         output_schema: dict[str, Any] | None = None,
     ) -> ResearchTask:
+        """Create a deep research task via Exa `/research/v1`.
+
+        Args:
+            instructions: Research instructions prompt.
+            model: Exa research model tier (e.g., `"exa-research-fast"`, `"exa-research"`).
+            output_schema: Optional JSON schema to constrain structured output.
+
+        Returns:
+            Created `ResearchTask` (includes a `research_id` for polling).
+
+        Raises:
+            ExaAuthError: If the API key is invalid.
+            ExaRateLimitError: If rate-limited and retries are exhausted.
+            ExaAPIError: For other API/network/response errors.
+        """
         request = ResearchRequest(
             instructions=instructions,
             model=model,
@@ -444,6 +554,7 @@ class ExaClient:
         return ResearchTask.model_validate(data)
 
     async def get_research_task(self, research_id: str) -> ResearchTask:
+        """Fetch a research task by ID via Exa `/research/v1/{research_id}`."""
         data = await self._request("GET", f"/research/v1/{research_id}")
         return ResearchTask.model_validate(data)
 
@@ -453,6 +564,21 @@ class ExaClient:
         cursor: str | None = None,
         limit: int = 10,
     ) -> ResearchTaskListResponse:
+        """List research tasks via Exa `/research/v1`.
+
+        Args:
+            cursor: Optional pagination cursor for the next page.
+            limit: Page size (1-50).
+
+        Returns:
+            Parsed `ResearchTaskListResponse`.
+
+        Raises:
+            ValueError: If `limit` is outside the allowed range.
+            ExaAuthError: If the API key is invalid.
+            ExaRateLimitError: If rate-limited and retries are exhausted.
+            ExaAPIError: For other API/network/response errors.
+        """
         if limit < 1 or limit > 50:
             raise ValueError("limit must be between 1 and 50")
         params: dict[str, Any] = {"limit": limit}
@@ -501,6 +627,22 @@ class ExaClient:
         poll_interval: float = 5.0,
         timeout: float = 300.0,
     ) -> ResearchTask:
+        """Poll a research task until it reaches a terminal status.
+
+        Args:
+            research_id: Exa research task ID.
+            poll_interval: Seconds to wait between polls.
+            timeout: Max time to wait before raising `TimeoutError`.
+
+        Returns:
+            Final `ResearchTask` (terminal status: completed/failed/canceled).
+
+        Raises:
+            TimeoutError: If the task does not complete within `timeout` seconds.
+            ExaAuthError: If the API key is invalid.
+            ExaRateLimitError: If rate-limited and retries are exhausted.
+            ExaAPIError: For other API/network/response errors.
+        """
         start = time.monotonic()
 
         while True:

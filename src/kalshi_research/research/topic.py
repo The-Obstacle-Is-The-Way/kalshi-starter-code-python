@@ -94,6 +94,7 @@ class TopicResearcher:
         return response
 
     async def research_topic(self, topic: str, *, include_answer: bool = True) -> TopicResearch:
+        """Research a topic using Exa Answer + Search (optionally cached)."""
         research = TopicResearch(topic=topic)
         total_cost = 0.0
 

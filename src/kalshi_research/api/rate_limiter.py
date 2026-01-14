@@ -153,4 +153,5 @@ class RateLimiter:
 
     @property
     def tier(self) -> RateTier:
+        """Return the configured Kalshi rate limit tier."""
         return self._tier

@@ -50,6 +50,7 @@ class InvalidationReport:
 
     @property
     def has_high_severity(self) -> bool:
+        """Return `True` if any signal in the report is high severity."""
         return any(s.severity == InvalidationSeverity.HIGH for s in self.signals)
 
 
@@ -61,6 +62,7 @@ class InvalidationDetector:
         self._lookback_hours = lookback_hours
 
     async def check_thesis(self, thesis: Thesis) -> InvalidationReport:
+        """Search recent news for signals that might invalidate a thesis."""
         cutoff = datetime.now(UTC) - timedelta(hours=self._lookback_hours)
         signals: list[InvalidationSignal] = []
 

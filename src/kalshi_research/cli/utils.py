@@ -12,6 +12,7 @@ console = Console()
 
 
 def atomic_write_json(path: Path, data: dict[str, Any]) -> None:
+    """Write JSON atomically (temp file + fsync + rename)."""
     import os
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -24,6 +25,11 @@ def atomic_write_json(path: Path, data: dict[str, Any]) -> None:
 
 
 def load_json_storage_file(*, path: Path, kind: str, required_list_key: str) -> dict[str, Any]:
+    """Load and validate a JSON storage file used by CLI commands.
+
+    Returns a default object if the file does not exist, and exits with an error
+    message if the file exists but is invalid JSON or has an unexpected schema.
+    """
     if not path.exists():
         return {required_list_key: []}
 

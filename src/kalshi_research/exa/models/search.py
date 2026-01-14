@@ -82,6 +82,7 @@ class SearchResult(BaseModel):
     @field_validator("published_date", mode="before")
     @classmethod
     def coerce_empty_published_date(cls, value: object) -> object:
+        """Convert empty-string `publishedDate` values to `None`."""
         if isinstance(value, str) and not value.strip():
             return None
         return value

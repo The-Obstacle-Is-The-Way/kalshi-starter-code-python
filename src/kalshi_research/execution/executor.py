@@ -82,10 +82,12 @@ class TradeExecutor:
 
     @property
     def live(self) -> bool:
+        """Return whether this executor will place live trades (vs dry-run)."""
         return self._live
 
     @property
     def audit_log_path(self) -> Path:
+        """Return the JSONL audit log path used by this executor."""
         return self._audit.path
 
     def _count_live_orders_today(self) -> int:
@@ -178,6 +180,30 @@ class TradeExecutor:
         client_order_id: str | None = None,
         expiration_ts: int | None = None,
     ) -> OrderResponse:
+        """Create an order through the safety harness.
+
+        This method:
+        - Validates basic constraints (count, price bounds, risk estimate).
+        - Enforces live-trading guardrails (kill switch, production gating, daily limits,
+          and optional confirmation).
+        - Always writes an audit event (success or failure).
+
+        Args:
+            ticker: Market ticker to trade.
+            side: `"yes"`/`"no"` or `OrderSide`.
+            action: `"buy"`/`"sell"` or `OrderAction`.
+            count: Number of contracts.
+            yes_price_cents: YES price in cents (1-99).
+            client_order_id: Optional client-assigned ID (UUID is generated if omitted).
+            expiration_ts: Optional expiration timestamp for the order.
+
+        Returns:
+            `OrderResponse` from the Kalshi API client.
+
+        Raises:
+            TradeSafetyError: If safety checks fail.
+            Exception: Propagates API/client errors from the underlying `KalshiClient`.
+        """
         now = self._clock()
         mode: Literal["dry_run", "live"] = "live" if self._live else "dry_run"
 

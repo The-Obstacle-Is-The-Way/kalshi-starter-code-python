@@ -170,6 +170,7 @@ class SentimentAnalyzer:
         return count, matched
 
     def analyze(self, text: str, title: str | None = None) -> SentimentResult:
+        """Analyze sentiment using a deterministic keyword-based heuristic."""
         all_matched: list[str] = []
 
         text_tokens = self._tokenize(text)
@@ -230,6 +231,7 @@ class SummarySentimentAnalyzer:
         self._exa = exa
 
     async def analyze(self, url: str) -> SentimentResult:
+        """Analyze sentiment for a URL using Exa summaries + a prompt."""
         response = await self._exa.get_contents(
             [url],
             summary=SummaryOptions(

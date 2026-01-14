@@ -423,6 +423,7 @@ class OrderbookAnalyzer:
         self._weights = weights
 
     def depth(self, orderbook: Orderbook) -> DepthAnalysis:
+        """Compute distance-weighted depth around the midpoint."""
         return orderbook_depth_score(orderbook, radius_cents=self._radius_cents)
 
     def slippage(
@@ -433,7 +434,9 @@ class OrderbookAnalyzer:
         *,
         quantity: int,
     ) -> SlippageEstimate:
+        """Estimate slippage for a hypothetical execution by walking the book."""
         return estimate_slippage(orderbook, side, action, quantity)
 
     def liquidity(self, market: Market, orderbook: Orderbook) -> LiquidityAnalysis:
+        """Compute a composite liquidity analysis for a market and orderbook snapshot."""
         return liquidity_score(market, orderbook, weights=self._weights)

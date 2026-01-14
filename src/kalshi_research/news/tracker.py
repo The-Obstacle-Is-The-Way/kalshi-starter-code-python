@@ -26,6 +26,7 @@ class NewsTracker:
         item_type: str,
         search_queries: list[str],
     ) -> TrackedItem:
+        """Add or update a tracked market/event in the database."""
         if item_type not in {"market", "event"}:
             raise ValueError("item_type must be 'market' or 'event'")
 
@@ -57,6 +58,7 @@ class NewsTracker:
             return existing
 
     async def untrack(self, ticker: str) -> bool:
+        """Mark a tracked item inactive; returns `True` if found."""
         async with self._db.session_factory() as session, session.begin():
             tracked = (
                 await session.execute(select(TrackedItem).where(TrackedItem.ticker == ticker))
@@ -68,6 +70,7 @@ class NewsTracker:
             return True
 
     async def list_tracked(self, *, active_only: bool = True) -> list[TrackedItem]:
+        """List tracked items (defaults to active-only)."""
         async with self._db.session_factory() as session:
             query = select(TrackedItem)
             if active_only:

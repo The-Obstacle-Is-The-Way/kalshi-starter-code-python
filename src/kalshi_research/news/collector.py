@@ -38,7 +38,9 @@ class ExaNewsClient(Protocol):
         text: bool = True,
         highlights: bool = True,
         category: str | None = None,
-    ) -> SearchResponse: ...
+    ) -> SearchResponse:
+        """Search Exa with contents enabled (text/highlights)."""
+        ...
 
 
 class NewsCollector:
@@ -66,6 +68,7 @@ class NewsCollector:
         return urlparse(url).netloc.replace("www.", "")
 
     async def collect_for_tracked_item(self, tracked: TrackedItem) -> int:
+        """Collect news for a single tracked market/event and persist new articles."""
         queries = json.loads(tracked.search_queries)
         cutoff = datetime.now(UTC) - timedelta(days=self._lookback_days)
 
@@ -156,6 +159,7 @@ class NewsCollector:
         return new_articles
 
     async def collect_all(self) -> dict[str, int]:
+        """Collect news for all active tracked items and return per-ticker insert counts."""
         results: dict[str, int] = {}
         async with self._db.session_factory() as session:
             tracked_items = (

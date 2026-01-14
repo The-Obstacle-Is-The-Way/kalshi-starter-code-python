@@ -19,9 +19,11 @@ class TradeAuditLogger:
 
     @property
     def path(self) -> Path:
+        """Return the JSONL audit log path."""
         return self._path
 
     def write(self, event: TradeAuditEvent) -> None:
+        """Append one audit event as a single JSONL line."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
         payload = event.model_dump(mode="json")
         with self._path.open("a", encoding="utf-8") as f:

@@ -105,6 +105,7 @@ class ThesisResearcher:
         *,
         thesis_direction: str,
     ) -> ResearchedThesisData:
+        """Gather and classify Exa evidence to support thesis creation."""
         cutoff = datetime.now(UTC) - timedelta(days=self._recent_days)
         total_cost = 0.0
 
@@ -207,6 +208,7 @@ class ThesisSuggester:
         return f"{title_clean} - thesis opportunity based on recent coverage"
 
     async def suggest_theses(self, *, category: str | None = None) -> list[ThesisSuggestion]:
+        """Suggest lightweight thesis ideas from recent Exa search coverage."""
         search_query = "prediction market opportunities"
         if category:
             search_query = f"{category} {search_query}"

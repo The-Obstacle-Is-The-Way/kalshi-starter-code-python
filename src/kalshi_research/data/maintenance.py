@@ -33,6 +33,7 @@ class PruneCounts:
 
     @property
     def total_rows(self) -> int:
+        """Return the total number of rows represented by these prune counts."""
         return (
             self.price_snapshots
             + self.news_articles

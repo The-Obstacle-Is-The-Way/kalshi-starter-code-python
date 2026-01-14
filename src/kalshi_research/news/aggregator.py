@@ -44,6 +44,7 @@ class SentimentSummary:
 
     @property
     def sentiment_label(self) -> str:
+        """Return a human-friendly label derived from `avg_score`."""
         if self.avg_score > 0.2:
             return "Bullish"
         if self.avg_score > 0.05:
@@ -56,6 +57,7 @@ class SentimentSummary:
 
     @property
     def trend_indicator(self) -> str:
+        """Return a trend indicator arrow derived from `score_change`."""
         if self.score_change is None:
             return "—"
         if self.score_change > 0.05:
@@ -78,6 +80,7 @@ class SentimentAggregator:
         days: int = 7,
         compare_previous: bool = True,
     ) -> SentimentSummary | None:
+        """Aggregate stored sentiment for a market over the last N days."""
         period_end = datetime.now(UTC)
         period_start = period_end - timedelta(days=days)
 
@@ -162,6 +165,7 @@ class SentimentAggregator:
         days: int = 7,
         compare_previous: bool = True,
     ) -> SentimentSummary | None:
+        """Aggregate stored sentiment for an event over the last N days."""
         period_end = datetime.now(UTC)
         period_start = period_end - timedelta(days=days)
 
