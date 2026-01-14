@@ -1,0 +1,12 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-14T00:00:00+00:00",
+    "endpoint": "order_queue_position",
+    "environment": "demo",
+    "sanitized": false,
+    "note": "SYNTHETIC: Derived from Kalshi OpenAPI (demo auth unavailable)"
+  },
+  "response": {
+    "queue_position": 12
+  }
+}

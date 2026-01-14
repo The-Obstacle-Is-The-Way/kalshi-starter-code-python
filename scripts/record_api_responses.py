@@ -37,7 +37,7 @@ from typing import Any, Final
 from dotenv import load_dotenv
 
 from kalshi_research.api.client import KalshiClient, KalshiPublicClient
-from kalshi_research.api.config import get_config
+from kalshi_research.api.config import Environment, get_config, set_environment
 
 load_dotenv()
 
@@ -587,6 +587,12 @@ async def main() -> None:
         os.environ["KALSHI_ENVIRONMENT"] = args.env
 
     env = os.getenv("KALSHI_ENVIRONMENT", "prod")
+    try:
+        set_environment(Environment(env))
+    except ValueError:
+        print(f"Invalid KALSHI_ENVIRONMENT: {env!r} (expected 'prod' or 'demo')")
+        return
+
     print(f"\n{'=' * 60}")
     print(f"RECORDING API RESPONSES FROM: {env.upper()}")
     print(f"{'=' * 60}")

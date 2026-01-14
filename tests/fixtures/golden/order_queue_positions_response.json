@@ -1,0 +1,18 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-14T00:00:00+00:00",
+    "endpoint": "order_queue_positions",
+    "environment": "demo",
+    "sanitized": true,
+    "note": "SYNTHETIC: Derived from Kalshi OpenAPI (demo auth unavailable); Sensitive data replaced with example values"
+  },
+  "response": {
+    "queue_positions": [
+      {
+        "order_id": "a0f59a8d-d666-5aa5-86b5-4a33254f1208",
+        "market_ticker": "KXEXAMPLE-63A59F4CF9EA",
+        "queue_position": 12
+      }
+    ]
+  }
+}

@@ -54,6 +54,7 @@ _SANITIZE_INT_KEYS: Final[set[str]] = {
     "revenue",
     "taker_fees",
     "taker_fill_cost",
+    "total_resting_order_value",
     "total_cost",
     "total_traded",
     "value",
@@ -166,7 +167,13 @@ def sanitize_file(filepath: Path, *, force: bool) -> SanitizeResult:
         metadata = sanitized.get("_metadata")
         if isinstance(metadata, dict):
             metadata["sanitized"] = True
-            metadata["note"] = "Sensitive data replaced with example values"
+            sanitized_note = "Sensitive data replaced with example values"
+            existing_note = metadata.get("note")
+            if isinstance(existing_note, str) and existing_note.strip():
+                if sanitized_note not in existing_note:
+                    metadata["note"] = f"{existing_note}; {sanitized_note}"
+            else:
+                metadata["note"] = sanitized_note
 
         filepath.write_text(json.dumps(sanitized, indent=2))
         return "sanitized"
@@ -194,10 +201,16 @@ def main() -> None:
         "portfolio_orders_response.json",
         "portfolio_fills_response.json",
         "portfolio_settlements_response.json",
+        "portfolio_order_single_response.json",
+        "portfolio_total_resting_order_value_response.json",
+        "order_queue_positions_response.json",
         # Trading fixtures also contain user_id, order_id, client_order_id
         "create_order_response.json",
         "cancel_order_response.json",
         "amend_order_response.json",
+        "batch_create_orders_response.json",
+        "batch_cancel_orders_response.json",
+        "decrease_order_response.json",
     ]
 
     for filename in sensitive_files:
