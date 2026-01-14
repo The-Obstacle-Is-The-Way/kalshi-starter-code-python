@@ -4,24 +4,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-| ID | Title | Priority | Status | Verified |
-|---|---|---|---|---|
-| BUG-077 | [Timezone Inconsistency in Alert Monitor Display](BUG-077-timezone-inconsistency-alert-display.md) | P4 | Open | ✅ |
-| BUG-078 | [Thesis Accuracy Undefined at Exactly 50%](BUG-078-thesis-accuracy-undefined-at-50.md) | P3 | Open | ✅ |
-| BUG-079 | [Multi-Market Events Missing from Arbitrage Detection](BUG-079-arbitrage-multi-market-events-missing.md) | P3 | Open | ✅ |
-| BUG-080 | [Inconsistent Midpoint Calculation Methods](BUG-080-inconsistent-midpoint-calculation.md) | P4 | Open | ✅ |
-
-### Verification Note (2026-01-13)
-
-Deep audit focused on the highest-risk areas for an internal research CLI:
-- Financial calculations (P&L, calibration, Brier scores)
-- Statistical formulas and math
-- Price/cents handling consistency
-- Timezone handling
-- Division-by-zero risks
-- Edge cases in scanner, arbitrage, thesis tracking
-
-All P3/P4 bugs listed above are low-severity edge cases or cosmetic issues. **No P0/P1/P2 issues were identified in this audit.**
+No active bugs.
 
 ### Verification Note (2026-01-12)
 
@@ -60,6 +43,15 @@ All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
+### Recently Archived (2026-01-14)
+
+| ID | Title | Status |
+|---|---|---|
+| **BUG-080** | Inconsistent Midpoint Calculation Methods | ✅ Fixed |
+| **BUG-079** | Multi-Market Events Missing from Arbitrage Detection | ✅ Fixed |
+| **BUG-078** | Thesis Accuracy Undefined at Exactly 50% | ✅ Fixed |
+| **BUG-077** | Timezone Inconsistency in Alert Monitor Display | ✅ Fixed |
 
 ### Recently Archived (2026-01-13)
 

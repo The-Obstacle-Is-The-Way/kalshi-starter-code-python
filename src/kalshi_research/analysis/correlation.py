@@ -296,6 +296,50 @@ class CorrelationAnalyzer:
 
         return results
 
+    def find_inverse_market_groups(
+        self,
+        markets: list[Market],
+        tolerance: float = 0.05,
+    ) -> list[tuple[list[Market], float]]:
+        """
+        Find event market groups that should sum to ~100%.
+
+        This is most useful for events with 2+ mutually exclusive outcomes (multi-choice events).
+        For each event, it checks whether the sum of YES midpoints is close to 1.0.
+
+        Notes:
+            - This method skips events where *any* market is unpriced/placeholder, since a partial
+              sum is not meaningful.
+
+        Args:
+            markets: List of markets to analyze
+            tolerance: Allowed deviation from 100%
+
+        Returns:
+            List of (event_markets, sum_deviation) tuples where sum_deviation = sum(prob) - 1.0
+        """
+        results: list[tuple[list[Market], float]] = []
+
+        by_event_all: dict[str, list[Market]] = {}
+        for market in markets:
+            by_event_all.setdefault(market.event_ticker, []).append(market)
+
+        for event_markets in by_event_all.values():
+            priced = [m for m in event_markets if _is_priced(m)]
+            if len(priced) != len(event_markets):
+                continue
+            if len(priced) < 2:
+                continue
+
+            priced.sort(key=lambda m: m.ticker)
+            prob_sum = sum(m.midpoint / 100.0 for m in priced)
+            deviation = prob_sum - 1.0
+
+            if abs(deviation) > tolerance:
+                results.append((priced, deviation))
+
+        return results
+
     def find_arbitrage_opportunities(
         self,
         markets: list[Market],

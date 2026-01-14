@@ -127,6 +127,9 @@ class Thesis:
         if self.actual_outcome is None:
             return None
 
+        if self.your_probability == 0.5:
+            return None
+
         if self.actual_outcome == "yes":
             return self.your_probability > 0.5
         if self.actual_outcome == "no":

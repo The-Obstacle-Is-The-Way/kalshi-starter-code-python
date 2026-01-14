@@ -461,6 +461,49 @@ class TestFindInverseMarkets:
         assert "D" not in event_tickers
 
 
+class TestFindInverseMarketGroups:
+    """Test finding inverse market groups within an event."""
+
+    def test_finds_multi_market_event_groups(self) -> None:
+        """Events with 3+ priced markets should be checked as a group."""
+        analyzer = CorrelationAnalyzer()
+
+        markets = [
+            make_market("A", "E", 31),
+            make_market("B", "E", 31),
+            make_market("C", "E", 31),
+        ]
+
+        results = analyzer.find_inverse_market_groups(markets, tolerance=0.05)
+
+        assert len(results) == 1
+        group, deviation = results[0]
+        assert [m.ticker for m in group] == ["A", "B", "C"]
+        assert abs(deviation - (-0.07)) < 0.01
+
+    def test_skips_events_with_any_unpriced_market(self) -> None:
+        """Partial sums are not meaningful when an event has unpriced markets."""
+        analyzer = CorrelationAnalyzer()
+
+        markets = [
+            make_market("A", "E", 31),
+            make_market("B", "E", 31),
+            make_market(
+                "C",
+                "E",
+                31,
+                yes_bid=0,
+                yes_ask=100,
+                no_bid=0,
+                no_ask=100,
+                last_price=None,
+            ),
+        ]
+
+        results = analyzer.find_inverse_market_groups(markets, tolerance=0.05)
+        assert results == []
+
+
 class TestIsPriced:
     """Test _is_priced helper."""
 

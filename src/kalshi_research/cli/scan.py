@@ -100,8 +100,10 @@ def _market_yes_price_display(market: Market) -> str:
         return "[NO QUOTES]"
     if bid == 0 and ask == 100:
         return "[AWAITING PRICE DISCOVERY]"
-    midpoint_cents = (bid + ask + 1) // 2
-    return f"{midpoint_cents}¢"
+    midpoint = market.midpoint
+    if midpoint.is_integer():
+        return f"{int(midpoint)}¢"
+    return f"{midpoint:.1f}¢"
 
 
 def _validate_new_markets_args(*, hours: int, limit: int) -> None:
@@ -971,17 +973,17 @@ async def _scan_arbitrage_async(
         markets, correlated_pairs, divergence_threshold=divergence_threshold
     )
 
-    for m1, m2, deviation in analyzer.find_inverse_markets(markets, tolerance=divergence_threshold):
+    for group_markets, deviation in analyzer.find_inverse_market_groups(
+        markets, tolerance=divergence_threshold
+    ):
+        prices = {m.ticker: m.midpoint / 100.0 for m in group_markets}
+        prices["sum"] = sum(prices[m.ticker] for m in group_markets)
         opportunities.append(
             ArbitrageOpportunity(
-                tickers=[m1.ticker, m2.ticker],
+                tickers=[m.ticker for m in group_markets],
                 opportunity_type="inverse_sum",
                 expected_relationship="Sum to ~100%",
-                actual_values={
-                    m1.ticker: m1.midpoint / 100.0,
-                    m2.ticker: m2.midpoint / 100.0,
-                    "sum": m1.midpoint / 100.0 + m2.midpoint / 100.0,
-                },
+                actual_values=prices,
                 divergence=abs(deviation),
                 confidence=0.95,
             )

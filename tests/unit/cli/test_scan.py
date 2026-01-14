@@ -649,7 +649,7 @@ def test_scan_opportunities_propagates_cancelled_error() -> None:
 
 
 @patch(
-    "kalshi_research.analysis.correlation.CorrelationAnalyzer.find_inverse_markets",
+    "kalshi_research.analysis.correlation.CorrelationAnalyzer.find_inverse_market_groups",
     return_value=[],
 )
 @patch(
@@ -698,6 +698,33 @@ def test_scan_arbitrage_full_flag_disables_truncation(
             assert result_full.exit_code == 0
             assert ticker_suffix in result_full.stdout
             assert expected_suffix in result_full.stdout
+
+
+def test_market_yes_price_display_shows_half_cent_midpoints() -> None:
+    from datetime import UTC, datetime
+
+    from kalshi_research.api.models import Market, MarketStatus
+    from kalshi_research.cli.scan import _market_yes_price_display
+
+    market = Market(
+        ticker="TEST",
+        event_ticker="EVT",
+        title="Test",
+        status=MarketStatus.ACTIVE,
+        yes_bid=49,
+        yes_ask=50,
+        no_bid=50,
+        no_ask=51,
+        last_price=49,
+        volume=0,
+        volume_24h=0,
+        open_interest=0,
+        open_time=datetime(2024, 1, 1, tzinfo=UTC),
+        close_time=datetime(2025, 1, 1, tzinfo=UTC),
+        expiration_time=datetime(2025, 1, 2, tzinfo=UTC),
+    )
+
+    assert _market_yes_price_display(market) == "49.5¢"
 
 
 def test_scan_new_markets_filters_by_created_time(
