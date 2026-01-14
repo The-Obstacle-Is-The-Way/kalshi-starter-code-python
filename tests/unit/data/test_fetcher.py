@@ -93,11 +93,12 @@ def test_api_market_to_settlement_falls_back_to_expiration_time(data_fetcher) ->
 @pytest.mark.asyncio
 async def test_sync_events(data_fetcher, mock_client, mock_db):
     # Mock API events
-    mock_event = MagicMock(spec=Event)
-    mock_event.event_ticker = "TEST-EVENT"
-    mock_event.series_ticker = "TEST-SERIES"
-    mock_event.title = "Test Event"
-    mock_event.category = "Test"
+    mock_event = Event(
+        event_ticker="TEST-EVENT",
+        series_ticker="TEST-SERIES",
+        title="Test Event",
+        category="Test",
+    )
 
     async def event_gen(limit: int = 200, max_pages: int | None = None):
         yield mock_event
@@ -118,23 +119,138 @@ async def test_sync_events(data_fetcher, mock_client, mock_db):
 
 
 @pytest.mark.asyncio
+async def test_sync_events_does_not_call_multivariate_when_disabled(
+    data_fetcher, mock_client, mock_db
+):
+    mock_event = Event(
+        event_ticker="TEST-EVENT",
+        series_ticker="TEST-SERIES",
+        title="Test Event",
+        category="Test",
+    )
+
+    async def event_gen(limit: int = 200, max_pages: int | None = None):
+        yield mock_event
+
+    async def mve_event_gen(limit: int = 200, max_pages: int | None = None):
+        yield Event(
+            event_ticker="TEST-MVE-EVENT",
+            series_ticker="TEST-MVE-SERIES",
+            title="Test MVE Event",
+            category="Sports",
+        )
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+    mock_client.get_all_multivariate_events = MagicMock(side_effect=mve_event_gen)
+
+    with patch("kalshi_research.data.fetcher.EventRepository") as MockRepo:
+        mock_repo = AsyncMock()
+        MockRepo.return_value = mock_repo
+
+        count = await data_fetcher.sync_events(include_multivariate=False)
+
+    assert count == 1
+    mock_client.get_all_multivariate_events.assert_not_called()
+    mock_db._session.begin.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_sync_events_includes_multivariate_events_when_enabled(
+    data_fetcher, mock_client, mock_db
+):
+    mock_event = Event(
+        event_ticker="TEST-EVENT",
+        series_ticker="TEST-SERIES",
+        title="Test Event",
+        category="Test",
+    )
+
+    mock_mve_event = Event(
+        event_ticker="TEST-MVE-EVENT",
+        series_ticker="TEST-MVE-SERIES",
+        title="Test MVE Event",
+        category="Sports",
+    )
+
+    async def event_gen(limit: int = 200, max_pages: int | None = None):
+        yield mock_event
+
+    async def mve_event_gen(limit: int = 200, max_pages: int | None = None):
+        yield mock_mve_event
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+    mock_client.get_all_multivariate_events = MagicMock(side_effect=mve_event_gen)
+
+    with patch("kalshi_research.data.fetcher.EventRepository") as MockRepo:
+        mock_repo = AsyncMock()
+        MockRepo.return_value = mock_repo
+
+        count = await data_fetcher.sync_events(include_multivariate=True)
+
+        assert count == 2
+        assert mock_repo.upsert.call_count == 2
+        mock_db._session.begin.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_sync_events_flushes_on_multivariate_boundary(data_fetcher, mock_client, mock_db):
+    """Ensure flush cadence remains correct when MVEs are appended after regular events."""
+
+    async def event_gen(limit: int = 200, max_pages: int | None = None):
+        for i in range(99):
+            yield Event(
+                event_ticker=f"TEST-EVENT-{i}",
+                series_ticker="TEST-SERIES",
+                title=f"Test Event {i}",
+                category="Test",
+            )
+
+    async def mve_event_gen(limit: int = 200, max_pages: int | None = None):
+        yield Event(
+            event_ticker="TEST-MVE-EVENT",
+            series_ticker="TEST-MVE-SERIES",
+            title="Test MVE Event",
+            category="Sports",
+        )
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+    mock_client.get_all_multivariate_events = MagicMock(side_effect=mve_event_gen)
+    mock_db._session.flush = AsyncMock()
+
+    with patch("kalshi_research.data.fetcher.EventRepository") as MockRepo:
+        mock_repo = AsyncMock()
+        MockRepo.return_value = mock_repo
+
+        count = await data_fetcher.sync_events(include_multivariate=True)
+
+    assert count == 100
+    mock_db._session.flush.assert_awaited_once()
+    mock_db._session.begin.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_sync_markets(data_fetcher, mock_client, mock_db):
-    # Mock API markets
-    mock_market = MagicMock(spec=Market)
-    mock_market.ticker = "TEST-MARKET"
-    mock_market.event_ticker = "TEST-EVENT"
-    mock_market.series_ticker = "TEST-SERIES"
-    mock_market.title = "Test Market"
-    mock_market.subtitle = "Subtitle"
-    mock_market.status = MarketStatus.ACTIVE
-    mock_market.result = ""
-    mock_market.open_time = "2024-01-01T00:00:00Z"
-    mock_market.close_time = "2025-01-01T00:00:00Z"
-    mock_market.expiration_time = "2025-01-01T00:00:00Z"
+    from datetime import UTC, datetime
+
+    api_market = Market(
+        ticker="TEST-MARKET",
+        event_ticker="TEST-EVENT",
+        series_ticker="TEST-SERIES",
+        title="Test Market",
+        subtitle="Subtitle",
+        status=MarketStatus.ACTIVE,
+        result="",
+        volume=0,
+        volume_24h=0,
+        open_interest=0,
+        open_time=datetime(2024, 1, 1, tzinfo=UTC),
+        close_time=datetime(2025, 1, 1, tzinfo=UTC),
+        expiration_time=datetime(2025, 1, 1, tzinfo=UTC),
+    )
 
     # Correctly mock async generator
     async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
-        yield mock_market
+        yield api_market
 
     # REPLACE the AsyncMock method with a MagicMock that returns the generator
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
@@ -148,13 +264,13 @@ async def test_sync_markets(data_fetcher, mock_client, mock_db):
         MockMarketRepo.return_value = market_repo
 
         event_repo = AsyncMock()
-        event_repo.get.return_value = MagicMock()  # Event exists
         MockEventRepo.return_value = event_repo
 
         count = await data_fetcher.sync_markets()
 
         assert count == 1
-        market_repo.upsert.assert_called_once()
+        event_repo.insert_ignore.assert_awaited_once()
+        market_repo.upsert.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -162,22 +278,28 @@ async def test_sync_settlements(data_fetcher, mock_client, mock_db):
     # Mock settled API market
     from datetime import UTC, datetime, timedelta
 
-    mock_market = MagicMock(spec=Market)
-    mock_market.ticker = "TEST-MARKET"
-    mock_market.event_ticker = "TEST-EVENT"
-    mock_market.series_ticker = "TEST-SERIES"
-    mock_market.title = "Test Market"
-    mock_market.subtitle = "Subtitle"
-    mock_market.status = MarketStatus.FINALIZED
-    mock_market.result = "yes"
-    mock_market.open_time = datetime.now(UTC) - timedelta(days=2)
-    mock_market.close_time = datetime.now(UTC) - timedelta(days=1)
-    mock_market.expiration_time = datetime.now(UTC) - timedelta(days=1)
-    mock_market.settlement_ts = mock_market.expiration_time - timedelta(hours=1)
+    expiration_time = datetime.now(UTC) - timedelta(days=1)
+
+    api_market = Market(
+        ticker="TEST-MARKET",
+        event_ticker="TEST-EVENT",
+        series_ticker="TEST-SERIES",
+        title="Test Market",
+        subtitle="Subtitle",
+        status=MarketStatus.FINALIZED,
+        result="yes",
+        volume=0,
+        volume_24h=0,
+        open_interest=0,
+        open_time=datetime.now(UTC) - timedelta(days=2),
+        close_time=datetime.now(UTC) - timedelta(days=1),
+        expiration_time=expiration_time,
+        settlement_ts=expiration_time - timedelta(hours=1),
+    )
 
     async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
         del mve_filter
-        yield mock_market
+        yield api_market
 
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
 
@@ -193,14 +315,14 @@ async def test_sync_settlements(data_fetcher, mock_client, mock_db):
         MockMarketRepo.return_value = market_repo
 
         event_repo = AsyncMock()
-        event_repo.get.return_value = MagicMock()  # Event exists
         MockEventRepo.return_value = event_repo
 
         count = await data_fetcher.sync_settlements()
 
         assert count == 1
-        settlement_repo.upsert.assert_called_once()
-        market_repo.upsert.assert_called_once()
+        event_repo.insert_ignore.assert_awaited_once()
+        settlement_repo.upsert.assert_awaited_once()
+        market_repo.upsert.assert_awaited_once()
         mock_client.get_all_markets.assert_called_once_with(
             status=MarketFilterStatus.SETTLED, max_pages=None
         )

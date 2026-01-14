@@ -167,6 +167,13 @@ def data_sync_markets(
             help="Filter multivariate events: 'exclude' (skip sports parlays) or 'only'.",
         ),
     ] = None,
+    include_mve_events: Annotated[
+        bool,
+        typer.Option(
+            "--include-mve-events",
+            help="Also sync multivariate events via /events/multivariate.",
+        ),
+    ] = False,
 ) -> None:
     """Sync markets from Kalshi API to database."""
     from typing import Literal, cast
@@ -192,7 +199,10 @@ def data_sync_markets(
                 console=console,
             ) as progress:
                 task1 = progress.add_task("Syncing events...", total=None)
-                events = await fetcher.sync_events(max_pages=max_pages)
+                events = await fetcher.sync_events(
+                    max_pages=max_pages,
+                    include_multivariate=include_mve_events,
+                )
                 progress.update(task1, description=f"Synced {events} events")
 
                 progress.add_task("Syncing markets...", total=None)
@@ -412,6 +422,13 @@ def data_collect(
             help="Optional pagination safety limit. None = iterate until exhausted.",
         ),
     ] = None,
+    include_mve_events: Annotated[
+        bool,
+        typer.Option(
+            "--include-mve-events",
+            help="Also sync multivariate events via /events/multivariate.",
+        ),
+    ] = False,
 ) -> None:
     """Run continuous data collection."""
     from kalshi_research.cli.db import open_db
@@ -420,7 +437,10 @@ def data_collect(
     async def _collect() -> None:
         async with open_db(db_path) as db, DataFetcher(db) as fetcher:
             if once:
-                counts = await fetcher.full_sync(max_pages=max_pages)
+                counts = await fetcher.full_sync(
+                    max_pages=max_pages,
+                    include_multivariate=include_mve_events,
+                )
                 console.print(
                     "[green]✓[/green] Full sync complete: "
                     f"{counts['events']} events, {counts['markets']} markets, "
@@ -456,7 +476,10 @@ def data_collect(
 
             # Initial sync before starting scheduled tasks.
             # Prevents in-process overlap on startup.
-            await fetcher.full_sync(max_pages=max_pages)
+            await fetcher.full_sync(
+                max_pages=max_pages,
+                include_multivariate=include_mve_events,
+            )
 
             console.print(
                 f"[green]✓[/green] Starting collection (interval: {interval}m). "

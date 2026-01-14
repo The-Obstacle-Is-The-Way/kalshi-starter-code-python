@@ -4,9 +4,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-| ID | Title | Priority | Status | Verified |
-|---|---|---|---|---|
-| (none) | | | | |
+No active bugs.
 
 ### Verification Note (2026-01-12)
 
@@ -36,7 +34,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-077**
+**BUG-082**
 
 ---
 
@@ -45,6 +43,16 @@ All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
+### Recently Archived (2026-01-14)
+
+| ID | Title | Status |
+|---|---|---|
+| **BUG-081** | Market `*_dollars` → cents truncation | ✅ Fixed |
+| **BUG-080** | Inconsistent Midpoint Calculation Methods | ✅ Fixed |
+| **BUG-079** | Multi-Market Events Missing from Arbitrage Detection | ✅ Fixed |
+| **BUG-078** | Thesis Accuracy Undefined at Exactly 50% | ✅ Fixed |
+| **BUG-077** | Timezone Inconsistency in Alert Monitor Display | ✅ Fixed |
 
 ### Recently Archived (2026-01-13)
 

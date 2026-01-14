@@ -76,6 +76,7 @@ uv run kalshi data sync-markets [OPTIONS]
 | `--status`, `-s` | None | Filter by status (open, closed, etc.) |
 | `--max-pages` | None | Pagination safety limit (None = all) |
 | `--mve-filter` | None | Filter multivariate events: `exclude` (skip sports parlays) or `only` |
+| `--include-mve-events` | False | Also sync multivariate events via `GET /events/multivariate` |
 
 ### data sync-settlements
 Sync settled market outcomes from Kalshi API to database.
@@ -131,6 +132,7 @@ uv run kalshi data collect [OPTIONS]
 | `--interval`, `-i` | `15` | Interval in minutes between snapshots |
 | `--once` | False | Run single sync and exit |
 | `--max-pages` | None | Pagination safety limit |
+| `--include-mve-events` | False | Also sync multivariate events via `GET /events/multivariate` |
 
 ### data export
 Export data to Parquet or CSV for analysis.
@@ -283,6 +285,23 @@ uv run kalshi scan opportunities [OPTIONS]
 | `--min-liquidity` | None | Minimum liquidity score (0-100); fetches orderbooks for candidates |
 | `--show-liquidity` | False | Show liquidity score column; fetches orderbooks for displayed markets |
 | `--liquidity-depth` | `25` | Orderbook depth levels for liquidity scoring |
+| `--full`, `-F` | False | Show full tickers/titles without truncation |
+
+### scan new-markets
+Show markets created in the last N hours (information arbitrage window).
+
+```bash
+uv run kalshi scan new-markets [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--hours` | `24` | Hours to look back for new markets |
+| `--category`, `--categories`, `-c` | None | Filter by category (comma-separated; e.g. `--category politics,ai`) |
+| `--include-unpriced` | False | Include markets without real price discovery (0/0 or 0/100 placeholder quotes) |
+| `--limit`, `-n` | `20` | Maximum results to show |
+| `--max-pages` | None | Optional pagination safety limit for market fetch (None = full) |
+| `--json` | False | Output as JSON |
 | `--full`, `-F` | False | Show full tickers/titles without truncation |
 
 ### scan arbitrage

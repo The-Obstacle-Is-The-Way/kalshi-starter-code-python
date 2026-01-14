@@ -24,6 +24,7 @@ uv run kalshi --help
 | `KALSHI_PRIVATE_KEY_B64` | Portfolio commands | Alternative: Base64-encoded key |
 | `KALSHI_ENVIRONMENT` | All | `prod` or `demo` (default: prod) |
 | `KALSHI_RATE_TIER` | API calls | `basic`/`advanced`/`premier`/`prime` |
+| `KALSHI_LOG_LEVEL` | Debugging | Structured log level for CLI (default: `WARNING`; logs go to stderr) |
 | `EXA_API_KEY` | Exa-powered research/news | API key for Exa (`research context/topic/similar/deep`, `research thesis create --with-research`, `research thesis check-invalidation`, `research thesis suggest`, `news collect`) |
 | `EXA_BASE_URL` | Exa-powered research/news | Override Exa base URL (default: https://api.exa.ai) |
 | `EXA_TIMEOUT` | Exa-powered research/news | Exa request timeout seconds (default: 30) |
@@ -55,11 +56,11 @@ uv run kalshi version                     # CLI version info
 ```bash
 uv run kalshi data init [--db PATH]                        # Initialize database
 uv run kalshi data migrate [--dry-run|--apply]             # Migrations (dry-run default)
-uv run kalshi data sync-markets [--status open] [--max-pages N] [--mve-filter exclude|only]
+uv run kalshi data sync-markets [--status open] [--max-pages N] [--mve-filter exclude|only] [--include-mve-events]
 uv run kalshi data sync-settlements [--max-pages N]        # Sync settled outcomes
 uv run kalshi data sync-trades [--ticker TICKER] [--limit N] [--min-ts TS] [--max-ts TS] [--output FILE] [--json]
 uv run kalshi data snapshot [--status open] [--max-pages N]  # Take price snapshot
-uv run kalshi data collect [--interval 15] [--once] [--max-pages N]  # Continuous collection
+uv run kalshi data collect [--interval 15] [--once] [--max-pages N] [--include-mve-events]  # Continuous collection
 uv run kalshi data export [--format parquet|csv] [--output DIR]      # Export data
 uv run kalshi data stats                                   # Show statistics
 uv run kalshi data prune [--snapshots-older-than-days N] [--news-older-than-days N] [--dry-run|--apply]
@@ -78,6 +79,7 @@ uv run kalshi market history TICKER [--series SERIES] [--interval 1h] [--days 7]
 ### scan - Opportunity Scanning
 ```bash
 uv run kalshi scan opportunities [--filter close-race] [--category TEXT] [--no-sports] [--event-prefix PREFIX] [--top 10] [--max-pages N] [--full]
+uv run kalshi scan new-markets [--hours 24] [--category econ,ai] [--include-unpriced] [--limit 20] [--max-pages N] [--json] [--full]
 uv run kalshi scan arbitrage [--db PATH] [--threshold 0.1] [--top 10] [--tickers-limit N] [--max-pages N] [--full]
 uv run kalshi scan movers [--db PATH] [--period 24h] [--top 10] [--max-pages N] [--full]
 ```

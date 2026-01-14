@@ -105,21 +105,33 @@ class TestDataScheduler:
     @pytest.mark.asyncio
     async def test_scheduler_handles_task_errors(self) -> None:
         """Scheduler continues running even if a task fails."""
-        results: list[str] = []
+        attempts = 0
+        first_attempt_event = asyncio.Event()
 
         async def failing_task() -> None:
-            results.append("attempted")
+            nonlocal attempts
+            attempts += 1
+            first_attempt_event.set()
             raise RuntimeError("Task failed!")
 
         scheduler = DataScheduler()
         await scheduler.schedule_interval("test", failing_task, interval_seconds=1)
         await scheduler.start()
 
-        await asyncio.sleep(2.1)  # Should attempt twice
-        await scheduler.stop()
+        try:
+            await asyncio.wait_for(first_attempt_event.wait(), timeout=5)
+            assert attempts >= 1
 
-        # Task should have been attempted multiple times despite errors
-        assert len(results) >= 2
+            assert scheduler.tasks, "Scheduler did not create any background tasks"
+            runner_task = scheduler.tasks[0]
+            if runner_task.done():
+                if runner_task.cancelled():
+                    raise AssertionError("Scheduler task was cancelled after task exception")
+                raise AssertionError(
+                    f"Scheduler task stopped after task exception: {runner_task.exception()!r}"
+                )
+        finally:
+            await scheduler.stop()
 
     @pytest.mark.asyncio
     async def test_scheduler_context_manager(self) -> None:

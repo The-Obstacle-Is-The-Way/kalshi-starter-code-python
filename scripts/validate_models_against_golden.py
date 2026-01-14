@@ -78,6 +78,7 @@ MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
     # GET /events/{event_ticker} returns {"event": {...}, "markets": [...]}
     "event_single_response.json": [("response.event", Event)],
     "events_list_response.json": [("response.events[0]", Event)],
+    "events_multivariate_list_response.json": [("response.events[0]", Event)],
     # GET /markets/{ticker}/orderbook returns {"orderbook": {...}}
     "orderbook_response.json": [("response.orderbook", Orderbook)],
     # Note: exchange_status_response returns dict, not a model (skipped)

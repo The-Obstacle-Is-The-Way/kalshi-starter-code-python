@@ -187,8 +187,9 @@ async def _run_alert_monitor_loop(
                 )
 
                 if alerts:
+                    triggered_at = datetime.now(UTC)
                     console.print(
-                        f"\n[green]✓[/green] {len(alerts)} alert(s) triggered at {datetime.now()}"
+                        f"\n[green]✓[/green] {len(alerts)} alert(s) triggered at {triggered_at}"
                     )
 
                 if once:

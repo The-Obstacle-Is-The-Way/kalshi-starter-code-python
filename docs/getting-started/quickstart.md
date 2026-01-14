@@ -73,6 +73,7 @@ uv run kalshi market orderbook <TICKER> --depth 5
 
 ```bash
 uv run kalshi scan opportunities --filter close-race --top 10 --max-pages 1 --min-volume 1000 --max-spread 10
+uv run kalshi scan new-markets --hours 24 --limit 10 --max-pages 1
 uv run kalshi scan movers --period 1h --top 10 --db data/kalshi.db --max-pages 1
 uv run kalshi scan arbitrage --top 10 --db data/kalshi.db --max-pages 1
 ```

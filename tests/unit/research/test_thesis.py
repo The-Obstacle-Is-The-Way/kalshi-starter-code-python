@@ -110,6 +110,24 @@ class TestThesis:
 
         assert thesis.was_correct is False
 
+    def test_was_correct_neutral_probability_returns_none(self) -> None:
+        """At exactly 50%, the thesis has no directional view."""
+        thesis = Thesis(
+            id="test",
+            title="Test",
+            market_tickers=["TEST"],
+            your_probability=0.5,
+            market_probability=0.5,
+            confidence=0.8,
+            bull_case="",
+            bear_case="",
+            key_assumptions=[],
+            invalidation_criteria=[],
+        )
+        thesis.actual_outcome = "yes"
+
+        assert thesis.was_correct is None
+
     def test_was_correct_unresolved(self) -> None:
         """Returns None for unresolved thesis."""
         thesis = Thesis(

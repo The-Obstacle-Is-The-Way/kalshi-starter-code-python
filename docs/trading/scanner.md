@@ -91,7 +91,29 @@ time_remaining = close_time - now
 is_expiring_soon = time_remaining <= threshold  # e.g., 24 hours
 ```
 
-### 5. Movers
+### 5. New Markets
+
+Markets created recently — the “information arbitrage window” where early pricing can be sloppy.
+
+```bash
+uv run kalshi scan new-markets --hours 24 --limit 20
+```
+
+**By default, unpriced markets are skipped.** Use `--include-unpriced` to include:
+- No quotes (`0/0`)
+- Placeholder quotes (`0/100`)
+
+```bash
+uv run kalshi scan new-markets --hours 24 --include-unpriced
+```
+
+**Category filtering** uses the same aliases as other scanners (comma-separated):
+
+```bash
+uv run kalshi scan new-markets --category econ,politics,ai
+```
+
+### 6. Movers
 
 Markets that moved significantly since a previous snapshot.
 
@@ -116,7 +138,7 @@ abs_move = abs(move)
 percent_move = abs_move / historical_price
 ```
 
-### 6. Arbitrage
+### 7. Arbitrage
 
 Flags potential consistency / divergence opportunities across related markets.
 
@@ -209,6 +231,18 @@ Add `--full/-F` to disable truncation in table output.
 --full               # Show full tickers/titles without truncation
 ```
 
+### New Markets
+
+```bash
+--hours 24            # Hours to look back for new markets
+--category econ,ai    # Category filter (comma-separated; also supports --categories)
+--include-unpriced    # Include markets with no/placeholder quotes (0/0 or 0/100)
+--limit 20            # Maximum results to show
+--max-pages 10        # Optional pagination safety limit (omit for full)
+--json                # Output as JSON
+--full                # Show full tickers/titles without truncation
+```
+
 ### Arbitrage
 
 ```bash
@@ -231,6 +265,13 @@ uv run kalshi scan opportunities \
   --min-liquidity 50 \
   --full \
   --top 10
+
+# New markets (information arbitrage window)
+uv run kalshi scan new-markets \
+  --hours 24 \
+  --include-unpriced \
+  --category econ,ai \
+  --limit 20
 
 # Big movers in the last hour
 uv run kalshi scan movers \

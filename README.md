@@ -15,7 +15,7 @@ intended as a multi-user production service.
 ## Features
 
 - **Data pipeline** - Sync markets/events/settlements, take price snapshots, export to Parquet/CSV, run DB migrations
-- **Scanning** - Opportunities, movers, and basic arbitrage signals
+- **Scanning** - Opportunities, new markets, movers, and basic arbitrage signals
 - **Analysis** - Metrics, calibration (Brier score), and correlation (DB-backed)
 - **Alerts** - Local alert conditions + monitoring loop (console/file/webhook), daemon mode + log trimming
 - **Portfolio (authenticated)** - Sync positions/fills/settlements, compute FIFO cost basis + P&L (realized + unrealized)

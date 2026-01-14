@@ -21,6 +21,12 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 **Why this is "Partially Resolved":** SPEC-037 implemented the Phase 1 discovery endpoints (`/search/tags_by_categories`, `/series`, `/series/{ticker}`, `/series/fee_changes`). All other items in this doc remain missing.
 
+**Status update (2026-01-14):**
+- ✅ Implemented `GET /events/multivariate` (P2 critical) with unit tests + golden fixture.
+  - Client: `KalshiPublicClient.get_multivariate_events*()` in `src/kalshi_research/api/client.py`
+  - Fixture: `tests/fixtures/golden/events_multivariate_list_response.json`
+  - Sync: `kalshi data sync-markets --include-mve-events`
+
 ---
 
 ## Missing Endpoint Categories
@@ -84,11 +90,12 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 **Impact:** Low - Used for real-time event tracking
 
-### 6. Order Management Advanced (6 endpoints) - P2
+### 6. Order Management Advanced (7 endpoints) - P2
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
 | `POST /portfolio/orders/batched` | Batch create up to 20 orders | **P2** |
+| `DELETE /portfolio/orders/batched` | Cancel orders in batch | P2 |
 | `POST /portfolio/orders/{order_id}/decrease` | Decrease order size | P2 |
 | `GET /portfolio/orders/{order_id}` | Single order details | P2 |
 | `GET /portfolio/orders/{order_id}/queue_position` | Queue position for one order | P2 |
@@ -164,7 +171,7 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
 | `GET /events/{event_ticker}/metadata` | Event metadata | P3 |
-| `GET /events/multivariate` | Multivariate events only | **P2** |
+| `GET /events/multivariate` | Multivariate events only | **P2** ✅ **DONE** |
 
 **Impact:** `/events/multivariate` is **P2 critical** - MVEs excluded from `/events` endpoint (data incomplete without it). Metadata is P3.
 
@@ -182,8 +189,9 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 ### Phase 2: Order Efficiency (P2) - PENDING
 4. `POST /portfolio/orders/batched` - 10x more efficient
-5. `GET /portfolio/orders/{order_id}/queue_position` - Market making
-6. `POST /portfolio/orders/{order_id}/decrease` - Order management
+5. `DELETE /portfolio/orders/batched` - Batch cancel (pairs with batch create)
+6. `GET /portfolio/orders/{order_id}/queue_position` - Market making
+7. `POST /portfolio/orders/{order_id}/decrease` - Order management
 
 ### Phase 3: Everything Else (P3)
 - Implement as needed

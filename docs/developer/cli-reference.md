@@ -54,11 +54,11 @@ Notes:
 
 - `kalshi data init`
 - `kalshi data migrate [--dry-run|--apply]`
-- `kalshi data sync-markets [--status open] [--max-pages N] [--mve-filter exclude|only]`
+- `kalshi data sync-markets [--status open] [--max-pages N] [--mve-filter exclude|only] [--include-mve-events]`
 - `kalshi data sync-settlements [--max-pages N]`
 - `kalshi data sync-trades [--ticker TICKER] [--limit N] [--min-ts TS] [--max-ts TS] [--output FILE] [--json]`
 - `kalshi data snapshot [--status open] [--max-pages N]`
-- `kalshi data collect [--interval MINUTES] [--once] [--max-pages N]`
+- `kalshi data collect [--interval MINUTES] [--once] [--max-pages N] [--include-mve-events]`
 - `kalshi data export [--format parquet|csv] [--output DIR]`
 - `kalshi data stats`
 - `kalshi data prune [--snapshots-older-than-days N] [--news-older-than-days N] [--dry-run|--apply]`
@@ -79,6 +79,8 @@ Note: Kalshi's **response** `status` values (e.g. `active`) differ from the `/ma
 - `kalshi scan opportunities [--filter close-race|high-volume|wide-spread|expiring-soon] [--category TEXT] [--no-sports] [--event-prefix PREFIX] [--top N] [--max-pages N] [--full]`
   - close-race-only: `--min-volume INT`, `--max-spread INT`
   - optional liquidity scoring: `--min-liquidity INT`, `--show-liquidity`, `--liquidity-depth INT`
+- `kalshi scan new-markets [--hours N] [--category TEXT] [--include-unpriced] [--limit N] [--max-pages N] [--json] [--full]`
+  - `--category` supports comma-separated categories; `--categories` is an alias.
 - `kalshi scan movers --db PATH [--period 1h|6h|24h] [--top N] [--max-pages N] [--full]`
 - `kalshi scan arbitrage --db PATH [--threshold FLOAT] [--top N] [--tickers-limit N] [--max-pages N] [--full]`
 

@@ -222,6 +222,40 @@ class TestMarketModel:
             assert dt.tzinfo is not None
             assert dt.utcoffset() == timedelta(0)
 
+    def test_market_dollar_conversion_rounds_half_up(self, make_market: MakeMarket) -> None:
+        market = Market.model_validate(
+            make_market(
+                yes_bid_dollars="0.015",  # 1.5¢ -> 2¢
+                yes_ask_dollars="0.025",  # 2.5¢ -> 3¢
+                no_bid_dollars="0.975",  # 97.5¢ -> 98¢
+                no_ask_dollars="0.985",  # 98.5¢ -> 99¢
+            )
+        )
+
+        assert market.yes_bid_cents == 2
+        assert market.yes_ask_cents == 3
+        assert market.no_bid_cents == 98
+        assert market.no_ask_cents == 99
+
+    def test_market_last_price_cents_prefers_dollars(self, make_market: MakeMarket) -> None:
+        market = Market.model_validate(make_market(last_price_dollars="0.495", last_price=49))
+
+        assert market.last_price_cents == 50
+
+    def test_market_dollar_conversion_rejects_out_of_range_prices(
+        self, make_market: MakeMarket
+    ) -> None:
+        market = Market.model_validate(make_market(yes_bid_dollars="1.01"))
+        with pytest.raises(ValueError, match="out of range"):
+            _ = market.yes_bid_cents
+
+    def test_market_dollar_conversion_rejects_invalid_numbers(
+        self, make_market: MakeMarket
+    ) -> None:
+        market = Market.model_validate(make_market(yes_bid_dollars="not-a-number"))
+        with pytest.raises(ValueError, match="Invalid market yes_bid_dollars"):
+            _ = market.yes_bid_cents
+
     def test_market_settlement_ts_optional(self, make_market: MakeMarket) -> None:
         """Market model accepts missing settlement_ts for unsettled/legacy markets."""
         market = Market.model_validate(make_market())

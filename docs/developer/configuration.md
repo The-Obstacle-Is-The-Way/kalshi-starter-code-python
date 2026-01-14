@@ -29,13 +29,16 @@ This is intended for local development and running authenticated commands withou
   - Only affects **authenticated** API calls (portfolio commands).
   - Precedence: `kalshi portfolio ... --rate-tier ...` overrides `KALSHI_RATE_TIER`.
   - Invalid values cause the CLI to exit with an error (no silent fallback).
+- `KALSHI_LOG_LEVEL` — `WARNING`, `INFO`, `DEBUG`, etc (default: `WARNING`)
+  - Controls structured log verbosity (logs go to stderr; CLI output stays parseable).
 
 ### Exa (optional)
 
 Exa powers research/news commands and some integration tests.
 
 - `EXA_API_KEY` — enables Exa-powered features (required for `kalshi research context|topic|similar|deep`,
-  `kalshi research thesis create --with-research`, and `kalshi news ...`)
+  `kalshi research thesis create --with-research`, `kalshi research thesis check-invalidation|suggest`,
+  and `kalshi news ...`)
 - `EXA_BASE_URL` — override base URL (default: `https://api.exa.ai`)
 - `EXA_TIMEOUT` — request timeout in seconds (default: `30`)
 - `EXA_MAX_RETRIES` — max retries for transient errors (default: `3`)
