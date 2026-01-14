@@ -187,7 +187,7 @@ class DataFetcher:
                         await session.flush()
                         logger.info("Synced events so far", count=count)
 
-        logger.info("Synced events", count=count)
+            logger.info("Synced events", count=count)
         return count
 
     async def sync_markets(

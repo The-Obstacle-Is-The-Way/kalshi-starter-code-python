@@ -237,6 +237,11 @@ class TestMarketModel:
         assert market.no_bid_cents == 98
         assert market.no_ask_cents == 99
 
+    def test_market_last_price_cents_prefers_dollars(self, make_market: MakeMarket) -> None:
+        market = Market.model_validate(make_market(last_price_dollars="0.495", last_price=49))
+
+        assert market.last_price_cents == 50
+
     def test_market_dollar_conversion_rejects_out_of_range_prices(
         self, make_market: MakeMarket
     ) -> None:

@@ -119,6 +119,42 @@ async def test_sync_events(data_fetcher, mock_client, mock_db):
 
 
 @pytest.mark.asyncio
+async def test_sync_events_does_not_call_multivariate_when_disabled(
+    data_fetcher, mock_client, mock_db
+):
+    mock_event = Event(
+        event_ticker="TEST-EVENT",
+        series_ticker="TEST-SERIES",
+        title="Test Event",
+        category="Test",
+    )
+
+    async def event_gen(limit: int = 200, max_pages: int | None = None):
+        yield mock_event
+
+    async def mve_event_gen(limit: int = 200, max_pages: int | None = None):
+        yield Event(
+            event_ticker="TEST-MVE-EVENT",
+            series_ticker="TEST-MVE-SERIES",
+            title="Test MVE Event",
+            category="Sports",
+        )
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+    mock_client.get_all_multivariate_events = MagicMock(side_effect=mve_event_gen)
+
+    with patch("kalshi_research.data.fetcher.EventRepository") as MockRepo:
+        mock_repo = AsyncMock()
+        MockRepo.return_value = mock_repo
+
+        count = await data_fetcher.sync_events(include_multivariate=False)
+
+    assert count == 1
+    mock_client.get_all_multivariate_events.assert_not_called()
+    mock_db._session.begin.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_sync_events_includes_multivariate_events_when_enabled(
     data_fetcher, mock_client, mock_db
 ):
@@ -154,6 +190,42 @@ async def test_sync_events_includes_multivariate_events_when_enabled(
         assert count == 2
         assert mock_repo.upsert.call_count == 2
         mock_db._session.begin.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_sync_events_flushes_on_multivariate_boundary(data_fetcher, mock_client, mock_db):
+    """Ensure flush cadence remains correct when MVEs are appended after regular events."""
+
+    async def event_gen(limit: int = 200, max_pages: int | None = None):
+        for i in range(99):
+            yield Event(
+                event_ticker=f"TEST-EVENT-{i}",
+                series_ticker="TEST-SERIES",
+                title=f"Test Event {i}",
+                category="Test",
+            )
+
+    async def mve_event_gen(limit: int = 200, max_pages: int | None = None):
+        yield Event(
+            event_ticker="TEST-MVE-EVENT",
+            series_ticker="TEST-MVE-SERIES",
+            title="Test MVE Event",
+            category="Sports",
+        )
+
+    mock_client.get_all_events = MagicMock(side_effect=event_gen)
+    mock_client.get_all_multivariate_events = MagicMock(side_effect=mve_event_gen)
+    mock_db._session.flush = AsyncMock()
+
+    with patch("kalshi_research.data.fetcher.EventRepository") as MockRepo:
+        mock_repo = AsyncMock()
+        MockRepo.return_value = mock_repo
+
+        count = await data_fetcher.sync_events(include_multivariate=True)
+
+    assert count == 100
+    mock_db._session.flush.assert_awaited_once()
+    mock_db._session.begin.assert_called_once()
 
 
 @pytest.mark.asyncio

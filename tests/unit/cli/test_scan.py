@@ -727,6 +727,96 @@ def test_market_yes_price_display_shows_half_cent_midpoints() -> None:
     assert _market_yes_price_display(market) == "49.5¢"
 
 
+def test_market_yes_price_display_shows_no_quotes_when_zero_zero() -> None:
+    from datetime import UTC, datetime
+
+    from kalshi_research.api.models import Market, MarketStatus
+    from kalshi_research.cli.scan import _market_yes_price_display
+
+    market = Market(
+        ticker="TEST",
+        event_ticker="EVT",
+        title="Test",
+        status=MarketStatus.ACTIVE,
+        yes_bid=0,
+        yes_ask=0,
+        no_bid=0,
+        no_ask=0,
+        last_price=None,
+        volume=0,
+        volume_24h=0,
+        open_interest=0,
+        open_time=datetime(2024, 1, 1, tzinfo=UTC),
+        close_time=datetime(2025, 1, 1, tzinfo=UTC),
+        expiration_time=datetime(2025, 1, 2, tzinfo=UTC),
+    )
+
+    assert _market_yes_price_display(market) == "[NO QUOTES]"
+
+
+def test_format_relative_age_supports_seconds_minutes_hours_days_and_future() -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from kalshi_research.cli.scan import _format_relative_age
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+
+    assert _format_relative_age(now=now, timestamp=now - timedelta(seconds=30)) == "30s ago"
+    assert _format_relative_age(now=now, timestamp=now - timedelta(minutes=5)) == "5m ago"
+    assert _format_relative_age(now=now, timestamp=now - timedelta(hours=2)) == "2h ago"
+    assert _format_relative_age(now=now, timestamp=now - timedelta(days=3)) == "3d ago"
+    assert _format_relative_age(now=now, timestamp=now + timedelta(minutes=2)) == "in 2m"
+
+
+def test_parse_category_filter_returns_none_when_only_commas_and_spaces() -> None:
+    from kalshi_research.cli.scan import _parse_category_filter
+
+    assert _parse_category_filter(" , , ") is None
+
+
+def test_validate_new_markets_args_requires_positive_hours_and_limit() -> None:
+    import typer
+
+    from kalshi_research.cli.scan import _validate_new_markets_args
+
+    with pytest.raises(typer.Exit) as excinfo:
+        _validate_new_markets_args(hours=0, limit=10)
+    assert excinfo.value.exit_code == 1
+
+    with pytest.raises(typer.Exit) as excinfo:
+        _validate_new_markets_args(hours=24, limit=0)
+    assert excinfo.value.exit_code == 1
+
+
+@pytest.mark.asyncio
+async def test_get_event_category_returns_cached_value() -> None:
+    from kalshi_research.cli.scan import _get_event_category
+
+    category_by_event = {"EVT": "Economics"}
+    category = await _get_event_category(MagicMock(), "EVT", category_by_event=category_by_event)
+
+    assert category == "Economics"
+
+
+@pytest.mark.asyncio
+async def test_get_event_category_falls_back_when_event_has_no_category() -> None:
+    from kalshi_research.api.models.event import Event
+    from kalshi_research.cli.scan import _get_event_category
+
+    client = AsyncMock()
+    client.get_event = AsyncMock(
+        return_value=Event(
+            event_ticker="KXFED-TEST",
+            series_ticker="SERIES",
+            title="Test",
+            category=None,
+        )
+    )
+
+    category = await _get_event_category(client, "KXFED-TEST", category_by_event={})
+    assert category == "Economics"
+
+
 def test_format_opportunity_tickers() -> None:
     from kalshi_research.cli.scan import _format_opportunity_tickers
 
@@ -783,6 +873,140 @@ def test_scan_new_markets_filters_by_created_time(
     assert "NEW-MARKET" in result.stdout
     assert "OLD-MARKET" not in result.stdout
     assert "Economics" in result.stdout
+
+
+def test_scan_new_markets_respects_limit(make_market: Callable[..., dict[str, object]]) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    newest = make_market(
+        ticker="NEWEST",
+        event_ticker="EVT-NEWEST",
+        created_time=(now - timedelta(hours=1)).isoformat(),
+        open_time=(now - timedelta(hours=1)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    older = make_market(
+        ticker="OLDER",
+        event_ticker="EVT-OLDER",
+        created_time=(now - timedelta(hours=2)).isoformat(),
+        open_time=(now - timedelta(hours=2)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [newest, older], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/events/EVT-NEWEST").mock(
+            return_value=Response(
+                200,
+                json={
+                    "event": {
+                        "event_ticker": "EVT-NEWEST",
+                        "series_ticker": "SERIES",
+                        "title": "Event NEWEST",
+                        "category": "Economics",
+                    }
+                },
+            )
+        )
+
+        result = runner.invoke(app, ["scan", "new-markets", "--hours", "24", "--limit", "1"])
+
+    assert result.exit_code == 0
+    assert "NEWEST" in result.stdout
+    assert "OLDER" not in result.stdout
+
+
+def test_scan_new_markets_full_flag_disables_title_truncation(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    title_suffix = "TAILTITLE"
+    long_title = f"{'A' * 60}{title_suffix}"
+
+    now = datetime.now(UTC)
+    market = make_market(
+        ticker="NEW-MARKET",
+        title=long_title,
+        event_ticker="EVT-NEW",
+        created_time=(now - timedelta(hours=1)).isoformat(),
+        open_time=(now - timedelta(hours=1)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [market], "cursor": None}
+
+    with respx.mock:
+        route = respx.get(f"{KALSHI_PROD_BASE_URL}/markets")
+        route.side_effect = [
+            Response(200, json=markets_response),
+            Response(200, json=markets_response),
+        ]
+
+        respx.get(f"{KALSHI_PROD_BASE_URL}/events/EVT-NEW").mock(
+            return_value=Response(
+                200,
+                json={
+                    "event": {
+                        "event_ticker": "EVT-NEW",
+                        "series_ticker": "SERIES",
+                        "title": "Event NEW",
+                        "category": "Economics",
+                    }
+                },
+            )
+        )
+
+        result_default = runner.invoke(
+            app, ["scan", "new-markets", "--hours", "24", "--limit", "10"]
+        )
+        result_full = runner.invoke(
+            app,
+            ["scan", "new-markets", "--hours", "24", "--limit", "10", "--full"],
+        )
+
+    assert result_default.exit_code == 0
+    assert title_suffix not in result_default.stdout
+
+    assert result_full.exit_code == 0
+    assert title_suffix in result_full.stdout
+
+
+def test_scan_new_markets_empty_results_json_payload() -> None:
+    import json
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json={"markets": [], "cursor": None})
+        )
+
+        result = runner.invoke(
+            app,
+            ["scan", "new-markets", "--hours", "24", "--limit", "10", "--json"],
+        )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["count"] == 0
+    assert payload["markets"] == []
+
+
+def test_scan_new_markets_empty_results_prints_message() -> None:
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json={"markets": [], "cursor": None})
+        )
+
+        result = runner.invoke(app, ["scan", "new-markets", "--hours", "24", "--limit", "10"])
+
+    assert result.exit_code == 0
+    assert "No new markets found" in result.stdout
 
 
 def test_scan_new_markets_json_output(

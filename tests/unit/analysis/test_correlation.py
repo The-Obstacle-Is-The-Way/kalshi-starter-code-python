@@ -481,6 +481,15 @@ class TestFindInverseMarketGroups:
         assert [m.ticker for m in group] == ["A", "B", "C"]
         assert abs(deviation - (-0.07)) < 0.01
 
+    def test_skips_events_with_less_than_two_priced_markets(self) -> None:
+        """Single-market events should be ignored (need 2+ priced markets to sum)."""
+        analyzer = CorrelationAnalyzer()
+
+        markets = [make_market("A", "E", 31)]
+        results = analyzer.find_inverse_market_groups(markets, tolerance=0.05)
+
+        assert results == []
+
     def test_skips_events_with_any_unpriced_market(self) -> None:
         """Partial sums are not meaningful when an event has unpriced markets."""
         analyzer = CorrelationAnalyzer()
