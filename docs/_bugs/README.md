@@ -13,7 +13,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ### Verification Note (2026-01-13)
 
-Deep audit conducted from Jane Street quant perspective. Focus areas:
+Deep audit focused on the highest-risk areas for an internal research CLI:
 - Financial calculations (P&L, calibration, Brier scores)
 - Statistical formulas and math
 - Price/cents handling consistency
@@ -21,10 +21,7 @@ Deep audit conducted from Jane Street quant perspective. Focus areas:
 - Division-by-zero risks
 - Edge cases in scanner, arbitrage, thesis tracking
 
-All P3/P4 bugs found are low-severity edge cases or cosmetic issues. **No P0/P1/P2 bugs found.**
-
-**API Context:** BUG-079 (arbitrage detection) has an API dependency - full fix requires
-`GET /events/multivariate` from SPEC-037 Phase 2. See cross-references in the bug doc.
+All P3/P4 bugs listed above are low-severity edge cases or cosmetic issues. **No P0/P1/P2 issues were identified in this audit.**
 
 ### Verification Note (2026-01-12)
 

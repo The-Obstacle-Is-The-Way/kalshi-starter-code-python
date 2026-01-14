@@ -10,7 +10,8 @@
 
 ## Summary
 
-The alert monitor display uses `datetime.now()` without timezone, while the rest of the codebase consistently uses `datetime.now(UTC)`.
+The alert monitor display uses `datetime.now()` (local, timezone-naive). Most timestamps in this project use
+timezone-aware UTC datetimes (e.g., `datetime.now(UTC)`), so this output is inconsistent.
 
 ---
 
@@ -18,7 +19,7 @@ The alert monitor display uses `datetime.now()` without timezone, while the rest
 
 - **Severity:** Low - Display-only issue
 - **Financial Impact:** None
-- **User Impact:** Minor confusion if user is not in local timezone
+- **User Impact:** Minor confusion when comparing to other UTC timestamps
 
 The timestamp shown in alert notifications uses local time instead of UTC, inconsistent with other CLI output.
 
@@ -58,7 +59,7 @@ uv run kalshi alerts monitor
 
 ## Fix
 
-Change line 191 of `cli/alerts.py`:
+Change line 191 of `src/kalshi_research/cli/alerts.py`:
 
 ```diff
 - f"\n[green]✓[/green] {len(alerts)} alert(s) triggered at {datetime.now()}"

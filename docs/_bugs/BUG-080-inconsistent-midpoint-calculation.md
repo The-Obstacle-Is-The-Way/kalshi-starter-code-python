@@ -12,8 +12,8 @@
 
 The codebase has two different midpoint calculation methods that can produce different results for the same inputs:
 
-1. **Market model** (`api/models/market.py:340`): Float division
-2. **CLI display** (`cli/scan.py:103`): Integer division with rounding
+1. **Market model** (`src/kalshi_research/api/models/market.py:340`): Float division
+2. **CLI display** (`src/kalshi_research/cli/scan.py:103`): Integer division with rounding
 
 ---
 
@@ -58,14 +58,17 @@ Both approaches are valid for their contexts:
 2. **Integer round-up** is reasonable for display where fractional cents don't exist
 
 However, the inconsistency can cause confusion:
-- Scanner might show "50¢" while other commands show "49.5¢"
-- Comparisons between different command outputs may not match
+- `kalshi scan new-markets` rounds to whole cents for display, while calculations elsewhere can use the raw
+  `Market.midpoint` float (which can be `.5` cents).
 
 ---
 
 ## Recommended Fix
 
-Standardize on float midpoint everywhere, with display-time rounding:
+Pick one convention for **CLI display**, and apply it consistently:
+
+### Option A (keep integer cents, current behavior)
+Keep whole-cents display and use an explicit “half-up” rule:
 
 ```python
 # In cli/scan.py
@@ -76,28 +79,27 @@ def _market_yes_price_display(market: Market) -> str:
         return "[NO QUOTES]"
     if bid == 0 and ask == 100:
         return "[AWAITING PRICE DISCOVERY]"
-    # Use consistent midpoint calculation, round for display
-    midpoint_cents = round(market.midpoint)  # Uses Market.midpoint property
+    # Half-up display rounding (49.5 -> 50, 50.5 -> 51)
+    midpoint_cents = int(market.midpoint + 0.5)
     return f"{midpoint_cents}¢"
 ```
 
-This keeps the Market model as the single source of truth for midpoint calculation.
+### Option B (show half-cents when needed)
+Show `x.5¢` for half-cent midpoints to match `Market.midpoint` exactly (no rounding).
 
 ---
 
 ## Verification
 
 ```python
-def test_midpoint_display_consistency():
-    """Display should use Market.midpoint as source of truth."""
-    market = make_market(yes_bid=49, yes_ask=50)
-    display = _market_yes_price_display(market)
-    assert display in ("49¢", "50¢")  # Either is acceptable after rounding
+# Given yes_bid=49, yes_ask=50 -> Market.midpoint == 49.5
+# Option A expected display: "50¢"
+# Option B expected display: "49.5¢"
 ```
 
 ---
 
 ## Notes
 
-- The Orderbook model in `api/models/orderbook.py` correctly uses `Decimal` for precision
+- The Orderbook model in `src/kalshi_research/api/models/orderbook.py` correctly uses `Decimal` for precision
 - The Market model could be upgraded to use `Decimal` for consistency, but float is acceptable for typical use cases

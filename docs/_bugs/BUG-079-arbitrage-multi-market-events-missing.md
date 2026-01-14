@@ -71,12 +71,20 @@ for event_markets in by_event.values():
 
 ## Fix
 
+Recommended approach (minimize breaking changes):
+
+- Keep `find_inverse_markets()` as-is for 2-market events (current return type).
+- Add a new method (or new return type) that supports events with **2+ markets**, and update the CLI to use it for
+  sum-to-100% checks.
+
+One possible implementation:
+
 ```python
-def find_inverse_markets(
+def find_inverse_market_groups(
     self,
     markets: list[Market],
     tolerance: float = 0.05,
-) -> list[tuple[list[Market], float]]:  # Changed return type
+) -> list[tuple[list[Market], float]]:
     """
     Find market groups that should sum to ~100% (inverse relationship).
 
@@ -105,7 +113,7 @@ def find_inverse_markets(
     return results
 ```
 
-**Note:** This changes the return type signature, so callers in `cli/scan.py` need updates.
+This avoids changing the existing `find_inverse_markets()` signature, while still enabling N-market event checks.
 
 ---
 
@@ -115,13 +123,13 @@ def find_inverse_markets(
 def test_find_inverse_markets_multi_choice():
     """Events with 3+ markets should be detected."""
     markets = [
-        make_market(ticker="A", event_ticker="EVT", yes_bid=30, yes_ask=32),
-        make_market(ticker="B", event_ticker="EVT", yes_bid=30, yes_ask=32),
-        make_market(ticker="C", event_ticker="EVT", yes_bid=30, yes_ask=32),
+        make_market(ticker="A", event_ticker="EVT", yes_price=31),
+        make_market(ticker="B", event_ticker="EVT", yes_price=31),
+        make_market(ticker="C", event_ticker="EVT", yes_price=31),
     ]
     # Sum = 3 * 31 / 100 = 0.93, deviation from 1.0 = -0.07
     analyzer = CorrelationAnalyzer()
-    results = analyzer.find_inverse_markets(markets, tolerance=0.05)
+    results = analyzer.find_inverse_market_groups(markets, tolerance=0.05)
     assert len(results) == 1
     assert len(results[0][0]) == 3
 ```
@@ -130,39 +138,16 @@ def test_find_inverse_markets_multi_choice():
 
 ## Migration Notes
 
-This is a breaking change to the return type. The CLI code at `cli/scan.py:974-988` needs to handle the new format:
-
-```python
-# Old: for m1, m2, deviation in analyzer.find_inverse_markets(...)
-# New: for markets, deviation in analyzer.find_inverse_markets(...)
-```
+Update the CLI code at `src/kalshi_research/cli/scan.py:974-988` to consume grouped results (2+ markets) for the
+sum-to-100% check.
 
 ---
 
-## API Dependency Note
+## Terminology Note (Important)
 
-**This fix is enhanced by SPEC-037 Phase 2 (`GET /events/multivariate`).**
+This bug is about **standard events with 3+ mutually exclusive markets** (range buckets, multi-candidate lists, etc.),
+where the **YES** prices should sum to ~100%.
 
-Currently, multi-market events (MVEs) are **excluded** from the standard `/events` endpoint. This means:
-
-1. The current arbitrage scanner fetches markets via `GET /events` + nested markets
-2. MVEs (multi-choice events like "Who will win: A, B, or C?") are not returned
-3. Even after fixing this bug, MVE arbitrage opportunities won't be detected
-
-**Full fix requires:**
-1. This bug fix (handle N-market events, not just 2-market)
-2. SPEC-037 Phase 2.1 (`GET /events/multivariate`) to fetch MVE data
-
-See:
-- `docs/_specs/SPEC-037-kalshi-missing-endpoints-phase1.md` (Phase 2.1)
-- `docs/_debt/DEBT-015-missing-api-endpoints.md` (Section 12)
-
----
-
-## Cross-References
-
-| Item | Relationship |
-|------|--------------|
-| SPEC-037 Phase 2.1 | `GET /events/multivariate` endpoint needed for full coverage |
-| DEBT-015 Section 12 | Documents MVE endpoint as P2 priority |
-| `docs/_vendor-docs/kalshi-api-reference.md` | SSOT for API |
+Kalshi also has **multivariate event markets** (combinatorial markets with `mve_selected_legs`). Those are a separate
+concept and are tracked via SPEC-037 Phase 2.1 (`GET /events/multivariate`) / DEBT-015; the sum-to-100% check may not be
+applicable to multivariate markets.
