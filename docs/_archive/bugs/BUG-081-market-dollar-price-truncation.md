@@ -77,7 +77,7 @@ This truncates (floors) fractional cents and does not validate range.
 
 ---
 
-## Impact
+## Impact (pre-fix)
 
 - Inconsistent derived pricing between `Market` and `Orderbook` for the same dollar-denominated quote data.
 - Systematic downward bias for subpenny prices across:

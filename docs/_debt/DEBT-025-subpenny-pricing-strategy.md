@@ -31,12 +31,12 @@ This debt item tracks the **explicit policy decision** we should make for this r
 
 ### 1) Market model conversion rounds-to-cent (lossy if subpenny is meaningful)
 
-`Market.*_cents` converts `*_dollars` by rounding half-up to integer cents. This matches `Orderbook`, but still cannot
-preserve true sub-cent precision.
+`Market.*_cents` converts `*_dollars` by rounding half-up to integer cents (shared helper). This matches `Orderbook`, but
+still cannot preserve true sub-cent precision.
 
-### 2) Orderbook conversion already rounds half-up
+### 2) Orderbook conversion rounds half-up
 
-`Orderbook` uses `ROUND_HALF_UP` for dollar→cent conversion and validates range.
+`Orderbook` uses the same shared helper (half-up rounding + range validation) for dollar→cent conversion.
 
 ### 3) Persistence stores integer cents
 
@@ -55,8 +55,8 @@ nearest cent when computing midpoints. This cannot represent non-integer cents.
 
 Even as an internal single-user CLI:
 
-- Scanner rankings and thresholds can shift if subpenny prices are truncated/floored.
-- Portfolio mark-to-market and unrealized P&L can be biased if we systematically floor prices.
+- Scanner rankings and thresholds can shift if subpenny prices are rounded to the nearest cent.
+- Portfolio mark-to-market and unrealized P&L can change due to rounding (even when done consistently).
 - If Kalshi starts returning meaningful subpenny increments, we risk “silent drift” in analytics.
 
 ---
