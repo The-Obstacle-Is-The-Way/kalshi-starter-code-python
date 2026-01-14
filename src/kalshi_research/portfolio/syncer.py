@@ -427,10 +427,10 @@ class PortfolioSyncer:
 
                     # Mark price = midpoint of bid/ask
                     if pos.side == "yes":
-                        mark_price = int(market.midpoint)
+                        mark_price = (market.yes_bid_cents + market.yes_ask_cents + 1) // 2
                     else:
                         # For NO positions, use NO side midpoint
-                        mark_price = (market.no_bid_cents + market.no_ask_cents) // 2
+                        mark_price = (market.no_bid_cents + market.no_ask_cents + 1) // 2
 
                     pos.current_price_cents = mark_price
 

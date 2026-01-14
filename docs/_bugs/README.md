@@ -34,7 +34,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-081**
+**BUG-082**
 
 ---
 
@@ -48,6 +48,7 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-081** | Market `*_dollars` → cents truncation | ✅ Fixed |
 | **BUG-080** | Inconsistent Midpoint Calculation Methods | ✅ Fixed |
 | **BUG-079** | Multi-Market Events Missing from Arbitrage Detection | ✅ Fixed |
 | **BUG-078** | Thesis Accuracy Undefined at Exactly 50% | ✅ Fixed |

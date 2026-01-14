@@ -627,6 +627,54 @@ async def test_update_mark_prices_computes_unrealized_pnl() -> None:
 
 
 @pytest.mark.asyncio
+async def test_update_mark_prices_rounds_half_up_for_half_cent_midpoints() -> None:
+    client = MagicMock()
+    db = MagicMock()
+
+    now = datetime.now(UTC)
+    position = Position(
+        ticker="TEST",
+        side="yes",
+        quantity=10,
+        avg_price_cents=40,
+        current_price_cents=None,
+        unrealized_pnl_cents=None,
+        realized_pnl_cents=0,
+        opened_at=now,
+        last_synced=now,
+    )
+
+    positions_result = MagicMock()
+    positions_result.scalars.return_value.all.return_value = [position]
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=positions_result)
+    session.commit = AsyncMock()
+
+    session_cm = AsyncMock()
+    session_cm.__aenter__.return_value = session
+    session_cm.__aexit__.return_value = None
+    db.session_factory.return_value = session_cm
+
+    syncer = PortfolioSyncer(client=client, db=db)
+
+    # 49/50 midpoint -> 49.5 -> rounds to 50
+    market = MagicMock()
+    market.yes_bid_cents = 49
+    market.yes_ask_cents = 50
+    market.no_bid_cents = 50
+    market.no_ask_cents = 51
+
+    public_client = AsyncMock()
+    public_client.get_market = AsyncMock(return_value=market)
+
+    result = await syncer.update_mark_prices(public_client)
+
+    assert result == 1
+    assert position.current_price_cents == 50
+
+
+@pytest.mark.asyncio
 async def test_update_mark_prices_skips_unpriced_markets() -> None:
     """Unpriced markets (0/0) should be skipped."""
     client = MagicMock()

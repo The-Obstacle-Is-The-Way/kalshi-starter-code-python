@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
-from decimal import Decimal
 from enum import Enum
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from .pricing import fixed_dollars_to_cents
 
 logger = logging.getLogger(__name__)
 
@@ -302,36 +303,38 @@ class Market(BaseModel):
     @property
     def yes_bid_cents(self) -> int:
         """Get yes_bid in cents, preferring dollars field over legacy cents field."""
-        if self.yes_bid_dollars:
-            return int(Decimal(self.yes_bid_dollars) * 100)
+        if self.yes_bid_dollars is not None:
+            return fixed_dollars_to_cents(self.yes_bid_dollars, label="market yes_bid_dollars")
         return self.yes_bid or 0
 
     @property
     def yes_ask_cents(self) -> int:
         """Get yes_ask in cents, preferring dollars field over legacy cents field."""
-        if self.yes_ask_dollars:
-            return int(Decimal(self.yes_ask_dollars) * 100)
+        if self.yes_ask_dollars is not None:
+            return fixed_dollars_to_cents(self.yes_ask_dollars, label="market yes_ask_dollars")
         return self.yes_ask or 0
 
     @property
     def no_bid_cents(self) -> int:
         """Get no_bid in cents, preferring dollars field over legacy cents field."""
-        if self.no_bid_dollars:
-            return int(Decimal(self.no_bid_dollars) * 100)
+        if self.no_bid_dollars is not None:
+            return fixed_dollars_to_cents(self.no_bid_dollars, label="market no_bid_dollars")
         return self.no_bid or 0
 
     @property
     def no_ask_cents(self) -> int:
         """Get no_ask in cents, preferring dollars field over legacy cents field."""
-        if self.no_ask_dollars:
-            return int(Decimal(self.no_ask_dollars) * 100)
+        if self.no_ask_dollars is not None:
+            return fixed_dollars_to_cents(self.no_ask_dollars, label="market no_ask_dollars")
         return self.no_ask or 0
 
     @property
     def last_price_cents(self) -> int | None:
         """Get last_price in cents, preferring dollars field over legacy cents field."""
-        if self.last_price_dollars:
-            return int(Decimal(self.last_price_dollars) * 100)
+        if self.last_price_dollars is not None:
+            return fixed_dollars_to_cents(
+                self.last_price_dollars, label="market last_price_dollars"
+            )
         return self.last_price
 
     @property
