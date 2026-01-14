@@ -119,7 +119,7 @@ Label format: `[AWAITING PRICE DISCOVERY]` or `[NO QUOTES]`
 
 ### 4) Output format
 
-```
+```text
 New Markets (last 24 hours)
 
 ┌────────────────────┬─────────┬──────────────────────┬───────────┬──────────┬──────────┐

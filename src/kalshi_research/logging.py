@@ -18,7 +18,13 @@ def configure_structlog() -> None:
     - Default level is WARNING (override with `KALSHI_LOG_LEVEL`).
     """
     level_name = os.getenv("KALSHI_LOG_LEVEL", "WARNING").upper()
-    level = getattr(logging, level_name, logging.WARNING)
+    level = getattr(logging, level_name, None)
+    if level is None or not isinstance(level, int):
+        print(
+            f"Warning: Invalid KALSHI_LOG_LEVEL '{level_name}', defaulting to WARNING",
+            file=sys.__stderr__,
+        )
+        level = logging.WARNING
 
     structlog.configure(
         wrapper_class=structlog.make_filtering_bound_logger(level),

@@ -172,7 +172,13 @@ def test_data_collect_daemon_schedules_tasks_and_exits_cleanly(runner: CliRunner
         ) -> None:
             return None
 
-        async def full_sync(self, *, max_pages: int | None = None) -> dict[str, int]:
+        async def full_sync(
+            self,
+            *,
+            max_pages: int | None = None,
+            include_multivariate: bool = False,
+        ) -> dict[str, int]:
+            del include_multivariate
             self.full_sync_calls.append(max_pages)
             return {"events": 0, "markets": 0, "snapshots": 0}
 
