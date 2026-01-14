@@ -37,7 +37,8 @@ This is intended for local development and running authenticated commands withou
 Exa powers research/news commands and some integration tests.
 
 - `EXA_API_KEY` — enables Exa-powered features (required for `kalshi research context|topic|similar|deep`,
-  `kalshi research thesis create --with-research`, and `kalshi news ...`)
+  `kalshi research thesis create --with-research`, `kalshi research thesis check-invalidation|suggest`,
+  and `kalshi news ...`)
 - `EXA_BASE_URL` — override base URL (default: `https://api.exa.ai`)
 - `EXA_TIMEOUT` — request timeout in seconds (default: `30`)
 - `EXA_MAX_RETRIES` — max retries for transient errors (default: `3`)

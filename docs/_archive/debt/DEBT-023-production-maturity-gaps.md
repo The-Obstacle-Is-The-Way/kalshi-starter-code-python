@@ -53,7 +53,7 @@ These are legitimate patterns in the right context, but implementing them here w
 
 | Pattern | Why it’s the wrong fit for this repo |
 |---|---|
-| Explicit httpx connection pool limits | `httpx.AsyncClient` already defaults to `Limits(max_connections=100, max_keepalive_connections=20)`; hardcoding the same values is a no-op. Only revisit if we add real concurrency and see pool-related errors. |
+| Explicit httpx connection pool limits | `httpx.AsyncClient` already defaults to a pool of 100 connections and 20 keep-alive connections (httpcore defaults); hardcoding the same values is noise. Only revisit if we add real concurrency and see pool-related errors. |
 | Circuit breaker | This is a **CLI**, not a long-lived service. Most commands are one-shot; retry/backoff already provides the right UX (“try again briefly, then fail”). A circuit breaker adds state and complexity with little to no benefit here. |
 | Prometheus / OpenTelemetry metrics & tracing | There is no metrics backend or dashboard for a solo CLI. Logs are the right tool; adding metrics packages would be complexity without an operational consumer. |
 | Request ID correlation | For a single-process CLI, logs are already naturally ordered; correlation IDs are most useful for distributed or multi-worker systems. |

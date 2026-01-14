@@ -16,9 +16,14 @@ Usage:
     uv run python scripts/record_exa_responses.py --include-research
 
 Note:
-    All operations are READ-ONLY.
-    Exa responses are not expected to contain account identifiers, but fixtures still
-    include a `_metadata` block for provenance.
+    This script makes real Exa API calls and may incur cost.
+
+    - Core endpoint recordings hit query-style endpoints (no account mutation).
+    - Research endpoint recordings (`--include-research` / `--only-research`) create a
+      `/research/v1` task (not read-only) and may incur additional cost/latency.
+
+    Exa responses are not expected to contain account identifiers, but fixtures still include a
+    `_metadata` block for provenance.
 """
 
 from __future__ import annotations

@@ -6,7 +6,25 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Priority | Status | Verified |
 |---|---|---|---|---|
-| (none) | | | | |
+| BUG-077 | [Timezone Inconsistency in Alert Monitor Display](BUG-077-timezone-inconsistency-alert-display.md) | P4 | Open | ✅ |
+| BUG-078 | [Thesis Accuracy Undefined at Exactly 50%](BUG-078-thesis-accuracy-undefined-at-50.md) | P3 | Open | ✅ |
+| BUG-079 | [Multi-Market Events Missing from Arbitrage Detection](BUG-079-arbitrage-multi-market-events-missing.md) | P3 | Open | ✅ |
+| BUG-080 | [Inconsistent Midpoint Calculation Methods](BUG-080-inconsistent-midpoint-calculation.md) | P4 | Open | ✅ |
+
+### Verification Note (2026-01-13)
+
+Deep audit conducted from Jane Street quant perspective. Focus areas:
+- Financial calculations (P&L, calibration, Brier scores)
+- Statistical formulas and math
+- Price/cents handling consistency
+- Timezone handling
+- Division-by-zero risks
+- Edge cases in scanner, arbitrage, thesis tracking
+
+All P3/P4 bugs found are low-severity edge cases or cosmetic issues. **No P0/P1/P2 bugs found.**
+
+**API Context:** BUG-079 (arbitrage detection) has an API dependency - full fix requires
+`GET /events/multivariate` from SPEC-037 Phase 2. See cross-references in the bug doc.
 
 ### Verification Note (2026-01-12)
 
@@ -36,7 +54,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-077**
+**BUG-081**
 
 ---
 

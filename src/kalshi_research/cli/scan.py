@@ -36,6 +36,19 @@ class MoverRow(TypedDict):
     volume: int
 
 
+class NewMarketRow(TypedDict):
+    ticker: str
+    title: str
+    event_ticker: str
+    status: str
+    yes_bid_cents: int
+    yes_ask_cents: int
+    yes_price_display: str
+    category: str
+    created_time: str
+    age: str
+
+
 def _format_relative_age(*, now: datetime, timestamp: datetime) -> str:
     seconds = int((now - timestamp).total_seconds())
     in_future = seconds < 0
@@ -187,8 +200,8 @@ async def _build_new_markets_results(
     categories: set[str] | None,
     limit: int,
     now: datetime,
-) -> tuple[list[dict[str, object]], int]:
-    results: list[dict[str, object]] = []
+) -> tuple[list[NewMarketRow], int]:
+    results: list[NewMarketRow] = []
     category_by_event: dict[str, str] = {}
     unpriced_included = 0
 
@@ -202,7 +215,7 @@ async def _build_new_markets_results(
             continue
 
         yes_display = _market_yes_price_display(market)
-        if yes_display.startswith("["):
+        if _is_unpriced_market(market):
             unpriced_included += 1
 
         results.append(
@@ -215,7 +228,7 @@ async def _build_new_markets_results(
                 "yes_ask_cents": market.yes_ask_cents,
                 "yes_price_display": yes_display,
                 "category": category,
-                "created_time": reference_time,
+                "created_time": reference_time.isoformat(),
                 "age": _format_relative_age(now=now, timestamp=reference_time),
             }
         )
@@ -227,7 +240,7 @@ async def _build_new_markets_results(
 
 
 def _render_new_markets_table(
-    results: list[dict[str, object]],
+    results: list[NewMarketRow],
     *,
     hours: int,
     full: bool,
@@ -665,7 +678,7 @@ async def _scan_new_markets_async(
     missing_created_time = 0
     skipped_unpriced = 0
     unpriced_included = 0
-    results: list[dict[str, object]] = []
+    results: list[NewMarketRow] = []
 
     async with KalshiPublicClient() as client:
         try:
@@ -699,13 +712,13 @@ async def _scan_new_markets_async(
     if not results and output_json:
         payload = {
             "hours": hours,
-            "cutoff": cutoff,
+            "cutoff": cutoff.isoformat(),
             "count": 0,
             "markets": [],
             "missing_created_time": missing_created_time,
             "skipped_unpriced": skipped_unpriced,
         }
-        typer.echo(json.dumps(payload, indent=2, default=str))
+        typer.echo(json.dumps(payload, indent=2))
         return
 
     if not results and not output_json:
@@ -715,13 +728,13 @@ async def _scan_new_markets_async(
     if output_json:
         payload = {
             "hours": hours,
-            "cutoff": cutoff,
+            "cutoff": cutoff.isoformat(),
             "count": len(results),
             "markets": results,
             "missing_created_time": missing_created_time,
             "skipped_unpriced": skipped_unpriced,
         }
-        typer.echo(json.dumps(payload, indent=2, default=str))
+        typer.echo(json.dumps(payload, indent=2))
         return
 
     if missing_created_time:

@@ -794,6 +794,8 @@ def test_scan_new_markets_json_output(
     payload = json.loads(result.stdout)
     assert payload["count"] == 1
     assert payload["markets"][0]["ticker"] == "NEW-MARKET"
+    datetime.fromisoformat(payload["cutoff"])
+    datetime.fromisoformat(payload["markets"][0]["created_time"])
 
 
 def test_scan_new_markets_include_unpriced_flag_controls_placeholder_markets(
