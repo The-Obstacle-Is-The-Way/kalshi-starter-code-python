@@ -54,11 +54,11 @@ Notes:
 
 - `kalshi data init`
 - `kalshi data migrate [--dry-run|--apply]`
-- `kalshi data sync-markets [--status open] [--max-pages N] [--mve-filter exclude|only]`
+- `kalshi data sync-markets [--status open] [--max-pages N] [--mve-filter exclude|only] [--include-mve-events]`
 - `kalshi data sync-settlements [--max-pages N]`
 - `kalshi data sync-trades [--ticker TICKER] [--limit N] [--min-ts TS] [--max-ts TS] [--output FILE] [--json]`
 - `kalshi data snapshot [--status open] [--max-pages N]`
-- `kalshi data collect [--interval MINUTES] [--once] [--max-pages N]`
+- `kalshi data collect [--interval MINUTES] [--once] [--max-pages N] [--include-mve-events]`
 - `kalshi data export [--format parquet|csv] [--output DIR]`
 - `kalshi data stats`
 - `kalshi data prune [--snapshots-older-than-days N] [--news-older-than-days N] [--dry-run|--apply]`

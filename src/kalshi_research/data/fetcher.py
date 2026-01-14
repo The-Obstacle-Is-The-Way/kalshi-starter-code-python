@@ -356,19 +356,28 @@ class DataFetcher:
         logger.info("Took price snapshots", count=count)
         return count
 
-    async def full_sync(self, *, max_pages: int | None = None) -> dict[str, int]:
+    async def full_sync(
+        self,
+        *,
+        max_pages: int | None = None,
+        include_multivariate: bool = False,
+    ) -> dict[str, int]:
         """
         Perform a full sync: events, markets, and snapshot.
 
         Args:
             max_pages: Optional pagination safety limit. None = iterate until exhausted.
+            include_multivariate: When true, also sync events from `GET /events/multivariate`.
 
         Returns:
             Dictionary with counts for each sync type
         """
         logger.info("Starting full sync")
 
-        events = await self.sync_events(max_pages=max_pages)
+        events = await self.sync_events(
+            max_pages=max_pages,
+            include_multivariate=include_multivariate,
+        )
         markets = await self.sync_markets(max_pages=max_pages)
         snapshots = await self.take_snapshot(max_pages=max_pages)
 

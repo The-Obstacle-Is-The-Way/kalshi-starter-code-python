@@ -56,11 +56,11 @@ uv run kalshi version                     # CLI version info
 ```bash
 uv run kalshi data init [--db PATH]                        # Initialize database
 uv run kalshi data migrate [--dry-run|--apply]             # Migrations (dry-run default)
-uv run kalshi data sync-markets [--status open] [--max-pages N] [--mve-filter exclude|only]
+uv run kalshi data sync-markets [--status open] [--max-pages N] [--mve-filter exclude|only] [--include-mve-events]
 uv run kalshi data sync-settlements [--max-pages N]        # Sync settled outcomes
 uv run kalshi data sync-trades [--ticker TICKER] [--limit N] [--min-ts TS] [--max-ts TS] [--output FILE] [--json]
 uv run kalshi data snapshot [--status open] [--max-pages N]  # Take price snapshot
-uv run kalshi data collect [--interval 15] [--once] [--max-pages N]  # Continuous collection
+uv run kalshi data collect [--interval 15] [--once] [--max-pages N] [--include-mve-events]  # Continuous collection
 uv run kalshi data export [--format parquet|csv] [--output DIR]      # Export data
 uv run kalshi data stats                                   # Show statistics
 uv run kalshi data prune [--snapshots-older-than-days N] [--news-older-than-days N] [--dry-run|--apply]

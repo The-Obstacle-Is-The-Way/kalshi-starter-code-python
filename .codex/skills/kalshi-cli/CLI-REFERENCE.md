@@ -76,6 +76,7 @@ uv run kalshi data sync-markets [OPTIONS]
 | `--status`, `-s` | None | Filter by status (open, closed, etc.) |
 | `--max-pages` | None | Pagination safety limit (None = all) |
 | `--mve-filter` | None | Filter multivariate events: `exclude` (skip sports parlays) or `only` |
+| `--include-mve-events` | False | Also sync multivariate events via `GET /events/multivariate` |
 
 ### data sync-settlements
 Sync settled market outcomes from Kalshi API to database.
@@ -131,6 +132,7 @@ uv run kalshi data collect [OPTIONS]
 | `--interval`, `-i` | `15` | Interval in minutes between snapshots |
 | `--once` | False | Run single sync and exit |
 | `--max-pages` | None | Pagination safety limit |
+| `--include-mve-events` | False | Also sync multivariate events via `GET /events/multivariate` |
 
 ### data export
 Export data to Parquet or CSV for analysis.
