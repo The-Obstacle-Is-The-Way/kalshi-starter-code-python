@@ -4,7 +4,15 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-No active bugs.
+| ID | Title | Priority | Component |
+|---|---|---|---|
+| **BUG-082** | P&L Calculator Ignores Cross-Side Position Closure | P0 | `portfolio/pnl.py` |
+
+### BUG-082: P&L Calculator Ignores Cross-Side Position Closure
+
+**Priority:** P0 (Critical - financial calculation error)
+
+The P&L calculator groups trades by `(ticker, side)`, so BUY YES and SELL NO never match. On Kalshi, selling NO closes a YES position, but our calculator skips these as "orphan sells." This causes realized P&L to be drastically underreported (~$55 shown vs ~$140 actual loss).
 
 ### Verification Note (2026-01-12)
 
@@ -34,7 +42,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-082**
+**BUG-083**
 
 ---
 
