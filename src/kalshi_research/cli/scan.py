@@ -18,6 +18,8 @@ app = typer.Typer(help="Market scanning commands.")
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from kalshi_research.analysis.correlation import ArbitrageOpportunity, CorrelationResult
     from kalshi_research.analysis.scanner import MarketScanner, ScanResult
     from kalshi_research.api import KalshiPublicClient
@@ -32,6 +34,244 @@ class MoverRow(TypedDict):
     old_price: float
     new_price: float
     volume: int
+
+
+def _format_relative_age(*, now: datetime, timestamp: datetime) -> str:
+    seconds = int((now - timestamp).total_seconds())
+    in_future = seconds < 0
+    seconds = abs(seconds)
+
+    if seconds < 60:
+        value = seconds
+        unit = "s"
+    elif seconds < 60 * 60:
+        value = seconds // 60
+        unit = "m"
+    elif seconds < 60 * 60 * 48:
+        value = seconds // (60 * 60)
+        unit = "h"
+    else:
+        value = seconds // (60 * 60 * 24)
+        unit = "d"
+
+    if in_future:
+        return f"in {value}{unit}"
+    return f"{value}{unit} ago"
+
+
+def _parse_category_filter(category: str | None) -> set[str] | None:
+    if category is None:
+        return None
+
+    parts = [p.strip() for p in category.split(",")]
+    parts = [p for p in parts if p]
+    if not parts:
+        return None
+
+    from kalshi_research.analysis.categories import normalize_category
+
+    normalized = {normalize_category(p).strip().lower() for p in parts}
+    return {p for p in normalized if p}
+
+
+def _is_unpriced_market(market: Market) -> bool:
+    bid = market.yes_bid_cents
+    ask = market.yes_ask_cents
+    return (bid == 0 and ask == 0) or (bid == 0 and ask == 100)
+
+
+def _market_yes_price_display(market: Market) -> str:
+    bid = market.yes_bid_cents
+    ask = market.yes_ask_cents
+    if bid == 0 and ask == 0:
+        return "[NO QUOTES]"
+    if bid == 0 and ask == 100:
+        return "[AWAITING PRICE DISCOVERY]"
+    midpoint_cents = (bid + ask + 1) // 2
+    return f"{midpoint_cents}¢"
+
+
+def _validate_new_markets_args(*, hours: int, limit: int) -> None:
+    if hours <= 0:
+        console.print("[red]Error:[/red] --hours must be positive.")
+        raise typer.Exit(1)
+    if limit <= 0:
+        console.print("[red]Error:[/red] --limit must be positive.")
+        raise typer.Exit(1)
+
+
+async def _iter_open_markets(
+    client: KalshiPublicClient,
+    *,
+    max_pages: int | None,
+    show_progress: bool,
+) -> AsyncIterator[Market]:
+    if not show_progress:
+        async for market in client.get_all_markets(status="open", max_pages=max_pages):
+            yield market
+        return
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        progress.add_task("Fetching markets...", total=None)
+        async for market in client.get_all_markets(status="open", max_pages=max_pages):
+            yield market
+
+
+async def _collect_new_market_candidates(
+    client: KalshiPublicClient,
+    *,
+    cutoff: datetime,
+    include_unpriced: bool,
+    max_pages: int | None,
+    show_progress: bool,
+) -> tuple[list[tuple[Market, datetime]], int, int]:
+    candidates: list[tuple[Market, datetime]] = []
+    missing_created_time = 0
+    skipped_unpriced = 0
+
+    async for market in _iter_open_markets(
+        client,
+        max_pages=max_pages,
+        show_progress=show_progress,
+    ):
+        reference_time = market.created_time or market.open_time
+        if reference_time < cutoff:
+            continue
+
+        if market.created_time is None:
+            missing_created_time += 1
+
+        if not include_unpriced and _is_unpriced_market(market):
+            skipped_unpriced += 1
+            continue
+
+        candidates.append((market, reference_time))
+
+    return candidates, missing_created_time, skipped_unpriced
+
+
+async def _get_event_category(
+    client: KalshiPublicClient,
+    event_ticker: str,
+    *,
+    category_by_event: dict[str, str],
+) -> str:
+    cached = category_by_event.get(event_ticker)
+    if cached is not None:
+        return cached
+
+    from kalshi_research.analysis.categories import classify_by_event_ticker
+
+    try:
+        event = await client.get_event(event_ticker)
+    except Exception:
+        category = classify_by_event_ticker(event_ticker)
+    else:
+        if isinstance(event.category, str) and event.category.strip():
+            category = event.category.strip()
+        else:
+            category = classify_by_event_ticker(event_ticker)
+
+    category_by_event[event_ticker] = category
+    return category
+
+
+async def _build_new_markets_results(
+    client: KalshiPublicClient,
+    candidates: list[tuple[Market, datetime]],
+    *,
+    categories: set[str] | None,
+    limit: int,
+    now: datetime,
+) -> tuple[list[dict[str, object]], int]:
+    results: list[dict[str, object]] = []
+    category_by_event: dict[str, str] = {}
+    unpriced_included = 0
+
+    for market, reference_time in candidates:
+        category = await _get_event_category(
+            client,
+            market.event_ticker,
+            category_by_event=category_by_event,
+        )
+        if categories is not None and category.lower() not in categories:
+            continue
+
+        yes_display = _market_yes_price_display(market)
+        if yes_display.startswith("["):
+            unpriced_included += 1
+
+        results.append(
+            {
+                "ticker": market.ticker,
+                "title": market.title,
+                "event_ticker": market.event_ticker,
+                "status": market.status.value,
+                "yes_bid_cents": market.yes_bid_cents,
+                "yes_ask_cents": market.yes_ask_cents,
+                "yes_price_display": yes_display,
+                "category": category,
+                "created_time": reference_time,
+                "age": _format_relative_age(now=now, timestamp=reference_time),
+            }
+        )
+
+        if len(results) >= limit:
+            break
+
+    return results, unpriced_included
+
+
+def _render_new_markets_table(
+    results: list[dict[str, object]],
+    *,
+    hours: int,
+    full: bool,
+    skipped_unpriced: int,
+    unpriced_included: int,
+) -> None:
+    from rich.console import Console
+
+    table = Table(title=f"New Markets (last {hours} hours)")
+    if full:
+        table.add_column("Ticker", style="cyan", no_wrap=True)
+        table.add_column("Status", style="dim", no_wrap=True)
+        table.add_column("Title", style="white")
+    else:
+        table.add_column("Ticker", style="cyan", no_wrap=True, overflow="ellipsis", max_width=35)
+        table.add_column("Status", style="dim", no_wrap=True)
+        table.add_column("Title", style="white", overflow="ellipsis", max_width=50)
+    table.add_column("Yes", style="green", no_wrap=True)
+    table.add_column("Category", style="magenta", overflow="ellipsis", max_width=22)
+    table.add_column("Created", style="dim", no_wrap=True)
+
+    for item in results:
+        table.add_row(
+            str(item["ticker"]),
+            str(item["status"]),
+            str(item["title"]),
+            str(item["yes_price_display"]),
+            str(item["category"]),
+            str(item["age"]),
+        )
+
+    output_console = console if not full else Console(width=200)
+    output_console.print(table)
+
+    summary_bits: list[str] = []
+    if unpriced_included:
+        summary_bits.append(f"{unpriced_included} unpriced")
+    if skipped_unpriced:
+        summary_bits.append(f"skipped {skipped_unpriced} unpriced; use --include-unpriced")
+
+    summary = f"[dim]Showing {len(results)} new markets[/dim]"
+    if summary_bits:
+        summary = f"{summary} [dim]({'; '.join(summary_bits)})[/dim]"
+    output_console.print(f"\n{summary}")
 
 
 def _select_opportunity_results(
@@ -397,6 +637,160 @@ def scan_opportunities(
             min_liquidity=min_liquidity,
             show_liquidity=show_liquidity,
             liquidity_depth=liquidity_depth,
+        )
+    )
+
+
+async def _scan_new_markets_async(
+    *,
+    hours: int,
+    category: str | None,
+    include_unpriced: bool,
+    limit: int,
+    max_pages: int | None,
+    full: bool,
+    output_json: bool,
+) -> None:
+    import json
+    from datetime import UTC
+
+    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    _validate_new_markets_args(hours=hours, limit=limit)
+    now = datetime.now(UTC)
+    cutoff = now - timedelta(hours=hours)
+    categories = _parse_category_filter(category)
+
+    missing_created_time = 0
+    skipped_unpriced = 0
+    unpriced_included = 0
+    results: list[dict[str, object]] = []
+
+    async with KalshiPublicClient() as client:
+        try:
+            (
+                candidates,
+                missing_created_time,
+                skipped_unpriced,
+            ) = await _collect_new_market_candidates(
+                client,
+                cutoff=cutoff,
+                include_unpriced=include_unpriced,
+                max_pages=max_pages,
+                show_progress=not output_json,
+            )
+        except KalshiAPIError as exc:
+            console.print(f"[red]API Error {exc.status_code}:[/red] {exc.message}")
+            raise typer.Exit(1) from None
+        except Exception as exc:
+            console.print(f"[red]Error:[/red] {exc}")
+            raise typer.Exit(1) from None
+
+        candidates.sort(key=lambda item: item[1], reverse=True)
+        results, unpriced_included = await _build_new_markets_results(
+            client,
+            candidates,
+            categories=categories,
+            limit=limit,
+            now=now,
+        )
+
+    if not results and output_json:
+        payload = {
+            "hours": hours,
+            "cutoff": cutoff,
+            "count": 0,
+            "markets": [],
+            "missing_created_time": missing_created_time,
+            "skipped_unpriced": skipped_unpriced,
+        }
+        typer.echo(json.dumps(payload, indent=2, default=str))
+        return
+
+    if not results and not output_json:
+        console.print(f"[yellow]No new markets found in the last {hours} hours.[/yellow]")
+        return
+
+    if output_json:
+        payload = {
+            "hours": hours,
+            "cutoff": cutoff,
+            "count": len(results),
+            "markets": results,
+            "missing_created_time": missing_created_time,
+            "skipped_unpriced": skipped_unpriced,
+        }
+        typer.echo(json.dumps(payload, indent=2, default=str))
+        return
+
+    if missing_created_time:
+        console.print(
+            "[yellow]Warning:[/yellow] "
+            f"{missing_created_time} markets were missing created_time; using open_time as proxy."
+        )
+
+    _render_new_markets_table(
+        results,
+        hours=hours,
+        full=full,
+        skipped_unpriced=skipped_unpriced,
+        unpriced_included=unpriced_included,
+    )
+
+
+@app.command("new-markets")
+def scan_new_markets(
+    hours: Annotated[
+        int,
+        typer.Option("--hours", help="Hours to look back for new markets (default: 24)."),
+    ] = 24,
+    category: Annotated[
+        str | None,
+        typer.Option(
+            "--category",
+            "--categories",
+            "-c",
+            help="Filter by category (comma-separated; e.g. --category politics,ai).",
+        ),
+    ] = None,
+    include_unpriced: Annotated[
+        bool,
+        typer.Option(
+            "--include-unpriced",
+            help="Include markets without real price discovery (0/0 or 0/100 placeholder quotes).",
+        ),
+    ] = False,
+    limit: Annotated[
+        int,
+        typer.Option("--limit", "-n", help="Maximum results to show."),
+    ] = 20,
+    max_pages: Annotated[
+        int | None,
+        typer.Option(
+            "--max-pages",
+            help="Optional pagination safety limit for market fetch (None = full).",
+        ),
+    ] = None,
+    output_json: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON."),
+    ] = False,
+    full: Annotated[
+        bool,
+        typer.Option("--full", "-F", help="Show full tickers/titles without truncation."),
+    ] = False,
+) -> None:
+    """Show markets created in the last N hours (information arbitrage window)."""
+    asyncio.run(
+        _scan_new_markets_async(
+            hours=hours,
+            category=category,
+            include_unpriced=include_unpriced,
+            limit=limit,
+            max_pages=max_pages,
+            full=full,
+            output_json=output_json,
         )
     )
 

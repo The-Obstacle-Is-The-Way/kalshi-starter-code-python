@@ -135,6 +135,13 @@ uv run kalshi scan opportunities --filter wide-spread --top 10 --max-pages 10
 uv run kalshi scan opportunities --filter expiring-soon --top 10 --max-pages 10
 ```
 
+### New Markets
+
+```bash
+uv run kalshi scan new-markets --hours 24 --limit 20
+uv run kalshi scan new-markets --hours 24 --include-unpriced --category econ,ai --limit 20
+```
+
 ### Movers (requires snapshots in your DB)
 
 ```bash

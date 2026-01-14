@@ -698,3 +698,293 @@ def test_scan_arbitrage_full_flag_disables_truncation(
             assert result_full.exit_code == 0
             assert ticker_suffix in result_full.stdout
             assert expected_suffix in result_full.stdout
+
+
+def test_scan_new_markets_filters_by_created_time(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    new_market = make_market(
+        ticker="NEW-MARKET",
+        event_ticker="EVT-NEW",
+        created_time=(now - timedelta(hours=1)).isoformat(),
+        open_time=(now - timedelta(hours=1)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    old_market = make_market(
+        ticker="OLD-MARKET",
+        event_ticker="EVT-OLD",
+        created_time=(now - timedelta(hours=30)).isoformat(),
+        open_time=(now - timedelta(hours=30)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [new_market, old_market], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/events/EVT-NEW").mock(
+            return_value=Response(
+                200,
+                json={
+                    "event": {
+                        "event_ticker": "EVT-NEW",
+                        "series_ticker": "SERIES",
+                        "title": "Event NEW",
+                        "category": "Economics",
+                    }
+                },
+            )
+        )
+
+        result = runner.invoke(app, ["scan", "new-markets", "--hours", "24", "--limit", "10"])
+
+    assert result.exit_code == 0
+    assert "NEW-MARKET" in result.stdout
+    assert "OLD-MARKET" not in result.stdout
+    assert "Economics" in result.stdout
+
+
+def test_scan_new_markets_json_output(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    import json
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    market = make_market(
+        ticker="NEW-MARKET",
+        event_ticker="EVT-NEW",
+        created_time=(now - timedelta(hours=1)).isoformat(),
+        open_time=(now - timedelta(hours=1)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [market], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/events/EVT-NEW").mock(
+            return_value=Response(
+                200,
+                json={
+                    "event": {
+                        "event_ticker": "EVT-NEW",
+                        "series_ticker": "SERIES",
+                        "title": "Event NEW",
+                        "category": "Economics",
+                    }
+                },
+            )
+        )
+
+        result = runner.invoke(
+            app,
+            ["scan", "new-markets", "--hours", "24", "--limit", "10", "--json"],
+        )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["count"] == 1
+    assert payload["markets"][0]["ticker"] == "NEW-MARKET"
+
+
+def test_scan_new_markets_include_unpriced_flag_controls_placeholder_markets(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    priced = make_market(
+        ticker="PRICED",
+        event_ticker="EVT-PRICED",
+        yes_bid=50,
+        yes_ask=52,
+        created_time=(now - timedelta(hours=1)).isoformat(),
+        open_time=(now - timedelta(hours=1)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    placeholder = make_market(
+        ticker="PLACEHOLDER",
+        event_ticker="EVT-PLACEHOLDER",
+        yes_bid=0,
+        yes_ask=100,
+        created_time=(now - timedelta(hours=1)).isoformat(),
+        open_time=(now - timedelta(hours=1)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [priced, placeholder], "cursor": None}
+
+    with respx.mock:
+        route = respx.get(f"{KALSHI_PROD_BASE_URL}/markets")
+        route.side_effect = [
+            Response(200, json=markets_response),
+            Response(200, json=markets_response),
+        ]
+
+        respx.get(f"{KALSHI_PROD_BASE_URL}/events/EVT-PRICED").mock(
+            return_value=Response(
+                200,
+                json={
+                    "event": {
+                        "event_ticker": "EVT-PRICED",
+                        "series_ticker": "SERIES",
+                        "title": "Event PRICED",
+                        "category": "Economics",
+                    }
+                },
+            )
+        )
+
+        result_default = runner.invoke(
+            app, ["scan", "new-markets", "--hours", "24", "--limit", "10"]
+        )
+        assert result_default.exit_code == 0
+        assert "PRICED" in result_default.stdout
+        assert "PLACEHOLDER" not in result_default.stdout
+        assert "skipped 1 unpriced" in result_default.stdout
+
+        respx.get(f"{KALSHI_PROD_BASE_URL}/events/EVT-PLACEHOLDER").mock(
+            return_value=Response(
+                200,
+                json={
+                    "event": {
+                        "event_ticker": "EVT-PLACEHOLDER",
+                        "series_ticker": "SERIES",
+                        "title": "Event PLACEHOLDER",
+                        "category": "Economics",
+                    }
+                },
+            )
+        )
+
+        result_include = runner.invoke(
+            app,
+            [
+                "scan",
+                "new-markets",
+                "--hours",
+                "24",
+                "--limit",
+                "10",
+                "--include-unpriced",
+            ],
+        )
+
+    assert result_include.exit_code == 0
+    assert "PRICED" in result_include.stdout
+    assert "PLACEHOLDER" in result_include.stdout
+    assert "AWAITING PRICE DISCOVERY" in result_include.stdout
+
+
+def test_scan_new_markets_falls_back_to_open_time_with_warning(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    market = make_market(
+        ticker="NO-CREATED",
+        event_ticker="EVT-NO-CREATED",
+        created_time=None,
+        open_time=(now - timedelta(hours=2)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [market], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/events/EVT-NO-CREATED").mock(
+            return_value=Response(
+                200,
+                json={
+                    "event": {
+                        "event_ticker": "EVT-NO-CREATED",
+                        "series_ticker": "SERIES",
+                        "title": "Event NO-CREATED",
+                        "category": "Economics",
+                    }
+                },
+            )
+        )
+
+        result = runner.invoke(app, ["scan", "new-markets", "--hours", "24", "--limit", "10"])
+
+    assert result.exit_code == 0
+    assert "Warning:" in result.stdout
+    assert "missing created_time" in result.stdout
+    assert "NO-CREATED" in result.stdout
+
+
+def test_scan_new_markets_category_filter(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    econ_market = make_market(
+        ticker="ECON-NEW",
+        event_ticker="EVT-ECON",
+        created_time=(now - timedelta(hours=1)).isoformat(),
+        open_time=(now - timedelta(hours=1)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    sports_market = make_market(
+        ticker="SPORTS-NEW",
+        event_ticker="EVT-SPORTS",
+        created_time=(now - timedelta(hours=1)).isoformat(),
+        open_time=(now - timedelta(hours=1)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [econ_market, sports_market], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/events/EVT-ECON").mock(
+            return_value=Response(
+                200,
+                json={
+                    "event": {
+                        "event_ticker": "EVT-ECON",
+                        "series_ticker": "SERIES",
+                        "title": "Event ECON",
+                        "category": "Economics",
+                    }
+                },
+            )
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/events/EVT-SPORTS").mock(
+            return_value=Response(
+                200,
+                json={
+                    "event": {
+                        "event_ticker": "EVT-SPORTS",
+                        "series_ticker": "SERIES",
+                        "title": "Event SPORTS",
+                        "category": "Sports",
+                    }
+                },
+            )
+        )
+
+        result = runner.invoke(app, ["scan", "new-markets", "--category", "econ"])
+
+    assert result.exit_code == 0
+    assert "ECON-NEW" in result.stdout
+    assert "SPORTS-NEW" not in result.stdout

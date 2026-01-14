@@ -1,6 +1,6 @@
 # SPEC-039: New Market Alerts (Information Arbitrage Window)
 
-**Status:** Draft
+**Status:** Phase 1 ✅ (Phase 2 optional)
 **Priority:** P2 (Trading Edge)
 **Created:** 2026-01-13
 **Owner:** Solo
@@ -77,11 +77,16 @@ kalshi scan new-markets [OPTIONS]
 
 Options:
   --hours INTEGER        Hours to look back for new markets (default: 24)
-  --category TEXT        Filter by category (politics, economics, tech, etc.)
+  --category TEXT        Filter by category (comma-separated; aliases supported)
+  --categories TEXT      Alias for --category
   --include-unpriced     Include markets without real price discovery
-  --research             Run Exa research on each result (costs money)
   --limit INTEGER        Max results to show (default: 20)
+  --max-pages INTEGER    Optional pagination safety limit (None = full)
   --json                 Output as JSON
+  --full                 Disable truncation
+
+Phase 2 (optional):
+  --research             Run Exa research on each result (costs money)
 ```
 
 ### 2) Newness detection
@@ -117,15 +122,15 @@ Label format: `[AWAITING PRICE DISCOVERY]` or `[NO QUOTES]`
 ```
 New Markets (last 24 hours)
 
-┌────────────────────┬─────────┬───────────┬──────────┬─────────────────────┐
-│ Ticker             │ Status  │ Yes Price │ Category │ Created             │
-├────────────────────┼─────────┼───────────┼──────────┼─────────────────────┤
-│ PRES-2028-DEM-WIN  │ active  │ 52¢       │ Politics │ 2h ago              │
-│ AI-AGI-2026        │ active  │ [UNPRICED]│ Tech     │ 5h ago              │
-│ FED-RATE-MAR26     │ active  │ 48¢       │ Economics│ 12h ago             │
-└────────────────────┴─────────┴───────────┴──────────┴─────────────────────┘
+┌────────────────────┬─────────┬──────────────────────┬───────────┬──────────┬──────────┐
+│ Ticker             │ Status  │ Title                 │ Yes       │ Category │ Created  │
+├────────────────────┼─────────┼──────────────────────┼───────────┼──────────┼──────────┤
+│ PRES-2028-DEM-WIN  │ active  │ ...                   │ 52¢       │ Politics │ 2h ago   │
+│ AI-AGI-2026        │ active  │ ...                   │ [AWAITING…]│ Tech     │ 5h ago   │
+│ FED-RATE-MAR26     │ active  │ ...                   │ 48¢       │ Economics│ 12h ago  │
+└────────────────────┴─────────┴──────────────────────┴───────────┴──────────┴──────────┘
 
-Found 3 new markets (1 awaiting price discovery)
+Showing 3 new markets (1 unpriced)
 ```
 
 ### 5) Optional Exa research integration
@@ -174,6 +179,8 @@ AI-AGI-2026 [UNPRICED]
 - `src/kalshi_research/analysis/scanner.py` - Optional helper for newness check
 - `docs/trading/scanner.md` - Documentation
 - `.claude/skills/kalshi-cli/CLI-REFERENCE.md` - Skill docs
+- `.codex/skills/kalshi-cli/CLI-REFERENCE.md` - Skill docs
+- `.gemini/skills/kalshi-cli/CLI-REFERENCE.md` - Skill docs
 
 ### Phase 2: Exa research integration (optional)
 
@@ -191,13 +198,13 @@ AI-AGI-2026 [UNPRICED]
 
 ### Phase 1
 
-- [ ] `kalshi scan new-markets` shows markets created in last 24h by default
-- [ ] `--hours` flag adjusts the lookback window
-- [ ] `--category` filters by category (politics, tech, etc.)
-- [ ] `--include-unpriced` shows markets with placeholder quotes (labeled)
-- [ ] Markets without `created_time` fall back to `open_time` with warning
-- [ ] `--json` outputs machine-readable format
-- [ ] Exit code 0 on success (even if no results)
+- [x] `kalshi scan new-markets` shows markets created in last 24h by default
+- [x] `--hours` flag adjusts the lookback window
+- [x] `--category` filters by category (politics, tech, etc.)
+- [x] `--include-unpriced` shows markets with placeholder quotes (labeled)
+- [x] Markets without `created_time` fall back to `open_time` with warning
+- [x] `--json` outputs machine-readable format
+- [x] Exit code 0 on success (even if no results)
 
 ### Phase 2
 

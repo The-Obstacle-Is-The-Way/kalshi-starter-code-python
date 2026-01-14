@@ -6,6 +6,7 @@ Provides commands for data collection, analysis, and research.
 
 from __future__ import annotations
 
+import os
 from typing import Annotated
 
 import typer
@@ -20,6 +21,7 @@ from kalshi_research.cli.portfolio import app as portfolio_app
 from kalshi_research.cli.research import app as research_app
 from kalshi_research.cli.scan import app as scan_app
 from kalshi_research.cli.utils import console
+from kalshi_research.logging import configure_structlog
 
 app = typer.Typer(
     name="kalshi",
@@ -50,11 +52,10 @@ def main(
     ] = None,
 ) -> None:
     """Kalshi Research Platform CLI."""
-    import os
-
     from kalshi_research.api.config import Environment, set_environment
 
     load_dotenv(find_dotenv(usecwd=True))
+    configure_structlog()
 
     # Priority: CLI flag > KALSHI_ENVIRONMENT env var > default "prod"
     env_var = os.getenv("KALSHI_ENVIRONMENT")

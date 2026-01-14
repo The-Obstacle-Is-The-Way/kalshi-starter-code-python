@@ -24,6 +24,7 @@ uv run kalshi --help
 | `KALSHI_PRIVATE_KEY_B64` | Portfolio commands | Alternative: Base64-encoded key |
 | `KALSHI_ENVIRONMENT` | All | `prod` or `demo` (default: prod) |
 | `KALSHI_RATE_TIER` | API calls | `basic`/`advanced`/`premier`/`prime` |
+| `KALSHI_LOG_LEVEL` | Debugging | Structured log level for CLI (default: `WARNING`; logs go to stderr) |
 | `EXA_API_KEY` | Exa-powered research/news | API key for Exa (`research context/topic/similar/deep`, `research thesis create --with-research`, `research thesis check-invalidation`, `research thesis suggest`, `news collect`) |
 | `EXA_BASE_URL` | Exa-powered research/news | Override Exa base URL (default: https://api.exa.ai) |
 | `EXA_TIMEOUT` | Exa-powered research/news | Exa request timeout seconds (default: 30) |
@@ -78,6 +79,7 @@ uv run kalshi market history TICKER [--series SERIES] [--interval 1h] [--days 7]
 ### scan - Opportunity Scanning
 ```bash
 uv run kalshi scan opportunities [--filter close-race] [--category TEXT] [--no-sports] [--event-prefix PREFIX] [--top 10] [--max-pages N] [--full]
+uv run kalshi scan new-markets [--hours 24] [--category econ,ai] [--include-unpriced] [--limit 20] [--max-pages N] [--json] [--full]
 uv run kalshi scan arbitrage [--db PATH] [--threshold 0.1] [--top 10] [--tickers-limit N] [--max-pages N] [--full]
 uv run kalshi scan movers [--db PATH] [--period 24h] [--top 10] [--max-pages N] [--full]
 ```

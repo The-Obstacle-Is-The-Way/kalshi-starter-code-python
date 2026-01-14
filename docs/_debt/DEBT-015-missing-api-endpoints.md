@@ -84,11 +84,12 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 **Impact:** Low - Used for real-time event tracking
 
-### 6. Order Management Advanced (6 endpoints) - P2
+### 6. Order Management Advanced (7 endpoints) - P2
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
 | `POST /portfolio/orders/batched` | Batch create up to 20 orders | **P2** |
+| `DELETE /portfolio/orders/batched` | Cancel orders in batch | P2 |
 | `POST /portfolio/orders/{order_id}/decrease` | Decrease order size | P2 |
 | `GET /portfolio/orders/{order_id}` | Single order details | P2 |
 | `GET /portfolio/orders/{order_id}/queue_position` | Queue position for one order | P2 |
@@ -182,8 +183,9 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 ### Phase 2: Order Efficiency (P2) - PENDING
 4. `POST /portfolio/orders/batched` - 10x more efficient
-5. `GET /portfolio/orders/{order_id}/queue_position` - Market making
-6. `POST /portfolio/orders/{order_id}/decrease` - Order management
+5. `DELETE /portfolio/orders/batched` - Batch cancel (pairs with batch create)
+6. `GET /portfolio/orders/{order_id}/queue_position` - Market making
+7. `POST /portfolio/orders/{order_id}/decrease` - Order management
 
 ### Phase 3: Everything Else (P3)
 - Implement as needed

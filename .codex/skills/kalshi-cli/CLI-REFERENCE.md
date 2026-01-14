@@ -285,6 +285,23 @@ uv run kalshi scan opportunities [OPTIONS]
 | `--liquidity-depth` | `25` | Orderbook depth levels for liquidity scoring |
 | `--full`, `-F` | False | Show full tickers/titles without truncation |
 
+### scan new-markets
+Show markets created in the last N hours (information arbitrage window).
+
+```bash
+uv run kalshi scan new-markets [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--hours` | `24` | Hours to look back for new markets |
+| `--category`, `--categories`, `-c` | None | Filter by category (comma-separated; e.g. `--category politics,ai`) |
+| `--include-unpriced` | False | Include markets without real price discovery (0/0 or 0/100 placeholder quotes) |
+| `--limit`, `-n` | `20` | Maximum results to show |
+| `--max-pages` | None | Optional pagination safety limit for market fetch (None = full) |
+| `--json` | False | Output as JSON |
+| `--full`, `-F` | False | Show full tickers/titles without truncation |
+
 ### scan arbitrage
 Find arbitrage opportunities from correlated markets.
 

@@ -29,6 +29,8 @@ This is intended for local development and running authenticated commands withou
   - Only affects **authenticated** API calls (portfolio commands).
   - Precedence: `kalshi portfolio ... --rate-tier ...` overrides `KALSHI_RATE_TIER`.
   - Invalid values cause the CLI to exit with an error (no silent fallback).
+- `KALSHI_LOG_LEVEL` — `WARNING`, `INFO`, `DEBUG`, etc (default: `WARNING`)
+  - Controls structured log verbosity (logs go to stderr; CLI output stays parseable).
 
 ### Exa (optional)
 

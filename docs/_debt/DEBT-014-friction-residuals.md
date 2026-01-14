@@ -257,20 +257,20 @@ searches for both bullish AND bearish signals.
 
 ### B3. New Market Alert System (Information Arbitrage)
 
-**Status:** ✅ **SPECCED** → See [SPEC-039](../_specs/SPEC-039-new-market-alerts.md)
+**Status:** ✅ **IMPLEMENTED (Phase 1)** → See [SPEC-039](../_specs/SPEC-039-new-market-alerts.md)
 
 **Problem:** Best edge exists on newly opened markets where crowd hasn't priced in information yet.
 
 **Design decision:** Yes, alert on new markets matching user interests (politics, AI, tech).
 
 **Current state:**
-- No alerting for new markets
-- No quick research pipeline for new opportunities
+- ✅ Phase 1 implemented: `kalshi scan new-markets` (info-arbitrage window scanner)
+- ⏸️ Phase 2 optional: `--research` (Exa quick context) not implemented yet
 
-**Proposed feature:**
+**Phase 2 (optional):**
 ```bash
 # Scan for new markets with quick research
-kalshi scan new-markets --hours 24 --categories politics,ai,tech --research
+kalshi scan new-markets --hours 24 --category politics,ai,tech --research
 ```
 
 **Design questions:**
@@ -301,7 +301,7 @@ if m.yes_bid_cents == 0 and m.yes_ask_cents == 100:
 New markets with NO price discovery (bid=0, ask=100) ARE skipped. This is technically correct
 (can't analyze markets with no prices), but misses the "information arbitrage window."
 
-#### Finding 3: `created_time` field EXISTS (`api/models/market.py:84`)
+#### Finding 3: `created_time` field EXISTS (`api/models/market.py:137`)
 
 We CAN detect new markets. The Market model already has this field.
 
@@ -309,18 +309,18 @@ We CAN detect new markets. The Market model already has this field.
 
 ```bash
 # Proposed new command/filter
-kalshi scan new-markets --hours 24 --include-unpriced --categories politics,ai,tech
+kalshi scan new-markets --hours 24 --include-unpriced --category politics,ai,tech
 ```
 
 Options to address:
 
 1. `--include-unpriced` flag to show markets even without real price discovery
-2. Label unpriced markets as "NEW (awaiting price discovery)" in results
+2. Label unpriced markets clearly (e.g., `[AWAITING PRICE DISCOVERY]`, `[NO QUOTES]`)
 3. Different threshold defaults for new market scanning
 
 **Effort:** Medium (new scan filter + optional Exa integration)
 
-**Next step:** Implement SPEC-039 (New Market Alerts)
+**Next step (optional):** Implement SPEC-039 Phase 2 (`--research` Exa integration)
 
 ---
 
@@ -384,7 +384,7 @@ SPEC-037 implemented the series discovery endpoints:
 | A6 | Clarify DB cents comment | Low | 5 min | P3 | ✅ COMPLETED |
 | B1 | Exa research pipeline | High | Large | P1 | ⏸️ Blocked (FUTURE-001) |
 | B2 | Adversarial research | High | Medium | P1 | ⏸️ Blocked (FUTURE-001) |
-| B3 | New market alerts | Medium | Medium | P2 | ✅ Specced (SPEC-039) |
+| B3 | New market alerts | Medium | Medium | P2 | ✅ Implemented (SPEC-039 Phase 1) |
 | C1 | `/series` endpoint | Low | Medium | P3 | ✅ RESOLVED (SPEC-037) |
 | C2 | Jan 15 cleanup | Medium | Small | P2 | Scheduled |
 
@@ -414,7 +414,7 @@ None for Section A.
 3. **B2**: Included in FUTURE-001 (bull/bear case generation)
 
 ### Ready for Implementation
-4. **B3**: Implement SPEC-039 (New Market Alerts)
+4. **B3**: ✅ Implemented via SPEC-039 Phase 1 (`kalshi scan new-markets`)
 
 ### Scheduled
 5. **C2**: Wait for Jan 15, 2026, then cleanup
@@ -454,7 +454,7 @@ None for Section A.
 > - Default filters are permissive (`--min-volume=0`, `--max-spread=100`)
 > - The REAL filter is unpriced markets (bid=0, ask=100) being skipped in scanner.py:220-224
 > - `created_time` field EXISTS on Market model - we CAN detect new markets
-> - **Next step:** Implement SPEC-039 (`kalshi scan new-markets` command)
+> - ✅ Implemented: SPEC-039 Phase 1 (`kalshi scan new-markets` command)
 >
 > **Review checklist:**
 > - [x] Search `scan opportunities` for volume/liquidity filters ✅ Done (see B3)
