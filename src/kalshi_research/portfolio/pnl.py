@@ -8,6 +8,8 @@ from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from kalshi_research.portfolio.models import PortfolioSettlement, Position, Trade
 
 
@@ -37,10 +39,65 @@ class PnLCalculator:
         qty_remaining: int
         cost_remaining_cents: int
 
+    @dataclass(frozen=True)
+    class _EffectiveTrade:
+        ticker: str
+        side: str
+        action: str
+        quantity: int
+        price_cents: int
+        total_cost_cents: int
+        fee_cents: int
+        executed_at: datetime
+
     @dataclass
     class _FifoResult:
         closed_pnls: list[int]
         orphan_sell_qty_skipped: int
+
+    @staticmethod
+    def _normalize_trade_for_fifo(trade: Trade) -> _EffectiveTrade:
+        """
+        Normalize fills into a consistent (ticker, side) stream for FIFO.
+
+        Kalshi's fills are "literal side" and can represent closing trades on the opposite side.
+        In practice, this codebase observes that:
+        - BUY trades open/increase the literal `trade.side` at `trade.price_cents`.
+        - SELL trades close/decrease the *opposite* side at the *inverted* price.
+
+        Example:
+        - BUY YES at 51 is stored as (side=yes, action=buy, price=51)
+        - Closing that position may appear as (side=no, action=sell, price=88), which is
+          economically a SELL YES at (100 - 88) = 12.
+        """
+        side = trade.side.lower()
+        if side not in {"yes", "no"}:
+            raise ValueError(f"Trade side must be 'yes' or 'no' (got {trade.side!r})")
+
+        action = trade.action.lower()
+        if action not in {"buy", "sell"}:
+            raise ValueError(f"Trade action must be 'buy' or 'sell' (got {trade.action!r})")
+
+        if trade.price_cents < 0 or trade.price_cents > 100:
+            raise ValueError(f"Trade price_cents must be in [0, 100] (got {trade.price_cents})")
+
+        if action == "buy":
+            effective_side = side
+            effective_price_cents = trade.price_cents
+        else:
+            effective_side = "no" if side == "yes" else "yes"
+            effective_price_cents = 100 - trade.price_cents
+
+        return PnLCalculator._EffectiveTrade(
+            ticker=trade.ticker,
+            side=effective_side,
+            action=action,
+            quantity=trade.quantity,
+            price_cents=effective_price_cents,
+            total_cost_cents=effective_price_cents * trade.quantity,
+            fee_cents=trade.fee_cents,
+            executed_at=trade.executed_at,
+        )
 
     def calculate_unrealized(self, position: Position, current_price_cents: int) -> int:
         """
@@ -57,15 +114,25 @@ class PnLCalculator:
         """
         Compute per-sell realized P&L in cents using FIFO lots (integer arithmetic).
 
-        Trades are grouped by (ticker, side) and processed in executed_at order.
+        Trades are normalized (to handle Kalshi cross-side closing), then grouped by (ticker, side)
+        and processed in executed_at order.
+
+        Normalization rules:
+        - BUY trades affect the literal side at the literal price.
+        - SELL trades affect the opposite side at the inverted price (100 - price).
+
+        This prevents "orphan sells" when a position opened on YES is closed via a NO sell (and
+        vice versa), which is observed in real fill history.
+
         Fees are handled as:
         - Buy fees are included in cost basis by storing lot-level total cost (price * qty + fee).
         - Sell fees reduce proceeds directly.
         """
-        ticker_side_trades: dict[tuple[str, str], list[Trade]] = {}
-        for trade in trades:
-            key = (trade.ticker, trade.side)
-            ticker_side_trades.setdefault(key, []).append(trade)
+        ticker_side_trades: dict[tuple[str, str], list[PnLCalculator._EffectiveTrade]] = {}
+        for raw_trade in trades:
+            effective_trade = self._normalize_trade_for_fifo(raw_trade)
+            key = (effective_trade.ticker, effective_trade.side)
+            ticker_side_trades.setdefault(key, []).append(effective_trade)
 
         closed_pnls: list[int] = []
         orphan_sell_qty_skipped = 0
@@ -133,8 +200,11 @@ class PnLCalculator:
         """
         Calculate realized P&L from a list of trades.
 
-        Realized P&L is calculated from closed positions (matched buy/sell pairs).
-        Groups by (ticker, side) to handle YES/NO positions separately.
+        Realized P&L is calculated from closed positions (matched buy/sell pairs) using FIFO lots.
+
+        Kalshi fill history can represent closing trades on the opposite side (see vendor doc note
+        on "Cross-Side Closing"). This method normalizes trades before matching so that closes are
+        correctly attributed and priced.
         """
         return sum(self._get_closed_trade_pnls_fifo(trades).closed_pnls)
 

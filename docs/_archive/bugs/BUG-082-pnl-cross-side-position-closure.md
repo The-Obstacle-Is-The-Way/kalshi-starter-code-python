@@ -1,10 +1,12 @@
 # BUG-082: P&L Calculator Ignores Cross-Side Position Closure
 
-**Status:** Open
+**Status:** ✅ Resolved
 **Priority:** P0 (Critical - financial calculation error)
 **Component:** `src/kalshi_research/portfolio/pnl.py`
 **Found:** 2026-01-14
 **Reporter:** User via Claude Code session
+**Fixed:** 2026-01-14
+**Archived:** 2026-01-14
 
 ---
 
@@ -54,14 +56,13 @@ But BUG-060 **did not fix cross-side closure** - it just made the FIFO gracefull
 
 ### FIFO Groups by Side (Broken)
 
-In `pnl.py:56-68`:
+Previously, in `pnl.py`, FIFO grouped fills by `(ticker, side)` using the **literal** `side` from `/portfolio/fills`.
+Kalshi warns that `side` is literal and can represent closes on the opposite side, so this grouping can create
+"orphan sells" even when the position is actually being closed.
 
-```python
-ticker_side_trades: dict[tuple[str, str], list[Trade]] = {}
-for trade in trades:
-    key = (trade.ticker, trade.side)  # ← Groups YES and NO separately!
-    ticker_side_trades.setdefault(key, []).append(trade)
-```
+**Fix:** Normalize fills into an "effective" `(ticker, side)` stream before FIFO matching:
+- BUY trades: affect the literal side at the literal price.
+- SELL trades: affect the *opposite* side at the *inverted* price (`100 - price_cents`).
 
 - BUY YES → group `(TICKER, yes)`
 - SELL NO → group `(TICKER, no)` ← Never matches YES buys!
@@ -102,75 +103,42 @@ All 5 positions with cross-side trades are affected:
 
 ---
 
-## Correct Fix: Normalize Trades to YES-Equivalent
+## Correct Fix: Normalize Trades to an Effective Side (Both Directions)
 
-The FIFO should normalize all trades to a single reference side (YES):
+The FIFO must normalize fills so that the close leg is attributed to the correct side (YES or NO) and priced correctly.
 
 ```python
-# Normalize all trades to YES-equivalent before FIFO matching
-#
-# Key insight: On Kalshi, YES + NO always = $1.00
-# When you hold YES and trade NO, Kalshi NETS them (position goes to 0)
-#
-# For FIFO (long YES tracking):
-# - BUY YES: Opens/increases long
-# - SELL YES: Closes/decreases long
-# - BUY NO: Closes long (you're betting against YES, exits your YES position)
-# - SELL NO: Closes long (counterparty buys NO, Kalshi nets against your YES)
-#
-# Both NO trades CLOSE your YES position, just at different effective prices.
-# This is because Kalshi nets positions, not because of complex economics.
+def normalize_for_fifo(trade: Trade) -> NormalizedTrade:
+    if trade.action == "buy":
+        # BUY affects the literal side at the literal price.
+        return NormalizedTrade(side=trade.side, action="buy", price_cents=trade.price_cents, ...)
 
-def normalize_trade_to_yes(trade: Trade) -> NormalizedTrade:
-    if trade.side == "yes":
-        # YES trades stay as-is
-        return NormalizedTrade(
-            ticker=trade.ticker,
-            action=trade.action,  # buy or sell
-            price_cents=trade.price_cents,
-            quantity=trade.quantity,
-            ...
-        )
-    else:
-        # NO trades: both close YES positions at inverted price
-        inverted_price = 100 - trade.price_cents
-        return NormalizedTrade(
-            ticker=trade.ticker,
-            action="sell",  # Both NO actions = close YES long
-            price_cents=inverted_price,
-            quantity=trade.quantity,
-            ...
-        )
-
-# NOTE: This assumes user is primarily trading YES (long-only strategy).
-# Edge case NOT handled: opening pure NO positions without YES to net against.
-# For complete handling, would need to track both YES and NO positions separately.
+    # SELL closes the opposite side at the inverted price.
+    inverted_price = 100 - trade.price_cents
+    opposite_side = "no" if trade.side == "yes" else "yes"
+    return NormalizedTrade(side=opposite_side, action="sell", price_cents=inverted_price, ...)
 ```
 
 ### Conversion Rules
 
-**Key insight:** On Kalshi, selling NO against an existing YES position **closes** the YES position. Kalshi nets YES and NO to produce position=0.
+This captures both observed close patterns:
 
-| Original Trade | Normalized (YES-Equivalent) | Economic Meaning |
-|----------------|------------------------------|------------------|
-| BUY YES @ 50¢ | BUY @ 50¢ | Open long at 50¢ |
-| SELL YES @ 60¢ | SELL @ 60¢ | Close long at 60¢ |
-| **SELL NO @ 85¢** | **SELL @ 15¢** | **Close long at 15¢** (Kalshi nets your YES against buyer's NO) |
-| **BUY NO @ 75¢** | **SELL @ 25¢** | **Close long at 25¢** (or open short if no YES position) |
+| Open | Close (as seen in fills) | Effective Close (for FIFO) |
+|---|---|---|
+| BUY YES @ `yes_price` | SELL NO @ `no_price` | SELL YES @ `100 - no_price` |
+| BUY NO @ `no_price` | SELL YES @ `yes_price` | SELL NO @ `100 - yes_price` |
 
-**Verification against user's trades:**
-- Bought 189 YES @ 51¢ = paid $96.52
-- Sold 189 NO @ 85¢ = effectively sold YES @ 15¢
-- P&L per contract = 15¢ - 51¢ = -36¢
-- Total P&L = -36¢ × 189 = -$68.04 (before fees)
-- Kalshi reports: -$73.07 (difference is ~$5 in fees) ✓
+This aligns with the vendor warning that `side` is literal, and with real synced history in `data/kalshi.db`.
+
+**Verification against user's trades (exact, from local DB):**
+- `KXTRUMPMENTION-26JAN15-CRED`: -$73.07
+- `KXTRUMPMENTION-26JAN15-SOMA`: -$80.42
+- Total: -$153.49
 
 ### Why This Works
 
-After normalization, FIFO operates on a single dimension:
-- All BUYs open/increase position
-- All SELLs close/decrease position
-- Price is always YES-equivalent (0-100 scale)
+After normalization, FIFO sees a consistent stream where buys and sells operate on the same `(ticker, side)` inventory,
+so closes are matched and priced correctly.
 
 ---
 
@@ -202,40 +170,24 @@ Per SSOT, Kalshi's value may be incomplete for:
 
 ## Acceptance Criteria
 
-- [ ] FIFO normalizes all trades to YES-equivalent before matching
-- [ ] `Orphan sell qty skipped` drops to 0 for cross-side closures
-- [ ] User's -$153.49 loss appears correctly
-- [ ] Trade count shows actual closed trades
-- [ ] Unit tests cover all 4 trade type combinations
-- [ ] Sanity check compares our P&L to Kalshi's when available
+- [x] FIFO normalizes trades before matching
+- [x] `Orphan sell qty skipped` drops to 0 for cross-side closures
+- [x] User's -$153.49 loss appears correctly
+- [x] Trade count shows actual closed trades
+- [x] Unit tests cover cross-side close in both directions
 
 ---
 
 ## Test Cases
 
 ```python
-def test_pnl_normalize_buy_yes():
-    """BUY YES stays as-is."""
-    trade = Trade(side="yes", action="buy", price_cents=50, ...)
-    normalized = normalize_trade_to_yes(trade)
-    assert normalized.action == "buy"
-    assert normalized.price_cents == 50
-
-
 def test_pnl_normalize_sell_no():
-    """SELL NO becomes SELL YES at inverted price (closing long)."""
+    """SELL NO closes YES at inverted price."""
     trade = Trade(side="no", action="sell", price_cents=85, ...)
-    normalized = normalize_trade_to_yes(trade)
-    assert normalized.action == "sell"  # SELL NO = SELL YES (close)
-    assert normalized.price_cents == 15  # 100 - 85
-
-
-def test_pnl_normalize_buy_no():
-    """BUY NO becomes SELL YES at inverted price (closing long or opening short)."""
-    trade = Trade(side="no", action="buy", price_cents=75, ...)
-    normalized = normalize_trade_to_yes(trade)
-    assert normalized.action == "sell"  # BUY NO = SELL YES equivalent
-    assert normalized.price_cents == 25  # 100 - 75
+    normalized = normalize_for_fifo(trade)
+    assert normalized.side == "yes"
+    assert normalized.action == "sell"
+    assert normalized.price_cents == 15
 
 
 def test_pnl_cross_side_buy_yes_sell_no():
@@ -253,6 +205,18 @@ def test_pnl_cross_side_buy_yes_sell_no():
     # Loss = (50 - 15) * 100 = 3500 cents = $35
     assert result.closed_pnls == [-3500]
     assert result.orphan_sell_qty_skipped == 0
+
+
+def test_pnl_cross_side_buy_no_sell_yes():
+    """Full integration: BUY NO + SELL YES = closed position."""
+    trades = [
+        Trade(side="no", action="buy", quantity=100, price_cents=70, ...),
+        Trade(side="yes", action="sell", quantity=100, price_cents=80, ...),
+    ]
+    calc = PnLCalculator()
+    result = calc._get_closed_trade_pnls_fifo(trades)
+    # Effective NO close price = 100 - 80 = 20
+    assert result.closed_pnls == [(20 - 70) * 100]
 ```
 
 ---
