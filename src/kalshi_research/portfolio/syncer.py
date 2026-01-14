@@ -123,16 +123,29 @@ class PortfolioSyncer:
         now = datetime.now(UTC)
 
         async with self.db.session_factory() as session, session.begin():
-            # Get existing open positions to handle closures
-            result = await session.execute(
-                select(Position).where(Position.quantity > 0, Position.closed_at.is_(None))
-            )
-            existing_open = {p.ticker: p for p in result.scalars().all()}
+            # Get existing active positions (closed_at is NULL). Some API responses include
+            # closed positions with position=0; historically, this led to rows with
+            # quantity=0 and closed_at=NULL. Treat those as closed to avoid "phantom" positions.
+            result = await session.execute(select(Position).where(Position.closed_at.is_(None)))
+            existing_active = list(result.scalars().all())
+            existing_open: dict[str, Position] = {}
+            for existing_position in existing_active:
+                if existing_position.quantity <= 0:
+                    existing_position.quantity = 0
+                    existing_position.closed_at = now
+                    existing_position.last_synced = now
+                    continue
+                existing_open[existing_position.ticker] = existing_position
             seen_tickers = set()
 
             for pos_data in api_positions:
                 # API returns PortfolioPosition Pydantic models
                 ticker = pos_data.ticker
+                if pos_data.position == 0:
+                    # Kalshi may include closed positions (position=0) in /portfolio/positions.
+                    # Skip creating/updating Position rows for these to avoid duplicates and
+                    # rely on the closure logic below for any previously-open rows.
+                    continue
                 quantity = abs(int(pos_data.position))
                 side = "yes" if pos_data.position > 0 else "no"
                 seen_tickers.add(ticker)

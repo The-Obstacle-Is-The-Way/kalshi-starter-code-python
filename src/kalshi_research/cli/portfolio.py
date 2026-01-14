@@ -208,7 +208,7 @@ def portfolio_positions(
     async def _positions() -> None:
         async with open_db(db_path) as db, db.session_factory() as session:
             # Build query
-            query = select(Position).where(Position.closed_at.is_(None))
+            query = select(Position).where(Position.closed_at.is_(None), Position.quantity > 0)
             if ticker:
                 query = query.where(Position.ticker == ticker)
 
@@ -518,6 +518,7 @@ def portfolio_link(
                 query = select(Position).where(
                     Position.ticker == ticker,
                     Position.closed_at.is_(None),
+                    Position.quantity > 0,
                 )
                 result = await session.execute(query)
                 position = result.scalar_one_or_none()
@@ -560,6 +561,7 @@ def portfolio_suggest_links(
             query = select(Position).where(
                 Position.thesis_id.is_(None),
                 Position.closed_at.is_(None),
+                Position.quantity > 0,
             )
             result = await session.execute(query)
             positions = result.scalars().all()

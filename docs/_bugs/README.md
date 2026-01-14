@@ -4,15 +4,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-| ID | Title | Priority | Component |
-|---|---|---|---|
-| **BUG-083** | Position Sync Creates Duplicate Rows for Closed Positions | P2 | `portfolio/syncer.py` |
-
-### BUG-083: Position Sync Creates Duplicate Rows for Closed Positions
-
-**Priority:** P2 (Medium - data integrity, not financial risk)
-
-The position syncer only queries open positions when checking for existing records. When a position closes and is re-synced, it creates a NEW row instead of updating the existing one. Currently 3 tickers have 3 duplicate rows each. Does NOT affect P&L (calculated from trades via FIFO), but causes data integrity issues.
+No active bugs. ✅
 
 ### Verification Note (2026-01-12)
 
@@ -56,6 +48,7 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-083** | Position Sync Creates Duplicate Rows for Closed Positions | ✅ Fixed |
 | **BUG-082** | P&L Calculator Ignores Cross-Side Position Closure | ✅ Fixed |
 | **BUG-081** | Market `*_dollars` → cents truncation | ✅ Fixed |
 | **BUG-080** | Inconsistent Midpoint Calculation Methods | ✅ Fixed |

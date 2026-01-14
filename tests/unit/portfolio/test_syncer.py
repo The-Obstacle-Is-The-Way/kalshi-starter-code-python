@@ -148,6 +148,91 @@ async def test_sync_positions_marks_missing_positions_closed() -> None:
 
 
 @pytest.mark.asyncio
+async def test_sync_positions_skips_zero_positions_and_closes_existing() -> None:
+    """Positions with position=0 should not create duplicates and should close existing rows."""
+    from kalshi_research.api.models.portfolio import PortfolioPosition
+
+    client = AsyncMock()
+    client.get_positions.return_value = [
+        PortfolioPosition(ticker="CLOSED", position=0, realized_pnl=-123),
+    ]
+
+    now = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
+    existing = Position(
+        ticker="CLOSED",
+        side="yes",
+        quantity=5,
+        avg_price_cents=42,
+        current_price_cents=None,
+        realized_pnl_cents=0,
+        opened_at=now,
+        last_synced=now,
+    )
+
+    positions_result = MagicMock()
+    positions_result.scalars.return_value.all.return_value = [existing]
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=positions_result)
+    session.commit = AsyncMock()
+    _mock_session_begin(session)
+
+    session_cm = AsyncMock()
+    session_cm.__aenter__.return_value = session
+    session_cm.__aexit__.return_value = None
+
+    db = MagicMock()
+    db.session_factory.return_value = session_cm
+
+    syncer = PortfolioSyncer(client=client, db=db)
+
+    assert await syncer.sync_positions() == 0
+    assert existing.quantity == 0
+    assert existing.closed_at is not None
+    session.add.assert_not_called()
+    session.begin.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_sync_positions_marks_zero_quantity_active_rows_closed() -> None:
+    """Rows with quantity=0 and closed_at=NULL should be treated as closed."""
+    client = AsyncMock()
+    client.get_positions.return_value = []
+
+    now = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
+    existing = Position(
+        ticker="BROKEN",
+        side="no",
+        quantity=0,
+        avg_price_cents=0,
+        current_price_cents=None,
+        realized_pnl_cents=0,
+        opened_at=now,
+        last_synced=now,
+    )
+
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = [existing]
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result)
+    session.commit = AsyncMock()
+    _mock_session_begin(session)
+
+    session_cm = AsyncMock()
+    session_cm.__aenter__.return_value = session
+    session_cm.__aexit__.return_value = None
+
+    db = MagicMock()
+    db.session_factory.return_value = session_cm
+
+    syncer = PortfolioSyncer(client=client, db=db)
+
+    assert await syncer.sync_positions() == 0
+    assert existing.closed_at is not None
+    session.begin.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_sync_trades_with_no_api_fills_returns_zero() -> None:
     from kalshi_research.api.models.portfolio import FillPage
 
