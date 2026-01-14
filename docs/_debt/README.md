@@ -4,7 +4,7 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**5 active debt items.**
+**6 active debt items.**
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
@@ -13,6 +13,7 @@ This directory tracks **known debt** and **audit checklists** for the repository
 | **[DEBT-016](DEBT-016-fixture-drift-ci.md)** | Automate Fixture Drift Detection + Weekly Re-Recording | P2 | 🟡 Partially Implemented |
 | **[DEBT-015](DEBT-015-missing-api-endpoints.md)** | Missing API Endpoints (45+ endpoints) | P2-P3 | Open (Partially Resolved) |
 | **[DEBT-025](DEBT-025-subpenny-pricing-strategy.md)** | Subpenny Pricing Strategy (FixedPointDollars → rounding policy) | P2 | 🟡 Partially Implemented |
+| **[DEBT-026](DEBT-026-missing-function-docstrings.md)** | Missing Function Docstrings (49 functions, 42.97% coverage) | P4 | Open |
 
 ### Recommended Order
 
@@ -29,7 +30,7 @@ DEBT-014 (Friction/Design) ← Feature work
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-026**
+**DEBT-027**
 
 ---
 
@@ -42,6 +43,7 @@ Use this ID for the next debt item:
 | `DEBT-015-missing-api-endpoints.md` | **Active debt P2-P3** - 45+ missing Kalshi API endpoints |
 | `DEBT-014-friction-residuals.md` | **Active debt P1-P3** - friction, design decisions |
 | `DEBT-025-subpenny-pricing-strategy.md` | **Active debt P2** - subpenny precision and rounding policy |
+| `DEBT-026-missing-function-docstrings.md` | **Active debt P4** - 49 functions missing docstrings |
 | `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
 
 ## Archived Reference Docs
