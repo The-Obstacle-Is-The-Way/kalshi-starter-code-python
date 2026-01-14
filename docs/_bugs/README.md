@@ -4,7 +4,15 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-No active bugs.
+| ID | Title | Priority | Component |
+|---|---|---|---|
+| **BUG-083** | Position Sync Creates Duplicate Rows for Closed Positions | P2 | `portfolio/syncer.py` |
+
+### BUG-083: Position Sync Creates Duplicate Rows for Closed Positions
+
+**Priority:** P2 (Medium - data integrity, not financial risk)
+
+The position syncer only queries open positions when checking for existing records. When a position closes and is re-synced, it creates a NEW row instead of updating the existing one. Currently 3 tickers have 3 duplicate rows each. Does NOT affect P&L (calculated from trades via FIFO), but causes data integrity issues.
 
 ### Verification Note (2026-01-12)
 
@@ -34,7 +42,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-083**
+**BUG-084**
 
 ---
 
