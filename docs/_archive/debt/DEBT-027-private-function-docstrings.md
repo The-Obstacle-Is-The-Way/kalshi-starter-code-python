@@ -1,15 +1,18 @@
 # DEBT-027: Private Function Docstrings
 
 **Priority:** P4 (Cosmetic/Quality)
-**Status:** Open
+**Status:** ✅ Resolved
 **Found:** 2026-01-14
+**Fixed:** 2026-01-14
 **Source:** Post-DEBT-026 audit (important private functions)
 
 ---
 
 ## Summary
 
-19 important private functions lack docstrings. These are internal helpers (prefixed with `_`) that were outside the original DEBT-026 scope (which covered public functions only). Adding docstrings improves codebase understanding for maintainers and AI agents.
+Resolved by adding docstrings to 19 important private helpers (prefixed with `_`) that were
+intentionally outside the DEBT-026 scope (public callables only). This improves maintainability
+and reduces time-to-comprehension for maintainers and AI agents.
 
 ---
 
@@ -21,7 +24,7 @@
 
 ---
 
-## Functions Missing Docstrings
+## Functions Missing Docstrings (Fixed)
 
 ### High Priority: Core Infrastructure
 
@@ -45,50 +48,50 @@
 
 | Function | Purpose (inferred from code) |
 |----------|------------------------------|
-| `_fetch_market(ticker)` | Fetch a single market from DB or API for research commands |
-| `_run_deep_research(market, thesis_direction)` | Execute Exa deep research for a market thesis |
-| `_run_market_context_research(market)` | Gather market context via Exa search |
+| `_fetch_market(ticker)` | Fetch a market from the Kalshi public API and exit with a CLI-friendly error on failure |
+| `_run_deep_research(topic, model, wait, ...)` | Create a paid Exa research task and (optionally) wait/poll for completion |
+| `_run_market_context_research(market, max_news, max_papers, days)` | Run MarketContextResearcher (Exa + cache) for a given market |
 | `_run_topic_research(topic, include_answer)` | Run topic research via TopicResearcher |
 
 #### `src/kalshi_research/cli/scan.py`
 
 | Function | Purpose (inferred from code) |
 |----------|------------------------------|
-| `_build_new_markets_results(markets, events)` | Transform API response into NewMarketResult objects |
-| `_fetch_exchange_status()` | Get current exchange trading status |
-| `_parse_category_filter(category)` | Parse and validate category filter argument |
-| `_validate_new_markets_args(hours, category)` | Validate new-markets command arguments |
+| `_build_new_markets_results(candidates, categories, limit, now)` | Build table rows for the new-markets report (including category filtering + unpriced count) |
+| `_fetch_exchange_status(client)` | Fetch and validate exchange status response, returning `None` on non-fatal errors |
+| `_parse_category_filter(category)` | Parse and normalize a comma-separated category filter string |
+| `_validate_new_markets_args(hours, limit)` | Validate numeric args for the new-markets command and exit on invalid values |
 
 #### `src/kalshi_research/cli/news.py`
 
 | Function | Purpose (inferred from code) |
 |----------|------------------------------|
-| `_fetch_tracking_targets(tickers)` | Resolve tickers to tracked market/event objects |
-| `_parse_search_queries(tracked_item)` | Generate Exa search queries for a tracked item |
+| `_fetch_tracking_targets(ticker, event)` | Resolve a market/event ticker to the corresponding API objects (and a display title) |
+| `_parse_search_queries(queries, title)` | Parse a comma-separated `--queries` override or fall back to title-based defaults |
 
 #### `src/kalshi_research/cli/alerts.py`
 
 | Function | Purpose (inferred from code) |
 |----------|------------------------------|
-| `_run_alert_monitor_loop(monitor, interval)` | Main loop for alert monitoring with graceful shutdown |
+| `_run_alert_monitor_loop(monitor, interval, once, max_pages)` | Monitor alert conditions in a loop (or once) and exit cleanly on Ctrl-C |
 
 #### `src/kalshi_research/cli/data.py`
 
 | Function | Purpose (inferred from code) |
 |----------|------------------------------|
-| `_validate_migrations_on_temp_db(migrations_path)` | Test migrations on temp DB before applying to production |
+| `_validate_migrations_on_temp_db(alembic_ini, db_path)` | Dry-run Alembic migrations against a temporary copy of the database |
 
 #### `src/kalshi_research/cli/market.py`
 
 | Function | Purpose (inferred from code) |
 |----------|------------------------------|
-| `_fetch_markets_for_market_list_from_events(event_tickers)` | Fetch markets belonging to specified events |
+| `_fetch_markets_for_market_list_from_events(status_filter, include_category_lower, ...)` | Fetch markets via `/events` with nested markets, applying CLI filters and a hard limit |
 
 #### `src/kalshi_research/cli/portfolio.py`
 
 | Function | Purpose (inferred from code) |
 |----------|------------------------------|
-| `_validate_environment_override(env_override)` | Validate and warn about environment override for portfolio commands |
+| `_validate_environment_override(environment)` | Validate an `--env` override and normalize it to `demo`/`prod` |
 
 ### Low Priority: Internal Utilities
 
@@ -96,7 +99,7 @@
 
 | Function | Purpose (inferred from code) |
 |----------|------------------------------|
-| `Thesis._parse_datetime(value)` | Parse datetime from various formats (ISO string, datetime object) |
+| `Thesis._parse_datetime(value)` | Parse an ISO-8601 datetime string (or return `None` for invalid inputs) |
 
 ---
 
@@ -172,3 +175,11 @@ def _run_common_checks(self, *, count: int, yes_price_cents: int) -> tuple[float
 - These functions are private implementation details (prefixed with `_`)
 - The "Purpose (inferred from code)" column contains best-effort descriptions that should be verified against actual implementation before adding docstrings
 - Priority is P4 because this is cosmetic and doesn't affect functionality
+
+---
+
+## Resolution Notes
+
+- Added docstrings to all 19 functions listed above.
+- Confirmed via the detection script in this document: `All important private functions have docstrings`.
+- Quality gates passed: `uv run pre-commit run --all-files`, `uv run pytest -q`.

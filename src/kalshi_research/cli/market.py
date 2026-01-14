@@ -375,6 +375,19 @@ async def _fetch_markets_for_market_list_from_events(
     prefix_upper: str | None,
     limit: int,
 ) -> list[Market]:
+    """Fetch markets by iterating events with nested markets (SSOT for categories).
+
+    Args:
+        client: Kalshi public API client.
+        status_filter: Optional event status filter for `/events`.
+        include_category_lower: Optional lowercase event category to include.
+        exclude_category_lower: Optional lowercase event category to exclude.
+        prefix_upper: Optional event ticker prefix filter (uppercase).
+        limit: Maximum number of markets to return.
+
+    Returns:
+        A list of markets collected from events, truncated to `limit`.
+    """
     markets: list[Market] = []
     async for api_event in client.get_all_events(
         status=status_filter,

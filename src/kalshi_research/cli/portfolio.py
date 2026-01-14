@@ -27,6 +27,17 @@ def _load_theses() -> dict[str, Any]:
 
 
 def _validate_environment_override(environment: str | None) -> str | None:
+    """Validate and normalize a portfolio `--env` override.
+
+    Args:
+        environment: Raw CLI environment value (`demo` or `prod`), or `None`.
+
+    Returns:
+        Normalized environment string, or `None` when no override was provided.
+
+    Raises:
+        typer.Exit: If the environment value is invalid.
+    """
     if environment is None:
         return None
 

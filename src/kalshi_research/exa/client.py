@@ -155,6 +155,27 @@ class ExaClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """Send an Exa API request with retries and JSON parsing.
+
+        Retries transient failures up to `self._config.max_retries`:
+        - `429` responses are retried using the `Retry-After` header when available.
+        - `5xx` responses are retried with a linear backoff.
+        - Network/timeouts are retried with a linear backoff.
+
+        Args:
+            method: HTTP method (e.g., `"GET"`).
+            path: Request URL or path for the Exa API.
+            params: Optional query parameters.
+            json_body: Optional JSON payload for POST-like requests.
+
+        Returns:
+            Parsed JSON response payload.
+
+        Raises:
+            ExaAuthError: If Exa returns `401` (invalid API key).
+            ExaRateLimitError: If Exa returns `429` and retries are exhausted.
+            ExaAPIError: For other non-success status codes or invalid JSON responses.
+        """
         last_exception: Exception | None = None
 
         for attempt in range(self._config.max_retries):
@@ -222,6 +243,17 @@ class ExaClient:
         ) from last_exception
 
     def _parse_retry_after(self, response: httpx.Response) -> int:
+        """Return a delay (seconds) derived from a `Retry-After` header.
+
+        Supports numeric values (seconds) or HTTP-date formats. Falls back to the configured
+        retry delay when the header is missing or invalid.
+
+        Args:
+            response: HTTP response containing potential `Retry-After` headers.
+
+        Returns:
+            A non-negative integer delay (in seconds).
+        """
         retry_after_header = response.headers.get("retry-after")
         if not retry_after_header:
             return int(self._config.retry_delay_seconds)

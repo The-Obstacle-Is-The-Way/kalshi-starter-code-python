@@ -753,6 +753,20 @@ def _render_market_context(market: "Market", research: "MarketResearch") -> None
 
 
 async def _fetch_market(ticker: str) -> "Market":
+    """Fetch a market from the Kalshi public API.
+
+    Prints a CLI-friendly error message and exits with code 2 when the ticker is not found
+    (HTTP 404), otherwise exits with code 1 on errors.
+
+    Args:
+        ticker: Market ticker to fetch.
+
+    Returns:
+        The API `Market` model.
+
+    Raises:
+        typer.Exit: If the market cannot be fetched.
+    """
     from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
 
@@ -774,6 +788,20 @@ async def _run_market_context_research(
     max_papers: int,
     days: int,
 ) -> "MarketResearch":
+    """Run Exa-backed market context research for a given market.
+
+    Args:
+        market: Market to research.
+        max_news: Maximum number of news sources to retrieve.
+        max_papers: Maximum number of research-paper sources to retrieve.
+        days: Recency window for news results (days).
+
+    Returns:
+        The `MarketResearch` result from `MarketContextResearcher`.
+
+    Raises:
+        typer.Exit: If Exa configuration is missing/invalid.
+    """
     from kalshi_research.exa import ExaCache, ExaClient
     from kalshi_research.research import MarketContextResearcher
 
@@ -863,6 +891,18 @@ def _render_topic_research(topic: str, research: "TopicResearch") -> None:
 
 
 async def _run_topic_research(topic: str, *, include_answer: bool) -> "TopicResearch":
+    """Run Exa-backed topic research for thesis ideation.
+
+    Args:
+        topic: Topic or question to research.
+        include_answer: Whether to request an LLM answer/summary.
+
+    Returns:
+        The `TopicResearch` result from `TopicResearcher`.
+
+    Raises:
+        typer.Exit: If Exa configuration is missing/invalid.
+    """
     from kalshi_research.exa import ExaCache, ExaClient
     from kalshi_research.research import TopicResearcher
 
@@ -968,6 +1008,22 @@ async def _run_deep_research(
     timeout: float,
     output_schema: Path | None,
 ) -> "ResearchTask":
+    """Create an Exa research task and optionally wait for completion.
+
+    Args:
+        topic: Topic/question to include in the research instructions.
+        model: Exa research model tier to use.
+        wait: If true, poll until the task completes (incurs additional cost).
+        poll_interval: Polling interval in seconds when waiting.
+        timeout: Timeout in seconds when waiting.
+        output_schema: Optional JSON schema file to request structured output.
+
+    Returns:
+        The created (or completed) `ResearchTask`.
+
+    Raises:
+        typer.Exit: If Exa configuration is missing/invalid, or waiting times out.
+    """
     from kalshi_research.exa import ExaClient
 
     schema = _load_research_output_schema(output_schema)

@@ -120,6 +120,16 @@ class TradeExecutor:
         return count
 
     def _run_common_checks(self, *, count: int, yes_price_cents: int) -> tuple[float, list[str]]:
+        """Validate basic order constraints shared by dry-run and live modes.
+
+        Args:
+            count: Number of contracts to trade.
+            yes_price_cents: YES price in cents (1-99).
+
+        Returns:
+            Tuple of (`estimated_risk_usd`, `failures`) where failures is a list of internal
+            failure codes.
+        """
         failures: list[str] = []
 
         if yes_price_cents < 1 or yes_price_cents > 99:
@@ -143,6 +153,19 @@ class TradeExecutor:
         yes_price_cents: int,
         estimated_risk_usd: float,
     ) -> list[str]:
+        """Validate live-trading guardrails that should block order placement.
+
+        Args:
+            ticker: Market ticker to trade.
+            side: Side to trade (YES/NO).
+            action: Buy or sell.
+            count: Number of contracts to trade.
+            yes_price_cents: YES price in cents (1-99).
+            estimated_risk_usd: Estimated USD risk for this order.
+
+        Returns:
+            List of internal failure codes for any guardrails that failed.
+        """
         failures: list[str] = []
 
         if os.getenv(self.KILL_SWITCH_ENV) == "1":
