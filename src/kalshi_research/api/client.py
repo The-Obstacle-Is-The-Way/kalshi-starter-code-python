@@ -161,6 +161,13 @@ class KalshiPublicClient:
         status: MarketFilterStatus | str | None = None,
         event_ticker: str | None = None,
         series_ticker: str | None = None,
+        tickers: list[str] | None = None,
+        min_created_ts: int | None = None,
+        max_created_ts: int | None = None,
+        min_close_ts: int | None = None,
+        max_close_ts: int | None = None,
+        min_settled_ts: int | None = None,
+        max_settled_ts: int | None = None,
         limit: int = 100,
         cursor: str | None = None,
         mve_filter: Literal["only", "exclude"] | None = None,
@@ -168,10 +175,47 @@ class KalshiPublicClient:
         """
         Fetch a single page of markets and return the next cursor (if any).
 
-        Note: status filter uses different values than response status field.
-        Filter: unopened, open, closed, settled
-        Response: active, closed, determined, finalized
+        Args:
+            status: Filter by market status (unopened, open, closed, settled).
+            event_ticker: Filter by event ticker.
+            series_ticker: Filter by series ticker.
+            tickers: Batch lookup by comma-separated market tickers.
+            min_created_ts: Markets created after this Unix timestamp.
+            max_created_ts: Markets created before this Unix timestamp.
+            min_close_ts: Markets closing after this Unix timestamp.
+            max_close_ts: Markets closing before this Unix timestamp.
+            min_settled_ts: Markets settled after this Unix timestamp.
+            max_settled_ts: Markets settled before this Unix timestamp.
+            limit: Page size (max 1000).
+            cursor: Pagination cursor.
+            mve_filter: Filter for multivariate events ("only" or "exclude").
+
+        Returns:
+            Tuple of (markets, next_cursor).
+
+        Raises:
+            ValueError: If multiple timestamp filter families are used together.
+
+        Note:
+            Only one timestamp filter family may be used at a time:
+            - created_ts: Compatible with status=unopened, open, or empty
+            - close_ts: Compatible with status=closed or empty
+            - settled_ts: Compatible with status=settled or empty
         """
+        # Validate timestamp filter family exclusivity (OpenAPI constraint)
+        ts_families_used = sum(
+            [
+                min_created_ts is not None or max_created_ts is not None,
+                min_close_ts is not None or max_close_ts is not None,
+                min_settled_ts is not None or max_settled_ts is not None,
+            ]
+        )
+        if ts_families_used > 1:
+            raise ValueError(
+                "Only one timestamp filter family allowed at a time "
+                "(created_ts OR close_ts OR settled_ts)"
+            )
+
         # 1000 is Kalshi API max limit per page (see docs/_vendor-docs/kalshi-api-reference.md)
         params: dict[str, Any] = {"limit": min(limit, 1000)}
         if status:
@@ -180,6 +224,18 @@ class KalshiPublicClient:
             params["event_ticker"] = event_ticker
         if series_ticker:
             params["series_ticker"] = series_ticker
+        if tickers:
+            params["tickers"] = ",".join(tickers)
+        # Add timestamp filters (consolidated to reduce branch count)
+        ts_params = {
+            "min_created_ts": min_created_ts,
+            "max_created_ts": max_created_ts,
+            "min_close_ts": min_close_ts,
+            "max_close_ts": max_close_ts,
+            "min_settled_ts": min_settled_ts,
+            "max_settled_ts": max_settled_ts,
+        }
+        params.update({k: v for k, v in ts_params.items() if v is not None})
         if cursor:
             params["cursor"] = cursor
         if mve_filter:

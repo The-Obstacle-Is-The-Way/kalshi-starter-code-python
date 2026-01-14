@@ -15,23 +15,37 @@ This directory contains **active** design specifications - work happening NOW.
 
 | ID | Title | Status |
 |---|---|---|
+| **SPEC-040** | [**Complete Kalshi Endpoint Implementation (TDD)**](SPEC-040-kalshi-endpoint-implementation-complete.md) | **🎯 Ready** |
 | SPEC-028 | [Topic Search & Market Discovery (DB + CLI)](SPEC-028-topic-search-and-discovery.md) | 📝 Draft |
-| SPEC-029 | [Kalshi Endpoint Coverage & Strategic Use](SPEC-029-kalshi-endpoint-coverage-strategy.md) | 📝 Draft |
+| SPEC-029 | [Kalshi Endpoint Coverage & Strategic Use](SPEC-029-kalshi-endpoint-coverage-strategy.md) | 🔀 Superseded by SPEC-040 |
 | SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 📝 Draft |
-| SPEC-031 | [Scanner Quality Profiles (Slop Filtering + “Get In Early” Mode)](SPEC-031-scanner-quality-profiles.md) | 📝 Draft |
-| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft |
-| SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft |
-| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft |
-| SPEC-037 | [Kalshi Missing Endpoints (Discovery + Order Ops Parity)](SPEC-037-kalshi-missing-endpoints-phase1.md) | ✅ Phase 1 Complete |
+| SPEC-031 | [Scanner Quality Profiles (Slop Filtering + "Get In Early" Mode)](SPEC-031-scanner-quality-profiles.md) | 📝 Draft |
+| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft (blocked by SPEC-040) |
+| SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft (blocked by SPEC-040) |
+| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft (blocked by SPEC-040 Phase 2) |
+| SPEC-037 | [Kalshi Missing Endpoints (Discovery + Order Ops Parity)](SPEC-037-kalshi-missing-endpoints-phase1.md) | 🔀 Superseded by SPEC-040 |
 | SPEC-038 | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](SPEC-038-exa-websets-endpoint-coverage.md) | 📝 Draft |
 | SPEC-039 | [New Market Alerts (Information Arbitrage Window)](SPEC-039-new-market-alerts.md) | ✅ Phase 1 Complete |
+
+### Implementation Order (Critical Path)
+
+```
+SPEC-040 (Kalshi Endpoints)    ← DO THIS FIRST
+    Phase 1: Market Filters
+    Phase 2: Order Operations  ← Unblocks SPEC-034
+    ↓
+SPEC-034 (TradeExecutor)       ← Safety harness for trading
+    ↓
+SPEC-032 (Agent Orchestration) ← The agentic system
+SPEC-033 (Exa Research Agent)
+```
 
 ---
 
 ## Next ID Tracker
 
 Use this ID for the next specification:
-**SPEC-040**
+**SPEC-041**
 
 ---
 
