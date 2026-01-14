@@ -28,8 +28,8 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | **Search/Discovery** | 2 | 1 | 50% | SPEC-040 Phase 3 |
 | **Events** | 6 | 3 | 50% | SPEC-040 Phase 3 |
 | **Structured Targets** | 2 | 0 | 0% | SPEC-040 Phase 3 |
-| **Portfolio (Read)** | 6 | 5 | 83% | Done |
-| **Portfolio (Orders)** | 9 | 3 | 33% | SPEC-040 Phase 2 |
+| **Portfolio (Read)** | 6 | 6 | **100%** | ✅ SPEC-040 Phase 2 |
+| **Portfolio (Orders)** | 9 | 9 | **100%** | ✅ SPEC-040 Phase 2 |
 | **Order Groups** | 5 | 0 | 0% | SPEC-040 Phase 4 |
 | **Subaccounts** | 4 | 0 | 0% | SPEC-040 Phase 4 |
 | **RFQ/Communications** | 11 | 0 | 0% | Not planned |
@@ -38,7 +38,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | **Incentive Programs** | 1 | 0 | 0% | SPEC-040 Phase 4 |
 | **API Keys** | 4 | 0 | 0% | Not planned |
 | **FCM** | 2 | 0 | 0% | Not planned |
-| **TOTAL** | 74 | 22 | **30%** | - |
+| **TOTAL** | 74 | 29 | **39%** | - |
 
 ---
 
@@ -144,23 +144,23 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `GET /portfolio/orders` | ✅ | Done | `get_orders()` |
 | `GET /portfolio/fills` | ✅ | Done | `get_fills()` |
 | `GET /portfolio/settlements` | ✅ | Done | `get_settlements()` |
-| `GET /portfolio/summary/total_resting_order_value` | 🔲 | SPEC-040 Phase 2 | P3 |
+| `GET /portfolio/summary/total_resting_order_value` | ✅ | SPEC-040 Phase 2 | `get_total_resting_order_value()` |
 
 ---
 
-### 8. Portfolio - Orders (9 endpoints)
+### 8. Portfolio - Orders (9 endpoints) ✅ COMPLETE
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
 | `POST /portfolio/orders` | ✅ | Done | `create_order()` |
 | `DELETE /portfolio/orders/{order_id}` | ✅ | Done | `cancel_order()` |
 | `POST /portfolio/orders/{order_id}/amend` | ✅ | Done | `amend_order()` |
-| `GET /portfolio/orders/{order_id}` | 🔲 | SPEC-040 Phase 2 | Single order detail |
-| `POST /portfolio/orders/batched` | 🔲 | **SPEC-040 Phase 2** | **P2 - Batch create** |
-| `DELETE /portfolio/orders/batched` | 🔲 | **SPEC-040 Phase 2** | **P2 - Batch cancel** |
-| `POST /portfolio/orders/{order_id}/decrease` | 🔲 | SPEC-040 Phase 2 | P2 |
-| `GET /portfolio/orders/{order_id}/queue_position` | 🔲 | SPEC-040 Phase 2 | P2 |
-| `GET /portfolio/orders/queue_positions` | 🔲 | SPEC-040 Phase 2 | P2 - list all resting orders |
+| `GET /portfolio/orders/{order_id}` | ✅ | SPEC-040 Phase 2 | `get_order()` |
+| `POST /portfolio/orders/batched` | ✅ | SPEC-040 Phase 2 | `batch_create_orders()` |
+| `DELETE /portfolio/orders/batched` | ✅ | SPEC-040 Phase 2 | `batch_cancel_orders()` |
+| `POST /portfolio/orders/{order_id}/decrease` | ✅ | SPEC-040 Phase 2 | `decrease_order()` |
+| `GET /portfolio/orders/{order_id}/queue_position` | ✅ | SPEC-040 Phase 2 | `get_order_queue_position()` |
+| `GET /portfolio/orders/queue_positions` | ✅ | SPEC-040 Phase 2 | `get_orders_queue_positions()` |
 
 ---
 

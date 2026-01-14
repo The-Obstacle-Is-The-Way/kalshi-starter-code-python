@@ -30,8 +30,8 @@ Phase 4: Operational Endpoints → Nice-to-have observability
 
 ## Current State (SSOT: What We Have)
 
-### Implemented Endpoints (22/74 ≈ 30%)
-<!-- AUDIT FIX: Corrected count to include implemented `GET /events/multivariate` (+ golden fixture `events_multivariate_list_response.json`). -->
+### Implemented Endpoints (29/74 ≈ 39%)
+<!-- AUDIT FIX: Updated to 29/74 after Phase 1+2 implementation (2026-01-14). -->
 
 **Source:** `src/kalshi_research/api/client.py`
 
@@ -59,21 +59,32 @@ Phase 4: Operational Endpoints → Nice-to-have observability
 | **Trading** | `POST /portfolio/orders` | `create_order()` | ✅ `create_order_response.json` |
 | | `DELETE /portfolio/orders/{id}` | `cancel_order()` | ✅ `cancel_order_response.json` |
 | | `POST /portfolio/orders/{id}/amend` | `amend_order()` | ✅ `amend_order_response.json` |
+| | `GET /portfolio/orders/{id}` | `get_order()` | ✅ `portfolio_order_single_response.json` |
+| | `POST /portfolio/orders/batched` | `batch_create_orders()` | ✅ `batch_create_orders_response.json` (SYNTHETIC) |
+| | `DELETE /portfolio/orders/batched` | `batch_cancel_orders()` | ✅ `batch_cancel_orders_response.json` (SYNTHETIC) |
+| | `POST /portfolio/orders/{id}/decrease` | `decrease_order()` | ✅ `decrease_order_response.json` (SYNTHETIC) |
+| | `GET /portfolio/orders/{id}/queue_position` | `get_order_queue_position()` | ✅ `order_queue_position_response.json` (SYNTHETIC) |
+| | `GET /portfolio/orders/queue_positions` | `get_orders_queue_positions()` | ✅ `order_queue_positions_response.json` (SYNTHETIC) |
+| **Portfolio Read** | `GET /portfolio/summary/total_resting_order_value` | `get_total_resting_order_value()` | ✅ `portfolio_total_resting_order_value_response.json` (SYNTHETIC) |
 
-### Missing Filter Parameters (GET /markets)
+### Implemented Filter Parameters (GET /markets) ✅ COMPLETE
 
-**Current:** `status`, `event_ticker`, `series_ticker`, `mve_filter`, `limit`, `cursor`
+**All parameters implemented (Phase 1 - 2026-01-14):**
+| Parameter | Type | Description | Status |
+|-----------|------|-------------|--------|
+| `status` | string | Market status filter | ✅ Implemented |
+| `event_ticker` | string | Filter by event | ✅ Implemented |
+| `series_ticker` | string | Filter by series | ✅ Implemented |
+| `mve_filter` | string | Multivariate filtering | ✅ Implemented |
+| `tickers` | string | Comma-separated market tickers (batch lookup) | ✅ Implemented |
+| `min_created_ts` | int | Unix timestamp filter (markets created after) | ✅ Implemented |
+| `max_created_ts` | int | Unix timestamp filter (markets created before) | ✅ Implemented |
+| `min_close_ts` | int | Unix timestamp filter (markets closing after) | ✅ Implemented |
+| `max_close_ts` | int | Unix timestamp filter (markets closing before) | ✅ Implemented |
+| `min_settled_ts` | int | Unix timestamp filter (markets settled after) | ✅ Implemented |
+| `max_settled_ts` | int | Unix timestamp filter (markets settled before) | ✅ Implemented |
 
-**Missing:**
-| Parameter | Type | Description | Priority |
-|-----------|------|-------------|----------|
-| `tickers` | string | Comma-separated market tickers (batch lookup) | **P2** |
-| `min_created_ts` | int | Unix timestamp filter (markets created after) | P2 |
-| `max_created_ts` | int | Unix timestamp filter (markets created before) | P2 |
-| `min_close_ts` | int | Unix timestamp filter (markets closing after) | P2 |
-| `max_close_ts` | int | Unix timestamp filter (markets closing before) | P2 |
-| `min_settled_ts` | int | Unix timestamp filter (markets settled after) | P3 |
-| `max_settled_ts` | int | Unix timestamp filter (markets settled before) | P3 |
+**Note:** Only one timestamp family allowed per request (created_ts OR close_ts OR settled_ts).
 
 ---
 
@@ -966,16 +977,16 @@ uv run pre-commit run --all-files
 - [x] Client-side validation for incompatible filter combinations
 - [x] All existing tests still pass (738 tests)
 
-### Phase 2: Order Operations
-- [ ] `get_order(order_id)` implemented with golden fixture
-- [ ] `batch_create_orders()` implemented with golden fixture (demo)
-- [ ] `batch_cancel_orders()` implemented with golden fixture (demo)
-- [ ] `decrease_order()` implemented with golden fixture (demo)
-- [ ] `get_order_queue_position()` implemented
-- [ ] `get_orders_queue_positions()` implemented
-- [ ] `get_total_resting_order_value()` implemented
-- [ ] All methods have dry_run support where applicable
-- [ ] `validate_models_against_golden.py` passes
+### Phase 2: Order Operations ✅ COMPLETE (2026-01-14)
+- [x] `get_order(order_id)` implemented with golden fixture
+- [x] `batch_create_orders()` implemented with golden fixture (SYNTHETIC - demo auth unavailable)
+- [x] `batch_cancel_orders()` implemented with golden fixture (SYNTHETIC - demo auth unavailable)
+- [x] `decrease_order()` implemented with golden fixture (SYNTHETIC)
+- [x] `get_order_queue_position()` implemented with golden fixture (SYNTHETIC)
+- [x] `get_orders_queue_positions()` implemented with golden fixture (SYNTHETIC)
+- [x] `get_total_resting_order_value()` implemented with golden fixture (SYNTHETIC)
+- [x] All methods have dry_run support where applicable
+- [x] `validate_models_against_golden.py` passes (755 tests)
 
 ### Phase 3: Discovery
 - [ ] `get_event_metadata()` implemented with golden fixture
