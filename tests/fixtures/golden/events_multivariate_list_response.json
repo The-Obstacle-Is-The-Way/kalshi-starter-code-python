@@ -1,0 +1,70 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-14T05:24:52.046044+00:00",
+    "endpoint": "events_multivariate_list",
+    "environment": "prod",
+    "sanitized": false,
+    "limit": 5,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "cursor": "CgYI8Mu1ywYSLUtYTVZFU1BPUlRTTVVMVElHQU1FRVhURU5ERUQtUzIwMjVGRkVENjI3QTI0Mg",
+    "events": [
+      {
+        "available_on_brokers": false,
+        "category": "Sports",
+        "collateral_return_type": "",
+        "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025FFFF6EF5980",
+        "mutually_exclusive": false,
+        "series_ticker": "KXMVESPORTSMULTIGAMEEXTENDED",
+        "strike_period": "",
+        "sub_title": "MVE",
+        "title": "Combo"
+      },
+      {
+        "available_on_brokers": false,
+        "category": "Sports",
+        "collateral_return_type": "",
+        "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025FFF925BEF7B",
+        "mutually_exclusive": false,
+        "series_ticker": "KXMVESPORTSMULTIGAMEEXTENDED",
+        "strike_period": "",
+        "sub_title": "MVE",
+        "title": "Combo"
+      },
+      {
+        "available_on_brokers": false,
+        "category": "Sports",
+        "collateral_return_type": "",
+        "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025FFF9021A754",
+        "mutually_exclusive": false,
+        "series_ticker": "KXMVESPORTSMULTIGAMEEXTENDED",
+        "strike_period": "",
+        "sub_title": "MVE",
+        "title": "Combo"
+      },
+      {
+        "available_on_brokers": false,
+        "category": "Sports",
+        "collateral_return_type": "",
+        "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025FFF6676823B",
+        "mutually_exclusive": false,
+        "series_ticker": "KXMVESPORTSMULTIGAMEEXTENDED",
+        "strike_period": "",
+        "sub_title": "MVE",
+        "title": "Combo"
+      },
+      {
+        "available_on_brokers": false,
+        "category": "Sports",
+        "collateral_return_type": "",
+        "event_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-S2025FFED627A242",
+        "mutually_exclusive": false,
+        "series_ticker": "KXMVESPORTSMULTIGAMEEXTENDED",
+        "strike_period": "",
+        "sub_title": "MVE",
+        "title": "Combo"
+      }
+    ]
+  }
+}

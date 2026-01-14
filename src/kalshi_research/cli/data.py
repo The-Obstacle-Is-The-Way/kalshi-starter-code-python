@@ -167,6 +167,13 @@ def data_sync_markets(
             help="Filter multivariate events: 'exclude' (skip sports parlays) or 'only'.",
         ),
     ] = None,
+    include_mve_events: Annotated[
+        bool,
+        typer.Option(
+            "--include-mve-events",
+            help="Also sync multivariate events via /events/multivariate.",
+        ),
+    ] = False,
 ) -> None:
     """Sync markets from Kalshi API to database."""
     from typing import Literal, cast
@@ -192,7 +199,10 @@ def data_sync_markets(
                 console=console,
             ) as progress:
                 task1 = progress.add_task("Syncing events...", total=None)
-                events = await fetcher.sync_events(max_pages=max_pages)
+                events = await fetcher.sync_events(
+                    max_pages=max_pages,
+                    include_multivariate=include_mve_events,
+                )
                 progress.update(task1, description=f"Synced {events} events")
 
                 progress.add_task("Syncing markets...", total=None)

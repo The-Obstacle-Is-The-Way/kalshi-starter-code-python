@@ -345,6 +345,77 @@ class TestKalshiPublicClient:
 
     @pytest.mark.asyncio
     @respx.mock
+    async def test_get_all_multivariate_events_warns_when_truncated(self) -> None:
+        """Emit warning when max_pages reached but cursor still present."""
+        page1 = {
+            "events": [
+                {
+                    "event_ticker": "MVE-1",
+                    "series_ticker": "SER-MVE",
+                    "title": "Combo",
+                    "sub_title": "MVE",
+                    "category": "Sports",
+                    "mutually_exclusive": False,
+                    "available_on_brokers": False,
+                    "collateral_return_type": "",
+                    "strike_period": "",
+                    "strike_date": "",
+                }
+            ],
+            "cursor": "next_cursor",
+        }
+
+        respx.get("https://api.elections.kalshi.com/trade-api/v2/events/multivariate").mock(
+            return_value=Response(200, json=page1)
+        )
+
+        with capture_logs() as cap_logs:
+            async with KalshiPublicClient() as client:
+                events = [e async for e in client.get_all_multivariate_events(max_pages=1)]
+
+        assert len(events) == 1
+        assert any("Pagination truncated" in log["event"] for log in cap_logs)
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_all_multivariate_events_has_no_default_page_cap(self) -> None:
+        """Default max_pages=None should not stop at 100 pages."""
+        responses = []
+        for i in range(101):
+            responses.append(
+                Response(
+                    200,
+                    json={
+                        "events": [
+                            {
+                                "event_ticker": f"MVE-{i}",
+                                "series_ticker": "SER-MVE",
+                                "title": f"Combo {i}",
+                                "sub_title": "MVE",
+                                "category": "Sports",
+                                "mutually_exclusive": False,
+                                "available_on_brokers": False,
+                                "collateral_return_type": "",
+                                "strike_period": "",
+                                "strike_date": "",
+                            }
+                        ],
+                        "cursor": f"cursor-{i + 1}" if i < 100 else None,
+                    },
+                )
+            )
+
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/events/multivariate")
+        route.side_effect = responses
+
+        async with KalshiPublicClient() as client:
+            events = [e async for e in client.get_all_multivariate_events()]
+
+        assert len(events) == 101
+        assert route.call_count == 101
+
+    @pytest.mark.asyncio
+    @respx.mock
     async def test_get_orderbook(self) -> None:
         """Test orderbook parsing with [[price, qty], ...] format."""
         ticker = "KXBTC-25JAN-T100000"
@@ -523,6 +594,33 @@ class TestKalshiPublicClient:
 
     @pytest.mark.asyncio
     @respx.mock
+    async def test_get_multivariate_events(self) -> None:
+        """Test multivariate events endpoint."""
+        respx.get("https://api.elections.kalshi.com/trade-api/v2/events/multivariate").mock(
+            return_value=Response(
+                200,
+                json={
+                    "events": [
+                        {
+                            "event_ticker": "MVE-1",
+                            "series_ticker": "SER-MVE",
+                            "title": "Combo",
+                            "sub_title": "MVE",
+                            "category": "Sports",
+                        }
+                    ]
+                },
+            )
+        )
+
+        async with KalshiPublicClient() as client:
+            events = await client.get_multivariate_events()
+
+        assert len(events) == 1
+        assert events[0].event_ticker == "MVE-1"
+
+    @pytest.mark.asyncio
+    @respx.mock
     async def test_get_event_single_uses_event_wrapper_key(self) -> None:
         """
         get_event() should extract the nested `event` object.
@@ -556,6 +654,20 @@ class TestKalshiPublicClient:
 
         async with KalshiPublicClient() as client:
             await client.get_events(limit=1000)
+
+        assert route.called
+        assert route.calls[0].request.url.params.get("limit") == "200"
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_multivariate_events_caps_limit_to_200(self) -> None:
+        """Regression: /events/multivariate rejects limit > 200."""
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/events/multivariate").mock(
+            return_value=Response(200, json={"events": []})
+        )
+
+        async with KalshiPublicClient() as client:
+            await client.get_multivariate_events(limit=1000)
 
         assert route.called
         assert route.calls[0].request.url.params.get("limit") == "200"

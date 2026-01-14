@@ -21,6 +21,12 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 
 **Why this is "Partially Resolved":** SPEC-037 implemented the Phase 1 discovery endpoints (`/search/tags_by_categories`, `/series`, `/series/{ticker}`, `/series/fee_changes`). All other items in this doc remain missing.
 
+**Status update (2026-01-14):**
+- ✅ Implemented `GET /events/multivariate` (P2 critical) with unit tests + golden fixture.
+  - Client: `KalshiPublicClient.get_multivariate_events*()` in `src/kalshi_research/api/client.py`
+  - Fixture: `tests/fixtures/golden/events_multivariate_list_response.json`
+  - Sync: `kalshi data sync-markets --include-mve-events`
+
 ---
 
 ## Missing Endpoint Categories
@@ -165,7 +171,7 @@ The Kalshi API client was missing 45+ documented endpoints. **Phase 1 (Series Di
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
 | `GET /events/{event_ticker}/metadata` | Event metadata | P3 |
-| `GET /events/multivariate` | Multivariate events only | **P2** |
+| `GET /events/multivariate` | Multivariate events only | **P2** | ✅ **DONE** |
 
 **Impact:** `/events/multivariate` is **P2 critical** - MVEs excluded from `/events` endpoint (data incomplete without it). Metadata is P3.
 

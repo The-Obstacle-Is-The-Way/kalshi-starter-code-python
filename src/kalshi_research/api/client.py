@@ -469,6 +469,70 @@ class KalshiPublicClient:
         data = await self._get(f"/events/{event_ticker}")
         return Event.model_validate(data["event"])
 
+    async def get_multivariate_events_page(
+        self,
+        limit: int = 200,
+        cursor: str | None = None,
+    ) -> tuple[list[Event], str | None]:
+        """
+        Fetch a single page of multivariate events and return the next cursor (if any).
+
+        Notes:
+            Kalshi excludes MVEs from `GET /events`; use `GET /events/multivariate` for MVEs.
+            See: docs/_vendor-docs/kalshi-api-reference.md
+        """
+        params: dict[str, Any] = {"limit": min(limit, 200)}
+        if cursor:
+            params["cursor"] = cursor
+
+        data = await self._get("/events/multivariate", params)
+        events = [Event.model_validate(e) for e in data.get("events", [])]
+        return events, data.get("cursor")
+
+    async def get_multivariate_events(self, limit: int = 200) -> list[Event]:
+        """Fetch multivariate events (MVEs)."""
+        events, _ = await self.get_multivariate_events_page(limit=limit)
+        return events
+
+    async def get_all_multivariate_events(
+        self,
+        limit: int = 200,
+        max_pages: int | None = None,
+    ) -> AsyncIterator[Event]:
+        """
+        Iterate through ALL multivariate events with automatic pagination.
+
+        Args:
+            limit: Page size (max 200 for events/multivariate endpoint)
+            max_pages: Optional safety limit. None = iterate until exhausted.
+
+        Yields:
+            Event objects
+        """
+        cursor: str | None = None
+        pages = 0
+        while True:
+            events, cursor = await self.get_multivariate_events_page(
+                limit=limit,
+                cursor=cursor,
+            )
+
+            for event in events:
+                yield event
+
+            if not cursor or not events:
+                break
+
+            pages += 1
+
+            if max_pages is not None and pages >= max_pages:
+                logger.warning(
+                    "Pagination truncated: reached max_pages but cursor still present. "
+                    "Data may be incomplete. Set max_pages=None for full iteration.",
+                    max_pages=max_pages,
+                )
+                break
+
     # ==================== Search & Series ====================
 
     async def get_tags_by_categories(self) -> dict[str, list[str]]:

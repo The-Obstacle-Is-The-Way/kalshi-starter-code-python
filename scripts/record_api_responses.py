@@ -332,6 +332,16 @@ async def record_public_endpoints() -> dict[str, Any]:
             results=results,
         )
 
+        await _record_public_get(
+            client,
+            label="GET /events/multivariate (RAW)",
+            path="/events/multivariate",
+            params={"limit": 5},
+            save_as="events_multivariate_list",
+            metadata={"limit": 5, "note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
         first_event_ticker = _extract_first_event_ticker(raw_events or {})
         if first_event_ticker:
             raw_event_single = await _record_public_get(

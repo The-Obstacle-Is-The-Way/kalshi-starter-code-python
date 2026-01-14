@@ -143,12 +143,18 @@ class DataFetcher:
             result=api_market.result,
         )
 
-    async def sync_events(self, *, max_pages: int | None = None) -> int:
+    async def sync_events(
+        self,
+        *,
+        max_pages: int | None = None,
+        include_multivariate: bool = False,
+    ) -> int:
         """
         Sync all events from API to database.
 
         Args:
             max_pages: Optional pagination safety limit. None = iterate until exhausted.
+            include_multivariate: When true, also sync events from `GET /events/multivariate`.
 
         Returns:
             Number of events synced
@@ -167,6 +173,19 @@ class DataFetcher:
                 if count % 100 == 0:
                     await session.flush()
                     logger.info("Synced events so far", count=count)
+
+            if include_multivariate:
+                async for api_event in self.client.get_all_multivariate_events(
+                    limit=200,
+                    max_pages=max_pages,
+                ):
+                    db_event = self._api_event_to_db(api_event)
+                    await repo.upsert(db_event)
+                    count += 1
+
+                    if count % 100 == 0:
+                        await session.flush()
+                        logger.info("Synced events so far", count=count)
 
         logger.info("Synced events", count=count)
         return count
