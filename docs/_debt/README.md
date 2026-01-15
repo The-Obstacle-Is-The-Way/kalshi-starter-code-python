@@ -4,10 +4,11 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**5 active debt items.**
+**6 active debt items.**
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
+| **[DEBT-028](DEBT-028-api-schema-drift-jan-2026.md)** | API Schema Drift - January 2026 Migration | **P2** | Open |
 | **[DEBT-018](DEBT-018-test-ssot-stabilization.md)** | Test SSOT Stabilization (Fixtures, Mocks, Exa Coverage) | **P1** | 🟡 In Progress |
 | **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (Needs Design) |
 | **[DEBT-016](DEBT-016-fixture-drift-ci.md)** | Automate Fixture Drift Detection + Weekly Re-Recording | P2 | 🟡 Partially Implemented |
@@ -29,7 +30,7 @@ DEBT-014 (Friction/Design) ← Feature work
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-028**
+**DEBT-029**
 
 ---
 
@@ -37,6 +38,7 @@ Use this ID for the next debt item:
 
 | File | Purpose |
 |------|---------|
+| `DEBT-028-api-schema-drift-jan-2026.md` | **Active debt P2** - Jan 2026 API migration (cent field removal, nullable fields) |
 | `DEBT-018-test-ssot-stabilization.md` | **Active debt P1** - Exa fixtures, test mock drift, validation gaps |
 | `DEBT-016-fixture-drift-ci.md` | **Active debt P2** - CI automation for fixture drift detection |
 | `DEBT-015-missing-api-endpoints.md` | **Active debt P2-P3** - 45+ missing Kalshi API endpoints |

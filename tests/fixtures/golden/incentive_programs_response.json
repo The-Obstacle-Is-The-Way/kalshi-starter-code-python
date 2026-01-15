@@ -1,0 +1,70 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T14:02:19.127430+00:00",
+    "endpoint": "incentive_programs",
+    "environment": "prod",
+    "sanitized": false,
+    "limit": 5,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "incentive_programs": [
+      {
+        "discount_factor_bps": 5000,
+        "end_date": "2026-01-15T23:59:59.999999Z",
+        "id": "12feeaef-a0ba-42a9-b878-9f11728d607d",
+        "incentive_type": "liquidity",
+        "market_ticker": "KXLOWTPHIL-26JAN15-T24",
+        "paid_out": false,
+        "period_reward": 200000,
+        "start_date": "2026-01-15T14:02:27.709007Z",
+        "target_size": 300
+      },
+      {
+        "discount_factor_bps": 5000,
+        "end_date": "2026-01-15T23:59:59.999999Z",
+        "id": "d252a522-76aa-4fc3-a84b-5e0a2d51c002",
+        "incentive_type": "liquidity",
+        "market_ticker": "KXLOWTPHIL-26JAN15-B23.5",
+        "paid_out": false,
+        "period_reward": 200000,
+        "start_date": "2026-01-15T14:02:27.543675Z",
+        "target_size": 300
+      },
+      {
+        "discount_factor_bps": 5000,
+        "end_date": "2026-01-15T23:59:59.999999Z",
+        "id": "d34b8b43-7f63-4f83-976d-3db6a8b4faa3",
+        "incentive_type": "liquidity",
+        "market_ticker": "KXLOWTPHIL-26JAN15-B21.5",
+        "paid_out": false,
+        "period_reward": 200000,
+        "start_date": "2026-01-15T14:02:27.378861Z",
+        "target_size": 300
+      },
+      {
+        "discount_factor_bps": 5000,
+        "end_date": "2026-01-15T23:59:59.999999Z",
+        "id": "737d2f1b-af8b-4bb6-a2e7-66acaac88f80",
+        "incentive_type": "liquidity",
+        "market_ticker": "KXLOWTDEN-26JAN15-B36.5",
+        "paid_out": false,
+        "period_reward": 200000,
+        "start_date": "2026-01-15T14:02:27.318539Z",
+        "target_size": 300
+      },
+      {
+        "discount_factor_bps": 5000,
+        "end_date": "2026-01-15T23:59:59.999999Z",
+        "id": "6c91f243-2d09-429c-a3ec-5ff524d8099f",
+        "incentive_type": "liquidity",
+        "market_ticker": "KXLOWTDEN-26JAN15-B34.5",
+        "paid_out": false,
+        "period_reward": 200000,
+        "start_date": "2026-01-15T14:02:27.137461Z",
+        "target_size": 300
+      }
+    ],
+    "next_cursor": "CgsI8-ajywYQiPrFQRIkNmM5MWYyNDMtMmQwOS00MjljLWEzZWMtNWZmNTI0ZDgwOTlm"
+  }
+}

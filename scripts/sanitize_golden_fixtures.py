@@ -33,6 +33,9 @@ _UUID_LIKE_KEYS: Final[set[str]] = {
     "fill_id",
     "client_order_id",
     "updated_client_order_id",
+    "order_group_id",
+    # Order group detail response returns order IDs under `orders`.
+    "orders",
 }
 
 _TICKER_KEYS: Final[set[str]] = {"ticker", "event_ticker", "series_ticker", "market_ticker"}
@@ -212,6 +215,12 @@ def main() -> None:
         "batch_create_orders_response.json",
         "batch_cancel_orders_response.json",
         "decrease_order_response.json",
+        # Order group fixtures (authenticated, demo-only)
+        "order_group_create_response.json",
+        "order_groups_list_response.json",
+        "order_group_single_response.json",
+        "order_group_reset_response.json",
+        "order_group_delete_response.json",
     ]
 
     for filename in sensitive_files:

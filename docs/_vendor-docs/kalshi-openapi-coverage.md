@@ -21,7 +21,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 | Category | OpenAPI Ops | Implemented | Coverage | Spec |
 |----------|-------------|-------------|----------|------|
-| **Exchange** | 4 | 1 | 25% | SPEC-040 Phase 4 |
+| **Exchange** | 4 | 4 | **100%** | ✅ SPEC-040 Phase 4 |
 | **Markets (Core)** | 5 | 5 | **100%** | Done |
 | **Markets (Filters)** | 11 params | 11 params | **100%** | ✅ SPEC-040 Phase 1 |
 | **Series** | 4 | 4 | **100%** | SPEC-037 Phase 1 ✅ |
@@ -30,15 +30,15 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | **Structured Targets** | 2 | 2 | **100%** | ✅ SPEC-040 Phase 3 |
 | **Portfolio (Read)** | 6 | 6 | **100%** | ✅ SPEC-040 Phase 2 |
 | **Portfolio (Orders)** | 9 | 9 | **100%** | ✅ SPEC-040 Phase 2 |
-| **Order Groups** | 5 | 0 | 0% | SPEC-040 Phase 4 |
+| **Order Groups** | 5 | 5 | **100%** | ✅ SPEC-040 Phase 4 |
 | **Subaccounts** | 4 | 0 | 0% | SPEC-040 Phase 4 |
 | **RFQ/Communications** | 11 | 0 | 0% | Not planned |
-| **Milestones & Live Data** | 4 | 0 | 0% | SPEC-040 Phase 4 |
+| **Milestones & Live Data** | 4 | 4 | **100%** | ✅ SPEC-040 Phase 4 |
 | **Multivariate Collections** | 5 | 0 | 0% | Not planned |
-| **Incentive Programs** | 1 | 0 | 0% | SPEC-040 Phase 4 |
+| **Incentive Programs** | 1 | 1 | **100%** | ✅ SPEC-040 Phase 4 |
 | **API Keys** | 4 | 0 | 0% | Not planned |
 | **FCM** | 2 | 0 | 0% | Not planned |
-| **TOTAL** | 74 | 34 | **46%** | - |
+| **TOTAL** | 74 | 47 | **64%** | - |
 
 ---
 
@@ -59,9 +59,9 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
 | `GET /exchange/status` | ✅ | Done | `get_exchange_status()` |
-| `GET /exchange/announcements` | 🔲 | SPEC-040 Phase 4 | P3 - informational |
-| `GET /exchange/schedule` | 🔲 | SPEC-040 Phase 4 | P3 - trading hours |
-| `GET /exchange/user_data_timestamp` | 🔲 | SPEC-040 Phase 4 | P3 - cache coherency |
+| `GET /exchange/announcements` | ✅ | SPEC-040 Phase 4 | `get_exchange_announcements()` |
+| `GET /exchange/schedule` | ✅ | SPEC-040 Phase 4 | `get_exchange_schedule()` |
+| `GET /exchange/user_data_timestamp` | ✅ | SPEC-040 Phase 4 | `get_user_data_timestamp()` |
 
 ---
 
@@ -168,11 +168,11 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
-| `GET /portfolio/order_groups` | 🔲 | SPEC-040 Phase 4 | P3 |
-| `POST /portfolio/order_groups/create` | 🔲 | SPEC-040 Phase 4 | P3 |
-| `GET /portfolio/order_groups/{order_group_id}` | 🔲 | SPEC-040 Phase 4 | P3 |
-| `DELETE /portfolio/order_groups/{order_group_id}` | 🔲 | SPEC-040 Phase 4 | P3 |
-| `PUT /portfolio/order_groups/{order_group_id}/reset` | 🔲 | SPEC-040 Phase 4 | P3 |
+| `GET /portfolio/order_groups` | ✅ | SPEC-040 Phase 4 | `get_order_groups()` |
+| `POST /portfolio/order_groups/create` | ✅ | SPEC-040 Phase 4 | `create_order_group()` |
+| `GET /portfolio/order_groups/{order_group_id}` | ✅ | SPEC-040 Phase 4 | `get_order_group()` |
+| `DELETE /portfolio/order_groups/{order_group_id}` | ✅ | SPEC-040 Phase 4 | `delete_order_group()` |
+| `PUT /portfolio/order_groups/{order_group_id}/reset` | ✅ | SPEC-040 Phase 4 | `reset_order_group()` |
 
 ---
 
@@ -193,10 +193,10 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
-| `GET /milestones` | 🔲 | SPEC-040 Phase 4 | P3 |
-| `GET /milestones/{milestone_id}` | 🔲 | SPEC-040 Phase 4 | P3 |
-| `GET /live_data/{type}/milestone/{milestone_id}` | 🔲 | SPEC-040 Phase 4 | P3 |
-| `GET /live_data/batch` | 🔲 | SPEC-040 Phase 4 | P3 |
+| `GET /milestones` | ✅ | SPEC-040 Phase 4 | `get_milestones()` |
+| `GET /milestones/{milestone_id}` | ✅ | SPEC-040 Phase 4 | `get_milestone()` |
+| `GET /live_data/{type}/milestone/{milestone_id}` | ✅ | SPEC-040 Phase 4 | `get_milestone_live_data()` |
+| `GET /live_data/batch` | ✅ | SPEC-040 Phase 4 | `get_live_data_batch()` |
 
 ---
 
@@ -260,7 +260,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
-| `GET /incentive_programs` | 🔲 | SPEC-040 Phase 4 | P3 - bonus tracking |
+| `GET /incentive_programs` | ✅ | SPEC-040 Phase 4 | `get_incentive_programs()` |
 
 ---
 

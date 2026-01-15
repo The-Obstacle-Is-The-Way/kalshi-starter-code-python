@@ -733,6 +733,278 @@ async def record_phase3_discovery_endpoints() -> dict[str, Any]:
     return results
 
 
+def _extract_first_milestone(raw_milestones: dict[str, Any]) -> dict[str, Any] | None:
+    milestones = raw_milestones.get("milestones")
+    if not isinstance(milestones, list) or not milestones:
+        return None
+    first = milestones[0]
+    if not isinstance(first, dict):
+        return None
+    return first
+
+
+def _extract_first_milestone_id(raw_milestones: dict[str, Any]) -> str | None:
+    first = _extract_first_milestone(raw_milestones)
+    if first is None:
+        return None
+    milestone_id = first.get("id")
+    if not isinstance(milestone_id, str) or not milestone_id:
+        return None
+    return milestone_id
+
+
+def _extract_live_data_type_candidates(milestone: dict[str, Any]) -> list[str]:
+    candidates: list[str] = []
+    milestone_type = milestone.get("type")
+    if isinstance(milestone_type, str) and milestone_type:
+        candidates.append(milestone_type)
+    category = milestone.get("category")
+    if isinstance(category, str) and category and category not in candidates:
+        candidates.append(category)
+    return candidates
+
+
+def _extract_order_group_id(raw: dict[str, Any] | None) -> str | None:
+    if not isinstance(raw, dict):
+        return None
+    order_group_id = raw.get("order_group_id")
+    if not isinstance(order_group_id, str) or not order_group_id:
+        return None
+    return order_group_id
+
+
+async def _record_phase4_exchange_endpoints(
+    client: KalshiPublicClient, *, results: dict[str, Any]
+) -> None:
+    await _record_public_get(
+        client,
+        label="GET /exchange/schedule (RAW)",
+        path="/exchange/schedule",
+        save_as="exchange_schedule",
+        metadata={"note": "RAW API response (SSOT)"},
+        results=results,
+    )
+
+    await _record_public_get(
+        client,
+        label="GET /exchange/announcements (RAW)",
+        path="/exchange/announcements",
+        save_as="exchange_announcements",
+        metadata={"note": "RAW API response (SSOT)"},
+        results=results,
+    )
+
+    await _record_public_get(
+        client,
+        label="GET /exchange/user_data_timestamp (RAW)",
+        path="/exchange/user_data_timestamp",
+        save_as="user_data_timestamp",
+        metadata={"note": "RAW API response (SSOT)"},
+        results=results,
+    )
+
+
+async def _record_phase4_milestones_endpoints(
+    client: KalshiPublicClient, *, results: dict[str, Any]
+) -> dict[str, Any] | None:
+    raw_milestones = await _record_public_get(
+        client,
+        label="GET /milestones (RAW)",
+        path="/milestones",
+        params={"limit": 5},
+        save_as="milestones_list",
+        metadata={"limit": 5, "note": "RAW API response (SSOT)"},
+        results=results,
+    )
+
+    milestone_id = _extract_first_milestone_id(raw_milestones or {})
+    if milestone_id:
+        await _record_public_get(
+            client,
+            label=f"GET /milestones/{milestone_id} (RAW)",
+            path=f"/milestones/{milestone_id}",
+            save_as="milestone_single",
+            metadata={"milestone_id": milestone_id, "note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
+    return raw_milestones
+
+
+async def _record_phase4_live_data_endpoints(
+    client: KalshiPublicClient, *, raw_milestones: dict[str, Any] | None, results: dict[str, Any]
+) -> None:
+    milestones_for_live_data = (raw_milestones or {}).get("milestones")
+    if not isinstance(milestones_for_live_data, list):
+        return
+
+    live_data_milestone_id: str | None = None
+    for milestone in milestones_for_live_data:
+        if not isinstance(milestone, dict):
+            continue
+        candidate_id = milestone.get("id")
+        if not isinstance(candidate_id, str) or not candidate_id:
+            continue
+
+        for live_data_type in _extract_live_data_type_candidates(milestone):
+            raw_live_data = await _record_public_get(
+                client,
+                label=f"GET /live_data/{live_data_type}/milestone/{candidate_id} (RAW)",
+                path=f"/live_data/{live_data_type}/milestone/{candidate_id}",
+                save_as="live_data_milestone",
+                metadata={
+                    "milestone_id": candidate_id,
+                    "live_data_type": live_data_type,
+                    "note": "RAW API response (SSOT)",
+                },
+                results=results,
+            )
+            if raw_live_data is not None:
+                live_data_milestone_id = candidate_id
+                break
+        if live_data_milestone_id is not None:
+            break
+
+    if live_data_milestone_id is None:
+        return
+
+    await _record_public_get(
+        client,
+        label="GET /live_data/batch (RAW)",
+        path="/live_data/batch",
+        params={"milestone_ids": [live_data_milestone_id]},
+        save_as="live_data_batch",
+        metadata={
+            "milestone_ids": [live_data_milestone_id],
+            "note": "RAW API response (SSOT)",
+        },
+        results=results,
+    )
+
+
+async def _record_phase4_incentive_programs_endpoints(
+    client: KalshiPublicClient, *, results: dict[str, Any]
+) -> None:
+    await _record_public_get(
+        client,
+        label="GET /incentive_programs (RAW)",
+        path="/incentive_programs",
+        params={"limit": 5},
+        save_as="incentive_programs",
+        metadata={"limit": 5, "note": "RAW API response (SSOT)"},
+        results=results,
+    )
+
+
+async def _record_phase4_order_group_endpoints(*, results: dict[str, Any]) -> None:
+    config = get_config()
+    env = config.environment
+    if env != Environment.DEMO:
+        print("\n=== ORDER GROUP ENDPOINTS ===\n")
+        print("  SKIPPED: Order group write fixtures are demo-only (use --env demo).")
+        return
+
+    key_id, private_key_path, private_key_b64 = resolve_kalshi_auth_env(environment=env)
+    if key_id is None or (private_key_path is None and private_key_b64 is None):
+        print("\n=== ORDER GROUP ENDPOINTS ===\n")
+        key_name, path_name, b64_name = get_kalshi_auth_env_var_names(environment=env)
+        print(f"  MISSING DEMO AUTH: set {key_name} + ({path_name} or {b64_name})")
+        return
+
+    async with KalshiClient(
+        key_id=key_id,
+        private_key_path=private_key_path,
+        private_key_b64=private_key_b64,
+        environment=env.value,
+    ) as client:
+        print("\n=== ORDER GROUP ENDPOINTS (DEMO) ===\n")
+
+        create_raw = await _record_auth_request(
+            client,
+            label="POST /portfolio/order_groups/create (RAW)",
+            method="POST",
+            path="/portfolio/order_groups/create",
+            json_body={"contracts_limit": 1},
+            save_as="order_group_create",
+            metadata={
+                "contracts_limit": 1,
+                "note": "RAW API response (SSOT) - demo-only write endpoint",
+            },
+            results=results,
+        )
+
+        order_group_id = _extract_order_group_id(create_raw)
+        if not order_group_id:
+            print("  ERROR: Could not extract order_group_id from create response.")
+            return
+
+        await _record_auth_get(
+            client,
+            label="GET /portfolio/order_groups (RAW)",
+            path="/portfolio/order_groups",
+            save_as="order_groups_list",
+            metadata={"note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
+        await _record_auth_get(
+            client,
+            label=f"GET /portfolio/order_groups/{order_group_id} (RAW)",
+            path=f"/portfolio/order_groups/{order_group_id}",
+            save_as="order_group_single",
+            metadata={"order_group_id": order_group_id, "note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
+        await _record_auth_request(
+            client,
+            label=f"PUT /portfolio/order_groups/{order_group_id}/reset (RAW)",
+            method="PUT",
+            path=f"/portfolio/order_groups/{order_group_id}/reset",
+            json_body=None,
+            save_as="order_group_reset",
+            metadata={
+                "order_group_id": order_group_id,
+                "note": "RAW API response (SSOT) - demo-only write endpoint",
+            },
+            results=results,
+        )
+
+        await _record_auth_request(
+            client,
+            label=f"DELETE /portfolio/order_groups/{order_group_id} (RAW)",
+            method="DELETE",
+            path=f"/portfolio/order_groups/{order_group_id}",
+            json_body=None,
+            save_as="order_group_delete",
+            metadata={
+                "order_group_id": order_group_id,
+                "note": "RAW API response (SSOT) - demo-only write endpoint",
+            },
+            results=results,
+        )
+
+
+async def record_phase4_operational_endpoints(*, include_writes: bool) -> dict[str, Any]:
+    """Record responses for SPEC-040 Phase 4 operational endpoints."""
+    results: dict[str, Any] = {}
+
+    async with KalshiPublicClient() as client:
+        print("\n=== PHASE 4 OPERATIONAL ENDPOINTS ===\n")
+
+        await _record_phase4_exchange_endpoints(client, results=results)
+        raw_milestones = await _record_phase4_milestones_endpoints(client, results=results)
+        await _record_phase4_live_data_endpoints(
+            client, raw_milestones=raw_milestones, results=results
+        )
+        await _record_phase4_incentive_programs_endpoints(client, results=results)
+
+    if include_writes:
+        await _record_phase4_order_group_endpoints(results=results)
+
+    return results
+
+
 def _save_result(
     save_as: str,
     raw: dict[str, Any],
@@ -1197,14 +1469,14 @@ async def main() -> None:
     )
     parser.add_argument(
         "--endpoint",
-        choices=["public", "phase3", "authenticated", "order_ops", "all"],
+        choices=["public", "phase3", "phase4", "authenticated", "order_ops", "all"],
         default="all",
         help="Which endpoints to record",
     )
     parser.add_argument(
         "--include-writes",
         action="store_true",
-        help="Also record order write fixtures (demo only).",
+        help="Also record demo-only write fixtures (orders + order groups).",
     )
     parser.add_argument(
         "--yes",
@@ -1246,23 +1518,25 @@ async def main() -> None:
                 print("Aborted.")
                 return
 
+    endpoint_recorders: dict[str, Any] = {
+        "public": record_public_endpoints,
+        "phase3": record_phase3_discovery_endpoints,
+        "phase4": lambda: record_phase4_operational_endpoints(include_writes=args.include_writes),
+        "authenticated": lambda: record_authenticated_endpoints(
+            include_writes=args.include_writes, record_portfolio_reads=True
+        ),
+        "order_ops": lambda: record_authenticated_endpoints(
+            include_writes=True, record_portfolio_reads=False
+        ),
+    }
+
     all_results: dict[str, Any] = {}
 
-    if args.endpoint in ("public", "all"):
-        all_results["public"] = await record_public_endpoints()
-
-    if args.endpoint in ("phase3", "all"):
-        all_results["phase3"] = await record_phase3_discovery_endpoints()
-
-    if args.endpoint in ("authenticated", "all"):
-        all_results["authenticated"] = await record_authenticated_endpoints(
-            include_writes=args.include_writes, record_portfolio_reads=True
-        )
-
-    if args.endpoint == "order_ops":
-        all_results["order_ops"] = await record_authenticated_endpoints(
-            include_writes=True, record_portfolio_reads=False
-        )
+    if args.endpoint == "all":
+        for key in ("public", "phase3", "phase4", "authenticated"):
+            all_results[key] = await endpoint_recorders[key]()
+    else:
+        all_results[args.endpoint] = await endpoint_recorders[args.endpoint]()
 
     # Save summary
     summary_path = GOLDEN_DIR / "_recording_summary.json"

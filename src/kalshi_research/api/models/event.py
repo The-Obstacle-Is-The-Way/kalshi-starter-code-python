@@ -53,11 +53,15 @@ class MarketMetadata(BaseModel):
 
 
 class EventMetadataResponse(BaseModel):
-    """Response schema for `GET /events/{event_ticker}/metadata`."""
+    """Response schema for `GET /events/{event_ticker}/metadata`.
+
+    Note: `market_details` and `settlement_sources` may be None for some event types
+    (e.g., MVE sports events).
+    """
 
     model_config = ConfigDict(frozen=True)
 
     image_url: str
     featured_image_url: str | None = None
-    market_details: list[MarketMetadata]
-    settlement_sources: list[SettlementSource]
+    market_details: list[MarketMetadata] | None = None
+    settlement_sources: list[SettlementSource] | None = None

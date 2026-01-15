@@ -1,0 +1,272 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T14:02:18.947082+00:00",
+    "endpoint": "milestones_list",
+    "environment": "prod",
+    "sanitized": false,
+    "limit": 5,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "cursor": "CgYI8KnivQYSJDBlZDRhMTA5LTllZDEtNDJhYy04MjRkLTA4MzgxODlmODdkMg",
+    "milestones": [
+      {
+        "category": "Sports",
+        "details": {
+          "away_team_id": "a69a57af-f1a1-4d44-ab62-e220ebaa2a5c",
+          "home_team_id": "64f72720-2e4a-4cc8-a39b-ca148aecb389",
+          "league": "NBA",
+          "session_id": "212f3380-f212-11f0-b6b4-55d20e2a0579_-53269178357",
+          "status": "created"
+        },
+        "end_date": null,
+        "id": "93ce8b69-d3db-412d-b41e-a245a271adcc",
+        "last_updated_ts": "2026-01-15T13:00:13.768246Z",
+        "notification_message": "Who will emerge victorious?",
+        "primary_event_tickers": [
+          "SIMNBAGAME"
+        ],
+        "related_event_tickers": [
+          "SIMNBAGAME"
+        ],
+        "source_id": "5a184c70-0bb6-11ef-b760-7da92a5157f2",
+        "start_date": "2024-05-09T00:00:00Z",
+        "title": "Indiana at New York",
+        "type": "basketball_game"
+      },
+      {
+        "category": "Sports",
+        "details": {
+          "away_team_id": "a69a57af-f1a1-4d44-ab62-e220ebaa2a5c",
+          "home_team_id": "64f72720-2e4a-4cc8-a39b-ca148aecb389",
+          "league": "NFL",
+          "season": {
+            "type": "REG",
+            "week": 1,
+            "year": 2024
+          },
+          "session_id": "27772c20-f212-11f0-b6b4-55d20e2a0579_-42898419141",
+          "status": "inprogress"
+        },
+        "end_date": null,
+        "id": "d22bb487-50b7-4867-b254-4eff118f76f8",
+        "last_updated_ts": "2026-01-15T13:00:23.653771Z",
+        "notification_message": "Who will emerge victorious?",
+        "primary_event_tickers": [
+          "SIMNFLGAME"
+        ],
+        "related_event_tickers": [
+          "SIMNFLGAME"
+        ],
+        "source_id": "95aa13a0-6538-11ef-9287-d597687b4672",
+        "start_date": "2024-09-06T00:20:00Z",
+        "title": "Baltimore vs Kansas City",
+        "type": "football_game"
+      },
+      {
+        "category": "Sports",
+        "details": {
+          "competitor_ids": [
+            "5af5d2f5-15ee-4e71-a387-13bf2e084e75",
+            "0471d15a-09ae-4b97-bd28-d822af55c61a",
+            "f85fbf33-5afb-4749-a120-be2cdc2c6e2e",
+            "7edbf96a-7f52-4a94-9d66-cb86c2789e72",
+            "dfbe6c98-2862-4266-a5e4-494003349a31",
+            "30f125b7-b92d-487a-86f7-844e42f223f2",
+            "c9466b3a-d8f6-42ec-aa53-1f55db13377d",
+            "b0525c21-be72-42e9-8d90-01fef94b9052",
+            "a92aa003-0301-40e3-ab69-663fe47d9012",
+            "487c1d06-8d1c-483a-ad01-db7a0045aeed",
+            "993f71fd-5382-4c69-8da3-06746d4dc62d",
+            "b3be6e26-e578-4ed3-bd24-98adbf0c29e4",
+            "62afa37d-a3c6-4bb8-be6b-3d75d4ef5a4e",
+            "55584c5e-762f-42fa-bcce-88ccde64e65f",
+            "2dedebdd-ec01-49aa-b8a0-36b3c7c4debd",
+            "1fb7fe62-bff0-4291-89d7-3b1717bbf35d",
+            "b63b6650-7b73-4c72-9c86-96d26d12c25e",
+            "888d73c9-5ddf-42a2-89f8-52f2d86004fb",
+            "e8860c1b-85bf-4997-8f60-cf8681935219",
+            "08c73a12-1522-41fb-8ffb-7c0a0383a798",
+            "4d40f230-e41c-4b80-b4a7-d1685be6c29a",
+            "30db2631-f7f9-4368-bc85-9f812e0615fe",
+            "7f6e5997-748d-4ae5-9986-12297e3ec780",
+            "d85f5551-08f1-4a4d-8ae1-c36879b6de1d",
+            "fd21d0f3-f5f7-413a-bb05-4034e4d4fc8e",
+            "b197d285-07db-40b4-bd4e-f67f0e670bcc",
+            "4466666b-77b3-4c26-8fbb-f0fd1d179149",
+            "6ff0d2f5-2a16-45fd-82a9-69c99a86261d",
+            "4f844ca0-4d58-450d-bcf8-a2023fe615c5",
+            "faa43d81-f649-480b-86a1-ea2b57811dbb",
+            "61998611-8d8f-424c-b3df-2e1fb49162f7",
+            "9ab689b1-c681-45db-8a63-9cd628433f00",
+            "d8126bf8-8558-44a2-a473-8ce001de7471",
+            "0cfa22b7-e601-49f6-b85b-3dfd54cf652e",
+            "f1fb4562-ffe8-4539-927b-0ffd13e9533f",
+            "7a94c71e-9cfb-4bf3-ae9b-5b1da138ec1f",
+            "be5be8d0-b561-4d0e-ac4a-90275f2f979f",
+            "0a1e4e5b-bb81-4e13-99ce-0176ede9670a",
+            "ff761863-a595-4f6b-9942-817fb68f1ed1",
+            "5950efa3-1fad-4b48-b328-657707620dcc",
+            "2bb9e2cd-4dbb-4478-a425-218d71a6de4e",
+            "423d212b-6260-4c7f-b0db-d2c365648f12",
+            "8a699c51-e95c-4f2b-b57c-2fab6eb01adf",
+            "20114b19-caef-4123-93d5-ff30bec77954",
+            "25366155-7268-4630-baf7-7a27d5e18385",
+            "7161a8f8-bd34-4b09-a3b5-0ada7f148b7f",
+            "7a4b2b40-4675-41d9-86fd-cc6a61a1d3b2",
+            "e53f4a04-d8c9-45f0-87be-71c4c9dbf9b3",
+            "7060c098-0919-4fbb-9c12-c396378fd6e5",
+            "52f51ab9-8299-4b63-82c5-84a442466fbc",
+            "5488bb49-3607-4517-a3a1-5cf68737aa37",
+            "a0a52f7a-4dbf-4656-ba47-1e1b6de63411",
+            "81f018b0-3e76-40c5-90df-29dbed8f9989",
+            "8593b951-98f9-4757-bed3-3e922c989d2f",
+            "5e4d3877-596c-4165-93d6-cda69c29447a",
+            "3442d4dd-ecfa-43aa-9a01-7525e6f4952c",
+            "1a669884-b715-4d7f-8fe4-63e345cc7f66",
+            "50d2201b-e18c-495f-9f7d-6343fc3c8904",
+            "8d4f30e7-f249-4321-9978-441f69b6efb1",
+            "ab7b910b-0f98-49e6-be3f-1f9026d017ff",
+            "61716f94-0c0d-4fcd-8ba4-6969d469e9b7",
+            "ad2405f8-2e7c-4c32-abfc-ad0a7e703244",
+            "9840b157-3649-4e84-818f-c261d7814be7",
+            "74dc07d3-784c-4e1c-95ad-d3a22d58f9d9",
+            "59e38135-5887-43e5-b6ab-25cbfedcd6e5",
+            "7244dab2-4fc0-4cfc-812d-e0c001907618",
+            "5ccb172d-5bbd-4302-a0ad-43ad9ffff64b",
+            "824a98bd-bee2-4acf-89f6-4f121b604642",
+            "59d30dae-b011-4a24-a7c1-285c4e4caf46",
+            "80d16074-9940-44ee-b159-4b7ad819e2ac",
+            "71ee7608-0254-4410-b2a4-e9926587d587",
+            "d61ba0aa-d3f8-4ea0-924d-a18c0ae76019",
+            "29f689c9-9a88-4e51-8d7b-e445ddc7d04b",
+            "53f9d3ef-9861-48bb-acfd-817657259800",
+            "37f07f5b-f185-42d1-ad9a-f665df493554",
+            "d61bc778-126a-4a2f-9be3-f289b9c2a882",
+            "b967042a-21af-4dfc-b62f-9199860ca203",
+            "4e93ec3d-3ca8-4755-a874-4d1e5c18ccbf",
+            "bb638691-1a48-486b-a439-25d89c8a5c93",
+            "eadf7368-e673-4775-92ee-62c9b54a2f3e",
+            "cb867fe8-660d-43de-9486-c80cc0837190",
+            "29e2881f-288f-4f07-a054-412f1e1022cf",
+            "7eb71731-d2f6-4d1e-86ae-a93ba4c2d20e",
+            "9ba527b3-3690-439a-a656-36d2491d99a1",
+            "f51f62e1-4fd7-45cd-a5bd-eaac634ceb00",
+            "49e83d29-c106-41c2-83eb-8d9934dce3d5",
+            "16f48e54-5d7e-45b8-9734-00dce86cf4e2",
+            "49fb93d3-5dbe-448f-a0cb-d851087f2019",
+            "e0c1cdfa-1384-457b-b417-5f63a0dce354",
+            "6ecd3db0-6b6c-4bf8-b69e-808a2b5cda42",
+            "1f6f25dc-62e2-40a1-b21c-f5f009839208",
+            "bdfa2606-e1c1-40ee-979a-391056419872",
+            "72b41f76-a9a1-4ff9-8364-b8a21129bd54",
+            "bfc6a7dc-833e-43df-a9b6-499929fdd42c",
+            "bf8aa94c-d1a9-4de4-a05f-322092033fb0",
+            "31f03fb8-f92c-4853-8805-c668430cecc2",
+            "43b877f1-e7e4-4218-b1a4-46c9f152b920",
+            "54c61357-e0dc-4347-bfcb-c578012b980a",
+            "f8a4cccc-bf81-4863-99a5-60b13d911184",
+            "3888a78e-b24a-4005-8915-2f03fccf3107",
+            "6e084b57-ab64-465c-acdb-a59c1b73fb45",
+            "212d5f1a-e8b9-4ec6-8829-2e27528efe03",
+            "3495d985-fec9-449e-9473-d3c69ea352c1",
+            "229faa9c-fc01-46bb-a8cb-f6b0310a8cef",
+            "19bd8c47-ca1f-4254-a97b-dcf268e4d87e",
+            "31882cce-ff39-4b49-8527-8575c8efaa49",
+            "370a1bcf-227f-4bf4-9fa4-f5cc90def77d",
+            "53b81173-da72-482d-9c47-ec572711e273",
+            "7aba1e87-b481-4bc0-b860-84d6c253bb80",
+            "dd7bae98-3aed-429f-b44a-206fdf4b6d4c",
+            "fa3c656a-7f3e-4931-ab19-5e07cc52c4f9",
+            "1de80c2c-a08e-433b-9133-2bacd9dacd73",
+            "ec136a76-cae2-4f69-a293-cc54fb79b56c",
+            "da8b4888-9330-46d0-8f8a-f76fae949dba",
+            "4b626dbc-ddae-4eb5-b5e0-d5364f5cc7c0",
+            "f3dd1173-b81a-4048-abdb-34ae5bc06ed1",
+            "c3242516-37d7-46e3-aba7-b74f1498527e",
+            "0cca4a21-c3b0-4926-b137-02500f83cae8",
+            "7319e8bc-da2f-40a4-8e28-51ad3b28eb2a",
+            "c035de63-4cdd-4cd9-91bc-32a747c05e4a",
+            "1330a2ae-16d0-433f-8382-e26cdce78ac7",
+            "8d19862f-e2bd-4b42-aeef-81b678d7aa0c",
+            "a9053c60-3cc0-48cb-bcf2-4848963f352d",
+            "e87e2c8f-cc33-42cd-8171-c21542e436fc",
+            "de193540-82b9-447a-9f3a-adc779b46019",
+            "e607849b-2f2e-4c86-8eed-e0c34f5ca60d",
+            "eb88ac66-5ad3-4c39-9006-c8fe06e21c56",
+            "feb1ad80-9aeb-4a1c-89ca-cc0a0bccc1d8",
+            "c6c566d2-bdbf-484d-a581-3036ad95ee57",
+            "603a229a-671f-4936-8e24-4475ceb47d81",
+            "bed447e2-c814-42de-b029-980e1b5b838b",
+            "77a9104b-6fd4-40b7-85e2-10b2448a8f86"
+          ],
+          "tour": "pga"
+        },
+        "end_date": null,
+        "id": "f986dae9-d28b-478d-b1d2-ba2590216dc2",
+        "last_updated_ts": "2025-07-23T15:53:00.757782Z",
+        "notification_message": "Get ready: The first round is about to start.",
+        "primary_event_tickers": [
+          "KXPGATOUR-MO25"
+        ],
+        "related_event_tickers": [
+          "KXPGATOUR-MO25"
+        ],
+        "source_id": "f986dae9-d28b-478d-b1d2-ba2590216dc2",
+        "start_date": "2025-02-20T14:00:00Z",
+        "title": "Mexico Open",
+        "type": "golf_tournament"
+      },
+      {
+        "category": "Sports",
+        "details": {
+          "first_competitor_id": "1716723d-87c5-4c73-b242-835dae00f4cd",
+          "gender": "women",
+          "round": "Semifinal",
+          "second_competitor_id": "8aad20ee-9a6f-44a2-b740-3af544a671a0",
+          "tour": "WTA",
+          "tournament_name": "WTA Dubai"
+        },
+        "end_date": null,
+        "id": "0a33af57-cea8-47ab-8c01-80f83df8a27a",
+        "last_updated_ts": "2025-07-23T15:53:00.757782Z",
+        "notification_message": "The match is about to begin.",
+        "primary_event_tickers": [
+          "KXWTADDF-25"
+        ],
+        "related_event_tickers": [
+          "KXWTADDF-25"
+        ],
+        "source_id": "sr:sport_event:57999715",
+        "start_date": "2025-02-21T13:00:00Z",
+        "title": "Rybakina vs Andreeva",
+        "type": "tennis_tournament_singles"
+      },
+      {
+        "category": "Sports",
+        "details": {
+          "first_competitor_id": "cfa959b8-12d5-4186-9dcb-aa372fbdc37f",
+          "gender": "women",
+          "round": "Semifinal",
+          "second_competitor_id": "8b9cb9b7-53d2-4826-b884-85a3d9d0c19b",
+          "tour": "WTA",
+          "tournament_name": "WTA Dubai"
+        },
+        "end_date": null,
+        "id": "0ed4a109-9ed1-42ac-824d-0838189f87d2",
+        "last_updated_ts": "2025-07-23T15:53:00.757782Z",
+        "notification_message": "The match is about to begin.",
+        "primary_event_tickers": [
+          "KXWTADDF-25TAUMUC"
+        ],
+        "related_event_tickers": [
+          "KXWTADDF-25TAUMUC"
+        ],
+        "source_id": "sr:sport_event:57999717",
+        "start_date": "2025-02-21T15:00:00Z",
+        "title": "Tauson vs Muchova",
+        "type": "tennis_tournament_singles"
+      }
+    ]
+  }
+}
