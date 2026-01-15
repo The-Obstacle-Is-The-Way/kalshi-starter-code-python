@@ -1,0 +1,14 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T14:02:04.585036+00:00",
+    "endpoint": "order_group_single",
+    "environment": "demo",
+    "sanitized": true,
+    "order_group_id": "82bc126a-e3de-51d6-b55e-92499c3d2bb7",
+    "note": "RAW API response (SSOT); Sensitive data replaced with example values"
+  },
+  "response": {
+    "is_auto_cancel_enabled": false,
+    "orders": []
+  }
+}

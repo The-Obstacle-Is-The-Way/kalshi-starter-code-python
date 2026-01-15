@@ -216,10 +216,11 @@ The Kalshi API client was missing 45+ documented endpoints. **Phases 1-3 are now
 - `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` 🔲 (auth required; optional)
 
 ### Phase 4: Operational (P3) - 🔲 NOT STARTED
-- Exchange schedule/announcements
-- Order groups
-- Milestones/live data
-- Incentive programs
+### Phase 4: Operational (P3) - ✅ COMPLETE
+- ~~Exchange schedule/announcements/user_data_timestamp~~ ✅ `get_exchange_schedule()`, `get_exchange_announcements()`, `get_user_data_timestamp()`
+- ~~Order groups~~ ✅ `get_order_groups()`, `create_order_group()`, `get_order_group()`, `reset_order_group()`, `delete_order_group()`
+- ~~Milestones/live data~~ ✅ `get_milestones()`, `get_milestone()`, `get_milestone_live_data()`, `get_live_data_batch()`
+- ~~Incentive programs~~ ✅ `get_incentive_programs()`
 
 ---
 

@@ -23,12 +23,27 @@ from kalshi_research.api.models.candlestick import (
     EventCandlesticksResponse,
 )
 from kalshi_research.api.models.event import Event, EventMetadataResponse
+from kalshi_research.api.models.exchange import (
+    ExchangeAnnouncementsResponse,
+    ExchangeScheduleResponse,
+    UserDataTimestampResponse,
+)
+from kalshi_research.api.models.incentive import IncentiveProgramsResponse
+from kalshi_research.api.models.live_data import LiveData, LiveDataBatchResponse, LiveDataResponse
 from kalshi_research.api.models.market import Market, MarketFilterStatus
+from kalshi_research.api.models.milestone import Milestone, MilestoneResponse, MilestonesResponse
 from kalshi_research.api.models.order import (
     CreateOrderRequest,
     OrderAction,
     OrderResponse,
     OrderSide,
+)
+from kalshi_research.api.models.order_group import (
+    CreateOrderGroupResponse,
+    EmptyResponse,
+    OrderGroup,
+    OrderGroupDetailResponse,
+    OrderGroupsResponse,
 )
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.portfolio import (
@@ -748,6 +763,114 @@ class KalshiPublicClient:
         """Check if exchange is operational."""
         return await self._get("/exchange/status")
 
+    async def get_exchange_schedule(self) -> ExchangeScheduleResponse:
+        """Fetch the exchange schedule (standard hours + maintenance windows)."""
+        data = await self._get("/exchange/schedule")
+        return ExchangeScheduleResponse.model_validate(data)
+
+    async def get_exchange_announcements(self) -> ExchangeAnnouncementsResponse:
+        """Fetch exchange-wide announcements."""
+        data = await self._get("/exchange/announcements")
+        return ExchangeAnnouncementsResponse.model_validate(data)
+
+    async def get_user_data_timestamp(self) -> UserDataTimestampResponse:
+        """Fetch approximate timestamp of the last user-data update."""
+        data = await self._get("/exchange/user_data_timestamp")
+        return UserDataTimestampResponse.model_validate(data)
+
+    # ==================== Operational ====================
+
+    async def get_milestones(
+        self,
+        *,
+        limit: int = 100,
+        cursor: str | None = None,
+        minimum_start_date: str | None = None,
+        category: str | None = None,
+        competition: str | None = None,
+        source_id: str | None = None,
+        milestone_type: str | None = None,
+        related_event_ticker: str | None = None,
+    ) -> MilestonesResponse:
+        """
+        List milestones with optional filters.
+
+        Args:
+            limit: Page size (1-500).
+            cursor: Pagination cursor from a prior response.
+            minimum_start_date: RFC3339 timestamp filter (sent as `minimum_start_date`).
+            category: Optional milestone category filter.
+            competition: Optional competition filter.
+            source_id: Optional source ID filter.
+            milestone_type: Optional milestone type filter (sent as `type`).
+            related_event_ticker: Optional related event ticker filter.
+        """
+        params: dict[str, Any] = {"limit": max(1, min(limit, 500))}
+        if cursor is not None:
+            params["cursor"] = cursor
+        if minimum_start_date is not None:
+            params["minimum_start_date"] = minimum_start_date
+        if category is not None:
+            params["category"] = category
+        if competition is not None:
+            params["competition"] = competition
+        if source_id is not None:
+            params["source_id"] = source_id
+        if milestone_type is not None:
+            params["type"] = milestone_type
+        if related_event_ticker is not None:
+            params["related_event_ticker"] = related_event_ticker
+
+        data = await self._get("/milestones", params)
+        return MilestonesResponse.model_validate(data)
+
+    async def get_milestone(self, milestone_id: str) -> Milestone:
+        """Fetch a single milestone by ID."""
+        data = await self._get(f"/milestones/{milestone_id}")
+        return MilestoneResponse.model_validate(data).milestone
+
+    async def get_milestone_live_data(self, *, live_data_type: str, milestone_id: str) -> LiveData:
+        """Fetch live data for a milestone."""
+        data = await self._get(f"/live_data/{live_data_type}/milestone/{milestone_id}")
+        return LiveDataResponse.model_validate(data).live_data
+
+    async def get_live_data_batch(self, *, milestone_ids: list[str]) -> list[LiveData]:
+        """Fetch live data for 1-100 milestones."""
+        if not milestone_ids or len(milestone_ids) > 100:
+            raise ValueError("milestone_ids must contain 1-100 items")
+        data = await self._get("/live_data/batch", params={"milestone_ids": milestone_ids})
+        return LiveDataBatchResponse.model_validate(data).live_datas
+
+    async def get_incentive_programs(
+        self,
+        *,
+        status: str | None = None,
+        incentive_type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> IncentiveProgramsResponse:
+        """
+        List incentive programs with optional filters.
+
+        Args:
+            status: Optional status filter (`all`, `active`, `upcoming`, `closed`, `paid_out`).
+            incentive_type: Optional type filter (sent as `type`, e.g. `liquidity`, `volume`).
+            limit: Optional page size (1-10000).
+            cursor: Optional pagination cursor.
+        """
+        params: dict[str, Any] = {}
+        if status is not None:
+            params["status"] = status
+        if incentive_type is not None:
+            params["type"] = incentive_type
+        if limit is not None:
+            params["limit"] = max(1, min(limit, 10000))
+        if cursor is not None:
+            params["cursor"] = cursor
+
+        data = await self._get("/incentive_programs", params or None)
+        return IncentiveProgramsResponse.model_validate(data)
+
 
 class KalshiClient(KalshiPublicClient):
     """
@@ -1157,6 +1280,150 @@ class KalshiClient(KalshiPublicClient):
         data = await self._auth_get("/portfolio/summary/total_resting_order_value")
         parsed = GetPortfolioRestingOrderTotalValueResponse.model_validate(data)
         return parsed.total_resting_order_value
+
+    # ==================== Order Groups ====================
+
+    async def get_order_groups(self) -> list[OrderGroup]:
+        """List order groups for the authenticated user."""
+        data = await self._auth_get("/portfolio/order_groups")
+        return OrderGroupsResponse.model_validate(data).order_groups
+
+    async def create_order_group(self, *, contracts_limit: int) -> str:
+        """
+        Create a new order group with a matched-contracts limit.
+
+        Args:
+            contracts_limit: Maximum number of contracts that can be matched within this group.
+
+        Returns:
+            The created order group ID.
+        """
+        if contracts_limit <= 0:
+            raise ValueError("contracts_limit must be positive")
+
+        path = "/portfolio/order_groups/create"
+        full_path = self.API_PATH + path
+        payload = {"contracts_limit": contracts_limit}
+
+        await self._rate_limiter.acquire("POST", path)
+        headers = self._auth.get_headers("POST", full_path)
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
+            stop=stop_after_attempt(self._max_retries),
+            wait=_wait_with_retry_after,
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.post(path, json=payload, headers=headers)
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                    )
+
+                if response.status_code >= 400:
+                    raise KalshiAPIError(response.status_code, response.text)
+
+                data = response.json()
+                if not isinstance(data, dict):
+                    raise KalshiAPIError(
+                        response.status_code,
+                        "Unexpected create order group response shape (expected object).",
+                    )
+                parsed = CreateOrderGroupResponse.model_validate(data)
+                return parsed.order_group_id
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
+
+    async def get_order_group(self, order_group_id: str) -> OrderGroupDetailResponse:
+        """Fetch a single order group detail by ID."""
+        data = await self._auth_get(f"/portfolio/order_groups/{order_group_id}")
+        return OrderGroupDetailResponse.model_validate(data)
+
+    async def reset_order_group(self, order_group_id: str) -> None:
+        """Reset an order group, allowing new orders after a contracts limit is hit."""
+        path = f"/portfolio/order_groups/{order_group_id}/reset"
+        full_path = self.API_PATH + path
+
+        await self._rate_limiter.acquire("PUT", path)
+        headers = self._auth.get_headers("PUT", full_path)
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
+            stop=stop_after_attempt(self._max_retries),
+            wait=_wait_with_retry_after,
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.put(path, json={}, headers=headers)
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                    )
+
+                if response.status_code >= 400:
+                    raise KalshiAPIError(response.status_code, response.text)
+
+                payload = response.json() if response.content else {}
+                if not isinstance(payload, dict):
+                    raise KalshiAPIError(
+                        response.status_code,
+                        "Unexpected reset order group response shape (expected object).",
+                    )
+                EmptyResponse.model_validate(payload)
+                return None
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
+
+    async def delete_order_group(self, order_group_id: str) -> None:
+        """Delete an order group and cancel all orders within it."""
+        path = f"/portfolio/order_groups/{order_group_id}"
+        full_path = self.API_PATH + path
+
+        await self._rate_limiter.acquire("DELETE", path)
+        headers = self._auth.get_headers("DELETE", full_path)
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
+            stop=stop_after_attempt(self._max_retries),
+            wait=_wait_with_retry_after,
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.delete(path, headers=headers)
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                    )
+
+                if response.status_code >= 400:
+                    raise KalshiAPIError(response.status_code, response.text)
+
+                payload = response.json() if response.content else {}
+                if not isinstance(payload, dict):
+                    raise KalshiAPIError(
+                        response.status_code,
+                        "Unexpected delete order group response shape (expected object).",
+                    )
+                EmptyResponse.model_validate(payload)
+                return None
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 
     async def create_order(
         self,

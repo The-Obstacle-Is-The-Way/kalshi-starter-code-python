@@ -1,0 +1,66 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T14:02:18.730024+00:00",
+    "endpoint": "exchange_schedule",
+    "environment": "prod",
+    "sanitized": false,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "schedule": {
+      "maintenance_windows": [],
+      "standard_hours": [
+        {
+          "end_time": "2200-12-01T00:00:00Z",
+          "friday": [
+            {
+              "close_time": "00:00",
+              "open_time": "00:00"
+            }
+          ],
+          "monday": [
+            {
+              "close_time": "00:00",
+              "open_time": "00:00"
+            }
+          ],
+          "saturday": [
+            {
+              "close_time": "00:00",
+              "open_time": "00:00"
+            }
+          ],
+          "start_time": "2024-12-01T00:00:00Z",
+          "sunday": [
+            {
+              "close_time": "00:00",
+              "open_time": "00:00"
+            }
+          ],
+          "thursday": [
+            {
+              "close_time": "03:00",
+              "open_time": "00:00"
+            },
+            {
+              "close_time": "00:00",
+              "open_time": "05:00"
+            }
+          ],
+          "tuesday": [
+            {
+              "close_time": "00:00",
+              "open_time": "00:00"
+            }
+          ],
+          "wednesday": [
+            {
+              "close_time": "00:00",
+              "open_time": "00:00"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

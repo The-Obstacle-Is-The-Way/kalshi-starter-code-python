@@ -1,0 +1,36 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T14:02:18.991251+00:00",
+    "endpoint": "milestone_single",
+    "environment": "prod",
+    "sanitized": false,
+    "milestone_id": "93ce8b69-d3db-412d-b41e-a245a271adcc",
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "milestone": {
+      "category": "Sports",
+      "details": {
+        "away_team_id": "a69a57af-f1a1-4d44-ab62-e220ebaa2a5c",
+        "home_team_id": "64f72720-2e4a-4cc8-a39b-ca148aecb389",
+        "league": "NBA",
+        "session_id": "212f3380-f212-11f0-b6b4-55d20e2a0579_-53269178357",
+        "status": "created"
+      },
+      "end_date": null,
+      "id": "93ce8b69-d3db-412d-b41e-a245a271adcc",
+      "last_updated_ts": "2026-01-15T13:00:13.768246Z",
+      "notification_message": "Who will emerge victorious?",
+      "primary_event_tickers": [
+        "SIMNBAGAME"
+      ],
+      "related_event_tickers": [
+        "SIMNBAGAME"
+      ],
+      "source_id": "5a184c70-0bb6-11ef-b760-7da92a5157f2",
+      "start_date": "2024-05-09T00:00:00Z",
+      "title": "Indiana at New York",
+      "type": "basketball_game"
+    }
+  }
+}

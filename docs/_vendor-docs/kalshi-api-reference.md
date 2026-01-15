@@ -747,8 +747,14 @@ Manage groups of orders that can be modified/canceled together:
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `min_start_date` | string | RFC3339 date filter (milestones starting after this date) |
-| `limit` | int | Page size |
+| `limit` | int | Page size (**required**, 1-500) |
+| `minimum_start_date` | string | RFC3339 timestamp filter (milestones starting after this date) |
+| `min_start_date` | string | Legacy/incorrect alias — accepted but **ignored** (use `minimum_start_date`) |
+| `category` | string | Filter by milestone category |
+| `competition` | string | Filter by competition |
+| `source_id` | string | Filter by source ID |
+| `type` | string | Filter by milestone type |
+| `related_event_ticker` | string | Filter by related event ticker |
 | `cursor` | string | Pagination cursor |
 
 **Linking milestones to events:** Use `with_milestones=true` on `GET /events` to include related milestones.
@@ -760,14 +766,28 @@ Manage groups of orders that can be modified/canceled together:
 | `GET /live_data/{type}/milestone/{milestone_id}` | Get live data for a milestone |
 | `GET /live_data/batch` | Batch live data |
 
+**Query Parameters for `GET /live_data/batch`:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `milestone_ids` | string[] | One or more milestone IDs (repeatable; max 100) |
+
 ### Incentive Programs (No Auth)
 
 | Endpoint | Description |
 |----------|-------------|
 | `GET /incentive_programs` | List active incentive/reward programs |
 
-**Response includes:**
-- `series_ticker` field (added Oct 2025) for linking programs to series
+**Query Parameters for `GET /incentive_programs`:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | string | `all|active|upcoming|closed|paid_out` |
+| `type` | string | `all|liquidity|volume` |
+| `limit` | int | Page size (1-10000) |
+| `cursor` | string | Pagination cursor |
+
+**Response includes:** `incentive_programs` list and `next_cursor`.
 
 ### FCM (Futures Commission Merchant)
 

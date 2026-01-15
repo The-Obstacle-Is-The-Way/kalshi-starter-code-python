@@ -1,0 +1,35 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T14:02:19.079627+00:00",
+    "endpoint": "live_data_batch",
+    "environment": "prod",
+    "sanitized": false,
+    "milestone_ids": [
+      "93ce8b69-d3db-412d-b41e-a245a271adcc"
+    ],
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "live_datas": [
+      {
+        "details": {
+          "away_points": 67,
+          "home_points": 56,
+          "last_event_created_ts": null,
+          "last_event_is_timeout": false,
+          "last_updated_ts": 1768485718,
+          "period": 2,
+          "period_remaining_time": "2:27",
+          "period_type": "quarter",
+          "possession": "home",
+          "score_last_updated_ts": null,
+          "status": "inprogress",
+          "widget_status": "live",
+          "winner": ""
+        },
+        "milestone_id": "93ce8b69-d3db-412d-b41e-a245a271adcc",
+        "type": "basketball_game"
+      }
+    ]
+  }
+}

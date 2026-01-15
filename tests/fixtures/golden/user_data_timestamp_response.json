@@ -1,0 +1,12 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T14:02:18.887313+00:00",
+    "endpoint": "user_data_timestamp",
+    "environment": "prod",
+    "sanitized": false,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "as_of_time": "2026-01-15T14:02:18.848643Z"
+  }
+}

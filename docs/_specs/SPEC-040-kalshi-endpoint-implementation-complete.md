@@ -914,7 +914,7 @@ uv run python scripts/record_api_responses.py --endpoint authenticated
 # For write endpoints (demo ONLY):
 # Manually capture via curl or script, save to tests/fixtures/golden/
 ```
-<!-- AUDIT FIX: `scripts/record_api_responses.py --endpoint ...` records predefined endpoint groups (`public|authenticated|all`), not arbitrary per-endpoint names. -->
+<!-- AUDIT FIX: `scripts/record_api_responses.py --endpoint ...` records predefined endpoint groups (`public|phase3|phase4|authenticated|order_ops|all`), not arbitrary per-endpoint names. -->
 
 ### Step 2: Add to Validation Script
 
@@ -988,19 +988,19 @@ uv run pre-commit run --all-files
 - [x] All methods have dry_run support where applicable
 - [x] `validate_models_against_golden.py` passes (755 tests)
 
-### Phase 3: Discovery
-- [ ] `get_event_metadata()` implemented with golden fixture
-- [ ] Structured targets list/detail implemented with golden fixtures
-- [ ] `get_filters_by_sport()` implemented with golden fixture
-- [ ] Event candlesticks implemented with golden fixture
+### Phase 3: Discovery ✅ COMPLETE (2026-01-15, except optional auth-only forecast history)
+- [x] `get_event_metadata()` implemented with golden fixture
+- [x] Structured targets list/detail implemented with golden fixtures
+- [x] `get_filters_by_sport()` implemented with golden fixture
+- [x] Event candlesticks implemented with golden fixture
 - [ ] Forecast percentile history implemented with golden fixture (auth required; optional)
 
-### Phase 4: Operational
-- [ ] Exchange schedule/announcements/user_data_timestamp implemented
-- [ ] Order groups implemented (if needed)
-- [ ] Subaccounts endpoints implemented (if needed)
-- [ ] Milestones/live data implemented (if needed)
-- [ ] Incentive programs implemented (if needed)
+### Phase 4: Operational ✅ COMPLETE (2026-01-15, excluding optional subaccounts)
+- [x] Exchange schedule/announcements/user_data_timestamp implemented
+- [x] Order groups implemented
+- [ ] Subaccounts endpoints implemented (if needed; not implemented)
+- [x] Milestones/live data implemented
+- [x] Incentive programs implemented
 
 ---
 

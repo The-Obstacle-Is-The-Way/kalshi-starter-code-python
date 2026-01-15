@@ -40,7 +40,22 @@ from kalshi_research.api.models.candlestick import (
 )
 from kalshi_research.api.models.error import ErrorResponse
 from kalshi_research.api.models.event import Event, EventMetadataResponse
+from kalshi_research.api.models.exchange import (
+    ExchangeAnnouncementsResponse,
+    ExchangeScheduleResponse,
+    UserDataTimestampResponse,
+)
+from kalshi_research.api.models.incentive import IncentiveProgram, IncentiveProgramsResponse
+from kalshi_research.api.models.live_data import LiveData, LiveDataBatchResponse, LiveDataResponse
 from kalshi_research.api.models.market import Market
+from kalshi_research.api.models.milestone import Milestone, MilestoneResponse, MilestonesResponse
+from kalshi_research.api.models.order_group import (
+    CreateOrderGroupResponse,
+    EmptyResponse,
+    OrderGroup,
+    OrderGroupDetailResponse,
+    OrderGroupsResponse,
+)
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.portfolio import (
     BatchCancelOrdersResponse,
@@ -96,12 +111,35 @@ MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
     "events_multivariate_list_response.json": [("response.events[0]", Event)],
     "event_metadata_response.json": [("response", EventMetadataResponse)],
     "event_candlesticks_response.json": [("response", EventCandlesticksResponse)],
+    "exchange_schedule_response.json": [("response", ExchangeScheduleResponse)],
+    "exchange_announcements_response.json": [("response", ExchangeAnnouncementsResponse)],
+    "user_data_timestamp_response.json": [("response", UserDataTimestampResponse)],
     # GET /markets/{ticker}/orderbook returns {"orderbook": {...}}
     "orderbook_response.json": [("response.orderbook", Orderbook)],
     # Note: exchange_status_response returns dict, not a model (skipped)
     "filters_by_sport_response.json": [("response", FiltersBySportsResponse)],
     "structured_targets_list_response.json": [("response", StructuredTargetsListResponse)],
     "structured_target_single_response.json": [("response", StructuredTargetResponse)],
+    "milestones_list_response.json": [
+        ("response", MilestonesResponse),
+        ("response.milestones[0]", Milestone),
+    ],
+    "milestone_single_response.json": [
+        ("response", MilestoneResponse),
+        ("response.milestone", Milestone),
+    ],
+    "live_data_milestone_response.json": [
+        ("response", LiveDataResponse),
+        ("response.live_data", LiveData),
+    ],
+    "live_data_batch_response.json": [
+        ("response", LiveDataBatchResponse),
+        ("response.live_datas[0]", LiveData),
+    ],
+    "incentive_programs_response.json": [
+        ("response", IncentiveProgramsResponse),
+        ("response.incentive_programs[0]", IncentiveProgram),
+    ],
     # Portfolio endpoints
     "portfolio_balance_response.json": [("response", PortfolioBalance)],
     # GET /portfolio/positions returns market_positions + event_positions
@@ -125,6 +163,14 @@ MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
     "order_queue_position_response.json": [("response", GetOrderQueuePositionResponse)],
     "order_queue_positions_response.json": [("response", GetOrderQueuePositionsResponse)],
     "portfolio_total_resting_order_value_response.json": [("response.error", ErrorResponse)],
+    "order_group_create_response.json": [("response", CreateOrderGroupResponse)],
+    "order_groups_list_response.json": [
+        ("response", OrderGroupsResponse),
+        ("response.order_groups[0]", OrderGroup),
+    ],
+    "order_group_single_response.json": [("response", OrderGroupDetailResponse)],
+    "order_group_reset_response.json": [("response", EmptyResponse)],
+    "order_group_delete_response.json": [("response", EmptyResponse)],
     # Exa endpoints (fixtures live under tests/fixtures/golden/exa/)
     "exa/search_response.json": [("response", SearchResponse)],
     "exa/search_and_contents_response.json": [("response", SearchResponse)],
