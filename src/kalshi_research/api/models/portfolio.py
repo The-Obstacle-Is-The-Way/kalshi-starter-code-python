@@ -397,11 +397,14 @@ class OrderQueuePosition(BaseModel):
 
 
 class GetOrderQueuePositionsResponse(BaseModel):
-    """Response from GET /portfolio/orders/queue_positions."""
+    """Response from GET /portfolio/orders/queue_positions.
+
+    Note: API returns null/None for queue_positions when there are no positions.
+    """
 
     model_config = ConfigDict(frozen=True)
 
-    queue_positions: list[OrderQueuePosition]
+    queue_positions: list[OrderQueuePosition] | None = None
 
 
 class GetPortfolioRestingOrderTotalValueResponse(BaseModel):

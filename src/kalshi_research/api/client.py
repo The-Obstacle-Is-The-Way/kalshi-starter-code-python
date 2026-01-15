@@ -1266,7 +1266,10 @@ class KalshiClient(KalshiPublicClient):
         market_tickers: list[str] | None = None,
         event_ticker: str | None = None,
     ) -> list[OrderQueuePosition]:
-        """Get queue positions for all resting orders (optionally filtered)."""
+        """Get queue positions for all resting orders (optionally filtered).
+
+        Note: API requires at least one of market_tickers or event_ticker.
+        """
         params: dict[str, Any] = {}
         if market_tickers:
             params["market_tickers"] = ",".join(market_tickers)
@@ -1275,7 +1278,7 @@ class KalshiClient(KalshiPublicClient):
 
         data = await self._auth_get("/portfolio/orders/queue_positions", params or None)
         parsed = GetOrderQueuePositionsResponse.model_validate(data)
-        return parsed.queue_positions
+        return parsed.queue_positions or []
 
     async def get_total_resting_order_value(self) -> int:
         """Get the total value of all resting orders in cents."""
