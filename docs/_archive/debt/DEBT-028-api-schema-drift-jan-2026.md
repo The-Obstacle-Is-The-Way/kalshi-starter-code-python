@@ -131,7 +131,12 @@ uv run pytest tests/unit/api/ -v
 - Ran comprehensive live API test: 19/19 endpoints pass
 - All `*_dollars` fields parse correctly
 - No ValidationErrors from Pydantic on real API data
-- Cent field removal confirmed working (API no longer returns deprecated fields)
+
+**Field Removal Status (checked 2026-01-15 13:56 PST):**
+- API is still returning BOTH old cent fields AND new dollar fields
+- Kalshi changelog still lists Jan 15 as removal date, but no removal observed yet
+- Our code is robust: `*_cents` properties prefer `*_dollars` and fall back to old fields
+- No action needed - code handles both scenarios correctly
 
 ---
 
