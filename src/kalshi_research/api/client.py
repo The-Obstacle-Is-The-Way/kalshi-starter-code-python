@@ -20,12 +20,26 @@ from kalshi_research.api.exceptions import KalshiAPIError, RateLimitError
 from kalshi_research.api.models.candlestick import Candlestick, CandlestickResponse
 from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market, MarketFilterStatus
-from kalshi_research.api.models.order import OrderAction, OrderResponse, OrderSide
+from kalshi_research.api.models.order import (
+    CreateOrderRequest,
+    OrderAction,
+    OrderResponse,
+    OrderSide,
+)
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.portfolio import (
+    BatchCancelOrdersResponse,
+    BatchCreateOrdersResponse,
     CancelOrderResponse,
+    DecreaseOrderResponse,
     FillPage,
+    GetOrderQueuePositionResponse,
+    GetOrderQueuePositionsResponse,
+    GetOrderResponse,
+    GetPortfolioRestingOrderTotalValueResponse,
+    Order,
     OrderPage,
+    OrderQueuePosition,
     PortfolioBalance,
     PortfolioPosition,
     SettlementPage,
@@ -161,6 +175,13 @@ class KalshiPublicClient:
         status: MarketFilterStatus | str | None = None,
         event_ticker: str | None = None,
         series_ticker: str | None = None,
+        tickers: list[str] | None = None,
+        min_created_ts: int | None = None,
+        max_created_ts: int | None = None,
+        min_close_ts: int | None = None,
+        max_close_ts: int | None = None,
+        min_settled_ts: int | None = None,
+        max_settled_ts: int | None = None,
         limit: int = 100,
         cursor: str | None = None,
         mve_filter: Literal["only", "exclude"] | None = None,
@@ -168,10 +189,47 @@ class KalshiPublicClient:
         """
         Fetch a single page of markets and return the next cursor (if any).
 
-        Note: status filter uses different values than response status field.
-        Filter: unopened, open, closed, settled
-        Response: active, closed, determined, finalized
+        Args:
+            status: Filter by market status (unopened, open, closed, settled).
+            event_ticker: Filter by event ticker.
+            series_ticker: Filter by series ticker.
+            tickers: Batch lookup by comma-separated market tickers.
+            min_created_ts: Markets created after this Unix timestamp.
+            max_created_ts: Markets created before this Unix timestamp.
+            min_close_ts: Markets closing after this Unix timestamp.
+            max_close_ts: Markets closing before this Unix timestamp.
+            min_settled_ts: Markets settled after this Unix timestamp.
+            max_settled_ts: Markets settled before this Unix timestamp.
+            limit: Page size (max 1000).
+            cursor: Pagination cursor.
+            mve_filter: Filter for multivariate events ("only" or "exclude").
+
+        Returns:
+            Tuple of (markets, next_cursor).
+
+        Raises:
+            ValueError: If multiple timestamp filter families are used together.
+
+        Note:
+            Only one timestamp filter family may be used at a time:
+            - created_ts: Compatible with status=unopened, open, or empty
+            - close_ts: Compatible with status=closed or empty
+            - settled_ts: Compatible with status=settled or empty
         """
+        # Validate timestamp filter family exclusivity (OpenAPI constraint)
+        ts_families_used = sum(
+            [
+                min_created_ts is not None or max_created_ts is not None,
+                min_close_ts is not None or max_close_ts is not None,
+                min_settled_ts is not None or max_settled_ts is not None,
+            ]
+        )
+        if ts_families_used > 1:
+            raise ValueError(
+                "Only one timestamp filter family allowed at a time "
+                "(created_ts OR close_ts OR settled_ts)"
+            )
+
         # 1000 is Kalshi API max limit per page (see docs/_vendor-docs/kalshi-api-reference.md)
         params: dict[str, Any] = {"limit": min(limit, 1000)}
         if status:
@@ -180,6 +238,18 @@ class KalshiPublicClient:
             params["event_ticker"] = event_ticker
         if series_ticker:
             params["series_ticker"] = series_ticker
+        if tickers:
+            params["tickers"] = ",".join(tickers)
+        # Add timestamp filters (consolidated to reduce branch count)
+        ts_params = {
+            "min_created_ts": min_created_ts,
+            "max_created_ts": max_created_ts,
+            "min_close_ts": min_close_ts,
+            "max_close_ts": max_close_ts,
+            "min_settled_ts": min_settled_ts,
+            "max_settled_ts": max_settled_ts,
+        }
+        params.update({k: v for k, v in ts_params.items() if v is not None})
         if cursor:
             params["cursor"] = cursor
         if mve_filter:
@@ -792,6 +862,218 @@ class KalshiClient(KalshiPublicClient):
         return SettlementPage.model_validate(data)
 
     # ==================== Trading ====================
+
+    async def get_order(self, order_id: str) -> Order:
+        """Fetch a single order by order ID."""
+        data = await self._auth_get(f"/portfolio/orders/{order_id}")
+        parsed = GetOrderResponse.model_validate(data)
+        return parsed.order
+
+    async def batch_create_orders(
+        self,
+        orders: list[CreateOrderRequest],
+        *,
+        dry_run: bool = False,
+    ) -> BatchCreateOrdersResponse:
+        """Create up to 20 orders in a single API request."""
+        if not orders:
+            raise ValueError("orders must be non-empty")
+        if len(orders) > 20:
+            raise ValueError("Maximum 20 orders per batch request")
+
+        if dry_run:
+            logger.info("DRY RUN: batch_create_orders - request validated but not executed")
+            return BatchCreateOrdersResponse(orders=[])
+
+        path = "/portfolio/orders/batched"
+        full_path = self.API_PATH + path
+        payload: dict[str, Any] = {
+            "orders": [o.model_dump(mode="json", exclude_none=True) for o in orders]
+        }
+
+        await self._rate_limiter.acquire("POST", path, batch_size=len(orders))
+        headers = self._auth.get_headers("POST", full_path)
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
+            stop=stop_after_attempt(self._max_retries),
+            wait=_wait_with_retry_after,
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.post(path, json=payload, headers=headers)
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                    )
+
+                if response.status_code >= 400:
+                    raise KalshiAPIError(response.status_code, response.text)
+
+                data = response.json()
+                if not isinstance(data, dict):
+                    raise KalshiAPIError(
+                        response.status_code,
+                        "Unexpected batch create response shape (expected object).",
+                    )
+                return BatchCreateOrdersResponse.model_validate(data)
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
+
+    async def batch_cancel_orders(
+        self,
+        order_ids: list[str],
+        *,
+        dry_run: bool = False,
+    ) -> BatchCancelOrdersResponse:
+        """Cancel up to 20 orders in a single API request."""
+        if not order_ids:
+            raise ValueError("order_ids must be non-empty")
+        if len(order_ids) > 20:
+            raise ValueError("Maximum 20 order_ids per batch request")
+
+        if dry_run:
+            logger.info("DRY RUN: batch_cancel_orders - request validated but not executed")
+            return BatchCancelOrdersResponse(orders=[])
+
+        path = "/portfolio/orders/batched"
+        full_path = self.API_PATH + path
+        payload: dict[str, Any] = {"ids": order_ids}
+
+        await self._rate_limiter.acquire("DELETE", path, batch_size=len(order_ids))
+        headers = self._auth.get_headers("DELETE", full_path)
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
+            stop=stop_after_attempt(self._max_retries),
+            wait=_wait_with_retry_after,
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.request("DELETE", path, json=payload, headers=headers)
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                    )
+
+                if response.status_code >= 400:
+                    raise KalshiAPIError(response.status_code, response.text)
+
+                data = response.json()
+                if not isinstance(data, dict):
+                    raise KalshiAPIError(
+                        response.status_code,
+                        "Unexpected batch cancel response shape (expected object).",
+                    )
+                return BatchCancelOrdersResponse.model_validate(data)
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
+
+    async def decrease_order(
+        self,
+        order_id: str,
+        *,
+        reduce_by: int | None = None,
+        reduce_to: int | None = None,
+        dry_run: bool = False,
+    ) -> Order:
+        """Decrease an order's remaining size (preserves queue position)."""
+        if reduce_by is None and reduce_to is None:
+            raise ValueError("Must provide reduce_by or reduce_to")
+        if reduce_by is not None and reduce_to is not None:
+            raise ValueError("Provide only one of reduce_by or reduce_to")
+        if reduce_by is not None and reduce_by <= 0:
+            raise ValueError("reduce_by must be positive")
+        if reduce_to is not None and reduce_to < 0:
+            raise ValueError("reduce_to must be non-negative")
+
+        if dry_run:
+            logger.info(
+                "DRY RUN: decrease_order - request validated but not executed", order_id=order_id
+            )
+            return await self.get_order(order_id)
+
+        path = f"/portfolio/orders/{order_id}/decrease"
+        full_path = self.API_PATH + path
+        payload: dict[str, Any] = {}
+        if reduce_by is not None:
+            payload["reduce_by"] = reduce_by
+        if reduce_to is not None:
+            payload["reduce_to"] = reduce_to
+
+        await self._rate_limiter.acquire("POST", path)
+        headers = self._auth.get_headers("POST", full_path)
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
+            stop=stop_after_attempt(self._max_retries),
+            wait=_wait_with_retry_after,
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.post(path, json=payload, headers=headers)
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=int(retry_after) if retry_after else None,
+                    )
+
+                if response.status_code >= 400:
+                    raise KalshiAPIError(response.status_code, response.text)
+
+                data = response.json()
+                if not isinstance(data, dict):
+                    raise KalshiAPIError(
+                        response.status_code,
+                        "Unexpected decrease response shape (expected object).",
+                    )
+                parsed = DecreaseOrderResponse.model_validate(data)
+                return parsed.order
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
+
+    async def get_order_queue_position(self, order_id: str) -> int:
+        """Get the queue position for a resting order."""
+        data = await self._auth_get(f"/portfolio/orders/{order_id}/queue_position")
+        parsed = GetOrderQueuePositionResponse.model_validate(data)
+        return parsed.queue_position
+
+    async def get_orders_queue_positions(
+        self,
+        *,
+        market_tickers: list[str] | None = None,
+        event_ticker: str | None = None,
+    ) -> list[OrderQueuePosition]:
+        """Get queue positions for all resting orders (optionally filtered)."""
+        params: dict[str, Any] = {}
+        if market_tickers:
+            params["market_tickers"] = ",".join(market_tickers)
+        if event_ticker is not None:
+            params["event_ticker"] = event_ticker
+
+        data = await self._auth_get("/portfolio/orders/queue_positions", params or None)
+        parsed = GetOrderQueuePositionsResponse.model_validate(data)
+        return parsed.queue_positions
+
+    async def get_total_resting_order_value(self) -> int:
+        """Get the total value of all resting orders in cents."""
+        data = await self._auth_get("/portfolio/summary/total_resting_order_value")
+        parsed = GetPortfolioRestingOrderTotalValueResponse.model_validate(data)
+        return parsed.total_resting_order_value
 
     async def create_order(
         self,

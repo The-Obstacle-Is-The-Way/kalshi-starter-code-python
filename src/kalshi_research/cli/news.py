@@ -24,6 +24,7 @@ def _default_search_queries(title: str) -> list[str]:
 
 
 def _parse_search_queries(queries: str | None, *, title: str) -> list[str]:
+    """Parse a comma-separated `--queries` override or fall back to title defaults."""
     if queries:
         return [q.strip() for q in queries.split(",") if q.strip()]
     return _default_search_queries(title)
@@ -34,6 +35,19 @@ async def _fetch_tracking_targets(
     *,
     event: bool,
 ) -> tuple["KalshiEvent", "KalshiMarket | None", str]:
+    """Resolve a market or event ticker into the corresponding API objects.
+
+    Args:
+        ticker: Market ticker (default) or event ticker (when `event=True`).
+        event: Treat `ticker` as an event ticker when true.
+
+    Returns:
+        Tuple of (`event_obj`, `market_obj`, `title`) where `market_obj` is `None` when tracking
+        an event directly.
+
+    Raises:
+        ValueError: If the ticker cannot be resolved via the Kalshi public API.
+    """
     from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
 

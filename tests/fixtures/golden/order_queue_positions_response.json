@@ -1,0 +1,31 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-14T20:18:16.842831+00:00",
+    "endpoint": "order_queue_positions",
+    "environment": "demo",
+    "sanitized": true,
+    "market_tickers": [
+      "KXQUICKSETTLE-26JAN14H1520-3"
+    ],
+    "note": "RAW API response (SSOT) - demo queue positions; Sensitive data replaced with example values"
+  },
+  "response": {
+    "queue_positions": [
+      {
+        "market_ticker": "KXEXAMPLE-2FC7AAE94801",
+        "order_id": "f7072827-c143-545e-a134-a441d43c4337",
+        "queue_position": 1
+      },
+      {
+        "market_ticker": "KXEXAMPLE-2FC7AAE94801",
+        "order_id": "ef2efed6-9e07-5df9-8110-ddb7ba762715",
+        "queue_position": 2
+      },
+      {
+        "market_ticker": "KXEXAMPLE-2FC7AAE94801",
+        "order_id": "6c170f2d-31ac-5a52-aa49-396c7be13455",
+        "queue_position": 103
+      }
+    ]
+  }
+}

@@ -22,7 +22,10 @@ uv run kalshi --help
 | `KALSHI_KEY_ID` | Portfolio commands | API key ID from Kalshi |
 | `KALSHI_PRIVATE_KEY_PATH` | Portfolio commands | Path to RSA private key file |
 | `KALSHI_PRIVATE_KEY_B64` | Portfolio commands | Alternative: Base64-encoded key |
-| `KALSHI_ENVIRONMENT` | All | `prod` or `demo` (default: prod) |
+| `KALSHI_DEMO_KEY_ID` | Portfolio commands | Demo API key ID from Kalshi (preferred when `KALSHI_ENVIRONMENT=demo`) |
+| `KALSHI_DEMO_PRIVATE_KEY_PATH` | Portfolio commands | Path to demo RSA private key file |
+| `KALSHI_DEMO_PRIVATE_KEY_B64` | Portfolio commands | Alternative: Base64-encoded demo key |
+| `KALSHI_ENVIRONMENT` | All | `prod` or `demo` (default: prod); when demo, prefers `KALSHI_DEMO_*` creds if set |
 | `KALSHI_RATE_TIER` | API calls | `basic`/`advanced`/`premier`/`prime` |
 | `KALSHI_LOG_LEVEL` | Debugging | Structured log level for CLI (default: `WARNING`; logs go to stderr) |
 | `EXA_API_KEY` | Exa-powered research/news | API key for Exa (`research context/topic/similar/deep`, `research thesis create --with-research`, `research thesis check-invalidation`, `research thesis suggest`, `news collect`) |

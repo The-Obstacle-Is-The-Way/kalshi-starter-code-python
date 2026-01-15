@@ -43,12 +43,19 @@ Portfolio operations require API credentials:
 
 ```bash
 # In .env file
-KALSHI_KEY_ID=your-key-id
-KALSHI_PRIVATE_KEY_PATH=/path/to/private_key.pem
-# Or base64-encoded:
-KALSHI_PRIVATE_KEY_B64=base64-encoded-key
-
 KALSHI_ENVIRONMENT=demo  # or "prod"
+
+# Prod creds (used when KALSHI_ENVIRONMENT=prod)
+KALSHI_KEY_ID=your-prod-key-id
+KALSHI_PRIVATE_KEY_PATH=/path/to/prod_private_key.pem
+# Or base64-encoded:
+KALSHI_PRIVATE_KEY_B64=base64-encoded-prod-key
+
+# Demo creds (preferred when KALSHI_ENVIRONMENT=demo)
+KALSHI_DEMO_KEY_ID=your-demo-key-id
+KALSHI_DEMO_PRIVATE_KEY_PATH=/path/to/demo_private_key.pem
+# Or base64-encoded:
+KALSHI_DEMO_PRIVATE_KEY_B64=base64-encoded-demo-key
 
 # Optional: tune authenticated rate limits (only used for portfolio commands)
 KALSHI_RATE_TIER=basic  # basic|advanced|premier|prime

@@ -1,13 +1,12 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-14T20:18:04.738132+00:00",
-    "endpoint": "create_order",
+    "recorded_at": "2026-01-14T20:18:17.042749+00:00",
+    "endpoint": "decrease_order",
     "environment": "demo",
     "sanitized": true,
-    "ticker": "KXEXAMPLE-2FC7AAE94801",
-    "yes_price": 30,
-    "count": 2,
-    "note": "RAW API response (SSOT) - demo write fixture; Sensitive data replaced with example values"
+    "order_id": "6c170f2d-31ac-5a52-aa49-396c7be13455",
+    "reduce_by": 1,
+    "note": "RAW API response (SSOT) - demo decrease; Sensitive data replaced with example values"
   },
   "response": {
     "order": {
@@ -17,7 +16,7 @@
       "expiration_time": null,
       "fill_count": 0,
       "initial_count": 2,
-      "last_update_time": "2026-01-14T20:18:04.727473Z",
+      "last_update_time": "2026-01-14T20:18:17.032344Z",
       "maker_fees": 0,
       "maker_fill_cost": 0,
       "maker_fill_cost_dollars": "0.0000",
@@ -26,7 +25,7 @@
       "order_group_id": null,
       "order_id": "6c170f2d-31ac-5a52-aa49-396c7be13455",
       "queue_position": 0,
-      "remaining_count": 2,
+      "remaining_count": 1,
       "side": "yes",
       "status": "resting",
       "taker_fees": 0,

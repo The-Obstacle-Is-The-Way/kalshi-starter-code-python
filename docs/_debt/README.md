@@ -29,7 +29,7 @@ DEBT-014 (Friction/Design) ← Feature work
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-027**
+**DEBT-028**
 
 ---
 
@@ -116,6 +116,7 @@ All resolved debt items are stored in
 | ID | Title | Status |
 |---|---|---|
 | **[DEBT-026](../_archive/debt/DEBT-026-missing-function-docstrings.md)** | Missing Function Docstrings | ✅ Complete |
+| **[DEBT-027](../_archive/debt/DEBT-027-private-function-docstrings.md)** | Private Function Docstrings | ✅ Complete |
 
 ---
 

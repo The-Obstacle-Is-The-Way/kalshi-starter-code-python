@@ -4,7 +4,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-No active bugs.
+No active bugs. ✅
 
 ### Verification Note (2026-01-12)
 
@@ -34,7 +34,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-082**
+**BUG-084**
 
 ---
 
@@ -48,6 +48,8 @@ Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (h
 
 | ID | Title | Status |
 |---|---|---|
+| **BUG-083** | Position Sync Creates Duplicate Rows for Closed Positions | ✅ Fixed |
+| **BUG-082** | P&L Calculator Ignores Cross-Side Position Closure | ✅ Fixed |
 | **BUG-081** | Market `*_dollars` → cents truncation | ✅ Fixed |
 | **BUG-080** | Inconsistent Midpoint Calculation Methods | ✅ Fixed |
 | **BUG-079** | Multi-Market Events Missing from Arbitrage Detection | ✅ Fixed |

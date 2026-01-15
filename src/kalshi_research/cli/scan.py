@@ -73,6 +73,7 @@ def _format_relative_age(*, now: datetime, timestamp: datetime) -> str:
 
 
 def _parse_category_filter(category: str | None) -> set[str] | None:
+    """Parse a comma-separated category filter into normalized, lowercase tokens."""
     if category is None:
         return None
 
@@ -107,6 +108,7 @@ def _market_yes_price_display(market: Market) -> str:
 
 
 def _validate_new_markets_args(*, hours: int, limit: int) -> None:
+    """Validate `new-markets` CLI arguments and exit on invalid values."""
     if hours <= 0:
         console.print("[red]Error:[/red] --hours must be positive.")
         raise typer.Exit(1)
@@ -206,6 +208,19 @@ async def _build_new_markets_results(
     limit: int,
     now: datetime,
 ) -> tuple[list[NewMarketRow], int]:
+    """Build table rows for the new-markets report.
+
+    Args:
+        client: Kalshi public API client used for event category lookups.
+        candidates: Candidate markets paired with their "reference time" (created/open time).
+        categories: Optional set of normalized categories to include.
+        limit: Maximum number of rows to return.
+        now: Reference clock used for relative age formatting.
+
+    Returns:
+        Tuple of (`rows`, `unpriced_included`) where `rows` is a list of table row dicts and
+        `unpriced_included` counts unpriced markets included in the output.
+    """
     results: list[NewMarketRow] = []
     category_by_event: dict[str, str] = {}
     unpriced_included = 0
@@ -419,6 +434,17 @@ def _render_opportunities_table(
 async def _fetch_exchange_status(
     client: KalshiPublicClient,
 ) -> dict[str, object] | None:
+    """Fetch and sanity-check the exchange status response.
+
+    Returns `None` when the status cannot be fetched or does not contain the expected boolean
+    fields, allowing scans to proceed without exchange-halt checks.
+
+    Args:
+        client: Kalshi public API client.
+
+    Returns:
+        The raw status mapping when valid, otherwise `None`.
+    """
     try:
         raw_status = await client.get_exchange_status()
     except asyncio.CancelledError:

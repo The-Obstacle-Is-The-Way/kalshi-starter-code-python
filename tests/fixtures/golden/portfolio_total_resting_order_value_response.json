@@ -1,0 +1,16 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-14T20:18:17.127175+00:00",
+    "endpoint": "portfolio_total_resting_order_value",
+    "environment": "demo",
+    "sanitized": true,
+    "http_status": 403,
+    "note": "RAW API response (SSOT) - demo; permissioned endpoint may return 403; Sensitive data replaced with example values"
+  },
+  "response": {
+    "error": {
+      "code": "permission_denied",
+      "message": "permission denied"
+    }
+  }
+}

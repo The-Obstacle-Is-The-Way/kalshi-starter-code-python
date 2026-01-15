@@ -1,13 +1,13 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-12T22:08:11.093704+00:00",
+    "recorded_at": "2026-01-14T20:18:17.769306+00:00",
     "endpoint": "_recording_summary",
-    "environment": "prod"
+    "environment": "demo"
   },
   "response": {
-    "environment": "prod",
+    "environment": "demo",
     "endpoints_recorded": [
-      "public"
+      "order_ops"
     ]
   }
 }

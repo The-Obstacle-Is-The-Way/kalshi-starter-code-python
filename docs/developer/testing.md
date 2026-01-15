@@ -79,16 +79,29 @@ There is also an opt-in demo “smoke” E2E test:
 uv run pytest tests/e2e/test_live_demo.py -q
 ```
 
-It runs only when `KALSHI_KEY_ID`, `KALSHI_PRIVATE_KEY_PATH`, and `KALSHI_ENVIRONMENT=demo` are set.
+It runs only when `KALSHI_ENVIRONMENT` is set to `demo` or `prod` and valid credentials are configured for that
+environment:
+
+- `prod`: `KALSHI_KEY_ID` + (`KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`)
+- `demo`: `KALSHI_DEMO_KEY_ID` + (`KALSHI_DEMO_PRIVATE_KEY_PATH` or `KALSHI_DEMO_PRIVATE_KEY_B64`)
+  - Fallback: the `KALSHI_*` vars also work for demo if you only keep one set of creds.
 
 Authenticated live tests additionally require credentials in your environment or `.env`:
 
 ```bash
-export KALSHI_KEY_ID="your-key-id"
 export KALSHI_ENVIRONMENT="demo"  # or "prod"
-export KALSHI_PRIVATE_KEY_PATH="/path/to/your/private_key.pem"
+
+# Recommended: keep separate demo creds
+export KALSHI_DEMO_KEY_ID="your-demo-key-id"
+export KALSHI_DEMO_PRIVATE_KEY_PATH="/path/to/your/demo_private_key.pem"
 # OR:
-export KALSHI_PRIVATE_KEY_B64="<base64-encoded-private-key>"
+export KALSHI_DEMO_PRIVATE_KEY_B64="<base64-encoded-demo-private-key>"
+
+# For prod
+export KALSHI_KEY_ID="your-prod-key-id"
+export KALSHI_PRIVATE_KEY_PATH="/path/to/your/prod_private_key.pem"
+# OR:
+export KALSHI_PRIVATE_KEY_B64="<base64-encoded-prod-private-key>"
 ```
 
 ## Exa live tests (disabled by default)

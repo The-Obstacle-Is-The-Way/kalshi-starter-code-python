@@ -1,13 +1,11 @@
 {
   "_metadata": {
-    "recorded_at": "2026-01-14T20:18:04.738132+00:00",
-    "endpoint": "create_order",
+    "recorded_at": "2026-01-14T20:18:15.252170+00:00",
+    "endpoint": "portfolio_order_single",
     "environment": "demo",
     "sanitized": true,
-    "ticker": "KXEXAMPLE-2FC7AAE94801",
-    "yes_price": 30,
-    "count": 2,
-    "note": "RAW API response (SSOT) - demo write fixture; Sensitive data replaced with example values"
+    "order_id": "6c170f2d-31ac-5a52-aa49-396c7be13455",
+    "note": "RAW API response (SSOT) - demo order lookup; Sensitive data replaced with example values"
   },
   "response": {
     "order": {

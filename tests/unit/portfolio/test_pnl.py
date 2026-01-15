@@ -2,6 +2,8 @@
 
 from datetime import UTC, datetime
 
+import pytest
+
 from kalshi_research.portfolio.models import Position, Trade
 from kalshi_research.portfolio.pnl import PnLCalculator, PnLSummary
 
@@ -87,6 +89,57 @@ class TestPnLCalculatorUnrealized:
 class TestPnLCalculatorRealized:
     """Tests for realized P&L calculation."""
 
+    def test_normalize_trade_rejects_invalid_side(self) -> None:
+        trade = Trade(
+            kalshi_trade_id="trade_invalid_side",
+            ticker="TEST-TICKER",
+            side="maybe",
+            action="buy",
+            quantity=1,
+            price_cents=50,
+            total_cost_cents=50,
+            fee_cents=0,
+            executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        with pytest.raises(ValueError, match="Trade side must be"):
+            PnLCalculator._normalize_trade_for_fifo(trade)
+
+    def test_normalize_trade_rejects_invalid_action(self) -> None:
+        trade = Trade(
+            kalshi_trade_id="trade_invalid_action",
+            ticker="TEST-TICKER",
+            side="yes",
+            action="hold",
+            quantity=1,
+            price_cents=50,
+            total_cost_cents=50,
+            fee_cents=0,
+            executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        with pytest.raises(ValueError, match="Trade action must be"):
+            PnLCalculator._normalize_trade_for_fifo(trade)
+
+    def test_normalize_trade_rejects_price_out_of_range(self) -> None:
+        trade = Trade(
+            kalshi_trade_id="trade_invalid_price",
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            quantity=1,
+            price_cents=101,
+            total_cost_cents=101,
+            fee_cents=0,
+            executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        with pytest.raises(ValueError, match="Trade price_cents must be"):
+            PnLCalculator._normalize_trade_for_fifo(trade)
+
     def test_summary_with_trades_skips_orphan_sells_instead_of_crashing(self) -> None:
         """BUG-058: Orphan sells (sell with no prior buys) must not crash the summary."""
         trades = [
@@ -142,11 +195,11 @@ class TestPnLCalculatorRealized:
             Trade(
                 kalshi_trade_id="trade_2",
                 ticker="TEST-TICKER",
-                side="yes",
+                side="no",
                 action="sell",
                 quantity=1,
-                price_cents=70,
-                total_cost_cents=70,
+                price_cents=30,
+                total_cost_cents=30,
                 fee_cents=0,
                 executed_at=datetime(2026, 1, 2, tzinfo=UTC),
                 synced_at=datetime.now(UTC),
@@ -189,11 +242,11 @@ class TestPnLCalculatorRealized:
             Trade(
                 kalshi_trade_id="trade_3",
                 ticker="TEST-TICKER",
-                side="yes",
+                side="no",
                 action="sell",
                 quantity=1,
-                price_cents=70,
-                total_cost_cents=70,
+                price_cents=30,
+                total_cost_cents=30,
                 fee_cents=0,
                 executed_at=datetime(2026, 1, 3, tzinfo=UTC),
                 synced_at=datetime.now(UTC),
@@ -228,7 +281,7 @@ class TestPnLCalculatorRealized:
             Trade(
                 kalshi_trade_id="trade_2",
                 ticker="TEST-TICKER",
-                side="yes",
+                side="no",
                 action="sell",
                 quantity=1,
                 price_cents=50,
@@ -264,11 +317,11 @@ class TestPnLCalculatorRealized:
             Trade(
                 kalshi_trade_id="trade_2",
                 ticker="TEST-TICKER",
-                side="yes",
+                side="no",
                 action="sell",
                 quantity=100,
-                price_cents=52,
-                total_cost_cents=5200,
+                price_cents=48,
+                total_cost_cents=4800,
                 fee_cents=260,
                 executed_at=datetime(2026, 1, 2, tzinfo=UTC),
                 synced_at=datetime.now(UTC),
@@ -300,11 +353,11 @@ class TestPnLCalculatorRealized:
             Trade(
                 kalshi_trade_id="trade_2",
                 ticker="TEST-TICKER",
-                side="yes",
+                side="no",
                 action="sell",
                 quantity=100,  # Sell half
-                price_cents=52,
-                total_cost_cents=5200,
+                price_cents=48,
+                total_cost_cents=4800,
                 fee_cents=260,
                 executed_at=datetime(2026, 1, 2, tzinfo=UTC),
                 synced_at=datetime.now(UTC),
@@ -318,10 +371,10 @@ class TestPnLCalculatorRealized:
         # Sell proceeds (net): 52*100 - 260 = 4940
         assert realized == 4940 - 4725
 
-    def test_realized_does_not_mix_yes_no_cost_basis(self) -> None:
-        """Test that YES and NO positions are treated as separate instruments."""
+    def test_realized_sell_yes_closes_no_position_at_inverted_price(self) -> None:
+        """A SELL on YES can close a NO position at the inverted price (Kalshi cross-side close)."""
         trades = [
-            # Buy YES and NO on the same ticker, then only close YES.
+            # Open both YES and NO positions, then close NO via a YES sell.
             Trade(
                 kalshi_trade_id="trade_1",
                 ticker="TEST-TICKER",
@@ -363,8 +416,8 @@ class TestPnLCalculatorRealized:
         calculator = PnLCalculator()
         realized = calculator.calculate_realized(trades)
 
-        # Should only reflect the closed YES leg.
-        assert realized == (5200 - 260) - (4500 + 225)
+        # The YES sell closes the NO leg at the inverted price (100 - 52) = 48.
+        assert realized == (4800 - 260) - (5500 + 275)
 
     def test_realized_multiple_tickers(self):
         """Test realized P&L across multiple tickers."""
@@ -385,11 +438,11 @@ class TestPnLCalculatorRealized:
             Trade(
                 kalshi_trade_id="trade_2",
                 ticker="TICKER-1",
-                side="yes",
+                side="no",
                 action="sell",
                 quantity=100,
-                price_cents=52,
-                total_cost_cents=5200,
+                price_cents=48,
+                total_cost_cents=4800,
                 fee_cents=260,
                 executed_at=datetime(2026, 1, 2, tzinfo=UTC),
                 synced_at=datetime.now(UTC),
@@ -410,11 +463,11 @@ class TestPnLCalculatorRealized:
             Trade(
                 kalshi_trade_id="trade_4",
                 ticker="TICKER-2",
-                side="yes",
+                side="no",
                 action="sell",
                 quantity=100,
-                price_cents=55,
-                total_cost_cents=5500,
+                price_cents=45,
+                total_cost_cents=4500,
                 fee_cents=275,
                 executed_at=datetime(2026, 1, 2, tzinfo=UTC),
                 synced_at=datetime.now(UTC),
@@ -559,11 +612,11 @@ class TestPnLCalculatorSummary:
             Trade(
                 kalshi_trade_id="trade_2",
                 ticker="TICKER-2",
-                side="yes",
+                side="no",
                 action="sell",
                 quantity=100,
-                price_cents=52,
-                total_cost_cents=5200,
+                price_cents=48,
+                total_cost_cents=4800,
                 fee_cents=260,
                 executed_at=datetime(2026, 1, 2, tzinfo=UTC),
                 synced_at=datetime.now(UTC),

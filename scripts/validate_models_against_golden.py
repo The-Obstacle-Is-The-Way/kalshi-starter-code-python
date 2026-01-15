@@ -34,11 +34,18 @@ from typing import TYPE_CHECKING, Annotated, Any, Final, get_args, get_origin
 from pydantic_core import PydanticUndefined
 
 from kalshi_research.api.models.candlestick import Candlestick, CandlestickResponse
+from kalshi_research.api.models.error import ErrorResponse
 from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.portfolio import (
+    BatchCancelOrdersResponse,
+    BatchCreateOrdersResponse,
+    DecreaseOrderResponse,
     Fill,
+    GetOrderQueuePositionResponse,
+    GetOrderQueuePositionsResponse,
+    GetOrderResponse,
     Order,
     PortfolioBalance,
     PortfolioPosition,
@@ -97,6 +104,14 @@ MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
         ("response.order", Order),
         ("response.old_order", Order),
     ],
+    # Phase 2 order operations (SPEC-040)
+    "portfolio_order_single_response.json": [("response", GetOrderResponse)],
+    "batch_create_orders_response.json": [("response", BatchCreateOrdersResponse)],
+    "batch_cancel_orders_response.json": [("response", BatchCancelOrdersResponse)],
+    "decrease_order_response.json": [("response", DecreaseOrderResponse)],
+    "order_queue_position_response.json": [("response", GetOrderQueuePositionResponse)],
+    "order_queue_positions_response.json": [("response", GetOrderQueuePositionsResponse)],
+    "portfolio_total_resting_order_value_response.json": [("response.error", ErrorResponse)],
     # Exa endpoints (fixtures live under tests/fixtures/golden/exa/)
     "exa/search_response.json": [("response", SearchResponse)],
     "exa/search_and_contents_response.json": [("response", SearchResponse)],

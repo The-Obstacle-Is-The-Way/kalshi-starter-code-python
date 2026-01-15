@@ -28,6 +28,12 @@ def _find_alembic_ini() -> Path:
 
 
 def _validate_migrations_on_temp_db(*, alembic_ini: Path, db_path: Path) -> None:
+    """Validate Alembic migrations by running them against a temporary DB copy.
+
+    Args:
+        alembic_ini: Path to the alembic.ini configuration file.
+        db_path: Path to the local SQLite database file.
+    """
     import shutil
     import tempfile
 

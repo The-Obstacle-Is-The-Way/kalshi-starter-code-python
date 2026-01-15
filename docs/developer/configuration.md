@@ -20,6 +20,19 @@ This is intended for local development and running authenticated commands withou
 - `KALSHI_PRIVATE_KEY_PATH` — path to your private key file
   - OR `KALSHI_PRIVATE_KEY_B64` — base64-encoded private key
 
+### Optional (recommended if you use both demo + prod)
+
+When `KALSHI_ENVIRONMENT=demo`, the CLI prefers the demo-prefixed credentials and falls back to the
+non-prefixed vars for backward compatibility.
+
+**Warning:** The per-variable fallback means you could accidentally use a prod key with a demo key ID (or vice versa)
+if your `.env` has mixed credentials. Always set all four demo variables together, or rely entirely on the
+non-prefixed variables and switch environments via `KALSHI_ENVIRONMENT`.
+
+- `KALSHI_DEMO_KEY_ID` — your **demo** Kalshi key id
+- `KALSHI_DEMO_PRIVATE_KEY_PATH` — path to your **demo** private key file
+  - OR `KALSHI_DEMO_PRIVATE_KEY_B64` — base64-encoded **demo** private key
+
 ### Optional
 
 - `KALSHI_ENVIRONMENT` — `demo` or `prod` (default: `prod`)
@@ -54,10 +67,18 @@ Exa powers research/news commands and some integration tests.
 # The CLI defaults to `prod` if this is unset. For safer experimentation, use `demo`.
 # Invalid values will cause the CLI to exit with an error.
 KALSHI_ENVIRONMENT=demo
-KALSHI_KEY_ID=your_key_id_here
-KALSHI_PRIVATE_KEY_PATH=/absolute/path/to/kalshi-private-key.pem
+
+# Prod creds (used when KALSHI_ENVIRONMENT=prod)
+KALSHI_KEY_ID=your_prod_key_id_here
+KALSHI_PRIVATE_KEY_PATH=/absolute/path/to/kalshi-prod-private-key.pem
 # OR:
 # KALSHI_PRIVATE_KEY_B64=base64_encoded_private_key_material
+
+# Demo creds (preferred when KALSHI_ENVIRONMENT=demo)
+KALSHI_DEMO_KEY_ID=your_demo_key_id_here
+KALSHI_DEMO_PRIVATE_KEY_PATH=/absolute/path/to/kalshi-demo-private-key.pem
+# OR:
+# KALSHI_DEMO_PRIVATE_KEY_B64=base64_encoded_demo_private_key_material
 
 # Optional: authenticated write rate-limits (only matters for `kalshi portfolio ...`)
 KALSHI_RATE_TIER=basic  # basic|advanced|premier|prime

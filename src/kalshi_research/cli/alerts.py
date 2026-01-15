@@ -156,6 +156,14 @@ async def _run_alert_monitor_loop(
     max_pages: int | None,
     monitor: "AlertMonitor",
 ) -> None:
+    """Monitor alerts by periodically fetching markets and evaluating conditions.
+
+    Args:
+        interval: Sleep interval (seconds) between checks (ignored when `once=True`).
+        once: If true, run a single check and exit.
+        max_pages: Maximum pages to fetch when listing open markets.
+        monitor: Alert monitor containing configured conditions.
+    """
     from kalshi_research.alerts.conditions import ConditionType
     from kalshi_research.api import KalshiPublicClient
     from kalshi_research.paths import DEFAULT_DB_PATH

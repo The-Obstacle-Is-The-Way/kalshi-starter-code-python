@@ -10,6 +10,7 @@ import os
 import pytest
 
 from kalshi_research.api.client import KalshiClient
+from kalshi_research.api.credentials import get_kalshi_auth_env_var_names, resolve_kalshi_auth_env
 
 
 @pytest.mark.e2e
@@ -20,17 +21,31 @@ async def test_live_connection_and_balance():
     if os.getenv("KALSHI_RUN_LIVE_API") != "1":
         pytest.skip("Set KALSHI_RUN_LIVE_API=1 to run live E2E tests")
 
-    key_id = os.getenv("KALSHI_KEY_ID")
-    private_key_path = os.getenv("KALSHI_PRIVATE_KEY_PATH")
-    private_key_b64 = os.getenv("KALSHI_PRIVATE_KEY_B64")
     environment = os.getenv("KALSHI_ENVIRONMENT", "demo")
 
-    if not key_id:
-        pytest.skip("Set KALSHI_KEY_ID to run live E2E tests")
-    if not private_key_path and not private_key_b64:
-        pytest.skip("Set KALSHI_PRIVATE_KEY_PATH or KALSHI_PRIVATE_KEY_B64 to run live E2E tests")
-    if environment not in {"demo", "prod"}:
+    try:
+        key_id, private_key_path, private_key_b64 = resolve_kalshi_auth_env(environment=environment)
+        key_id_var, private_key_path_var, private_key_b64_var = get_kalshi_auth_env_var_names(
+            environment=environment
+        )
+    except ValueError:
         pytest.skip("Set KALSHI_ENVIRONMENT to demo or prod to run live E2E tests")
+
+    key_id_fallback = "" if key_id_var == "KALSHI_KEY_ID" else " (or KALSHI_KEY_ID)"
+    key_path_fallback = (
+        "" if private_key_path_var == "KALSHI_PRIVATE_KEY_PATH" else " (or KALSHI_PRIVATE_KEY_PATH)"
+    )
+    key_b64_fallback = (
+        "" if private_key_b64_var == "KALSHI_PRIVATE_KEY_B64" else " (or KALSHI_PRIVATE_KEY_B64)"
+    )
+
+    if not key_id:
+        pytest.skip(f"Set {key_id_var}{key_id_fallback} to run live E2E tests")
+    if not private_key_path and not private_key_b64:
+        pytest.skip(
+            f"Set {private_key_path_var}{key_path_fallback} "
+            f"or {private_key_b64_var}{key_b64_fallback} to run live E2E tests"
+        )
 
     client = KalshiClient(
         key_id=key_id,

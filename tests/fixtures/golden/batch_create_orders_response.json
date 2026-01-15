@@ -1,0 +1,79 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-14T20:18:17.561422+00:00",
+    "endpoint": "batch_create_orders",
+    "environment": "demo",
+    "sanitized": true,
+    "ticker": "KXEXAMPLE-2FC7AAE94801",
+    "orders": 2,
+    "note": "RAW API response (SSOT) - demo batch create; Sensitive data replaced with example values"
+  },
+  "response": {
+    "orders": [
+      {
+        "client_order_id": null,
+        "error": null,
+        "order": {
+          "action": "buy",
+          "client_order_id": "e56918f3-afcf-523d-a274-6f864b2e6ad6",
+          "created_time": "2026-01-14T20:18:17.546884Z",
+          "expiration_time": null,
+          "fill_count": 0,
+          "initial_count": 1,
+          "last_update_time": "2026-01-14T20:18:17.546884Z",
+          "maker_fees": 0,
+          "maker_fill_cost": 0,
+          "maker_fill_cost_dollars": "0.0000",
+          "no_price": 70,
+          "no_price_dollars": "0.7000",
+          "order_group_id": null,
+          "order_id": "75e4b250-a081-5ff5-bc2f-c0e413507c2e",
+          "queue_position": 0,
+          "remaining_count": 1,
+          "side": "yes",
+          "status": "resting",
+          "taker_fees": 0,
+          "taker_fill_cost": 0,
+          "taker_fill_cost_dollars": "0.0000",
+          "ticker": "KXEXAMPLE-2FC7AAE94801",
+          "type": "limit",
+          "user_id": "ced4b67b-1cce-5559-b529-c2381230d66a",
+          "yes_price": 30,
+          "yes_price_dollars": "0.3000"
+        }
+      },
+      {
+        "client_order_id": null,
+        "error": null,
+        "order": {
+          "action": "buy",
+          "client_order_id": "31187d69-e442-5ec4-a7e1-9b27aa560a62",
+          "created_time": "2026-01-14T20:18:17.548785Z",
+          "expiration_time": null,
+          "fill_count": 0,
+          "initial_count": 1,
+          "last_update_time": "2026-01-14T20:18:17.548785Z",
+          "maker_fees": 0,
+          "maker_fill_cost": 0,
+          "maker_fill_cost_dollars": "0.0000",
+          "no_price": 70,
+          "no_price_dollars": "0.7000",
+          "order_group_id": null,
+          "order_id": "1faa2497-2c25-5ead-b505-80ba05285841",
+          "queue_position": 0,
+          "remaining_count": 1,
+          "side": "yes",
+          "status": "resting",
+          "taker_fees": 0,
+          "taker_fill_cost": 0,
+          "taker_fill_cost_dollars": "0.0000",
+          "ticker": "KXEXAMPLE-2FC7AAE94801",
+          "type": "limit",
+          "user_id": "ced4b67b-1cce-5559-b529-c2381230d66a",
+          "yes_price": 30,
+          "yes_price_dollars": "0.3000"
+        }
+      }
+    ]
+  }
+}

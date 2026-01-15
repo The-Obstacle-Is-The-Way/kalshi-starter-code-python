@@ -127,14 +127,20 @@ uv run kalshi data stats
 ### Configure Authentication (for Portfolio)
 
 ```bash
-# Set environment variables
-export KALSHI_KEY_ID="your-key-id"
-export KALSHI_PRIVATE_KEY_PATH="/path/to/private-key.pem"
-# OR use base64-encoded key:
-export KALSHI_PRIVATE_KEY_B64="base64-encoded-key"
+# Optional: set environment
+export KALSHI_ENVIRONMENT="demo"  # or "prod"
 
-# Optional: Set environment
-export KALSHI_ENVIRONMENT="prod"  # or "demo"
+# Prod creds (used when KALSHI_ENVIRONMENT=prod)
+export KALSHI_KEY_ID="your-prod-key-id"
+export KALSHI_PRIVATE_KEY_PATH="/path/to/prod_private_key.pem"
+# OR use base64-encoded key:
+export KALSHI_PRIVATE_KEY_B64="base64-encoded-prod-key"
+
+# Demo creds (preferred when KALSHI_ENVIRONMENT=demo; falls back to prod vars)
+export KALSHI_DEMO_KEY_ID="your-demo-key-id"
+export KALSHI_DEMO_PRIVATE_KEY_PATH="/path/to/demo_private_key.pem"
+# OR use base64-encoded key:
+export KALSHI_DEMO_PRIVATE_KEY_B64="base64-encoded-demo-key"
 ```
 
 ---

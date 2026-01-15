@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
+from kalshi_research.api.models.error import ErrorResponse  # noqa: TC001
+
 
 class PortfolioBalance(BaseModel):
     """Response from GET /portfolio/balance."""
@@ -320,3 +322,91 @@ class CancelOrderResponse(BaseModel):
 
     reduced_by: int | None = None
     """Number of contracts that were canceled (may be absent)."""
+
+
+class GetOrderResponse(BaseModel):
+    """Response from GET /portfolio/orders/{order_id}."""
+
+    model_config = ConfigDict(frozen=True)
+
+    order: Order
+    """The requested order."""
+
+
+class BatchCreateOrdersIndividualResponse(BaseModel):
+    """Per-order result from POST /portfolio/orders/batched."""
+
+    model_config = ConfigDict(frozen=True)
+
+    client_order_id: str | None = None
+    order: Order | None = None
+    error: ErrorResponse | None = None
+
+
+class BatchCreateOrdersResponse(BaseModel):
+    """Response from POST /portfolio/orders/batched."""
+
+    model_config = ConfigDict(frozen=True)
+
+    orders: list[BatchCreateOrdersIndividualResponse]
+
+
+class BatchCancelOrdersIndividualResponse(BaseModel):
+    """Per-order result from DELETE /portfolio/orders/batched."""
+
+    model_config = ConfigDict(frozen=True)
+
+    order_id: str
+    reduced_by: int
+    order: Order | None = None
+    error: ErrorResponse | None = None
+
+
+class BatchCancelOrdersResponse(BaseModel):
+    """Response from DELETE /portfolio/orders/batched."""
+
+    model_config = ConfigDict(frozen=True)
+
+    orders: list[BatchCancelOrdersIndividualResponse]
+
+
+class DecreaseOrderResponse(BaseModel):
+    """Response from POST /portfolio/orders/{order_id}/decrease."""
+
+    model_config = ConfigDict(frozen=True)
+
+    order: Order
+
+
+class GetOrderQueuePositionResponse(BaseModel):
+    """Response from GET /portfolio/orders/{order_id}/queue_position."""
+
+    model_config = ConfigDict(frozen=True)
+
+    queue_position: int
+
+
+class OrderQueuePosition(BaseModel):
+    """Queue position for a single resting order (OpenAPI OrderQueuePosition)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    order_id: str
+    market_ticker: str
+    queue_position: int
+
+
+class GetOrderQueuePositionsResponse(BaseModel):
+    """Response from GET /portfolio/orders/queue_positions."""
+
+    model_config = ConfigDict(frozen=True)
+
+    queue_positions: list[OrderQueuePosition]
+
+
+class GetPortfolioRestingOrderTotalValueResponse(BaseModel):
+    """Response from GET /portfolio/summary/total_resting_order_value."""
+
+    model_config = ConfigDict(frozen=True)
+
+    total_resting_order_value: int

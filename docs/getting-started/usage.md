@@ -295,6 +295,11 @@ The CLI loads `.env` automatically. Configure:
 - `KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`
 - `KALSHI_ENVIRONMENT` (`demo` or `prod`; defaults to `prod` if unset; invalid values exit with an error)
 
+Optional (recommended if you keep both demo + prod keys in one `.env`):
+
+- `KALSHI_DEMO_KEY_ID`
+- `KALSHI_DEMO_PRIVATE_KEY_PATH` or `KALSHI_DEMO_PRIVATE_KEY_B64`
+
 ### Balance
 
 ```bash

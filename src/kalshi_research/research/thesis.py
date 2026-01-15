@@ -190,6 +190,7 @@ class Thesis:
 
     @staticmethod
     def _parse_datetime(value: object) -> datetime | None:
+        """Parse an ISO-8601 datetime string into a `datetime` (or return `None`)."""
         if isinstance(value, str) and value:
             try:
                 return datetime.fromisoformat(value)
