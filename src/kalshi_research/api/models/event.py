@@ -8,6 +8,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from kalshi_research.api.models.market import Market  # noqa: TC001
+from kalshi_research.api.models.series import SettlementSource  # noqa: TC001
 
 
 class Event(BaseModel):
@@ -39,3 +40,24 @@ class Event(BaseModel):
         if value in ("", None):
             return None
         return value
+
+
+class MarketMetadata(BaseModel):
+    """Per-market metadata from `GET /events/{event_ticker}/metadata`."""
+
+    model_config = ConfigDict(frozen=True)
+
+    market_ticker: str
+    image_url: str
+    color_code: str
+
+
+class EventMetadataResponse(BaseModel):
+    """Response schema for `GET /events/{event_ticker}/metadata`."""
+
+    model_config = ConfigDict(frozen=True)
+
+    image_url: str
+    featured_image_url: str | None = None
+    market_details: list[MarketMetadata]
+    settlement_sources: list[SettlementSource]

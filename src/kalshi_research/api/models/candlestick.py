@@ -78,3 +78,19 @@ class CandlestickResponse(BaseModel):
 
     market_ticker: str
     candlesticks: list[Candlestick]
+
+
+class EventCandlesticksResponse(BaseModel):
+    """Response schema for `GET /series/{series_ticker}/events/{event_ticker}/candlesticks`."""
+
+    model_config = ConfigDict(frozen=True)
+
+    adjusted_end_ts: int = Field(..., description="Adjusted end timestamp (Unix seconds).")
+    market_tickers: list[str] = Field(
+        ...,
+        description="Market tickers aligned with market_candlesticks.",
+    )
+    market_candlesticks: list[list[Candlestick]] = Field(
+        ...,
+        description="Candlestick arrays aligned with market_tickers by index.",
+    )

@@ -1,0 +1,27 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T01:31:11.024936+00:00",
+    "endpoint": "structured_target_single",
+    "environment": "prod",
+    "sanitized": false,
+    "structured_target_id": "0002acd4-bc08-4ee6-9a89-be6051b21a2c",
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "structured_target": {
+      "details": {
+        "abbreviation": "HOL",
+        "country": "USA",
+        "first_name": "Kevin",
+        "gender": "male",
+        "last_name": "Holland",
+        "record": "0-0-0"
+      },
+      "id": "0002acd4-bc08-4ee6-9a89-be6051b21a2c",
+      "last_updated_ts": "2025-10-14T16:18:22.010322Z",
+      "name": "Kevin Holland",
+      "source_id": "sr:competitor:542073",
+      "type": "ufc_competitor"
+    }
+  }
+}

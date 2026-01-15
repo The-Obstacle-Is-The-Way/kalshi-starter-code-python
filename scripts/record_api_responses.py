@@ -152,6 +152,24 @@ def _extract_first_series_ticker(raw_series_list: dict[str, Any]) -> str | None:
     return ticker
 
 
+def _extract_first_structured_target_id(raw_structured_targets: dict[str, Any]) -> str | None:
+    targets = (
+        raw_structured_targets.get("structured_targets")
+        or raw_structured_targets.get("targets")
+        or raw_structured_targets.get("items")
+    )
+    if not isinstance(targets, list) or not targets:
+        return None
+    first = targets[0]
+    if not isinstance(first, dict):
+        return None
+    for key in ("structured_target_id", "id"):
+        value = first.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
 def _batch_candlesticks_has_data(raw_batch: dict[str, Any]) -> bool:
     markets = raw_batch.get("markets")
     if not isinstance(markets, list) or not markets:
@@ -166,6 +184,14 @@ def _batch_candlesticks_has_data(raw_batch: dict[str, Any]) -> bool:
 def _series_candlesticks_has_data(raw_series: dict[str, Any]) -> bool:
     candlesticks = raw_series.get("candlesticks")
     return isinstance(candlesticks, list) and len(candlesticks) > 0
+
+
+def _event_candlesticks_has_data(raw_event_candlesticks: dict[str, Any]) -> bool:
+    market_candlesticks = raw_event_candlesticks.get("market_candlesticks")
+    if not isinstance(market_candlesticks, list) or not market_candlesticks:
+        return False
+    first = market_candlesticks[0]
+    return isinstance(first, list) and len(first) > 0
 
 
 async def _record_public_get(
@@ -586,6 +612,123 @@ async def record_public_endpoints() -> dict[str, Any]:
             raw_tags_by_categories=raw_tags_by_categories,
             results=results,
         )
+
+    return results
+
+
+async def record_phase3_discovery_endpoints() -> dict[str, Any]:
+    """Record responses for SPEC-040 Phase 3 discovery endpoints."""
+    results: dict[str, Any] = {}
+
+    async with KalshiPublicClient() as client:
+        print("\n=== PHASE 3 DISCOVERY ENDPOINTS ===\n")
+
+        raw_events = await client._get("/events", params={"limit": 5})
+        first_event_ticker = _extract_first_event_ticker(raw_events)
+        series_ticker: str | None = None
+
+        events = raw_events.get("events")
+        if first_event_ticker and isinstance(events, list) and events:
+            first_event = events[0]
+            if isinstance(first_event, dict):
+                series_ticker_raw = first_event.get("series_ticker")
+                series_ticker = series_ticker_raw if isinstance(series_ticker_raw, str) else None
+
+        if not first_event_ticker or not series_ticker:
+            print("  ERROR: Could not extract event_ticker + series_ticker from GET /events")
+            return results
+
+        await _record_public_get(
+            client,
+            label=f"GET /events/{first_event_ticker}/metadata (RAW)",
+            path=f"/events/{first_event_ticker}/metadata",
+            save_as="event_metadata",
+            metadata={"event_ticker": first_event_ticker, "note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
+        now_ts = int(datetime.now(UTC).timestamp())
+        start_ts_short = now_ts - 90 * 24 * 60 * 60
+        start_ts_long = now_ts - 365 * 24 * 60 * 60
+
+        raw_event_candles = await _record_public_get(
+            client,
+            label=f"GET /series/{series_ticker}/events/{first_event_ticker}/candlesticks (RAW)",
+            path=f"/series/{series_ticker}/events/{first_event_ticker}/candlesticks",
+            params={
+                "period_interval": 1440,
+                "start_ts": start_ts_short,
+                "end_ts": now_ts,
+            },
+            save_as="event_candlesticks",
+            metadata={
+                "series_ticker": series_ticker,
+                "event_ticker": first_event_ticker,
+                "start_ts": start_ts_short,
+                "end_ts": now_ts,
+                "period_interval": 1440,
+                "note": "RAW API response (SSOT) - daily candles (90d)",
+            },
+            results=results,
+        )
+
+        if raw_event_candles is not None and not _event_candlesticks_has_data(raw_event_candles):
+            await _record_public_get(
+                client,
+                label=(
+                    f"GET /series/{series_ticker}/events/{first_event_ticker}/candlesticks "
+                    "(RAW, retry 365d)"
+                ),
+                path=f"/series/{series_ticker}/events/{first_event_ticker}/candlesticks",
+                params={
+                    "period_interval": 1440,
+                    "start_ts": start_ts_long,
+                    "end_ts": now_ts,
+                },
+                save_as="event_candlesticks",
+                metadata={
+                    "series_ticker": series_ticker,
+                    "event_ticker": first_event_ticker,
+                    "start_ts": start_ts_long,
+                    "end_ts": now_ts,
+                    "period_interval": 1440,
+                    "note": "RAW API response (SSOT) - daily candles (365d retry)",
+                },
+                results=results,
+            )
+
+        await _record_public_get(
+            client,
+            label="GET /search/filters_by_sport (RAW)",
+            path="/search/filters_by_sport",
+            save_as="filters_by_sport",
+            metadata={"note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
+        raw_structured_targets = await _record_public_get(
+            client,
+            label="GET /structured_targets (RAW)",
+            path="/structured_targets",
+            params={"page_size": 5},
+            save_as="structured_targets_list",
+            metadata={"page_size": 5, "note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
+        structured_target_id = _extract_first_structured_target_id(raw_structured_targets or {})
+        if structured_target_id:
+            await _record_public_get(
+                client,
+                label=f"GET /structured_targets/{structured_target_id} (RAW)",
+                path=f"/structured_targets/{structured_target_id}",
+                save_as="structured_target_single",
+                metadata={
+                    "structured_target_id": structured_target_id,
+                    "note": "RAW API response (SSOT)",
+                },
+                results=results,
+            )
 
     return results
 
@@ -1054,7 +1197,7 @@ async def main() -> None:
     )
     parser.add_argument(
         "--endpoint",
-        choices=["public", "authenticated", "order_ops", "all"],
+        choices=["public", "phase3", "authenticated", "order_ops", "all"],
         default="all",
         help="Which endpoints to record",
     )
@@ -1107,6 +1250,9 @@ async def main() -> None:
 
     if args.endpoint in ("public", "all"):
         all_results["public"] = await record_public_endpoints()
+
+    if args.endpoint in ("phase3", "all"):
+        all_results["phase3"] = await record_phase3_discovery_endpoints()
 
     if args.endpoint in ("authenticated", "all"):
         all_results["authenticated"] = await record_authenticated_endpoints(

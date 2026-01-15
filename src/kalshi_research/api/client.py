@@ -17,8 +17,12 @@ from tenacity import (
 from kalshi_research.api.auth import KalshiAuth
 from kalshi_research.api.config import APIConfig, Environment, get_config
 from kalshi_research.api.exceptions import KalshiAPIError, RateLimitError
-from kalshi_research.api.models.candlestick import Candlestick, CandlestickResponse
-from kalshi_research.api.models.event import Event
+from kalshi_research.api.models.candlestick import (
+    Candlestick,
+    CandlestickResponse,
+    EventCandlesticksResponse,
+)
+from kalshi_research.api.models.event import Event, EventMetadataResponse
 from kalshi_research.api.models.market import Market, MarketFilterStatus
 from kalshi_research.api.models.order import (
     CreateOrderRequest,
@@ -44,13 +48,18 @@ from kalshi_research.api.models.portfolio import (
     PortfolioPosition,
     SettlementPage,
 )
-from kalshi_research.api.models.search import TagsByCategoriesResponse
+from kalshi_research.api.models.search import FiltersBySportsResponse, TagsByCategoriesResponse
 from kalshi_research.api.models.series import (
     Series,
     SeriesFeeChange,
     SeriesFeeChangesResponse,
     SeriesListResponse,
     SeriesResponse,
+)
+from kalshi_research.api.models.structured_target import (
+    StructuredTarget,
+    StructuredTargetResponse,
+    StructuredTargetsListResponse,
 )
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.api.rate_limiter import RateLimiter, RateTier
@@ -539,6 +548,42 @@ class KalshiPublicClient:
         data = await self._get(f"/events/{event_ticker}")
         return Event.model_validate(data["event"])
 
+    async def get_event_metadata(self, event_ticker: str) -> EventMetadataResponse:
+        """Fetch event metadata for richer event context."""
+        data = await self._get(f"/events/{event_ticker}/metadata")
+        return EventMetadataResponse.model_validate(data)
+
+    async def get_event_candlesticks(
+        self,
+        *,
+        series_ticker: str,
+        event_ticker: str,
+        start_ts: int | None = None,
+        end_ts: int | None = None,
+        period_interval: int = 60,
+    ) -> EventCandlesticksResponse:
+        """
+        Fetch event-level candlestick data (multiple markets aligned by index).
+
+        Args:
+            series_ticker: Parent series ticker.
+            event_ticker: Event ticker.
+            start_ts: Optional start timestamp (Unix seconds).
+            end_ts: Optional end timestamp (Unix seconds).
+            period_interval: Candle period in minutes (1, 60, or 1440).
+        """
+        params: dict[str, Any] = {"period_interval": period_interval}
+        if start_ts is not None:
+            params["start_ts"] = start_ts
+        if end_ts is not None:
+            params["end_ts"] = end_ts
+
+        data = await self._get(
+            f"/series/{series_ticker}/events/{event_ticker}/candlesticks",
+            params,
+        )
+        return EventCandlesticksResponse.model_validate(data)
+
     async def get_multivariate_events_page(
         self,
         limit: int = 200,
@@ -613,6 +658,44 @@ class KalshiPublicClient:
             category: (tags if tags is not None else [])
             for category, tags in parsed.tags_by_categories.items()
         }
+
+    async def get_filters_by_sport(self) -> FiltersBySportsResponse:
+        """Fetch sport-specific filters for discovery UIs."""
+        data = await self._get("/search/filters_by_sport")
+        return FiltersBySportsResponse.model_validate(data)
+
+    async def get_structured_targets(
+        self,
+        *,
+        structured_target_type: str | None = None,
+        competition: str | None = None,
+        page_size: int = 100,
+        cursor: str | None = None,
+    ) -> StructuredTargetsListResponse:
+        """
+        List structured targets (sports props discovery helper).
+
+        Args:
+            structured_target_type: Optional structured target type filter (sent as `type`).
+            competition: Optional competition filter (e.g., NFL, NBA).
+            page_size: Page size (1-2000, default 100).
+            cursor: Pagination cursor.
+        """
+        params: dict[str, Any] = {"page_size": max(1, min(page_size, 2000))}
+        if structured_target_type is not None:
+            params["type"] = structured_target_type
+        if competition is not None:
+            params["competition"] = competition
+        if cursor is not None:
+            params["cursor"] = cursor
+
+        data = await self._get("/structured_targets", params)
+        return StructuredTargetsListResponse.model_validate(data)
+
+    async def get_structured_target(self, structured_target_id: str) -> StructuredTarget:
+        """Fetch a single structured target by ID."""
+        data = await self._get(f"/structured_targets/{structured_target_id}")
+        return StructuredTargetResponse.model_validate(data).structured_target
 
     async def get_series_list(
         self,
