@@ -8,9 +8,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import respx
 from httpx import Response
+from pydantic import ValidationError
 
 from kalshi_research.api.client import KalshiClient, KalshiPublicClient
-from kalshi_research.api.exceptions import RateLimitError
+from kalshi_research.api.exceptions import KalshiAPIError, RateLimitError
 from kalshi_research.api.models.multivariate import TickerPair
 from tests.golden_fixtures import load_golden_response
 
@@ -66,6 +67,25 @@ class TestMultivariateEventCollectionsPhase5:
         assert request_params["series_ticker"] == series_ticker
         assert request_params["limit"] == "5"
         assert request_params["cursor"] == "cursor"
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_multivariate_event_collections_omits_optional_params(self) -> None:
+        response_json = load_golden_response("multivariate_event_collections_list_response.json")
+        route = respx.get(
+            "https://api.elections.kalshi.com/trade-api/v2/multivariate_event_collections"
+        ).mock(return_value=Response(200, json=response_json))
+
+        async with KalshiPublicClient() as client:
+            await client.get_multivariate_event_collections(limit=999)
+
+        assert route.called
+        request_params = route.calls[0].request.url.params
+        assert request_params["limit"] == "200"
+        assert "status" not in request_params
+        assert "associated_event_ticker" not in request_params
+        assert "series_ticker" not in request_params
+        assert "cursor" not in request_params
 
     @pytest.mark.asyncio
     @respx.mock
@@ -173,3 +193,119 @@ class TestMultivariateEventCollectionsPhase5:
 
         assert route.called
         assert exc_info.value.retry_after == 2
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_lookup_multivariate_event_collection_tickers_429_invalid_retry_after(
+        self, mock_auth: None
+    ) -> None:
+        collection_ticker = "KXMV-EXAMPLE"
+        route = respx.put(
+            f"https://api.elections.kalshi.com/trade-api/v2/multivariate_event_collections/{collection_ticker}/lookup"
+        ).mock(return_value=Response(429, text="rate limit", headers={"Retry-After": "abc"}))
+
+        async with KalshiClient(
+            key_id="test-key", private_key_b64="fake", environment="prod", max_retries=1
+        ) as client:
+            client._rate_limiter = AsyncMock()
+            with pytest.raises(RateLimitError) as exc_info:
+                await client.lookup_multivariate_event_collection_tickers(
+                    collection_ticker=collection_ticker,
+                    selected_markets=[
+                        TickerPair(
+                            market_ticker="KXTEST-MKT1",
+                            event_ticker="KXTEST-EVT1",
+                            side="yes",
+                        )
+                    ],
+                )
+
+        assert route.called
+        assert exc_info.value.retry_after is None
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_lookup_multivariate_event_collection_tickers_500_raises(
+        self, mock_auth: None
+    ) -> None:
+        collection_ticker = "KXMV-EXAMPLE"
+        route = respx.put(
+            f"https://api.elections.kalshi.com/trade-api/v2/multivariate_event_collections/{collection_ticker}/lookup"
+        ).mock(return_value=Response(500, text="internal error"))
+
+        async with KalshiClient(
+            key_id="test-key", private_key_b64="fake", environment="prod", max_retries=1
+        ) as client:
+            client._rate_limiter = AsyncMock()
+            with pytest.raises(KalshiAPIError) as exc_info:
+                await client.lookup_multivariate_event_collection_tickers(
+                    collection_ticker=collection_ticker,
+                    selected_markets=[
+                        TickerPair(
+                            market_ticker="KXTEST-MKT1",
+                            event_ticker="KXTEST-EVT1",
+                            side="yes",
+                        )
+                    ],
+                )
+
+        assert route.called
+        assert exc_info.value.status_code == 500
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_lookup_multivariate_event_collection_tickers_unexpected_shape_raises(
+        self, mock_auth: None
+    ) -> None:
+        collection_ticker = "KXMV-EXAMPLE"
+        route = respx.put(
+            f"https://api.elections.kalshi.com/trade-api/v2/multivariate_event_collections/{collection_ticker}/lookup"
+        ).mock(return_value=Response(200, json=[]))
+
+        async with KalshiClient(
+            key_id="test-key", private_key_b64="fake", environment="prod", max_retries=1
+        ) as client:
+            client._rate_limiter = AsyncMock()
+            with pytest.raises(
+                KalshiAPIError, match="Unexpected multivariate lookup response shape"
+            ):
+                await client.lookup_multivariate_event_collection_tickers(
+                    collection_ticker=collection_ticker,
+                    selected_markets=[
+                        TickerPair(
+                            market_ticker="KXTEST-MKT1",
+                            event_ticker="KXTEST-EVT1",
+                            side="yes",
+                        )
+                    ],
+                )
+
+        assert route.called
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_lookup_multivariate_event_collection_tickers_empty_body_raises_validation_error(
+        self, mock_auth: None
+    ) -> None:
+        collection_ticker = "KXMV-EXAMPLE"
+        route = respx.put(
+            f"https://api.elections.kalshi.com/trade-api/v2/multivariate_event_collections/{collection_ticker}/lookup"
+        ).mock(return_value=Response(200, content=b""))
+
+        async with KalshiClient(
+            key_id="test-key", private_key_b64="fake", environment="prod", max_retries=1
+        ) as client:
+            client._rate_limiter = AsyncMock()
+            with pytest.raises(ValidationError):
+                await client.lookup_multivariate_event_collection_tickers(
+                    collection_ticker=collection_ticker,
+                    selected_markets=[
+                        TickerPair(
+                            market_ticker="KXTEST-MKT1",
+                            event_ticker="KXTEST-EVT1",
+                            side="yes",
+                        )
+                    ],
+                )
+
+        assert route.called
