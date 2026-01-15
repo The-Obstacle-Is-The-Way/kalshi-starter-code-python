@@ -1,19 +1,21 @@
 # DEBT-015: Missing API Endpoints
 
 **Priority:** P3 (Nice-to-have - critical paths complete)
-**Status:** ✅ Resolved (All 4 Phases Complete)
+**Status:** 🟡 Open (Phase 5 decision pending)
 **Found:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
-**Updated:** 2026-01-15 - All 4 phases complete via SPEC-040
+**Updated:** 2026-01-15 - Phases 1-4 complete; Phase 5 audit in progress
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---
 
 ## Summary
 
-The Kalshi API client was missing 45+ documented endpoints. **All 4 phases are now complete (47/74 = 64% coverage).**
+The Kalshi API client was missing 45+ documented endpoints. **Phases 1-4 are complete (47/74 = 64% coverage).**
 
-All critical paths resolved:
+Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** evaluates each for solo-trader usefulness.
+
+**Completed:**
 - ~~Category/tag discovery (proper market browsing)~~ ✅ DONE
 - ~~Series-based filtering (Kalshi's intended pattern)~~ ✅ DONE
 - ~~Batch order operations~~ ✅ DONE (SPEC-040 Phase 2)
@@ -21,13 +23,93 @@ All critical paths resolved:
 - ~~Event metadata, structured targets, sports filters~~ ✅ DONE (SPEC-040 Phase 3)
 - ~~Order groups (batch management)~~ ✅ DONE (SPEC-040 Phase 4)
 - ~~Live data feeds~~ ✅ DONE (SPEC-040 Phase 4)
-- RFQ system (large block trades) - NOT PLANNED (institutional only)
 
 **Status update (2026-01-15):**
 - ✅ **SPEC-040 Phase 1 Complete**: Market filter parameters (`tickers`, timestamp filters)
 - ✅ **SPEC-040 Phase 2 Complete**: Order operations (batch create/cancel, get order, decrease, queue positions, resting value)
 - ✅ **SPEC-040 Phase 3 Complete**: Discovery endpoints (event metadata, event candlesticks, filters by sport, structured targets)
 - ✅ **SPEC-040 Phase 4 Complete**: Operational endpoints (exchange info, milestones, live data, order groups, incentive programs)
+- 🔲 **Phase 5 (Decision)**: Remaining endpoints evaluated below
+
+---
+
+## Phase 5: Remaining Endpoints Decision Matrix
+
+**Use case:** Solo trader, full personal functionality, NOT a production service for others.
+
+### Multivariate Event Collections (5 endpoints) - ⚠️ RECONSIDER
+
+| Endpoint | Auth | Solo-Trader Value |
+|----------|------|-------------------|
+| `GET /multivariate_event_collections` | No | **HIGH** - List available combo markets |
+| `GET /multivariate_event_collections/{ticker}` | Yes | **MEDIUM** - View combo details |
+| `POST /multivariate_event_collections/{ticker}` | Yes | **LOW** - Create combos (advanced) |
+| `GET /multivariate_event_collections/{ticker}/lookup` | Yes | **MEDIUM** - Map ticker→combo |
+| `PUT /multivariate_event_collections/{ticker}/lookup` | Yes | **LOW** - Update mappings |
+
+**Why reconsider:** NOT just sports parlays! Can combine ANY events:
+- "Fed raises rates AND inflation stays above 3%"
+- "Bitcoin > $100k AND S&P > 5000"
+- Political event combinations
+
+**Recommendation:** Implement **LIST** (public) + **GET details** (auth). Skip create/update.
+
+### Subaccounts (4 endpoints) - ⚠️ POTENTIALLY USEFUL
+
+| Endpoint | Auth | Solo-Trader Value |
+|----------|------|-------------------|
+| `POST /portfolio/subaccounts` | Yes | **MEDIUM** - Create subaccount |
+| `GET /portfolio/subaccounts/balances` | Yes | **HIGH** - View all balances |
+| `POST /portfolio/subaccounts/transfer` | Yes | **MEDIUM** - Move funds |
+| `GET /portfolio/subaccounts/transfers` | Yes | **LOW** - Transfer history |
+
+**Why potentially useful:** Capital segmentation for a solo trader:
+- "Thesis A fund" vs "Thesis B fund"
+- Track different strategies separately
+- Up to 32 subaccounts available
+
+**Recommendation:** Implement if you want strategy isolation. Skip if single-strategy.
+
+### Forecast Percentile History (1 endpoint) - 🤔 OPTIONAL
+
+| Endpoint | Auth | Solo-Trader Value |
+|----------|------|-------------------|
+| `GET /series/{s}/events/{e}/forecast_percentile_history` | Yes | **LOW-MEDIUM** |
+
+**Why:** Shows historical forecast accuracy for events. Research value but not critical.
+
+**Recommendation:** Skip for now, add if research needs arise.
+
+### RFQ / Communications (11 endpoints) - ❌ SKIP
+
+**Why skip:** Large block trades (1000+ contracts). Institutional feature. Unless you're trading very large positions, the orderbook is sufficient.
+
+### API Keys (4 endpoints) - ❌ SKIP
+
+**Why skip:** Security risk. Better managed via web UI where you have 2FA protection.
+
+### FCM (2 endpoints) - ❌ SKIP
+
+**Why skip:** Futures Commission Merchant endpoints. Institutional clearing members only. Not applicable to retail traders.
+
+---
+
+## Phase 5 Implementation Recommendation
+
+**Implement (HIGH value for solo trader):**
+1. `GET /multivariate_event_collections` - List combo markets
+2. `GET /multivariate_event_collections/{ticker}` - View combo details
+
+**Consider (MEDIUM value, depends on workflow):**
+3. Subaccount endpoints (if you want capital segmentation)
+4. `GET /multivariate_event_collections/{ticker}/lookup` - Ticker mapping
+
+**Skip (LOW value / inappropriate for solo retail):**
+- RFQ system (11 endpoints) - institutional
+- API Keys (4 endpoints) - security risk
+- FCM (2 endpoints) - institutional
+- Forecast history (1 endpoint) - nice-to-have only
+- Multivariate create/update (2 endpoints) - advanced feature
 
 ---
 
