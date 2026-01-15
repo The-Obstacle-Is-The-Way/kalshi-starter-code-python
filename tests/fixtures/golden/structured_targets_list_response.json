@@ -1,0 +1,103 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T01:31:10.977773+00:00",
+    "endpoint": "structured_targets_list",
+    "environment": "prod",
+    "sanitized": false,
+    "page_size": 5,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "cursor": "00264ab8-507e-413c-9938-8f06425d3247",
+    "structured_targets": [
+      {
+        "details": {
+          "abbreviation": "HOL",
+          "country": "USA",
+          "first_name": "Kevin",
+          "gender": "male",
+          "last_name": "Holland",
+          "record": "0-0-0"
+        },
+        "id": "0002acd4-bc08-4ee6-9a89-be6051b21a2c",
+        "last_updated_ts": "2025-10-14T16:18:22.010322Z",
+        "name": "Kevin Holland",
+        "source_id": "sr:competitor:542073",
+        "type": "ufc_competitor"
+      },
+      {
+        "details": {
+          "abbreviation": "TFC",
+          "country": "FRA",
+          "gender": "male",
+          "short_name": "Toulouse"
+        },
+        "id": "00049ee0-cd95-4b49-b619-fcac66a3a697",
+        "last_updated_ts": "2025-11-05T21:01:42.211799Z",
+        "name": "Toulouse FC",
+        "source_id": "sr:competitor:1681",
+        "type": "soccer_team"
+      },
+      {
+        "details": {
+          "abbreviation": "DKC",
+          "conference": "CCW",
+          "league": "NCAAWB",
+          "market": "Dickinson College",
+          "season_standings": [
+            {
+              "conference_losses": 0,
+              "conference_wins": 0,
+              "division_losses": 0,
+              "division_wins": 0,
+              "home_losses": 0,
+              "home_wins": 0,
+              "losses": 0,
+              "rank": {
+                "clinched": "",
+                "conference": "",
+                "division": ""
+              },
+              "road_losses": 0,
+              "road_wins": 0,
+              "season_type": "REG",
+              "wins": 0,
+              "year": 2025
+            }
+          ],
+          "team_name": "Red Devils"
+        },
+        "id": "000a1245-35ca-4185-865d-3f81c3ef3962",
+        "last_updated_ts": "2025-10-28T01:04:58.662799Z",
+        "name": "Dickinson College",
+        "source_id": "e8fe477e-4d81-4953-90f2-0a2be9a11c67",
+        "type": "basketball_team"
+      },
+      {
+        "details": {
+          "abbreviation": "BRU",
+          "country": "BEL",
+          "gender": "male",
+          "short_name": "Club Brugge"
+        },
+        "id": "000d32b0-159a-4977-8505-80dcd3d7898b",
+        "last_updated_ts": "2025-11-05T21:02:14.804756Z",
+        "name": "Club Brugge",
+        "source_id": "sr:competitor:2888",
+        "type": "soccer_team"
+      },
+      {
+        "details": {
+          "country": "ESTONIA",
+          "first_name": "Richard",
+          "last_name": "Teder"
+        },
+        "id": "002442c9-095d-456f-a866-3e7ee8171f51",
+        "last_updated_ts": "2025-07-23T15:53:00.757782Z",
+        "name": "Richard Teder",
+        "source_id": "002442c9-095d-456f-a866-3e7ee8171f51",
+        "type": "golf_competitor"
+      }
+    ]
+  }
+}

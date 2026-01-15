@@ -206,11 +206,13 @@ The Kalshi API client was missing 45+ documented endpoints. **Phases 1-2 are now
 
 **Implemented:** SPEC-040 Phase 2 (2026-01-14)
 
-### Phase 3: Discovery (P3) - 🔲 NOT STARTED
-- `GET /events/{event_ticker}/metadata`
-- `GET /structured_targets`, `GET /structured_targets/{id}`
-- `GET /search/filters_by_sport`
-- Event candlesticks, forecast percentile history
+### Phase 3: Discovery (P3) - ✅ COMPLETE (except optional auth-only forecast history)
+- ~~`GET /events/{event_ticker}/metadata`~~ ✅ `get_event_metadata()`
+- ~~`GET /structured_targets`~~ ✅ `get_structured_targets()`
+- ~~`GET /structured_targets/{structured_target_id}`~~ ✅ `get_structured_target()`
+- ~~`GET /search/filters_by_sport`~~ ✅ `get_filters_by_sport()`
+- ~~`GET /series/{series_ticker}/events/{event_ticker}/candlesticks`~~ ✅ `get_event_candlesticks()`
+- `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` 🔲 (auth required; optional)
 
 ### Phase 4: Operational (P3) - 🔲 NOT STARTED
 - Exchange schedule/announcements

@@ -104,7 +104,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
 | `GET /search/tags_by_categories` | ✅ | SPEC-037 Phase 1 | `get_tags_by_categories()` |
-| `GET /search/filters_by_sport` | 🔲 | SPEC-040 Phase 3 | P3 - sports-specific |
+| `GET /search/filters_by_sport` | ✅ | SPEC-040 Phase 3 | `get_filters_by_sport()` |
 
 ---
 
@@ -115,8 +115,8 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `GET /events` | ✅ | Done | `get_events()`, `get_all_events()` |
 | `GET /events/{event_ticker}` | ✅ | Done | `get_event()` |
 | `GET /events/multivariate` | ✅ | Done | `get_multivariate_events*()` (MVEs excluded from `/events`) |
-| `GET /events/{event_ticker}/metadata` | 🔲 | SPEC-040 Phase 3 | P3 |
-| `GET /series/{series_ticker}/events/{ticker}/candlesticks` | 🔲 | SPEC-040 Phase 3 | Event-level candlesticks |
+| `GET /events/{event_ticker}/metadata` | ✅ | SPEC-040 Phase 3 | `get_event_metadata()` |
+| `GET /series/{series_ticker}/events/{ticker}/candlesticks` | ✅ | SPEC-040 Phase 3 | `get_event_candlesticks()` |
 | `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | 🔲 | SPEC-040 Phase 3 | P3 - auth required |
 
 ---
@@ -125,8 +125,8 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
-| `GET /structured_targets` | 🔲 | SPEC-040 Phase 3 | P3 - sports props |
-| `GET /structured_targets/{structured_target_id}` | 🔲 | SPEC-040 Phase 3 | P3 |
+| `GET /structured_targets` | ✅ | SPEC-040 Phase 3 | `get_structured_targets()` |
+| `GET /structured_targets/{structured_target_id}` | ✅ | SPEC-040 Phase 3 | `get_structured_target()` |
 
 **Filter Parameters:**
 - `type` (e.g., `PLAYER_STATS`, `GAME_EVENT`)

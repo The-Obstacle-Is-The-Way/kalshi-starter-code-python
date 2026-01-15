@@ -33,9 +33,13 @@ from typing import TYPE_CHECKING, Annotated, Any, Final, get_args, get_origin
 
 from pydantic_core import PydanticUndefined
 
-from kalshi_research.api.models.candlestick import Candlestick, CandlestickResponse
+from kalshi_research.api.models.candlestick import (
+    Candlestick,
+    CandlestickResponse,
+    EventCandlesticksResponse,
+)
 from kalshi_research.api.models.error import ErrorResponse
-from kalshi_research.api.models.event import Event
+from kalshi_research.api.models.event import Event, EventMetadataResponse
 from kalshi_research.api.models.market import Market
 from kalshi_research.api.models.orderbook import Orderbook
 from kalshi_research.api.models.portfolio import (
@@ -51,8 +55,12 @@ from kalshi_research.api.models.portfolio import (
     PortfolioPosition,
     Settlement,
 )
-from kalshi_research.api.models.search import TagsByCategoriesResponse
+from kalshi_research.api.models.search import FiltersBySportsResponse, TagsByCategoriesResponse
 from kalshi_research.api.models.series import Series, SeriesFeeChangesResponse
+from kalshi_research.api.models.structured_target import (
+    StructuredTargetResponse,
+    StructuredTargetsListResponse,
+)
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.exa.models.answer import AnswerResponse
 from kalshi_research.exa.models.contents import ContentsResponse
@@ -86,9 +94,14 @@ MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
     "event_single_response.json": [("response.event", Event)],
     "events_list_response.json": [("response.events[0]", Event)],
     "events_multivariate_list_response.json": [("response.events[0]", Event)],
+    "event_metadata_response.json": [("response", EventMetadataResponse)],
+    "event_candlesticks_response.json": [("response", EventCandlesticksResponse)],
     # GET /markets/{ticker}/orderbook returns {"orderbook": {...}}
     "orderbook_response.json": [("response.orderbook", Orderbook)],
     # Note: exchange_status_response returns dict, not a model (skipped)
+    "filters_by_sport_response.json": [("response", FiltersBySportsResponse)],
+    "structured_targets_list_response.json": [("response", StructuredTargetsListResponse)],
+    "structured_target_single_response.json": [("response", StructuredTargetResponse)],
     # Portfolio endpoints
     "portfolio_balance_response.json": [("response", PortfolioBalance)],
     # GET /portfolio/positions returns market_positions + event_positions

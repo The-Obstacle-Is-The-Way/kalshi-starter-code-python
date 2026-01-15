@@ -1,0 +1,91 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T01:31:10.786146+00:00",
+    "endpoint": "event_metadata",
+    "environment": "prod",
+    "sanitized": false,
+    "event_ticker": "KXELONMARS-99",
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "featured_image_url": "",
+    "image_url": "https://kalshi-public-docs.s3.amazonaws.com/series-images-webp/KXELONMARS.webp",
+    "market_details": [
+      {
+        "color_code": "#AA00FF",
+        "image_url": "",
+        "market_ticker": "KXELONMARS-99"
+      }
+    ],
+    "settlement_sources": [
+      {
+        "name": "The Guardian",
+        "url": "https://www.theguardian.com"
+      },
+      {
+        "name": "local news outlets with verifiable mastheads in <area>",
+        "url": "https://kalshi.com/"
+      },
+      {
+        "name": "official social media accounts of <person> or their official representatives",
+        "url": "https://kalshi.com/"
+      },
+      {
+        "name": "official government sources of <area>",
+        "url": "https://kalshi.com/"
+      },
+      {
+        "name": "official representatives or offices of <person>",
+        "url": "https://kalshi.com/"
+      },
+      {
+        "name": "The New York Times",
+        "url": "https://www.nytimes.com"
+      },
+      {
+        "name": "the Associated Press",
+        "url": "https://www.ap.org"
+      },
+      {
+        "name": "Reuters",
+        "url": "https://www.reuters.com"
+      },
+      {
+        "name": "Politico",
+        "url": "https://www.politico.com"
+      },
+      {
+        "name": "Semafor",
+        "url": "https://www.semafor.com/"
+      },
+      {
+        "name": "The Information",
+        "url": "https://www.theinformation.com/"
+      },
+      {
+        "name": "The Washington Post",
+        "url": "https://www.wsj.com/"
+      },
+      {
+        "name": "The Wall Street Journal",
+        "url": "https://www.wsj.com"
+      },
+      {
+        "name": "CNN",
+        "url": "https://www.cnn.com"
+      },
+      {
+        "name": "Fox News",
+        "url": "https://www.foxnews.com/"
+      },
+      {
+        "name": "MSNBC",
+        "url": "https://www.msnbc.com"
+      },
+      {
+        "name": "CNBC",
+        "url": "https://www.cnbc.com"
+      }
+    ]
+  }
+}
