@@ -1,10 +1,10 @@
 # DEBT-015: Missing API Endpoints
 
-**Priority:** P3 (Nice-to-have - critical paths complete)
-**Status:** 🟡 Open (Phase 5 decision pending)
+**Priority:** P2 (Complete personal system)
+**Status:** 🟡 Open → SPEC-041 created
 **Found:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
-**Updated:** 2026-01-15 - Phases 1-4 complete; Phase 5 audit in progress
+**Updated:** 2026-01-15 - Phase 5 decision made, see [SPEC-041](../specs/SPEC-041-phase5-remaining-endpoints.md)
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---
