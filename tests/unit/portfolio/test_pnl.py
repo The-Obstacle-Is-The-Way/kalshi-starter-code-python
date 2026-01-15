@@ -2,6 +2,8 @@
 
 from datetime import UTC, datetime
 
+import pytest
+
 from kalshi_research.portfolio.models import Position, Trade
 from kalshi_research.portfolio.pnl import PnLCalculator, PnLSummary
 
@@ -86,6 +88,57 @@ class TestPnLCalculatorUnrealized:
 
 class TestPnLCalculatorRealized:
     """Tests for realized P&L calculation."""
+
+    def test_normalize_trade_rejects_invalid_side(self) -> None:
+        trade = Trade(
+            kalshi_trade_id="trade_invalid_side",
+            ticker="TEST-TICKER",
+            side="maybe",
+            action="buy",
+            quantity=1,
+            price_cents=50,
+            total_cost_cents=50,
+            fee_cents=0,
+            executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        with pytest.raises(ValueError, match="Trade side must be"):
+            PnLCalculator._normalize_trade_for_fifo(trade)
+
+    def test_normalize_trade_rejects_invalid_action(self) -> None:
+        trade = Trade(
+            kalshi_trade_id="trade_invalid_action",
+            ticker="TEST-TICKER",
+            side="yes",
+            action="hold",
+            quantity=1,
+            price_cents=50,
+            total_cost_cents=50,
+            fee_cents=0,
+            executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        with pytest.raises(ValueError, match="Trade action must be"):
+            PnLCalculator._normalize_trade_for_fifo(trade)
+
+    def test_normalize_trade_rejects_price_out_of_range(self) -> None:
+        trade = Trade(
+            kalshi_trade_id="trade_invalid_price",
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            quantity=1,
+            price_cents=101,
+            total_cost_cents=101,
+            fee_cents=0,
+            executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        with pytest.raises(ValueError, match="Trade price_cents must be"):
+            PnLCalculator._normalize_trade_for_fifo(trade)
 
     def test_summary_with_trades_skips_orphan_sells_instead_of_crashing(self) -> None:
         """BUG-058: Orphan sells (sell with no prior buys) must not crash the summary."""

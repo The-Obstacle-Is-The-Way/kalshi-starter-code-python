@@ -103,7 +103,7 @@ The Kalshi API client was missing 45+ documented endpoints. **Phases 1-2 are now
 
 **Impact:** ~~Medium~~ **Resolved** - All order operations implemented via SPEC-040 Phase 2 (2026-01-14)
 
-**Note:** Phase 2 fixtures are SYNTHETIC (demo auth unavailable). Client methods are tested against expected schema.
+**Note:** Phase 2 fixtures are recorded against the real demo API (including 403 fixtures where the endpoint is permissioned). Client methods are tested against expected schema.
 
 ### 7. Order Groups (5 endpoints) - P3
 
