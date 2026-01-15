@@ -1,30 +1,31 @@
 # DEBT-015: Missing API Endpoints
 
 **Priority:** P3 (Nice-to-have - critical paths complete)
-**Status:** Mostly Resolved (Phase 1-2 Complete)
+**Status:** Mostly Resolved (Phase 1-3 Complete)
 **Found:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
-**Updated:** 2026-01-14 - Phase 1 (Market Filters) + Phase 2 (Order Operations) complete via SPEC-040
+**Updated:** 2026-01-15 - Phase 3 (Discovery) complete via SPEC-040
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---
 
 ## Summary
 
-The Kalshi API client was missing 45+ documented endpoints. **Phases 1-2 are now complete (29/74 = 39% coverage).** Remaining gaps are P3 (nice-to-have):
+The Kalshi API client was missing 45+ documented endpoints. **Phases 1-3 are now complete (34/74 = 46% coverage).** Remaining gaps are P3 (nice-to-have):
 - ~~Category/tag discovery (proper market browsing)~~ ✅ DONE
 - ~~Series-based filtering (Kalshi's intended pattern)~~ ✅ DONE
 - ~~Batch order operations~~ ✅ DONE (SPEC-040 Phase 2)
 - ~~Queue position monitoring~~ ✅ DONE (SPEC-040 Phase 2)
+- ~~Event metadata, structured targets, sports filters~~ ✅ DONE (SPEC-040 Phase 3)
 - Order groups (batch management)
 - RFQ system (large block trades) - NOT PLANNED (institutional only)
 - Live data feeds
 
-**Status update (2026-01-14):**
+**Status update (2026-01-15):**
 - ✅ **SPEC-040 Phase 1 Complete**: Market filter parameters (`tickers`, timestamp filters)
 - ✅ **SPEC-040 Phase 2 Complete**: Order operations (batch create/cancel, get order, decrease, queue positions, resting value)
-- ✅ Implemented `GET /events/multivariate` (P2 critical) with unit tests + golden fixture
-- 🔲 Phase 3 (Discovery) and Phase 4 (Operational) remain for future work
+- ✅ **SPEC-040 Phase 3 Complete**: Discovery endpoints (event metadata, event candlesticks, filters by sport, structured targets)
+- 🔲 Phase 4 (Operational) remains for future work
 
 ---
 
