@@ -838,7 +838,9 @@ class KalshiPublicClient:
         """Fetch live data for 1-100 milestones."""
         if not milestone_ids or len(milestone_ids) > 100:
             raise ValueError("milestone_ids must contain 1-100 items")
-        data = await self._get("/live_data/batch", params={"milestone_ids": milestone_ids})
+        data = await self._get(
+            "/live_data/batch", params={"milestone_ids": ",".join(milestone_ids)}
+        )
         return LiveDataBatchResponse.model_validate(data).live_datas
 
     async def get_incentive_programs(

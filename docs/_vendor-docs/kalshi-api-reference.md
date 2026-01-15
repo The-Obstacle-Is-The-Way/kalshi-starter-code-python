@@ -782,8 +782,8 @@ Manage groups of orders that can be modified/canceled together:
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `status` | string | `all|active|upcoming|closed|paid_out` |
-| `type` | string | `all|liquidity|volume` |
+| `status` | string | `all`, `active`, `upcoming`, `closed`, `paid_out` |
+| `type` | string | `all`, `liquidity`, `volume` |
 | `limit` | int | Page size (1-10000) |
 | `cursor` | string | Pagination cursor |
 
