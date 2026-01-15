@@ -15,9 +15,7 @@ This directory contains **future work** - items that are blocked, deferred, or p
 
 ### Blocked (External Dependency)
 
-| ID | Title | Blocking Condition |
-|----|-------|-------------------|
-| **FUTURE-00A** | [API Verification Post-Deadline](TODO-00A-api-verification-post-deadline.md) | Until Jan 15, 2026 |
+*None currently blocked.*
 
 ### Deferred (Not Priority)
 
@@ -45,6 +43,12 @@ This directory contains **future work** - items that are blocked, deferred, or p
 
 Completed backlog items are stored under `docs/_archive/future/` (excluded from the MkDocs site
 build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive structure.
+
+### Recently Completed (2026-01-15)
+
+| ID | Title | Status |
+|---|---|---|
+| [TODO-00A](../_archive/future/TODO-00A-api-verification-post-deadline.md) | API Verification Post-Deadline (Jan 15 cent removal) | ✅ Complete |
 
 ### Recently Completed (Ralph Wiggum Cleanup - 2026-01-09)
 

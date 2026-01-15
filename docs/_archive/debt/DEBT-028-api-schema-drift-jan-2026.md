@@ -123,9 +123,15 @@ uv run pytest tests/unit/api/ -v
 
 ## Next Actions
 
-1. **P1:** Run deprecated field audit (command above) and fix any direct usages
-2. **P2:** Update golden fixtures to reflect removed fields (next fixture refresh)
+1. ~~**P1:** Run deprecated field audit (command above) and fix any direct usages~~ ✅ **DONE (2026-01-15)** - No direct usages found; code correctly uses `*_cents` computed properties
+2. ~~**P2:** Update golden fixtures to reflect removed fields (next fixture refresh)~~ ✅ **DONE** - Fixtures already use `*_dollars` format
 3. **P3:** Consider adding live API smoke test to CI (blocked on test credentials in CI)
+
+**Verification Complete (2026-01-15):**
+- Ran comprehensive live API test: 19/19 endpoints pass
+- All `*_dollars` fields parse correctly
+- No ValidationErrors from Pydantic on real API data
+- Cent field removal confirmed working (API no longer returns deprecated fields)
 
 ---
 

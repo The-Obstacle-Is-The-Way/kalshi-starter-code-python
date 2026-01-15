@@ -1,11 +1,12 @@
 # SPEC-040: Complete Kalshi Endpoint Implementation (TDD, SSOT-Driven)
 
-**Status:** Draft (Ready for Implementation)
+**Status:** ✅ Complete
 **Priority:** P1 (Foundation for Agent System)
 **Created:** 2026-01-14
+**Completed:** 2026-01-15
 **Owner:** Solo
 **Supersedes:** SPEC-029 (strategy), SPEC-037 (partial)
-**Effort:** ~5-7 days total across 4 phases
+**Effort:** ~2 days (all 4 phases)
 
 ---
 
@@ -30,8 +31,8 @@ Phase 4: Operational Endpoints → Nice-to-have observability
 
 ## Current State (SSOT: What We Have)
 
-### Implemented Endpoints (29/74 ≈ 39%)
-<!-- AUDIT FIX: Updated to 29/74 after Phase 1+2 implementation (2026-01-14). -->
+### Implemented Endpoints (47/74 ≈ 64%)
+<!-- AUDIT FIX: Updated to 47/74 after all 4 phases complete (2026-01-15). -->
 
 **Source:** `src/kalshi_research/api/client.py`
 

@@ -1,31 +1,33 @@
 # DEBT-015: Missing API Endpoints
 
 **Priority:** P3 (Nice-to-have - critical paths complete)
-**Status:** Mostly Resolved (Phase 1-3 Complete)
+**Status:** ✅ Resolved (All 4 Phases Complete)
 **Found:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
-**Updated:** 2026-01-15 - Phase 3 (Discovery) complete via SPEC-040
+**Updated:** 2026-01-15 - All 4 phases complete via SPEC-040
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---
 
 ## Summary
 
-The Kalshi API client was missing 45+ documented endpoints. **Phases 1-3 are now complete (34/74 = 46% coverage).** Remaining gaps are P3 (nice-to-have):
+The Kalshi API client was missing 45+ documented endpoints. **All 4 phases are now complete (47/74 = 64% coverage).**
+
+All critical paths resolved:
 - ~~Category/tag discovery (proper market browsing)~~ ✅ DONE
 - ~~Series-based filtering (Kalshi's intended pattern)~~ ✅ DONE
 - ~~Batch order operations~~ ✅ DONE (SPEC-040 Phase 2)
 - ~~Queue position monitoring~~ ✅ DONE (SPEC-040 Phase 2)
 - ~~Event metadata, structured targets, sports filters~~ ✅ DONE (SPEC-040 Phase 3)
-- Order groups (batch management)
+- ~~Order groups (batch management)~~ ✅ DONE (SPEC-040 Phase 4)
+- ~~Live data feeds~~ ✅ DONE (SPEC-040 Phase 4)
 - RFQ system (large block trades) - NOT PLANNED (institutional only)
-- Live data feeds
 
 **Status update (2026-01-15):**
 - ✅ **SPEC-040 Phase 1 Complete**: Market filter parameters (`tickers`, timestamp filters)
 - ✅ **SPEC-040 Phase 2 Complete**: Order operations (batch create/cancel, get order, decrease, queue positions, resting value)
 - ✅ **SPEC-040 Phase 3 Complete**: Discovery endpoints (event metadata, event candlesticks, filters by sport, structured targets)
-- 🔲 Phase 4 (Operational) remains for future work
+- ✅ **SPEC-040 Phase 4 Complete**: Operational endpoints (exchange info, milestones, live data, order groups, incentive programs)
 
 ---
 
@@ -215,11 +217,13 @@ The Kalshi API client was missing 45+ documented endpoints. **Phases 1-3 are now
 - ~~`GET /series/{series_ticker}/events/{event_ticker}/candlesticks`~~ ✅ `get_event_candlesticks()`
 - `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` 🔲 (auth required; optional)
 
-### Phase 4: Operational (P3) - ✅ COMPLETE
+### Phase 4: Operational (P3) - ✅ COMPLETE (2026-01-15)
 - ~~Exchange schedule/announcements/user_data_timestamp~~ ✅ `get_exchange_schedule()`, `get_exchange_announcements()`, `get_user_data_timestamp()`
 - ~~Order groups~~ ✅ `get_order_groups()`, `create_order_group()`, `get_order_group()`, `reset_order_group()`, `delete_order_group()`
 - ~~Milestones/live data~~ ✅ `get_milestones()`, `get_milestone()`, `get_milestone_live_data()`, `get_live_data_batch()`
 - ~~Incentive programs~~ ✅ `get_incentive_programs()`
+
+**All planned endpoint work is complete.** Remaining not-planned endpoints (RFQ, API keys, FCM, Multivariate Collections, Subaccounts) are institutional-only or low priority.
 
 ---
 

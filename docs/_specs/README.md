@@ -15,26 +15,23 @@ This directory contains **active** design specifications - work happening NOW.
 
 | ID | Title | Status |
 |---|---|---|
-| **SPEC-040** | [**Complete Kalshi Endpoint Implementation (TDD)**](SPEC-040-kalshi-endpoint-implementation-complete.md) | **🎯 Ready** |
 | SPEC-028 | [Topic Search & Market Discovery (DB + CLI)](SPEC-028-topic-search-and-discovery.md) | 📝 Draft |
 | SPEC-029 | [Kalshi Endpoint Coverage & Strategic Use](SPEC-029-kalshi-endpoint-coverage-strategy.md) | 🔀 Superseded by SPEC-040 |
 | SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 📝 Draft |
 | SPEC-031 | [Scanner Quality Profiles (Slop Filtering + "Get In Early" Mode)](SPEC-031-scanner-quality-profiles.md) | 📝 Draft |
-| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft (blocked by SPEC-040) |
-| SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft (blocked by SPEC-040) |
-| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft (blocked by SPEC-040 Phase 2) |
+| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft (unblocked) |
+| SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft (unblocked) |
+| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft (unblocked) |
 | SPEC-037 | [Kalshi Missing Endpoints (Discovery + Order Ops Parity)](SPEC-037-kalshi-missing-endpoints-phase1.md) | 🔀 Superseded by SPEC-040 |
 | SPEC-038 | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](SPEC-038-exa-websets-endpoint-coverage.md) | 📝 Draft |
-| SPEC-039 | [New Market Alerts (Information Arbitrage Window)](SPEC-039-new-market-alerts.md) | ✅ Phase 1 Complete |
+| SPEC-039 | [New Market Alerts (Information Arbitrage Window)](SPEC-039-new-market-alerts.md) | ✅ Complete |
 
 ### Implementation Order (Critical Path)
 
 ```
-SPEC-040 (Kalshi Endpoints)    ← DO THIS FIRST
-    Phase 1: Market Filters
-    Phase 2: Order Operations  ← Unblocks SPEC-034
+SPEC-040 (Kalshi Endpoints)    ← ✅ DONE (all 4 phases complete)
     ↓
-SPEC-034 (TradeExecutor)       ← Safety harness for trading
+SPEC-034 (TradeExecutor)       ← Safety harness for trading (now unblocked)
     ↓
 SPEC-032 (Agent Orchestration) ← The agentic system
 SPEC-033 (Exa Research Agent)
@@ -64,6 +61,8 @@ build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive s
 
 | ID | Title | Status |
 |---|---|---|
+| **SPEC-040** | [Complete Kalshi Endpoint Implementation (TDD)](../_archive/specs/SPEC-040-kalshi-endpoint-implementation-complete.md) | ✅ Complete (2026-01-15) |
+| SPEC-039 | [New Market Alerts](SPEC-039-new-market-alerts.md) | ✅ Complete (2026-01-14) |
 | SPEC-036 | [Category Filtering for Markets](../_archive/specs/SPEC-036-category-filtering.md) | ✅ Implemented |
 | SPEC-035 | [Ticker Display Enhancement](../_archive/specs/SPEC-035-ticker-display-enhancement.md) | ✅ Implemented |
 | SPEC-027 | [Settlement Timestamp Support](../_archive/specs/SPEC-027-settlement-timestamp.md) | ✅ Implemented |
