@@ -2,8 +2,8 @@
 
 **Source:** [docs.kalshi.com](https://docs.kalshi.com/welcome)
 **OpenAPI Spec:** [docs.kalshi.com/openapi.yaml](https://docs.kalshi.com/openapi.yaml)
-**Last Verified:** 2026-01-13
-**Changelog RSS:** [docs.kalshi.com/changelog.rss](https://docs.kalshi.com/changelog.rss)
+**Last Verified:** 2026-01-15
+**Changelog:** [docs.kalshi.com/changelog](https://docs.kalshi.com/changelog)
 
 ---
 
@@ -866,10 +866,10 @@ Subscribe to `communications` channel for real-time RFQ/quote events. Requires a
 | Endpoint | Description |
 |----------|-------------|
 | `GET /multivariate_event_collections` | List multivariate event collections |
-| `GET /multivariate_event_collections/{collection_ticker}` | Collection details (auth required) |
-| `POST /multivariate_event_collections/{collection_ticker}` | Create/update collection (auth required) |
-| `GET /multivariate_event_collections/{collection_ticker}/lookup` | Lookup tickers in a collection (auth required) |
-| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | Update lookup mapping (auth required) |
+| `GET /multivariate_event_collections/{collection_ticker}` | Collection details (**public** per OpenAPI; verified via unauthenticated `curl` 2026-01-15) |
+| `POST /multivariate_event_collections/{collection_ticker}` | Create market in collection (auth required) |
+| `GET /multivariate_event_collections/{collection_ticker}/lookup` | Lookup **history** (public per OpenAPI; requires `lookback_seconds`) |
+| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | Lookup tickers for selected markets (auth required) |
 
 ### Portfolio Settlements (Authenticated)
 

@@ -21,8 +21,8 @@ Output:
 Note:
     Public + portfolio recordings are read-only.
 
-    Order write fixtures (create/cancel/amend/batch/decrease) require explicit opt-in and MUST
-    be recorded from the demo environment:
+    Order write fixtures (create/cancel/amend/batch/decrease) and order-group fixtures require
+    explicit opt-in and MUST be recorded from the demo environment:
         uv run python scripts/record_api_responses.py --env demo --endpoint authenticated
             --include-writes
 
@@ -90,6 +90,25 @@ def save_golden(
     return filepath
 
 
+def _golden_path(save_as: str) -> Path:
+    filename = f"{save_as.replace('/', '_').strip('_')}_response.json"
+    return GOLDEN_DIR / filename
+
+
+def _load_existing_golden_response(save_as: str) -> dict[str, Any] | None:
+    fixture_path = _golden_path(save_as)
+    if not fixture_path.exists():
+        return None
+    try:
+        raw = json.loads(fixture_path.read_text())
+    except Exception:
+        return None
+    if not isinstance(raw, dict):
+        return None
+    response = raw.get("response")
+    return response if isinstance(response, dict) else None
+
+
 def _extract_first_market_ticker(raw_markets: dict[str, Any]) -> str | None:
     markets = raw_markets.get("markets")
     if not isinstance(markets, list) or not markets:
@@ -101,6 +120,22 @@ def _extract_first_market_ticker(raw_markets: dict[str, Any]) -> str | None:
     if not isinstance(ticker, str) or not ticker:
         return None
     return ticker
+
+
+def _extract_market_tickers(raw_markets: dict[str, Any], *, limit: int) -> list[str]:
+    markets = raw_markets.get("markets")
+    if not isinstance(markets, list) or not markets:
+        return []
+    tickers: list[str] = []
+    for market in markets:
+        if len(tickers) >= limit:
+            break
+        if not isinstance(market, dict):
+            continue
+        ticker = market.get("ticker")
+        if isinstance(ticker, str) and ticker:
+            tickers.append(ticker)
+    return tickers
 
 
 def _extract_first_event_ticker(raw_events: dict[str, Any]) -> str | None:
@@ -168,6 +203,62 @@ def _extract_first_structured_target_id(raw_structured_targets: dict[str, Any]) 
         if isinstance(value, str) and value:
             return value
     return None
+
+
+def _extract_first_multivariate_collection_ticker(raw: dict[str, Any]) -> str | None:
+    contracts = raw.get("multivariate_contracts")
+    if not isinstance(contracts, list) or not contracts:
+        return None
+    first = contracts[0]
+    if not isinstance(first, dict):
+        return None
+    ticker = first.get("collection_ticker")
+    if not isinstance(ticker, str) or not ticker:
+        return None
+    return ticker
+
+
+def _extract_collection_contract(raw: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+    contract = raw.get("multivariate_contract")
+    if not isinstance(contract, dict):
+        return None
+    return contract
+
+
+def _extract_selected_markets_from_lookup_history(
+    raw: dict[str, Any] | None,
+) -> list[dict[str, Any]] | None:
+    if not isinstance(raw, dict):
+        return None
+    lookup_points = raw.get("lookup_points")
+    if not isinstance(lookup_points, list) or not lookup_points:
+        return None
+    first = lookup_points[0]
+    if not isinstance(first, dict):
+        return None
+    selected = first.get("selected_markets")
+    if not isinstance(selected, list) or not selected:
+        return None
+
+    selected_markets: list[dict[str, Any]] = []
+    for item in selected:
+        if not isinstance(item, dict):
+            continue
+        market_ticker = item.get("market_ticker")
+        event_ticker = item.get("event_ticker")
+        side = item.get("side")
+        if not isinstance(market_ticker, str) or not market_ticker:
+            continue
+        if not isinstance(event_ticker, str) or not event_ticker:
+            continue
+        if side not in {"yes", "no"}:
+            continue
+        selected_markets.append(
+            {"market_ticker": market_ticker, "event_ticker": event_ticker, "side": side}
+        )
+    return selected_markets or None
 
 
 def _batch_candlesticks_has_data(raw_batch: dict[str, Any]) -> bool:
@@ -265,7 +356,7 @@ async def _auth_request_raw(
     if response.status_code >= 400:
         raise RuntimeError(f"HTTP {response.status_code}: {response.text}")
 
-    payload = response.json()
+    payload = response.json() if response.content else {}
     if not isinstance(payload, dict):
         raise TypeError(f"Unexpected response type: {type(payload)!r} (expected JSON object)")
     return payload
@@ -1005,6 +1096,255 @@ async def record_phase4_operational_endpoints(*, include_writes: bool) -> dict[s
     return results
 
 
+async def record_phase5_remaining_endpoints(*, include_phase5_writes: bool) -> dict[str, Any]:
+    """Record responses for SPEC-041 Phase 5 endpoints."""
+    results: dict[str, Any] = {}
+
+    collection_ticker, raw_collection_single = await _record_phase5_multivariate_public_endpoints(
+        results=results
+    )
+    await _record_phase5_multivariate_lookup_tickers(
+        collection_ticker=collection_ticker,
+        raw_collection_single=raw_collection_single,
+        include_phase5_writes=include_phase5_writes,
+        results=results,
+    )
+
+    return results
+
+
+async def _record_phase5_multivariate_public_endpoints(
+    *, results: dict[str, Any]
+) -> tuple[str | None, dict[str, Any] | None]:
+    raw_collection_single: dict[str, Any] | None = None
+
+    async with KalshiPublicClient() as client:
+        print("\n=== PHASE 5 REMAINING ENDPOINTS ===\n")
+
+        raw_collections = await _record_public_get(
+            client,
+            label="GET /multivariate_event_collections (RAW)",
+            path="/multivariate_event_collections",
+            params={"status": "open", "limit": 5},
+            save_as="multivariate_event_collections_list",
+            metadata={"status": "open", "limit": 5, "note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
+        collection_ticker = _extract_first_multivariate_collection_ticker(raw_collections or {})
+        if not collection_ticker:
+            print("  SKIPPED: No multivariate collections returned by API.")
+            return None, None
+
+        raw_collection_single = await _record_public_get(
+            client,
+            label=f"GET /multivariate_event_collections/{collection_ticker} (RAW)",
+            path=f"/multivariate_event_collections/{collection_ticker}",
+            save_as="multivariate_event_collection_single",
+            metadata={"collection_ticker": collection_ticker, "note": "RAW API response (SSOT)"},
+            results=results,
+        )
+
+        return collection_ticker, raw_collection_single
+
+
+async def _record_phase5_multivariate_lookup_tickers(
+    *,
+    collection_ticker: str | None,
+    raw_collection_single: dict[str, Any] | None,
+    include_phase5_writes: bool,
+    results: dict[str, Any],
+) -> None:
+    config = get_config()
+    env = config.environment
+
+    key_id, private_key_path, private_key_b64 = resolve_kalshi_auth_env(environment=env)
+    if key_id is None or (private_key_path is None and private_key_b64 is None):
+        key_name, path_name, b64_name = get_kalshi_auth_env_var_names(environment=env)
+        print("\n=== PHASE 5 AUTHENTICATED ENDPOINTS ===\n")
+        print(f"  SKIPPED: Missing auth credentials: set {key_name} + ({path_name} or {b64_name})")
+        return
+
+    async with KalshiClient(
+        key_id=key_id,
+        private_key_path=private_key_path,
+        private_key_b64=private_key_b64,
+        environment=env.value,
+    ) as client:
+        print(f"\n=== PHASE 5 AUTHENTICATED ENDPOINTS ({env.value.upper()}) ===\n")
+
+        if not collection_ticker:
+            print("  SKIPPED: Multivariate lookup (no collection ticker).")
+            return
+
+        lookup_fixture_path = _golden_path("multivariate_event_collection_lookup_tickers")
+        if lookup_fixture_path.exists():
+            print("  SKIPPED: Multivariate lookup fixture already exists (avoid repeated creates).")
+            return
+
+        selected_markets = await _find_selected_markets_for_multivariate_lookup(
+            client=client,
+            collection_ticker=collection_ticker,
+            raw_collection_single=raw_collection_single,
+            include_phase5_writes=include_phase5_writes,
+        )
+        if selected_markets is None:
+            print(
+                "  SKIPPED: Multivariate lookup - no lookup history found, and create "
+                "fallback did not find a valid combination."
+            )
+            return
+
+        label = f"PUT /multivariate_event_collections/{collection_ticker}/lookup (RAW)"
+        await _record_auth_request(
+            client,
+            label=label,
+            method="PUT",
+            path=f"/multivariate_event_collections/{collection_ticker}/lookup",
+            json_body={"selected_markets": selected_markets},
+            save_as="multivariate_event_collection_lookup_tickers",
+            metadata={
+                "collection_ticker": collection_ticker,
+                "selected_markets_count": len(selected_markets),
+                "note": "RAW API response (SSOT) - auth required",
+            },
+            results=results,
+        )
+
+
+async def _find_selected_markets_for_multivariate_lookup(
+    *,
+    client: KalshiClient,
+    collection_ticker: str,
+    raw_collection_single: dict[str, Any] | None,
+    include_phase5_writes: bool,
+) -> list[dict[str, Any]] | None:
+    selected_markets = await _fetch_selected_markets_from_lookup_history(
+        collection_ticker=collection_ticker
+    )
+    if selected_markets is not None:
+        return selected_markets
+
+    contract = _extract_collection_contract(raw_collection_single)
+    return await _try_build_selected_markets_via_create_fallback(
+        client=client,
+        collection_ticker=collection_ticker,
+        contract=contract,
+        include_phase5_writes=include_phase5_writes,
+    )
+
+
+async def _fetch_selected_markets_from_lookup_history(
+    *, collection_ticker: str
+) -> list[dict[str, Any]] | None:
+    try:
+        async with KalshiPublicClient() as public_client:
+            history = await public_client._get(
+                f"/multivariate_event_collections/{collection_ticker}/lookup",
+                params={"lookback_seconds": 3600},
+            )
+        return _extract_selected_markets_from_lookup_history(history)
+    except Exception:
+        return None
+
+
+async def _try_build_selected_markets_via_create_fallback(
+    *,
+    client: KalshiClient,
+    collection_ticker: str,
+    contract: dict[str, Any] | None,
+    include_phase5_writes: bool,
+) -> list[dict[str, Any]] | None:
+    if not include_phase5_writes or contract is None:
+        return None
+
+    size_min = contract.get("size_min")
+    if not isinstance(size_min, int) or size_min != 2:
+        return None
+
+    associated_events = contract.get("associated_events")
+    if not isinstance(associated_events, list) or len(associated_events) < size_min:
+        return None
+
+    event_candidates = await _collect_multivariate_event_candidates(
+        associated_events=associated_events,
+        count=size_min,
+    )
+    if event_candidates is None:
+        return None
+
+    return await _try_create_multivariate_market_in_collection(
+        client=client,
+        collection_ticker=collection_ticker,
+        event_candidates=event_candidates,
+    )
+
+
+async def _collect_multivariate_event_candidates(
+    *, associated_events: list[Any], count: int
+) -> list[tuple[str, list[str]]] | None:
+    event_candidates: list[tuple[str, list[str]]] = []
+
+    async with KalshiPublicClient() as public_client:
+        for event in associated_events:
+            if len(event_candidates) >= count:
+                break
+            if not isinstance(event, dict):
+                continue
+            event_ticker = event.get("ticker")
+            if not isinstance(event_ticker, str) or not event_ticker:
+                continue
+
+            raw_markets = await public_client._get(
+                "/markets",
+                params={"event_ticker": event_ticker, "limit": 10, "status": "open"},
+            )
+            market_tickers = _extract_market_tickers(raw_markets, limit=5)
+            if market_tickers:
+                event_candidates.append((event_ticker, market_tickers))
+
+    if len(event_candidates) != count:
+        return None
+    return event_candidates
+
+
+async def _try_create_multivariate_market_in_collection(
+    *,
+    client: KalshiClient,
+    collection_ticker: str,
+    event_candidates: list[tuple[str, list[str]]],
+) -> list[dict[str, Any]] | None:
+    if len(event_candidates) != 2:
+        return None
+
+    (event1, tickers1), (event2, tickers2) = event_candidates
+    for market1 in tickers1[:3]:
+        for market2 in tickers2[:3]:
+            selected_markets = [
+                {"market_ticker": market1, "event_ticker": event1, "side": "yes"},
+                {"market_ticker": market2, "event_ticker": event2, "side": "yes"},
+            ]
+            try:
+                await _auth_request_raw(
+                    client,
+                    method="POST",
+                    path=f"/multivariate_event_collections/{collection_ticker}",
+                    json_body={
+                        "selected_markets": selected_markets,
+                        "with_market_payload": False,
+                    },
+                )
+            except RuntimeError as exc:
+                if "invalid_market_combination" in str(exc):
+                    continue
+                print(f"  ERROR: {exc}")
+                continue
+
+            return selected_markets
+
+    return None
+
+
 def _save_result(
     save_as: str,
     raw: dict[str, Any],
@@ -1469,7 +1809,7 @@ async def main() -> None:
     )
     parser.add_argument(
         "--endpoint",
-        choices=["public", "phase3", "phase4", "authenticated", "order_ops", "all"],
+        choices=["public", "phase3", "phase4", "phase5", "authenticated", "order_ops", "all"],
         default="all",
         help="Which endpoints to record",
     )
@@ -1477,6 +1817,14 @@ async def main() -> None:
         "--include-writes",
         action="store_true",
         help="Also record demo-only write fixtures (orders + order groups).",
+    )
+    parser.add_argument(
+        "--include-phase5-writes",
+        action="store_true",
+        help=(
+            "Also record Phase 5 state-changing fixtures (subaccounts create/transfer and "
+            "multivariate create fallback). Use with care; on prod, this modifies account state."
+        ),
     )
     parser.add_argument(
         "--yes",
@@ -1522,6 +1870,9 @@ async def main() -> None:
         "public": record_public_endpoints,
         "phase3": record_phase3_discovery_endpoints,
         "phase4": lambda: record_phase4_operational_endpoints(include_writes=args.include_writes),
+        "phase5": lambda: record_phase5_remaining_endpoints(
+            include_phase5_writes=args.include_phase5_writes
+        ),
         "authenticated": lambda: record_authenticated_endpoints(
             include_writes=args.include_writes, record_portfolio_reads=True
         ),
@@ -1533,7 +1884,7 @@ async def main() -> None:
     all_results: dict[str, Any] = {}
 
     if args.endpoint == "all":
-        for key in ("public", "phase3", "phase4", "authenticated"):
+        for key in ("public", "phase3", "phase4", "phase5", "authenticated"):
             all_results[key] = await endpoint_recorders[key]()
     else:
         all_results[args.endpoint] = await endpoint_recorders[args.endpoint]()

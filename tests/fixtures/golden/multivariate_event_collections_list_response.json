@@ -1,0 +1,1442 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T20:56:44.378065+00:00",
+    "endpoint": "multivariate_event_collections_list",
+    "environment": "prod",
+    "sanitized": false,
+    "status": "open",
+    "limit": 5,
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "cursor": "CgYI5_-jywYSHktYTVZFU1BPUlRTTVVMVElHQU1FRVhURU5ERUQtUg",
+    "multivariate_contracts": [
+      {
+        "associated_event_tickers": [
+          "KXNFLGAME-26JAN18SFSEA",
+          "KXNFLSPREAD-26JAN17SFSEA",
+          "KXNFLTOTAL-26JAN17SFSEA",
+          "KXNFLANYTD-26JAN17SFSEA",
+          "KXNFLFIRSTTD-26JAN17SFSEA",
+          "KXNFL2TD-26JAN17SFSEA",
+          "KXNFLPASSYDS-26JAN17SFSEA",
+          "KXNFLRECYDS-26JAN17SFSEA",
+          "KXNFLRSHYDS-26JAN17SFSEA",
+          "KXNFLREC-26JAN17SFSEA",
+          "KXNFLPASSTDS-26JAN17SFSEA"
+        ],
+        "associated_events": [
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLGAME-26JAN18SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLSPREAD-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLTOTAL-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLANYTD-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLFIRSTTD-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFL2TD-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSYDS-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRECYDS-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRSHYDS-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLREC-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSTDS-26JAN17SFSEA"
+          }
+        ],
+        "close_date": "2026-01-18T05:00:00Z",
+        "collection_ticker": "KXMVENFLSINGLEGAME-26JAN18SFSEA",
+        "description": "Choose any combination of game stats and props.",
+        "functional_description": "The resulting market will only resolve to YES if every associated market resolves to YES. Scalar outcomes are multiplied (rounded down).",
+        "is_all_yes": false,
+        "is_ordered": false,
+        "is_single_market_per_event": false,
+        "open_date": "2026-01-15T20:50:39Z",
+        "series_ticker": "KXMVENFLSINGLEGAME",
+        "size_max": 0,
+        "size_min": 2,
+        "title": "What will happen in San Francisco at Seattle?"
+      },
+      {
+        "associated_event_tickers": [
+          "KXNFLGAME-26JAN18LACHI",
+          "KXNFLSPREAD-26JAN18LACHI",
+          "KXNFLTOTAL-26JAN18LACHI",
+          "KXNFLANYTD-26JAN18LACHI",
+          "KXNFLFIRSTTD-26JAN18LACHI",
+          "KXNFL2TD-26JAN18LACHI",
+          "KXNFLPASSYDS-26JAN18LACHI",
+          "KXNFLRECYDS-26JAN18LACHI",
+          "KXNFLRSHYDS-26JAN18LACHI",
+          "KXNFLREC-26JAN18LACHI",
+          "KXNFLPASSTDS-26JAN18LACHI"
+        ],
+        "associated_events": [
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLGAME-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLSPREAD-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLTOTAL-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLANYTD-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLFIRSTTD-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFL2TD-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSYDS-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRECYDS-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRSHYDS-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLREC-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSTDS-26JAN18LACHI"
+          }
+        ],
+        "close_date": "2026-01-19T03:30:00Z",
+        "collection_ticker": "KXMVENFLSINGLEGAME-26JAN18LACHI",
+        "description": "Choose any combination of game stats and props.",
+        "functional_description": "The resulting market will only resolve to YES if every associated market resolves to YES. Scalar outcomes are multiplied (rounded down).",
+        "is_all_yes": false,
+        "is_ordered": false,
+        "is_single_market_per_event": false,
+        "open_date": "2026-01-15T20:50:39Z",
+        "series_ticker": "KXMVENFLSINGLEGAME",
+        "size_max": 0,
+        "size_min": 2,
+        "title": "What will happen in Los Angeles R at Chicago?"
+      },
+      {
+        "associated_event_tickers": [
+          "KXNFLGAME-26JAN18HOUNE",
+          "KXNFLSPREAD-26JAN18HOUNE",
+          "KXNFLTOTAL-26JAN18HOUNE",
+          "KXNFLANYTD-26JAN18HOUNE",
+          "KXNFLFIRSTTD-26JAN18HOUNE",
+          "KXNFL2TD-26JAN18HOUNE",
+          "KXNFLPASSYDS-26JAN18HOUNE",
+          "KXNFLRECYDS-26JAN18HOUNE",
+          "KXNFLRSHYDS-26JAN18HOUNE",
+          "KXNFLREC-26JAN18HOUNE",
+          "KXNFLPASSTDS-26JAN18HOUNE"
+        ],
+        "associated_events": [
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLGAME-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLSPREAD-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLTOTAL-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLANYTD-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLFIRSTTD-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFL2TD-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSYDS-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRECYDS-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRSHYDS-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLREC-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSTDS-26JAN18HOUNE"
+          }
+        ],
+        "close_date": "2026-01-19T00:00:00Z",
+        "collection_ticker": "KXMVENFLSINGLEGAME-26JAN18HOUNE",
+        "description": "Choose any combination of game stats and props.",
+        "functional_description": "The resulting market will only resolve to YES if every associated market resolves to YES. Scalar outcomes are multiplied (rounded down).",
+        "is_all_yes": false,
+        "is_ordered": false,
+        "is_single_market_per_event": false,
+        "open_date": "2026-01-15T20:50:39Z",
+        "series_ticker": "KXMVENFLSINGLEGAME",
+        "size_max": 0,
+        "size_min": 2,
+        "title": "What will happen in Houston at New England?"
+      },
+      {
+        "associated_event_tickers": [
+          "KXNFLGAME-26JAN17BUFDEN",
+          "KXNFLSPREAD-26JAN17BUFDEN",
+          "KXNFLTOTAL-26JAN17BUFDEN",
+          "KXNFLANYTD-26JAN17BUFDEN",
+          "KXNFLFIRSTTD-26JAN17BUFDEN",
+          "KXNFL2TD-26JAN17BUFDEN",
+          "KXNFLPASSYDS-26JAN17BUFDEN",
+          "KXNFLRECYDS-26JAN17BUFDEN",
+          "KXNFLRSHYDS-26JAN17BUFDEN",
+          "KXNFLREC-26JAN17BUFDEN",
+          "KXNFLPASSTDS-26JAN17BUFDEN"
+        ],
+        "associated_events": [
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLGAME-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLSPREAD-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLTOTAL-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLANYTD-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLFIRSTTD-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFL2TD-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSYDS-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRECYDS-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRSHYDS-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLREC-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSTDS-26JAN17BUFDEN"
+          }
+        ],
+        "close_date": "2026-01-18T01:30:00Z",
+        "collection_ticker": "KXMVENFLSINGLEGAME-26JAN17BUFDEN",
+        "description": "Choose any combination of game stats and props.",
+        "functional_description": "The resulting market will only resolve to YES if every associated market resolves to YES. Scalar outcomes are multiplied (rounded down).",
+        "is_all_yes": false,
+        "is_ordered": false,
+        "is_single_market_per_event": false,
+        "open_date": "2026-01-15T20:50:39Z",
+        "series_ticker": "KXMVENFLSINGLEGAME",
+        "size_max": 0,
+        "size_min": 2,
+        "title": "What will happen in Buffalo at Denver?"
+      },
+      {
+        "associated_event_tickers": [
+          "KXNFLGAME-26JAN17BUFDEN",
+          "KXNFLSPREAD-26JAN17BUFDEN",
+          "KXNFLTOTAL-26JAN17BUFDEN",
+          "KXNFLRECYDS-26JAN17BUFDEN",
+          "KXNFLPASSYDS-26JAN17BUFDEN",
+          "KXNFLRSHYDS-26JAN17BUFDEN",
+          "KXNFLFIRSTTD-26JAN17BUFDEN",
+          "KXNFLANYTD-26JAN17BUFDEN",
+          "KXNFL2TD-26JAN17BUFDEN",
+          "KXNFLPASSTDS-26JAN17BUFDEN",
+          "KXNFLREC-26JAN17BUFDEN",
+          "KXNFLGAME-26JAN18SFSEA",
+          "KXNFLSPREAD-26JAN17SFSEA",
+          "KXNFLTOTAL-26JAN17SFSEA",
+          "KXNFLRECYDS-26JAN17SFSEA",
+          "KXNFLPASSYDS-26JAN17SFSEA",
+          "KXNFLRSHYDS-26JAN17SFSEA",
+          "KXNFLFIRSTTD-26JAN17SFSEA",
+          "KXNFLANYTD-26JAN17SFSEA",
+          "KXNFL2TD-26JAN17SFSEA",
+          "KXNFLPASSTDS-26JAN17SFSEA",
+          "KXNFLREC-26JAN17SFSEA",
+          "KXNFLGAME-26JAN18HOUNE",
+          "KXNFLSPREAD-26JAN18HOUNE",
+          "KXNFLTOTAL-26JAN18HOUNE",
+          "KXNFLFIRSTTD-26JAN18HOUNE",
+          "KXNFLANYTD-26JAN18HOUNE",
+          "KXNFL2TD-26JAN18HOUNE",
+          "KXNFLPASSTDS-26JAN18HOUNE",
+          "KXNFLRECYDS-26JAN18HOUNE",
+          "KXNFLPASSYDS-26JAN18HOUNE",
+          "KXNFLRSHYDS-26JAN18HOUNE",
+          "KXNFLREC-26JAN18HOUNE",
+          "KXNFLGAME-26JAN18LACHI",
+          "KXNFLSPREAD-26JAN18LACHI",
+          "KXNFLTOTAL-26JAN18LACHI",
+          "KXNFLRECYDS-26JAN18LACHI",
+          "KXNFLPASSYDS-26JAN18LACHI",
+          "KXNFLRSHYDS-26JAN18LACHI",
+          "KXNFLFIRSTTD-26JAN18LACHI",
+          "KXNFLANYTD-26JAN18LACHI",
+          "KXNFL2TD-26JAN18LACHI",
+          "KXNFLPASSTDS-26JAN18LACHI",
+          "KXNFLREC-26JAN18LACHI",
+          "KXNBAGAME-26JAN15MEMORL",
+          "KXNBASPREAD-26JAN15MEMORL",
+          "KXNBATOTAL-26JAN15MEMORL",
+          "KXNBAPTS-26JAN15MEMORL",
+          "KXNBAREB-26JAN15MEMORL",
+          "KXNBAAST-26JAN15MEMORL",
+          "KXNBA3PT-26JAN15MEMORL",
+          "KXNBASTL-26JAN15MEMORL",
+          "KXNBABLK-26JAN15MEMORL",
+          "KXNBAGAME-26JAN15PHXDET",
+          "KXNBASPREAD-26JAN15PHXDET",
+          "KXNBATOTAL-26JAN15PHXDET",
+          "KXNBAPTS-26JAN15PHXDET",
+          "KXNBAAST-26JAN15PHXDET",
+          "KXNBA3PT-26JAN15PHXDET",
+          "KXNBAREB-26JAN15PHXDET",
+          "KXNBASTL-26JAN15PHXDET",
+          "KXNBAGAME-26JAN15OKCHOU",
+          "KXNBASPREAD-26JAN15OKCHOU",
+          "KXNBATOTAL-26JAN15OKCHOU",
+          "KXNBAPTS-26JAN15OKCHOU",
+          "KXNBAREB-26JAN15OKCHOU",
+          "KXNBAAST-26JAN15OKCHOU",
+          "KXNBA3PT-26JAN15OKCHOU",
+          "KXNBASTL-26JAN15OKCHOU",
+          "KXNBABLK-26JAN15OKCHOU",
+          "KXNBAGAME-26JAN15BOSMIA",
+          "KXNBASPREAD-26JAN15BOSMIA",
+          "KXNBATOTAL-26JAN15BOSMIA",
+          "KXNBAPTS-26JAN15BOSMIA",
+          "KXNBAREB-26JAN15BOSMIA",
+          "KXNBAAST-26JAN15BOSMIA",
+          "KXNBA3PT-26JAN15BOSMIA",
+          "KXNBASTL-26JAN15BOSMIA",
+          "KXNBABLK-26JAN15BOSMIA",
+          "KXNBAGAME-26JAN15MILSAS",
+          "KXNBASPREAD-26JAN15MILSAS",
+          "KXNBATOTAL-26JAN15MILSAS",
+          "KXNBAPTS-26JAN15MILSAS",
+          "KXNBAREB-26JAN15MILSAS",
+          "KXNBAAST-26JAN15MILSAS",
+          "KXNBA3PT-26JAN15MILSAS",
+          "KXNBASTL-26JAN15MILSAS",
+          "KXNBABLK-26JAN15MILSAS",
+          "KXNBAGAME-26JAN15UTADAL",
+          "KXNBASPREAD-26JAN15UTADAL",
+          "KXNBATOTAL-26JAN15UTADAL",
+          "KXNBAGAME-26JAN15NYKGSW",
+          "KXNBASPREAD-26JAN15NYKGSW",
+          "KXNBATOTAL-26JAN15NYKGSW",
+          "KXNBAPTS-26JAN15NYKGSW",
+          "KXNBAREB-26JAN15NYKGSW",
+          "KXNBAAST-26JAN15NYKGSW",
+          "KXNBASTL-26JAN15NYKGSW",
+          "KXNBABLK-26JAN15NYKGSW",
+          "KXNBA3PT-26JAN15NYKGSW",
+          "KXNBAGAME-26JAN15ATLPOR",
+          "KXNBASPREAD-26JAN15ATLPOR",
+          "KXNBATOTAL-26JAN15ATLPOR",
+          "KXNBAPTS-26JAN15ATLPOR",
+          "KXNBAREB-26JAN15ATLPOR",
+          "KXNBAAST-26JAN15ATLPOR",
+          "KXNBA3PT-26JAN15ATLPOR",
+          "KXNBASTL-26JAN15ATLPOR",
+          "KXNBAGAME-26JAN15CHALAL",
+          "KXNBASPREAD-26JAN15CHALAL",
+          "KXNBATOTAL-26JAN15CHALAL",
+          "KXNBAPTS-26JAN15CHALAL",
+          "KXNBAREB-26JAN15CHALAL",
+          "KXNBAAST-26JAN15CHALAL",
+          "KXNBA3PT-26JAN15CHALAL",
+          "KXNBASTL-26JAN15CHALAL",
+          "KXNBABLK-26JAN15CHALAL",
+          "KXNBAGAME-26JAN16CLEPHI",
+          "KXNBAGAME-26JAN16NOPIND",
+          "KXNBAGAME-26JAN16CHIBKN",
+          "KXNBAGAME-26JAN16LACTOR",
+          "KXNBAGAME-26JAN16MINHOU",
+          "KXNBAGAME-26JAN16WASSAC"
+        ],
+        "associated_events": [
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLGAME-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLSPREAD-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLTOTAL-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRECYDS-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSYDS-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRSHYDS-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLFIRSTTD-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLANYTD-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFL2TD-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSTDS-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLREC-26JAN17BUFDEN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLGAME-26JAN18SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLSPREAD-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLTOTAL-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRECYDS-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSYDS-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRSHYDS-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLFIRSTTD-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLANYTD-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFL2TD-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSTDS-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLREC-26JAN17SFSEA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLGAME-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLSPREAD-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLTOTAL-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLFIRSTTD-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLANYTD-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFL2TD-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSTDS-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRECYDS-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSYDS-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRSHYDS-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLREC-26JAN18HOUNE"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLGAME-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLSPREAD-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLTOTAL-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRECYDS-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSYDS-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLRSHYDS-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNFLFIRSTTD-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLANYTD-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFL2TD-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLPASSTDS-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNFLREC-26JAN18LACHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN15MEMORL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBASPREAD-26JAN15MEMORL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBATOTAL-26JAN15MEMORL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAPTS-26JAN15MEMORL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAREB-26JAN15MEMORL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAAST-26JAN15MEMORL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBA3PT-26JAN15MEMORL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBASTL-26JAN15MEMORL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBABLK-26JAN15MEMORL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN15PHXDET"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBASPREAD-26JAN15PHXDET"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBATOTAL-26JAN15PHXDET"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAPTS-26JAN15PHXDET"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAAST-26JAN15PHXDET"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBA3PT-26JAN15PHXDET"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAREB-26JAN15PHXDET"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBASTL-26JAN15PHXDET"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN15OKCHOU"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBASPREAD-26JAN15OKCHOU"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBATOTAL-26JAN15OKCHOU"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAPTS-26JAN15OKCHOU"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAREB-26JAN15OKCHOU"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAAST-26JAN15OKCHOU"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBA3PT-26JAN15OKCHOU"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBASTL-26JAN15OKCHOU"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBABLK-26JAN15OKCHOU"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN15BOSMIA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBASPREAD-26JAN15BOSMIA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBATOTAL-26JAN15BOSMIA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAPTS-26JAN15BOSMIA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAREB-26JAN15BOSMIA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAAST-26JAN15BOSMIA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBA3PT-26JAN15BOSMIA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBASTL-26JAN15BOSMIA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBABLK-26JAN15BOSMIA"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN15MILSAS"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBASPREAD-26JAN15MILSAS"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBATOTAL-26JAN15MILSAS"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAPTS-26JAN15MILSAS"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAREB-26JAN15MILSAS"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAAST-26JAN15MILSAS"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBA3PT-26JAN15MILSAS"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBASTL-26JAN15MILSAS"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBABLK-26JAN15MILSAS"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN15UTADAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBASPREAD-26JAN15UTADAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBATOTAL-26JAN15UTADAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN15NYKGSW"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBASPREAD-26JAN15NYKGSW"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBATOTAL-26JAN15NYKGSW"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAPTS-26JAN15NYKGSW"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAREB-26JAN15NYKGSW"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAAST-26JAN15NYKGSW"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBASTL-26JAN15NYKGSW"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBABLK-26JAN15NYKGSW"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBA3PT-26JAN15NYKGSW"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN15ATLPOR"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBASPREAD-26JAN15ATLPOR"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBATOTAL-26JAN15ATLPOR"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAPTS-26JAN15ATLPOR"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAREB-26JAN15ATLPOR"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAAST-26JAN15ATLPOR"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBA3PT-26JAN15ATLPOR"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBASTL-26JAN15ATLPOR"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN15CHALAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBASPREAD-26JAN15CHALAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": false,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBATOTAL-26JAN15CHALAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAPTS-26JAN15CHALAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAREB-26JAN15CHALAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBAAST-26JAN15CHALAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBA3PT-26JAN15CHALAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBASTL-26JAN15CHALAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": null,
+            "size_min": null,
+            "ticker": "KXNBABLK-26JAN15CHALAL"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN16CLEPHI"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN16NOPIND"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN16CHIBKN"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN16LACTOR"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN16MINHOU"
+          },
+          {
+            "active_quoters": [],
+            "is_yes_only": true,
+            "size_max": 1,
+            "size_min": null,
+            "ticker": "KXNBAGAME-26JAN16WASSAC"
+          }
+        ],
+        "close_date": "2026-01-19T02:30:00Z",
+        "collection_ticker": "KXMVESPORTSMULTIGAMEEXTENDED-R",
+        "description": "Choose any combination of game stats and props.",
+        "functional_description": "The resulting market will only resolve to YES if every associated market resolves to YES. Scalar outcomes are multiplied (rounded down).",
+        "is_all_yes": false,
+        "is_ordered": false,
+        "is_single_market_per_event": false,
+        "open_date": "2026-01-15T14:55:35Z",
+        "series_ticker": "KXMVESPORTSMULTIGAMEEXTENDED",
+        "size_max": 0,
+        "size_min": 2,
+        "title": "What will happen across all games?"
+      }
+    ]
+  }
+}

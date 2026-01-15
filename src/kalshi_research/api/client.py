@@ -32,6 +32,14 @@ from kalshi_research.api.models.incentive import IncentiveProgramsResponse
 from kalshi_research.api.models.live_data import LiveData, LiveDataBatchResponse, LiveDataResponse
 from kalshi_research.api.models.market import Market, MarketFilterStatus
 from kalshi_research.api.models.milestone import Milestone, MilestoneResponse, MilestonesResponse
+from kalshi_research.api.models.multivariate import (
+    GetMultivariateEventCollectionResponse,
+    GetMultivariateEventCollectionsResponse,
+    LookupTickersForMarketInMultivariateEventCollectionRequest,
+    LookupTickersForMarketInMultivariateEventCollectionResponse,
+    MultivariateEventCollection,
+    TickerPair,
+)
 from kalshi_research.api.models.order import (
     CreateOrderRequest,
     OrderAction,
@@ -663,6 +671,48 @@ class KalshiPublicClient:
                 )
                 break
 
+    # ==================== Multivariate Collections ====================
+
+    async def get_multivariate_event_collections(
+        self,
+        *,
+        status: str | None = None,
+        associated_event_ticker: str | None = None,
+        series_ticker: str | None = None,
+        limit: int = 100,
+        cursor: str | None = None,
+    ) -> GetMultivariateEventCollectionsResponse:
+        """
+        List multivariate event collections with optional filters.
+
+        Args:
+            status: Optional filter (`unopened`, `open`, `closed`).
+            associated_event_ticker: Optional associated event filter.
+            series_ticker: Optional series filter.
+            limit: Page size (1-200).
+            cursor: Pagination cursor from a prior response.
+        """
+        params: dict[str, Any] = {"limit": max(1, min(limit, 200))}
+        if status is not None:
+            params["status"] = status
+        if associated_event_ticker is not None:
+            params["associated_event_ticker"] = associated_event_ticker
+        if series_ticker is not None:
+            params["series_ticker"] = series_ticker
+        if cursor is not None:
+            params["cursor"] = cursor
+
+        data = await self._get("/multivariate_event_collections", params)
+        return GetMultivariateEventCollectionsResponse.model_validate(data)
+
+    async def get_multivariate_event_collection(
+        self, collection_ticker: str
+    ) -> MultivariateEventCollection:
+        """Fetch a single multivariate event collection by ticker."""
+        data = await self._get(f"/multivariate_event_collections/{collection_ticker}")
+        parsed = GetMultivariateEventCollectionResponse.model_validate(data)
+        return parsed.multivariate_contract
+
     # ==================== Search & Series ====================
 
     async def get_tags_by_categories(self) -> dict[str, list[str]]:
@@ -972,6 +1022,77 @@ class KalshiClient(KalshiPublicClient):
 
                 result: dict[str, Any] = response.json()
                 return result
+
+        raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
+
+    # ==================== Multivariate Collections ====================
+
+    async def lookup_multivariate_event_collection_tickers(
+        self,
+        collection_ticker: str,
+        selected_markets: list[TickerPair],
+    ) -> LookupTickersForMarketInMultivariateEventCollectionResponse:
+        """
+        Lookup tickers for a multivariate market in a collection.
+
+        Args:
+            collection_ticker: Multivariate event collection ticker.
+            selected_markets: Underlying market selections.
+
+        Returns:
+            The derived event and market tickers for the selected markets.
+
+        Raises:
+            ValueError: If `selected_markets` is empty.
+        """
+        if not selected_markets:
+            raise ValueError("selected_markets must be non-empty")
+
+        path = f"/multivariate_event_collections/{collection_ticker}/lookup"
+        full_path = self.API_PATH + path
+        payload = LookupTickersForMarketInMultivariateEventCollectionRequest(
+            selected_markets=selected_markets
+        ).model_dump(mode="json")
+
+        await self._rate_limiter.acquire("PUT", path)
+        headers = self._auth.get_headers("PUT", full_path)
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, httpx.NetworkError, httpx.TimeoutException)
+            ),
+            stop=stop_after_attempt(self._max_retries),
+            wait=_wait_with_retry_after,
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.put(path, json=payload, headers=headers)
+
+                if response.status_code == 429:
+                    retry_after: int | None = None
+                    retry_after_header = response.headers.get("Retry-After")
+                    if retry_after_header is not None:
+                        try:
+                            retry_after = int(retry_after_header)
+                        except ValueError:
+                            retry_after = None
+                    raise RateLimitError(
+                        "Rate limit exceeded",
+                        retry_after=retry_after,
+                    )
+
+                if response.status_code >= 400:
+                    raise KalshiAPIError(response.status_code, response.text)
+
+                data = response.json() if response.content else {}
+                if not isinstance(data, dict):
+                    raise KalshiAPIError(
+                        response.status_code,
+                        "Unexpected multivariate lookup response shape (expected object).",
+                    )
+                return LookupTickersForMarketInMultivariateEventCollectionResponse.model_validate(
+                    data
+                )
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover
 
