@@ -1244,7 +1244,8 @@ async def _fetch_selected_markets_from_lookup_history(
                 params={"lookback_seconds": 3600},
             )
         return _extract_selected_markets_from_lookup_history(history)
-    except Exception:
+    except Exception as exc:
+        print(f"  DEBUG: Lookup history fetch failed: {exc}")
         return None
 
 
@@ -1259,6 +1260,7 @@ async def _try_build_selected_markets_via_create_fallback(
         return None
 
     size_min = contract.get("size_min")
+    # Fixture-recording fallback only supports 2-market combinations today.
     if not isinstance(size_min, int) or size_min != 2:
         return None
 

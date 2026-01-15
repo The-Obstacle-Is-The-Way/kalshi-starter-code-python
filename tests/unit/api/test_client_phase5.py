@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -15,9 +16,12 @@ from kalshi_research.api.exceptions import KalshiAPIError, RateLimitError
 from kalshi_research.api.models.multivariate import TickerPair
 from tests.golden_fixtures import load_golden_response
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
 
 @pytest.fixture
-def mock_auth() -> None:
+def mock_auth() -> Iterator[None]:
     with patch("kalshi_research.api.client.KalshiAuth") as MockAuth:
         mock_auth_instance = MockAuth.return_value
         mock_auth_instance.get_headers.return_value = {"X-Signed": "true"}

@@ -11,10 +11,10 @@
 
 ## Summary
 
-The Kalshi API client was missing 45+ documented endpoints.
+Initial audit (baseline, 2026-01-12) identified **45+ missing documented endpoints** in our Kalshi API client.
 
-Phases 1-4 are complete (per `docs/_vendor-docs/kalshi-openapi-coverage.md`). Phase 5 implemented the multivariate
-collections subset (+3 endpoints), bringing coverage to **50/74 (68%)**.
+As of 2026-01-15, Phases 1-4 are complete (per `docs/_vendor-docs/kalshi-openapi-coverage.md`) and Phase 5 implemented
+the multivariate collections subset (+3 endpoints), bringing coverage to **50/74 (68%)**.
 
 Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluates each for solo-trader usefulness.
 
