@@ -144,7 +144,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `GET /portfolio/orders` | ✅ | Done | `get_orders()` |
 | `GET /portfolio/fills` | ✅ | Done | `get_fills()` |
 | `GET /portfolio/settlements` | ✅ | Done | `get_settlements()` |
-| `GET /portfolio/summary/total_resting_order_value` | ✅ | SPEC-040 Phase 2 | `get_total_resting_order_value()` |
+| `GET /portfolio/summary/total_resting_order_value` | ✅ | SPEC-040 Phase 2 | `get_total_resting_order_value()` (returns 403 on demo - prod-only permission) |
 
 ---
 

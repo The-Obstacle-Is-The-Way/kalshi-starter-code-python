@@ -6,7 +6,7 @@
     "sanitized": true,
     "order_id": "bf2df755-28da-5ed2-b11b-aa4ab1d11665",
     "ticker": "KXEXAMPLE-2FC7AAE94801",
-    "yes_price": 31,
+    "yes_price": 30,
     "note": "RAW API response (SSOT) - demo amend; Sensitive data replaced with example values"
   },
   "response": {

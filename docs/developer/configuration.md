@@ -23,7 +23,11 @@ This is intended for local development and running authenticated commands withou
 ### Optional (recommended if you use both demo + prod)
 
 When `KALSHI_ENVIRONMENT=demo`, the CLI prefers the demo-prefixed credentials and falls back to the
-non-prefixed vars for backward compatibility:
+non-prefixed vars for backward compatibility.
+
+**Warning:** The per-variable fallback means you could accidentally use a prod key with a demo key ID (or vice versa)
+if your `.env` has mixed credentials. Always set all four demo variables together, or rely entirely on the
+non-prefixed variables and switch environments via `KALSHI_ENVIRONMENT`.
 
 - `KALSHI_DEMO_KEY_ID` — your **demo** Kalshi key id
 - `KALSHI_DEMO_PRIVATE_KEY_PATH` — path to your **demo** private key file

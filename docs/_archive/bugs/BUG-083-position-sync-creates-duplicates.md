@@ -48,7 +48,7 @@ must treat them as closed and avoid inserting “open” records for them.
 ### Current Database State
 
 | Ticker | Duplicate Rows | `quantity=0`? | `closed_at IS NULL`? |
-|--------|---------------|-------------|
+|--------|----------------|---------------|----------------------|
 | KXNCAAFSPREAD-26JAN09OREIND-IND3 | 3 | Yes | Yes |
 | KXNFLAFCCHAMP-25-DEN | 3 | Yes | Yes |
 | KXSB-26-DEN | 3 | Yes | Yes |
@@ -118,7 +118,7 @@ Mark any `closed_at IS NULL AND quantity = 0` rows as closed on sync, so they st
 # One-time cleanup to remove duplicate position rows
 async def dedupe_positions(db: DatabaseManager):
     async with db.session_factory() as session, session.begin():
-        # Find duplicates (keep the one with earliest opened_at)
+        # Find duplicates (keep the one with lowest rowid as a stable tie-breaker)
         result = await session.execute(text("""
             DELETE FROM positions
             WHERE rowid NOT IN (
