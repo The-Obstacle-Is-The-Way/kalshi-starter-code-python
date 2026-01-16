@@ -353,20 +353,32 @@ SPEC-037 implemented the series discovery endpoints:
 
 ### C2. Jan 15, 2026 Deprecation Cleanup (Post-deadline)
 
-**Problem:** Kalshi removing cent-denominated fields on Jan 15, 2026.
+**Problem:** Kalshi announced removal of cent-denominated fields on Jan 15, 2026.
 
 **From backwards-compatibility.md:**
 - Market model: `yes_bid`, `yes_ask`, `no_bid`, `no_ask`, `last_price`, `liquidity`
 - Orderbook model: `yes`, `no` (cents format)
 - Candlestick model: cent fields
 
-**Design questions:**
-1. Remove fields entirely or keep as optional?
-2. Simplify computed properties or keep fallback logic?
+**Status update (2026-01-16):**
 
-**Effort:** Small (cleanup after date passes)
+✅ **VERIFIED:** Jan 15, 2026 has passed, but **Kalshi is STILL returning cent fields** alongside dollar fields.
 
-**Status:** Jan 15, 2026 has passed. Re-evaluate and cleanup if still needed.
+Live API check on 2026-01-16:
+```
+has yes_bid: True
+has yes_bid_dollars: True
+yes_bid value: 0
+yes_bid_dollars value: 0.0000
+```
+
+**Conclusion:** Kalshi has done a "soft deprecation" - cent fields are deprecated but not removed yet. Our code
+handles this correctly (prefers `*_dollars` via computed properties, falls back to cents if needed).
+
+**Action items:**
+- [ ] Re-check monthly until Kalshi actually removes cent fields
+- [ ] When removal confirmed, delete fallback logic and mark fields as truly optional
+- [ ] No code changes needed now - our implementation is correct
 
 **Cross-reference:** See `docs/_archive/future/TODO-00A-api-verification-post-deadline.md`
 
