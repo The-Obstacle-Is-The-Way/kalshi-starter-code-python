@@ -7,6 +7,19 @@
 
 ---
 
+## Why This Is Critical
+
+This is a **P1 financial accuracy bug** in a trading application:
+
+1. **P&L is wrong** - We're understating losses by ~5% (the fee percentage)
+2. **Tax implications** - Fees are deductible trading costs; incorrect reporting = incorrect taxes
+3. **Strategy evaluation** - If you think you lost $153 but actually lost $162, your edge calculations are off
+4. **Trust** - A financial app that can't accurately report P&L is fundamentally broken
+
+**Discovery cost:** ~$150 in real trading losses (a $150 bug bounty, if you will)
+
+---
+
 ## Summary
 
 **Our P&L is missing trading fees**, causing us to understate losses.
@@ -141,6 +154,50 @@ After fix, P&L should match Kalshi's ROI:
 | Ticker | Expected P&L |
 |--------|-------------|
 | SOMA + CRED (Trump Speech) | -$162.13 |
+
+---
+
+## Cleanup Required (DEBT-029 Interaction)
+
+DEBT-029 implemented "settlement-as-synthetic-fill" with fee proration. That work assumed `fee_cost_dollars` was a settlement-specific fee. **We now know it's actually the total trading fees.**
+
+### What Changes
+
+| Component | Current State | After Fix |
+|-----------|--------------|-----------|
+| `_allocate_settlement_fee_cents()` | Prorates fees across YES/NO synthetic fills | **May be unnecessary** - just subtract total from P&L |
+| `_synthesize_settlement_closes()` | Puts fees on synthetic fills | Should only apply for positions actually held to settlement |
+| `calculate_summary_with_trades()` | Skips settlements if trades closed all lots | **Must still apply `fee_cost_dollars`** for trade-closed positions |
+
+### Simplified Mental Model
+
+```
+fee_cost_dollars = Total trading fees for this ticker (buys + sells)
+
+If you closed via trades:
+  → FIFO P&L is correct for price gains/losses
+  → Subtract fee_cost_dollars (your trading costs)
+
+If you held to settlement:
+  → Synthesize settlement closes at 100c/0c
+  → Subtract fee_cost_dollars (your trading costs)
+```
+
+### Dead Code After Fix?
+
+Once fixed, we should audit whether these are still needed:
+- [ ] `_allocate_settlement_fee_cents()` - possibly remove if we just subtract total
+- [ ] Fee fields on synthetic fills - possibly remove if fees are applied separately
+- [ ] Comments referencing "settlement fees" - update to "trading fees"
+
+---
+
+## Lessons Learned
+
+1. **Verify against source of truth early** - We built complex fee proration logic without verifying what `fee_cost_dollars` actually meant
+2. **Real user data catches real bugs** - The Trump speech trades ($150 loss) revealed this
+3. **"API doesn't provide X" isn't an excuse** - If the API doesn't give fees per-trade, find where it DOES report them
+4. **Financial accuracy is non-negotiable** - A 5% error in a trading app is a showstopper
 
 ---
 
