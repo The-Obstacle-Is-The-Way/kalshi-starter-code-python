@@ -155,7 +155,7 @@ Investigate whether the fills API actually returns fees in some field we're not 
 ### Option C: Compute Fees from Formula
 
 Kalshi's fee formula is documented:
-```
+```text
 fee = round_up(0.035 × contracts × price × (1 - price))
 ```
 
@@ -199,7 +199,7 @@ separate settlement fee) and applied independently of the synthetic close logic.
 
 ### Simplified Mental Model
 
-```
+```text
 fee_cost_dollars = Total trading fees for this ticker (buys + sells)
 
 If you closed via trades:

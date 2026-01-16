@@ -130,7 +130,7 @@ def _synthesize_settlement_closes(
 
 ### Updated Flow
 
-```
+```text
 1. Process all fills via FIFO → get closed_pnls + open_lots
 2. For each settlement with open lots:
    a. Synthesize closing fills at settlement price (100c/0c for binary, value/100-value for scalar)

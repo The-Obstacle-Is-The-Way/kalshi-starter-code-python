@@ -462,15 +462,26 @@ class PnLCalculator:
         settlement_pnls: list[int] = []
         settlement_trading_fees_cents = 0
         if settlements:
+            trades_tickers = {trade.ticker for trade in trades}
+            position_tickers = {pos.ticker for pos in positions}
+            settlement_tickers_with_holdings = {
+                settlement.ticker
+                for settlement in settlements
+                if settlement.yes_count > 0 or settlement.no_count > 0
+            }
+            relevant_fee_tickers = (
+                trades_tickers | position_tickers | settlement_tickers_with_holdings
+            )
+
             settlement_trading_fees_cents = sum(
                 self._parse_settlement_fee_cents(settlement.fee_cost_dollars)
                 for settlement in settlements
+                if settlement.ticker in relevant_fee_tickers
             )
 
             # Build effective open lots: start with FIFO results, then add implicit
             # lots for settlements without corresponding trades (handles data gaps)
             effective_open_lots = dict(fifo_result.open_lots)
-            trades_tickers = {trade.ticker for trade in trades}
 
             for settlement in settlements:
                 if settlement.ticker not in trades_tickers:
