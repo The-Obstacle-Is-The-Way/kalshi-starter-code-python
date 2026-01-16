@@ -15,7 +15,9 @@ This directory contains **future work** - items that are blocked, deferred, or p
 
 ### Blocked (External Dependency)
 
-*None currently blocked.*
+| ID | Title | Why Blocked |
+|----|-------|-------------|
+| **FUTURE-002** | [Kalshi Blocked Endpoints](FUTURE-002-kalshi-blocked-endpoints.md) | Subaccounts (new feature), Forecast history (no data), Institutional endpoints |
 
 ### Deferred (Not Priority)
 

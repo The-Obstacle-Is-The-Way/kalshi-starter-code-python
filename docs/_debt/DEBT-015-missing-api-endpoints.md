@@ -4,7 +4,7 @@
 **Status:** ✅ Complete (remaining endpoints blocked/unplanned)
 **Found:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
-**Updated:** 2026-01-15 - SPEC-041 implemented (multivariate subset); remaining endpoints blocked/unplanned
+**Updated:** 2026-01-16 - Confirmed tier ≠ feature access; remaining gaps are API-blocked or institutional
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---
@@ -13,10 +13,23 @@
 
 Initial audit (baseline, 2026-01-12) identified **45+ missing documented endpoints** in our Kalshi API client.
 
-As of 2026-01-15, Phases 1-4 are complete (per `docs/_vendor-docs/kalshi-openapi-coverage.md`) and Phase 5 implemented
-the multivariate collections subset (+3 endpoints), bringing coverage to **50/74 (68%)**.
+As of 2026-01-16, Phases 1-5 are complete. Coverage: **50/74 (68%)**.
 
-Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluates each for solo-trader usefulness.
+Remaining unimplemented: 24 endpoints across 6 categories.
+
+### Key Finding: Rate Limit Tiers ≠ Feature Access
+
+Research on 2026-01-16 confirmed that Kalshi's **Basic/Advanced/Premier/Prime** tiers control **rate limits only**,
+NOT feature access:
+
+| Tier | Read/sec | Write/sec | How to Get |
+|------|----------|-----------|------------|
+| Basic | 20 | 10 | Automatic on signup |
+| Advanced | 30 | 30 | [Form](https://kalshi.typeform.com/advanced-api) |
+| Premier | 100 | 100 | 3.75% monthly volume + technical review |
+| Prime | 400 | 400 | 7.5% monthly volume + technical review |
+
+**Being on "Basic" tier does NOT lock out any endpoints.** The blocked endpoints are blocked for other reasons (see below).
 
 **Completed:**
 - ~~Category/tag discovery (proper market browsing)~~ ✅ DONE
@@ -58,7 +71,7 @@ Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluat
 
 **Recommendation:** Implement **LIST** + **GET details** + **PUT lookup**. Skip create + lookup history.
 
-### Subaccounts (4 endpoints) - 🚫 API BLOCKED (SSOT)
+### Subaccounts (4 endpoints) - 🚫 BRAND NEW FEATURE (Jan 9, 2026) - NOT GENERALLY AVAILABLE
 
 | Endpoint | Auth | Solo-Trader Value |
 |----------|------|-------------------|
@@ -66,6 +79,14 @@ Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluat
 | `GET /portfolio/subaccounts/balances` | Yes | **HIGH** - View all balances |
 | `POST /portfolio/subaccounts/transfer` | Yes | **MEDIUM** - Move funds |
 | `GET /portfolio/subaccounts/transfers` | Yes | **LOW** - Transfer history |
+
+**Root cause (researched 2026-01-16):**
+
+Per the [Kalshi API Changelog](https://docs.kalshi.com/changelog), subaccounts were added **Jan 9, 2026** - only 7 days
+before our testing. The feature is likely:
+- In phased rollout (not yet available to all accounts)
+- Reserved for FCM members (Robinhood, Webull broker integrations)
+- Or simply not fully deployed to production yet
 
 **SSOT (observed 2026-01-15):**
 - Demo:
@@ -76,34 +97,50 @@ Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluat
 - Prod:
   - `POST /portfolio/subaccounts` → `404 page not found`
   - `POST /portfolio/subaccounts/transfer` → `404 page not found`
-  - `GET /portfolio/subaccounts/balances` → `403 invalid_parameters` (“subaccount endpoints are not available in production”)
-  - `GET /portfolio/subaccounts/transfers` → `403 invalid_parameters` (“subaccount endpoints are not available in production”)
+  - `GET /portfolio/subaccounts/balances` → `403 invalid_parameters` ("subaccount endpoints are not available in production")
+  - `GET /portfolio/subaccounts/transfers` → `403 invalid_parameters` ("subaccount endpoints are not available in production")
 
-**Recommendation:** Treat as Kalshi API drift/permissions. Do not implement until the API returns real responses.
+**Recommendation:** Re-check in Q2 2026 or contact Kalshi support to request subaccount access.
 
-### Forecast Percentile History (1 endpoint) - 🚫 API BLOCKED (SSOT)
+### Forecast Percentile History (1 endpoint) - 🚫 DATA AVAILABILITY ISSUE
 
 | Endpoint | Auth | Solo-Trader Value |
 |----------|------|-------------------|
 | `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` | Yes (OpenAPI) | **LOW-MEDIUM** |
 
+**Root cause (researched 2026-01-16):**
+
+Per the [Kalshi API Changelog](https://docs.kalshi.com/changelog), this endpoint was added **Sep 11, 2025**. However,
+it returns `400 bad_request` for every event tested (sports, politics, tech series). Likely causes:
+- Data only populated for certain event types or after specific market conditions
+- Feature documented but data pipeline incomplete
+- May require historical data that doesn't exist yet
+
 **SSOT (observed 2026-01-15):**
 - Demo + prod: `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` returned
   `400 bad_request` for every event tested.
 
-**Recommendation:** Treat as API drift/feature flag; defer until we find an event where this returns a real payload.
+**Recommendation:** Re-check periodically; endpoint may start working as Kalshi populates data.
 
-### RFQ / Communications (11 endpoints) - ❌ SKIP
+### RFQ / Communications (11 endpoints) - ❌ INSTITUTIONAL ONLY
 
-**Why skip:** Large block trades (1000+ contracts). Institutional feature. Unless you're trading very large positions, the orderbook is sufficient.
+**Why skip:** Large block trades (1000+ contracts). Per Kalshi docs, RFQ is for negotiating trades outside the orderbook.
+Unless you're trading very large positions as a market maker or institutional trader, the orderbook is sufficient.
 
-### API Keys (4 endpoints) - ❌ SKIP
+**Who uses this:** Market makers, hedge funds, institutional traders with large position sizes.
 
-**Why skip:** Security risk. Better managed via web UI where you have 2FA protection.
+### API Keys (4 endpoints) - ❌ SECURITY RISK
 
-### FCM (2 endpoints) - ❌ SKIP
+**Why skip:** Programmatic API key management is a security risk. Better managed via Kalshi web UI where you have 2FA
+protection and audit trails.
 
-**Why skip:** Futures Commission Merchant endpoints. Institutional clearing members only. Not applicable to retail traders.
+### FCM (2 endpoints) - ❌ INSTITUTIONAL ONLY (EXPLICITLY DOCUMENTED)
+
+**Why skip:** Per the [Kalshi API Changelog](https://docs.kalshi.com/changelog):
+> "This endpoint requires FCM member access level... only intended for use by FCM members (rare)"
+
+FCM = Futures Commission Merchant. These are for broker integrations (Robinhood, Webull) and institutional clearing
+members. Not applicable to retail traders.
 
 ---
 

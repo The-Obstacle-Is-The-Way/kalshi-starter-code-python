@@ -2,7 +2,7 @@
 
 **Source:** [docs.kalshi.com](https://docs.kalshi.com/welcome)
 **OpenAPI Spec:** [docs.kalshi.com/openapi.yaml](https://docs.kalshi.com/openapi.yaml)
-**Last Verified:** 2026-01-15
+**Last Verified:** 2026-01-16
 **Changelog:** [docs.kalshi.com/changelog](https://docs.kalshi.com/changelog)
 
 ---
@@ -53,12 +53,17 @@ Keys now support `scopes` field with `read` and `write` permissions.
 
 ## Rate Limits
 
+**IMPORTANT:** Rate limit tiers control **request throughput only**, NOT feature access. All endpoints are available
+to all verified users regardless of tier.
+
 | Tier | Read/sec | Write/sec | Qualification |
 |------|----------|-----------|---------------|
 | **Basic** | 20 | 10 | Completing signup |
 | **Advanced** | 30 | 30 | [Advanced API form](https://kalshi.typeform.com/advanced-api) |
 | **Premier** | 100 | 100 | 3.75% monthly exchange volume + technical competency |
 | **Prime** | 400 | 400 | 7.5% monthly exchange volume + technical competency |
+
+**Note:** Premier and Prime tiers also allow creating API keys with user-provided RSA public keys.
 
 ### Write-Limited Operations ONLY
 
@@ -1089,6 +1094,38 @@ New `include_volume` query parameter on `GET /series` endpoints. When set, retur
 | **Queue Position** | Contracts ahead before your order fills |
 | **Cents** | Integer 0-100 representing $0.00-$1.00 |
 | **Centi-cents** | Integer where 10,000 = $1.00 (used in WS positions) |
+
+---
+
+## Endpoint Access Categories (2026-01-16)
+
+Not all OpenAPI endpoints are available to all users. Here's the breakdown:
+
+### Consumer / Retail Trader (All 50 implemented endpoints)
+
+All market data, portfolio, orders, discovery, and trading endpoints work for any verified Kalshi account.
+
+### Institutional Only
+
+| Category | Endpoints | Who Can Use |
+|----------|-----------|-------------|
+| **RFQ/Communications** | 11 | Market makers, institutional traders with large positions |
+| **FCM** | 2 | Futures Commission Merchants (Robinhood, Webull, brokers) |
+
+Per the changelog: "FCM endpoints require FCM member access level... only intended for use by FCM members (rare)"
+
+### New / Phased Rollout
+
+| Endpoint | Added | Status (2026-01-16) |
+|----------|-------|---------------------|
+| **Subaccounts** (4) | Jan 9, 2026 | Returns 403/404 - not yet generally available |
+| **Forecast percentile history** (1) | Sep 11, 2025 | Returns 400 - data may not be populated |
+
+### Security Risk (Not Recommended)
+
+| Category | Endpoints | Recommendation |
+|----------|-----------|----------------|
+| **API Keys** | 4 | Use Kalshi web UI with 2FA instead |
 
 ---
 
