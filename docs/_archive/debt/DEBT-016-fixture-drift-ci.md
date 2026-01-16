@@ -1,7 +1,7 @@
 # DEBT-016: Automate Fixture Drift Detection + Weekly Re-Recording
 
 **Priority:** P2 (Important for long-term reliability)
-**Status:** 🟡 Partially Implemented
+**Status:** ✅ Resolved
 **Created:** 2026-01-12
 **Related:** BUG-071, BUG-072, BUG-073
 
@@ -9,7 +9,12 @@
 
 ## Summary
 
-We currently rely on **manual script execution** and **one-time JSON fixture recording** with **console reports**. This is brittle: fixtures drift silently, regressions sneak in, and "golden data" becomes untrusted.
+We historically relied on **manual script execution** and **one-time JSON fixture recording** with **console reports**.
+That is brittle: fixtures drift silently, regressions sneak in, and "golden data" becomes untrusted.
+
+This debt is considered **resolved** for our current needs because:
+- CI validates models against SSOT fixtures on every PR
+- A weekly canary re-records public fixtures and validates models against the live API (without modifying the repo baseline)
 
 **Status update (2026-01-12):**
 - ✅ CI now runs `scripts/validate_models_against_golden.py` on PRs (SSOT mismatch fails fast)
@@ -18,6 +23,14 @@ We currently rely on **manual script execution** and **one-time JSON fixture rec
 **Status update (2026-01-13):**
 - ✅ Added `scripts/check_fixture_freshness.py` (warn-only staleness detection using `_metadata.recorded_at`)
 - ✅ Added a scheduled CI job (`fixture-freshness`) to surface stale fixture age weekly (non-blocking)
+
+**Status update (2026-01-16):**
+- ✅ Added a weekly fixture drift canary that re-records **public** fixtures to a temp directory and validates models
+  against the live API (fails fast on schema drift):
+  - `.github/workflows/fixture-drift-canary.yml`
+  - Uses `scripts/record_api_responses.py --output-dir ...` + `scripts/validate_models_against_golden.py --golden-dir ...`
+- ✅ Made the recording/validation scripts support directory overrides (CI canary does not touch the repo baseline).
+- 🟡 Deferred (optional / may be noisy): auto-opening PRs with updated fixtures for volatile endpoints.
 
 We want to evolve to a "gold standard" workflow where:
 
@@ -66,6 +79,22 @@ We want to evolve to a "gold standard" workflow where:
 ---
 
 ## Proposed Solution
+
+### What We Implemented (SSOT)
+
+- **PR checks:** `.github/workflows/ci.yml` runs `scripts/validate_models_against_golden.py` so SSOT fixtures cannot drift
+  away from models without failing CI.
+- **Weekly canary (public endpoints):** `.github/workflows/fixture-drift-canary.yml` re-records fixtures and validates
+  models against the live API without modifying the repo baseline.
+- **Daily live contract tests (demo):** `.github/workflows/live-api.yml` exercises a small set of endpoints against the
+  vendor API to catch operational drift early.
+- **Staleness warning:** `scripts/check_fixture_freshness.py` runs weekly (non-blocking) to remind us to refresh fixtures.
+
+### Deferred: Auto Drift PRs
+
+Auto-opening drift PRs can be noisy because many endpoints include volatile values (prices, volumes, tickers). We can
+add PR automation later if it becomes valuable, but the canary validation already catches the important class of drift:
+**schema incompatibility that breaks parsing**.
 
 ### 1. Standardize Fixture Recording
 

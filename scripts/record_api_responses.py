@@ -50,7 +50,10 @@ from kalshi_research.api.exceptions import KalshiAPIError
 
 load_dotenv()
 
-GOLDEN_DIR: Final[Path] = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "golden"
+DEFAULT_GOLDEN_DIR: Final[Path] = (
+    Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "golden"
+)
+GOLDEN_DIR: Path = DEFAULT_GOLDEN_DIR
 
 
 def save_golden(
@@ -1808,6 +1811,14 @@ async def record_authenticated_endpoints(
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Record actual API responses as golden fixtures")
     parser.add_argument(
+        "--output-dir",
+        default=None,
+        help=(
+            "Directory to write fixtures to (default: tests/fixtures/golden). "
+            "Useful for CI canary re-recording without touching the repo baseline."
+        ),
+    )
+    parser.add_argument(
         "--env",
         choices=["demo", "prod"],
         default=None,
@@ -1838,6 +1849,10 @@ async def main() -> None:
         help="Skip the production confirmation prompt (non-interactive safe).",
     )
     args = parser.parse_args()
+
+    global GOLDEN_DIR  # noqa: PLW0603 - runtime override for CI canary runs
+    if args.output_dir:
+        GOLDEN_DIR = Path(args.output_dir).expanduser().resolve()
 
     if args.env:
         os.environ["KALSHI_ENVIRONMENT"] = args.env

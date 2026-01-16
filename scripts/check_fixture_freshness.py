@@ -15,7 +15,8 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-GOLDEN_DIR = Path("tests/fixtures/golden")
+DEFAULT_GOLDEN_DIR = Path("tests/fixtures/golden")
+GOLDEN_DIR = DEFAULT_GOLDEN_DIR
 FRESHNESS_DAYS = 30
 
 
@@ -34,11 +35,18 @@ def _debug(verbose: bool, message: str) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Warn if golden fixtures are older than N days.")
     parser.add_argument(
+        "--golden-dir",
+        default=str(DEFAULT_GOLDEN_DIR),
+        help="Base directory containing golden fixtures (default: tests/fixtures/golden).",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Print debug info for fixtures skipped due to missing/invalid metadata.",
     )
     args = parser.parse_args(argv)
+    global GOLDEN_DIR  # noqa: PLW0603 - runtime override for CI canary runs
+    GOLDEN_DIR = Path(args.golden_dir).expanduser().resolve()
 
     if not GOLDEN_DIR.exists():
         print(f"ERROR: Golden fixtures directory not found: {GOLDEN_DIR}")
