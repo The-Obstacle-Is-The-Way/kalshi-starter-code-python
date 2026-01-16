@@ -21,14 +21,14 @@ conditions under which we would implement them.
 
 **Added to Kalshi API:** Jan 9, 2026 (per [changelog](https://docs.kalshi.com/changelog))
 
-| Endpoint | Current Response |
+| Endpoint | Observed (2026-01-15) |
 |----------|------------------|
 | `POST /portfolio/subaccounts` | 404 in demo + prod |
 | `GET /portfolio/subaccounts/balances` | 403 in prod ("not available in production") |
 | `POST /portfolio/subaccounts/transfer` | 404 in demo + prod |
 | `GET /portfolio/subaccounts/transfers` | 403 in prod ("not available in production") |
 
-**Why blocked:** Feature is brand new (7 days old when we tested). Likely in phased rollout or reserved for FCM members.
+**Why blocked:** Feature is brand new (7 days old when we tested). Likely in phased rollout / account-permission gated.
 
 **Value if available:**
 - Track "Macro Thesis" vs "Crypto Thesis" separately
@@ -44,11 +44,18 @@ conditions under which we would implement them.
 
 **Added to Kalshi API:** Sep 11, 2025
 
-| Endpoint | Current Response |
+| Endpoint | Observed (2026-01-15) |
 |----------|------------------|
-| `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` | 400 for all tested events |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Unverified 200 payload (see notes) |
 
-**Why blocked:** Data may not be populated for most events yet. Tested sports, politics, tech series - all returned 400.
+**SSOT (OpenAPI):** This endpoint requires auth and requires query params: `percentiles`, `start_ts`, `end_ts`,
+`period_interval`. Without valid parameters, Kalshi will return `400 bad_request`.
+
+**Changelog vs OpenAPI:** The Sep 11, 2025 changelog entry calls this `GET /forecast_percentiles_history` (no series/event
+path). The current OpenAPI defines the series/event-scoped path above.
+
+**Why blocked/unimplemented:** We have not recorded a stable `200` response fixture yet. Until we can, treat this as
+unimplemented.
 
 **Value if available:**
 - Historical forecast accuracy for calibration research
@@ -120,7 +127,7 @@ Per changelog: "This endpoint requires FCM member access level... only intended 
 
 ## Key Insight: Tiers ≠ Feature Access
 
-Research on 2026-01-16 confirmed that Kalshi's **Basic/Advanced/Premier/Prime** tiers control **rate limits only**:
+Kalshi's **Basic/Advanced/Premier/Prime** tiers control **rate limits** (request throughput):
 
 | Tier | Read/sec | Write/sec |
 |------|----------|-----------|
@@ -129,8 +136,8 @@ Research on 2026-01-16 confirmed that Kalshi's **Basic/Advanced/Premier/Prime** 
 | Premier | 100 | 100 |
 | Prime | 400 | 400 |
 
-**Being on "Basic" tier does NOT lock out any endpoints.** The blocked endpoints are blocked for other reasons
-(new feature, institutional-only, security risk).
+Rate limits are not a guarantee of endpoint access. Some endpoints/features are permissioned by API usage level
+(e.g., OpenAPI restricts creating API keys with user-provided RSA keys to Premier/Market Maker usage levels).
 
 ---
 

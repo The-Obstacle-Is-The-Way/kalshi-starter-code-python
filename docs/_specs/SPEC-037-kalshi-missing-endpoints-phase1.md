@@ -1,10 +1,10 @@
 # SPEC-037: Kalshi Missing Endpoints (Discovery + Order Ops Parity)
 
-**Status:** Phase 1 Complete, Phases 2-3 Pending
+**Status:** 🔀 Superseded by [SPEC-040](../_archive/specs/SPEC-040-kalshi-endpoint-implementation-complete.md) (complete)
 **Priority:** P1 (Foundation robustness for discovery + safe automation)
 **Created:** 2026-01-12
 **Owner:** Solo
-**Related:** `docs/_debt/DEBT-015-missing-api-endpoints.md`, `docs/_future/TODO-00A-api-verification-post-deadline.md`
+**Related:** `docs/_debt/DEBT-015-missing-api-endpoints.md`, `docs/_archive/future/TODO-00A-api-verification-post-deadline.md`
 
 ---
 
@@ -65,7 +65,7 @@ Everything else remains P3 unless/until a workflow demands it.
 Kalshi has a known deadline (Jan 15, 2026) for removing cent-denominated price fields. Do not treat pre-deadline data
 as proof that post-deadline parsing is correct.
 
-Follow: `docs/_future/TODO-00A-api-verification-post-deadline.md`
+Follow: `docs/_archive/future/TODO-00A-api-verification-post-deadline.md`
 
 This spec is **endpoint parity**, not the cent→dollar migration itself. Still, any new models must follow the same
 “dollars-first with cents fallback” conventions used elsewhere.

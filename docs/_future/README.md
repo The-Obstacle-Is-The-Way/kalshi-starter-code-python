@@ -24,7 +24,7 @@ This directory contains **future work** - items that are blocked, deferred, or p
 | ID | Title | Why Deferred |
 |----|-------|--------------|
 | **FUTURE-001** | [Exa Research Agent](FUTURE-001-exa-research-agent.md) | Complex (~20hrs), MCP alternative exists |
-| **FUTURE-00B** | [TradeExecutor Phase 2](TODO-00B-trade-executor-phase2.md) | Until agent trading needed |
+| **TODO-00B** | [TradeExecutor Phase 2](TODO-00B-trade-executor-phase2.md) | Until agent trading needed |
 
 ---
 

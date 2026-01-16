@@ -4,7 +4,7 @@
 **Status:** ✅ Complete (remaining endpoints blocked/unplanned)
 **Found:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
-**Updated:** 2026-01-16 - Confirmed tier ≠ feature access; remaining gaps are API-blocked or institutional
+**Updated:** 2026-01-16 - Clarified tier vs permissions; remaining gaps are API-blocked or institutional
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---
@@ -19,8 +19,8 @@ Remaining unimplemented: 24 endpoints across 6 categories.
 
 ### Key Finding: Rate Limit Tiers ≠ Feature Access
 
-Research on 2026-01-16 confirmed that Kalshi's **Basic/Advanced/Premier/Prime** tiers control **rate limits only**,
-NOT feature access:
+Kalshi's **Basic/Advanced/Premier/Prime** tiers control **rate limits** (request throughput), but some endpoints/features
+can still be permissioned by API usage level or account access (see OpenAPI notes in `docs/_vendor-docs/kalshi-api-reference.md`).
 
 | Tier | Read/sec | Write/sec | How to Get |
 |------|----------|-----------|------------|
@@ -29,7 +29,8 @@ NOT feature access:
 | Premier | 100 | 100 | 3.75% monthly volume + technical review |
 | Prime | 400 | 400 | 7.5% monthly volume + technical review |
 
-**Being on "Basic" tier does NOT lock out any endpoints.** The blocked endpoints are blocked for other reasons (see below).
+Rate limits are not a guarantee of endpoint access. The remaining gaps below appear to be API availability/permission
+issues or intentional non-implementations (institutional/security), not solvable by upgrading rate tier alone.
 
 **Completed:**
 - ~~Category/tag discovery (proper market browsing)~~ ✅ DONE
@@ -46,7 +47,7 @@ NOT feature access:
 - ✅ **SPEC-040 Phase 3 Complete**: Discovery endpoints (event metadata, event candlesticks, filters by sport, structured targets)
 - ✅ **SPEC-040 Phase 4 Complete**: Operational endpoints (exchange info, milestones, live data, order groups, incentive programs)
 - ✅ **SPEC-041 Phase 5 Complete**: Multivariate collections subset (list/detail + lookup tickers)
-- 🚫 **Phase 5 (API blocked)**: Subaccounts + forecast percentile history (see below)
+- ⏸️ **Phase 5 (blocked/unverified)**: Subaccounts + forecast percentile history (see below)
 
 ---
 
@@ -83,10 +84,7 @@ NOT feature access:
 **Root cause (researched 2026-01-16):**
 
 Per the [Kalshi API Changelog](https://docs.kalshi.com/changelog), subaccounts were added **Jan 9, 2026** - only 7 days
-before our testing. The feature is likely:
-- In phased rollout (not yet available to all accounts)
-- Reserved for FCM members (Robinhood, Webull broker integrations)
-- Or simply not fully deployed to production yet
+before our testing. The feature is likely in phased rollout / account-permission gated (exact rollout criteria unknown).
 
 **SSOT (observed 2026-01-15):**
 - Demo:
@@ -102,25 +100,25 @@ before our testing. The feature is likely:
 
 **Recommendation:** Re-check in Q2 2026 or contact Kalshi support to request subaccount access.
 
-### Forecast Percentile History (1 endpoint) - 🚫 DATA AVAILABILITY ISSUE
+### Forecast Percentile History (1 endpoint) - ⏸️ Unverified (no stable fixture)
 
 | Endpoint | Auth | Solo-Trader Value |
 |----------|------|-------------------|
-| `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` | Yes (OpenAPI) | **LOW-MEDIUM** |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Yes (OpenAPI) | **LOW-MEDIUM** |
 
 **Root cause (researched 2026-01-16):**
 
 Per the [Kalshi API Changelog](https://docs.kalshi.com/changelog), this endpoint was added **Sep 11, 2025**. However,
-it returns `400 bad_request` for every event tested (sports, politics, tech series). Likely causes:
-- Data only populated for certain event types or after specific market conditions
-- Feature documented but data pipeline incomplete
-- May require historical data that doesn't exist yet
+the changelog entry names it `GET /forecast_percentiles_history`, while the current OpenAPI defines the series/event-scoped
+endpoint above.
 
-**SSOT (observed 2026-01-15):**
-- Demo + prod: `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` returned
-  `400 bad_request` for every event tested.
+OpenAPI requires query params: `percentiles`, `start_ts`, `end_ts`, and `period_interval`. Without valid parameters,
+the API will return `400 bad_request`.
 
-**Recommendation:** Re-check periodically; endpoint may start working as Kalshi populates data.
+**Status (2026-01-16):** Not implemented. We have not recorded a stable `200` fixture yet; treat as unimplemented until we
+can capture and validate a real response.
+
+**Recommendation:** Re-check periodically and attempt recording a fixture using valid query params.
 
 ### RFQ / Communications (11 endpoints) - ❌ INSTITUTIONAL ONLY
 
@@ -183,7 +181,7 @@ members. Not applicable to retail traders.
 |----------|-------------|----------|--------|
 | `GET /series` | List series with filters | **P2** | ✅ **DONE** |
 | `GET /series/{series_ticker}` | Single series details | P2 | ✅ **DONE** |
-| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Forecast history (auth) | P3 | ⬜ **API blocked** (400 bad_request) |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Forecast history (auth) | P3 | ⬜ **Unverified** (auth + required params; no stable fixture) |
 
 **Impact:** ~~Medium~~ **Resolved** - Series-centric navigation now available via:
 - `get_series_list()` - List all series with optional category filter
@@ -350,8 +348,8 @@ members. Not applicable to retail traders.
 - ~~`GET /structured_targets`~~ ✅ `get_structured_targets()`
 - ~~`GET /structured_targets/{structured_target_id}`~~ ✅ `get_structured_target()`
 - ~~`GET /search/filters_by_sport`~~ ✅ `get_filters_by_sport()`
-- ~~`GET /series/{series_ticker}/events/{event_ticker}/candlesticks`~~ ✅ `get_event_candlesticks()`
-- `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` ⬜ (OpenAPI exists; API blocked - 400 bad_request)
+- ~~`GET /series/{series_ticker}/events/{ticker}/candlesticks`~~ ✅ `get_event_candlesticks()`
+- `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` ⬜ (OpenAPI exists; auth + required params; no stable fixture)
 
 ### Phase 4: Operational (P3) - ✅ COMPLETE (2026-01-15)
 - ~~Exchange schedule/announcements/user_data_timestamp~~ ✅ `get_exchange_schedule()`, `get_exchange_announcements()`, `get_user_data_timestamp()`
@@ -362,7 +360,7 @@ members. Not applicable to retail traders.
 **Phase 5 complete** (SPEC-041): multivariate collections subset (list/detail + lookup tickers).
 
 Remaining endpoints are either intentionally not planned (RFQ, API keys, FCM, plus 2 low-value multivariate endpoints:
-create market + lookup history) or currently API blocked (subaccounts + forecast percentile history).
+create market + lookup history) or currently API blocked/unverified (subaccounts + forecast percentile history).
 
 ---
 
@@ -381,3 +379,5 @@ create market + lookup history) or currently API blocked (subaccounts + forecast
 | BUG-064 | Order params (not endpoints) |
 | SPEC-041 | Phase 5 implementation spec |
 | `docs/_vendor-docs/kalshi-api-reference.md` | SSOT for API |
+| `docs/_vendor-docs/kalshi-openapi-coverage.md` | Coverage matrix (counts + implementation status) |
+| `docs/_future/FUTURE-002-kalshi-blocked-endpoints.md` | Blocked/unimplemented endpoints tracker |

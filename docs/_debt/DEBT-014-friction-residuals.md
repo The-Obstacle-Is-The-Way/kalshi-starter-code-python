@@ -351,7 +351,7 @@ SPEC-037 implemented the series discovery endpoints:
 
 ---
 
-### C2. Jan 15, 2026 Deprecation Cleanup (Scheduled)
+### C2. Jan 15, 2026 Deprecation Cleanup (Post-deadline)
 
 **Problem:** Kalshi removing cent-denominated fields on Jan 15, 2026.
 
@@ -366,9 +366,9 @@ SPEC-037 implemented the series discovery endpoints:
 
 **Effort:** Small (cleanup after date passes)
 
-**Blocked by:** Wait until Jan 15, 2026
+**Status:** Jan 15, 2026 has passed. Re-evaluate and cleanup if still needed.
 
-**Cross-reference:** See `docs/_future/TODO-00A-api-verification-post-deadline.md`
+**Cross-reference:** See `docs/_archive/future/TODO-00A-api-verification-post-deadline.md`
 
 ---
 
@@ -386,7 +386,7 @@ SPEC-037 implemented the series discovery endpoints:
 | B2 | Adversarial research | High | Medium | P1 | ⏸️ Blocked (FUTURE-001) |
 | B3 | New market alerts | Medium | Medium | P2 | ✅ Implemented (SPEC-039 Phase 1) |
 | C1 | `/series` endpoint | Low | Medium | P3 | ✅ RESOLVED (SPEC-037) |
-| C2 | Jan 15 cleanup | Medium | Small | P2 | Scheduled |
+| C2 | Jan 15 cleanup | Medium | Small | P2 | Unblocked (post-deadline) |
 
 ---
 
@@ -417,7 +417,7 @@ None for Section A.
 4. **B3**: ✅ Implemented via SPEC-039 Phase 1 (`kalshi scan new-markets`)
 
 ### Scheduled
-5. **C2**: Wait for Jan 15, 2026, then cleanup
+5. **C2**: Jan 15 has passed; re-evaluate and cleanup if still needed
 
 ### Recently Resolved
 6. **C1**: ✅ RESOLVED (2026-01-12) - Series endpoints implemented via SPEC-037
@@ -432,7 +432,7 @@ None for Section A.
 | `docs/_archive/debt/hacks.md` | Hacky implementations | Source (archived 2026-01-11) |
 | `docs/_archive/debt/backwards-compatibility.md` | Compat code inventory | Source (archived 2026-01-11) |
 | `docs/_future/FUTURE-001-exa-research-agent.md` | Exa agent spec | **Blocks B1/B2** |
-| `docs/_future/TODO-00A-api-verification-post-deadline.md` | Jan 15 verification | Related to C2 |
+| `docs/_archive/future/TODO-00A-api-verification-post-deadline.md` | Jan 15 verification | Related to C2 |
 | `docs/_future/TODO-00B-trade-executor-phase2.md` | TradeExecutor | Separate track |
 
 ---
@@ -460,7 +460,7 @@ None for Section A.
 > - [x] Search `scan opportunities` for volume/liquidity filters ✅ Done (see B3)
 > - [x] Check if `created_time` field is available on Market model ✅ Yes (`market.py:84`)
 > - [ ] Verify Section A items (A1-A6) are still accurate (last verified: 2026-01-11)
-> - [ ] Check if Jan 15, 2026 has passed (C2 trigger)
+> - [x] Jan 15, 2026 has passed (C2 unblocked)
 >
 > **If you're reading this post-compaction:** Re-read this document and FUTURE-001 before
 > implementing anything. The design decisions are already made.

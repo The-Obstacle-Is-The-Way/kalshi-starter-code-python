@@ -53,8 +53,8 @@ Keys now support `scopes` field with `read` and `write` permissions.
 
 ## Rate Limits
 
-**IMPORTANT:** Rate limit tiers control **request throughput only**, NOT feature access. All endpoints are available
-to all verified users regardless of tier.
+**IMPORTANT:** Rate limit tiers control **request throughput**. Endpoint availability can still depend on account
+permissions or API usage level (e.g., some API key management operations are restricted in the OpenAPI).
 
 | Tier | Read/sec | Write/sec | Qualification |
 |------|----------|-----------|---------------|
@@ -63,7 +63,8 @@ to all verified users regardless of tier.
 | **Premier** | 100 | 100 | 3.75% monthly exchange volume + technical competency |
 | **Prime** | 400 | 400 | 7.5% monthly exchange volume + technical competency |
 
-**Note:** Premier and Prime tiers also allow creating API keys with user-provided RSA public keys.
+**Note:** Per OpenAPI, creating API keys with a user-provided RSA public key (`POST /api_keys`) is restricted to
+Premier or Market Maker API usage levels.
 
 ### Write-Limited Operations ONLY
 

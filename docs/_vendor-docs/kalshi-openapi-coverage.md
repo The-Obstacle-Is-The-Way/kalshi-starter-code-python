@@ -27,7 +27,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | **Markets (Filters)** | 11 params | 11 params | **100%** | ✅ SPEC-040 Phase 1 |
 | **Series** | 4 | 4 | **100%** | SPEC-037 Phase 1 ✅ |
 | **Search/Discovery** | 2 | 2 | **100%** | ✅ SPEC-040 Phase 3 |
-| **Events** | 6 | 5 | 83% | 🚫 Forecast history API blocked |
+| **Events** | 6 | 5 | 83% | ⏸️ Forecast percentile history unimplemented |
 | **Structured Targets** | 2 | 2 | **100%** | ✅ SPEC-040 Phase 3 |
 | **Portfolio (Read)** | 6 | 6 | **100%** | ✅ SPEC-040 Phase 2 |
 | **Portfolio (Orders)** | 9 | 9 | **100%** | ✅ SPEC-040 Phase 2 |
@@ -118,7 +118,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `GET /events/multivariate` | ✅ | Done | `get_multivariate_events*()` (MVEs excluded from `/events`) |
 | `GET /events/{event_ticker}/metadata` | ✅ | SPEC-040 Phase 3 | `get_event_metadata()` |
 | `GET /series/{series_ticker}/events/{ticker}/candlesticks` | ✅ | SPEC-040 Phase 3 | `get_event_candlesticks()` |
-| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | ⬜ | - | 🔄 Added Sep 2025; returns `400` - data may not be populated yet |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | ⬜ | - | 🔄 Added Sep 11, 2025 (changelog calls it `/forecast_percentiles_history`). Auth required + required query params; no validated `200` fixture recorded yet |
 
 ---
 
@@ -186,8 +186,8 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `POST /portfolio/subaccounts/transfer` | ⬜ | - | OpenAPI exists, but endpoint returned `404 page not found` in demo + prod (2026-01-15) |
 | `GET /portfolio/subaccounts/transfers` | ⬜ | - | Demo: `200` empty; Prod: `403 invalid_parameters` ("not available in production") |
 
-**Blocking reason:** Feature added **Jan 9, 2026** (per changelog) - only 7 days before testing. Likely in phased rollout
-or reserved for FCM members (Robinhood, Webull broker integrations).
+**Blocking reason:** Feature added **Jan 9, 2026** (per changelog) - only 7 days before testing. Likely in phased rollout /
+account-permission gated (exact rollout criteria unknown).
 
 **Action:** Re-check in Q2 2026 or contact Kalshi support to request access.
 
@@ -319,7 +319,7 @@ These are NOT bugs in our code - they are Kalshi platform limitations:
 
 | Spec | Scope | Status |
 |------|-------|--------|
-| **SPEC-040** | Complete Kalshi endpoint implementation plan (TDD, SSOT-driven) | Draft (Ready) |
+| **SPEC-040** | Complete Kalshi endpoint implementation plan (TDD, SSOT-driven) | ✅ Complete (Phases 1-4) |
 | SPEC-029 | Strategic endpoint coverage (client + CLI) | Superseded by SPEC-040 |
 | SPEC-037 | SSOT-driven implementation with fixtures | Superseded by SPEC-040 |
 
@@ -334,7 +334,7 @@ These endpoints are tracked for future re-evaluation:
 | Category | Endpoints | Blocking Reason | Revisit When |
 |----------|-----------|-----------------|--------------|
 | **Subaccounts** | 4 | New feature (Jan 9, 2026) - not yet available | Q2 2026 |
-| **Forecast percentile history** | 1 | Returns 400 - data not populated | Periodically |
+| **Forecast percentile history** | 1 | No validated `200` fixture yet (auth + required params) | Periodically |
 | **Multivariate create/lookup history** | 2 | Low value for solo workflow | If needed |
 
 **GitHub Issues:** See issue tracker for individual endpoint tracking.
@@ -349,5 +349,6 @@ These endpoints are tracked for future re-evaluation:
 | SPEC-029 | Superseded strategy doc |
 | SPEC-037 | Superseded phase doc |
 | **DEBT-015** | Original missing endpoints list |
+| **FUTURE-002** | Blocked/unimplemented endpoint tracker |
 | **DEBT-020** | Discovery gaps (resolved by this work) |
 | `kalshi-api-reference.md` | SSOT vendor docs |

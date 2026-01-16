@@ -24,7 +24,7 @@ not part of the implementation set.
 - FCM (institutional) - 2 endpoints
 - Multivariate Collections: create market + lookup history - 2 endpoints
 - Subaccounts: 4 endpoints (OpenAPI exists, but endpoints are unavailable in practice)
-- Forecast percentile history: 1 endpoint (OpenAPI exists, but returns 400 for all tested events)
+- Forecast percentile history: 1 endpoint (OpenAPI exists; auth + required query params; no validated 200 fixture yet)
 
 ---
 
@@ -164,7 +164,8 @@ These endpoints appear in `openapi.yaml`, but are not usable with our current ac
   - `GET /portfolio/subaccounts/balances` → `403 invalid_parameters` (`details`: “subaccount endpoints are not available in production”)
   - `GET /portfolio/subaccounts/transfers` → `403 invalid_parameters` (`details`: “subaccount endpoints are not available in production”)
 
-**Verdict:** Blocked by Kalshi API availability/permissions. Do not implement until the API returns real responses.
+**Verdict:** Blocked by Kalshi API availability/permissions. Do not implement until we can record stable fixtures without
+side effects.
 
 | Endpoint | Auth | Method Name | Use Case |
 |----------|------|-------------|----------|
@@ -173,9 +174,8 @@ These endpoints appear in `openapi.yaml`, but are not usable with our current ac
 | `POST /portfolio/subaccounts/transfer` | Yes | `transfer_between_subaccounts()` | Move funds between accounts |
 | `GET /portfolio/subaccounts/transfers` | Yes | `get_subaccount_transfers()` | Transfer history |
 
-**Changelog note (not in OpenAPI as of 2026-01-15):**
-- `GET /portfolio/subaccounts/{subaccount_number}/balance` is mentioned in Kalshi's changelog but is not present in
-  `openapi.yaml`. Treat as undocumented/removed unless re-added to OpenAPI.
+**Changelog note:** The Jan 9, 2026 changelog lists only the 4 endpoints above; no additional subaccount endpoints are
+listed there.
 
 **Why valuable:**
 - Track "Macro Thesis" vs "Crypto Thesis" separately
@@ -247,7 +247,7 @@ class GetSubaccountTransfersResponse(BaseModel):
 
 | Endpoint | Auth | Method Name | Use Case |
 |----------|------|-------------|----------|
-| `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` | Yes (OpenAPI) | `get_forecast_percentile_history()` | Historical forecast percentiles |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Yes (OpenAPI) | `get_forecast_percentile_history()` | Historical forecast percentiles |
 
 **Request parameters (all required, OpenAPI):**
 - `percentiles`: `list[int]` (0-10000, max 10 items)
@@ -295,10 +295,8 @@ class GetEventForecastPercentilesHistoryResponse(BaseModel):
     forecast_history: list[ForecastPercentileHistoryEntry]
 ```
 
-**SSOT (observed 2026-01-15): API blocked / unavailable**
-
-In both demo and prod, the endpoint returned `400 bad_request` for every event tested (including sports + politics +
-tech series). Until we can identify an event where this returns a real payload, this endpoint is treated as blocked.
+**Status (2026-01-16):** Not implemented. OpenAPI requires `percentiles`, `start_ts`, `end_ts`, and `period_interval`.
+Until we can record a stable `200` fixture with valid parameters, treat this endpoint as unimplemented.
 
 ---
 

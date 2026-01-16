@@ -25,7 +25,7 @@ This directory contains **active** design specifications - work happening NOW.
 | SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft (unblocked) |
 | SPEC-037 | [Kalshi Missing Endpoints (Discovery + Order Ops Parity)](SPEC-037-kalshi-missing-endpoints-phase1.md) | 🔀 Superseded by SPEC-040 |
 | SPEC-038 | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](SPEC-038-exa-websets-endpoint-coverage.md) | 📝 Draft |
-| SPEC-039 | [New Market Alerts (Information Arbitrage Window)](SPEC-039-new-market-alerts.md) | ✅ Complete |
+| SPEC-039 | [New Market Alerts (Information Arbitrage Window)](SPEC-039-new-market-alerts.md) | Phase 1 ✅ (Phase 2 optional) |
 
 ### Implementation Order (Critical Path)
 
@@ -65,7 +65,6 @@ build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive s
 | ID | Title | Status |
 |---|---|---|
 | **SPEC-040** | [Complete Kalshi Endpoint Implementation (TDD)](../_archive/specs/SPEC-040-kalshi-endpoint-implementation-complete.md) | ✅ Complete (2026-01-15) |
-| SPEC-039 | [New Market Alerts](SPEC-039-new-market-alerts.md) | ✅ Complete (2026-01-14) |
 | SPEC-036 | [Category Filtering for Markets](../_archive/specs/SPEC-036-category-filtering.md) | ✅ Implemented |
 | SPEC-035 | [Ticker Display Enhancement](../_archive/specs/SPEC-035-ticker-display-enhancement.md) | ✅ Implemented |
 | SPEC-027 | [Settlement Timestamp Support](../_archive/specs/SPEC-027-settlement-timestamp.md) | ✅ Implemented |
