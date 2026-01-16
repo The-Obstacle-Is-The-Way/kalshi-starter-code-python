@@ -14,7 +14,8 @@ def _dollar_to_cents(dollar_str: str) -> int:
     Convert dollar string (e.g., "0.50") to cents (e.g., 50).
 
     This handles the Kalshi API migration from integer cents to dollar strings.
-    After Jan 15, 2026, the API will only return dollar-denominated fields.
+    Kalshi announced cent-field deprecation for Jan 15, 2026, but as of 2026-01-16 the API
+    still returns both formats in some responses (soft deprecation).
     """
     return fixed_dollars_to_cents(dollar_str, label="orderbook price")
 
@@ -37,7 +38,7 @@ class Orderbook(BaseModel):
     yes: list[tuple[int, int]] | None = None
     no: list[tuple[int, int]] | None = None
     # Dollar-denominated versions (e.g., [("0.50", 10), ("0.49", 5)])
-    # These become the primary fields after Jan 15, 2026
+    # Prefer these when present (soft deprecation of cents fields as of Jan 15, 2026).
     yes_dollars: list[tuple[str, int]] | None = None
     no_dollars: list[tuple[str, int]] | None = None
 

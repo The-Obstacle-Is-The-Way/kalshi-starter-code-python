@@ -398,7 +398,7 @@ handles this correctly (prefers `*_dollars` via computed properties, falls back 
 | B2 | Adversarial research | High | Medium | P1 | ⏸️ Blocked (FUTURE-001) |
 | B3 | New market alerts | Medium | Medium | P2 | ✅ Implemented (SPEC-039 Phase 1) |
 | C1 | `/series` endpoint | Low | Medium | P3 | ✅ RESOLVED (SPEC-037) |
-| C2 | Jan 15 cleanup | Medium | Small | P2 | Unblocked (post-deadline) |
+| C2 | Jan 15 cleanup | Medium | Small | P2 | Monitoring (soft deprecation) |
 
 ---
 
