@@ -95,7 +95,7 @@ on top of FIFO P&L — it double counts the same history in an incompatible way.
 ## Database Evidence
 
 **portfolio_settlements table:**
-```
+```text
 SOMA: yes_total_cost=9708, no_total_cost=15134, revenue=0
 CRED: yes_total_cost=9652, no_total_cost=16555, revenue=0
 ```

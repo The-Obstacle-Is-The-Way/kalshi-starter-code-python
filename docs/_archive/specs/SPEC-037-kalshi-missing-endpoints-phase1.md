@@ -1,6 +1,6 @@
 # SPEC-037: Kalshi Missing Endpoints (Discovery + Order Ops Parity)
 
-**Status:** 🔀 Superseded by [SPEC-040](../_archive/specs/SPEC-040-kalshi-endpoint-implementation-complete.md) (complete)
+**Status:** 🔀 Superseded by [SPEC-040](./SPEC-040-kalshi-endpoint-implementation-complete.md) (complete)
 **Priority:** P1 (Foundation robustness for discovery + safe automation)
 **Created:** 2026-01-12
 **Owner:** Solo

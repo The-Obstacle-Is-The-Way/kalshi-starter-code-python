@@ -365,7 +365,7 @@ SPEC-037 implemented the series discovery endpoints:
 ✅ **VERIFIED:** Jan 15, 2026 has passed, but **Kalshi is STILL returning cent fields** alongside dollar fields.
 
 Live API check on 2026-01-16:
-```
+```text
 has yes_bid: True
 has yes_bid_dollars: True
 yes_bid value: 0

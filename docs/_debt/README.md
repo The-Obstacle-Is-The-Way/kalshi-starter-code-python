@@ -29,7 +29,7 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ### Recommended Order
 
-```
+```text
 DEBT-014 (Friction/Design) ← Blocked on FUTURE-001 (B1/B2), C2 is soft-deprecation monitoring
     ↓
 DEBT-025 (Subpenny Policy) ← If precision matters
