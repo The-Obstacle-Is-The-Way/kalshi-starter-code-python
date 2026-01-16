@@ -19,6 +19,8 @@ from tests.golden_fixtures import load_golden_response
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+TEST_KEY_ID = "DUMMY_KEY_ID"
+
 
 @pytest.fixture
 def mock_auth() -> Iterator[None]:
@@ -133,7 +135,7 @@ class TestMultivariateEventCollectionsPhase5:
         ]
 
         async with KalshiClient(
-            key_id="test-key", private_key_b64="fake", environment="prod"
+            key_id=TEST_KEY_ID, private_key_b64="fake", environment="prod"
         ) as client:
             client._rate_limiter = AsyncMock()
             response = await client.lookup_multivariate_event_collection_tickers(
@@ -161,7 +163,7 @@ class TestMultivariateEventCollectionsPhase5:
         self, mock_auth: None
     ) -> None:
         async with KalshiClient(
-            key_id="test-key", private_key_b64="fake", environment="prod"
+            key_id=TEST_KEY_ID, private_key_b64="fake", environment="prod"
         ) as client:
             with pytest.raises(ValueError, match="selected_markets must be non-empty"):
                 await client.lookup_multivariate_event_collection_tickers(
@@ -180,7 +182,7 @@ class TestMultivariateEventCollectionsPhase5:
         ).mock(return_value=Response(429, text="rate limit", headers={"Retry-After": "2"}))
 
         async with KalshiClient(
-            key_id="test-key", private_key_b64="fake", environment="prod", max_retries=1
+            key_id=TEST_KEY_ID, private_key_b64="fake", environment="prod", max_retries=1
         ) as client:
             client._rate_limiter = AsyncMock()
             with pytest.raises(RateLimitError) as exc_info:
@@ -209,7 +211,7 @@ class TestMultivariateEventCollectionsPhase5:
         ).mock(return_value=Response(429, text="rate limit", headers={"Retry-After": "abc"}))
 
         async with KalshiClient(
-            key_id="test-key", private_key_b64="fake", environment="prod", max_retries=1
+            key_id=TEST_KEY_ID, private_key_b64="fake", environment="prod", max_retries=1
         ) as client:
             client._rate_limiter = AsyncMock()
             with pytest.raises(RateLimitError) as exc_info:
@@ -238,7 +240,7 @@ class TestMultivariateEventCollectionsPhase5:
         ).mock(return_value=Response(500, text="internal error"))
 
         async with KalshiClient(
-            key_id="test-key", private_key_b64="fake", environment="prod", max_retries=1
+            key_id=TEST_KEY_ID, private_key_b64="fake", environment="prod", max_retries=1
         ) as client:
             client._rate_limiter = AsyncMock()
             with pytest.raises(KalshiAPIError) as exc_info:
@@ -267,7 +269,7 @@ class TestMultivariateEventCollectionsPhase5:
         ).mock(return_value=Response(200, json=[]))
 
         async with KalshiClient(
-            key_id="test-key", private_key_b64="fake", environment="prod", max_retries=1
+            key_id=TEST_KEY_ID, private_key_b64="fake", environment="prod", max_retries=1
         ) as client:
             client._rate_limiter = AsyncMock()
             with pytest.raises(
@@ -297,7 +299,7 @@ class TestMultivariateEventCollectionsPhase5:
         ).mock(return_value=Response(200, content=b""))
 
         async with KalshiClient(
-            key_id="test-key", private_key_b64="fake", environment="prod", max_retries=1
+            key_id=TEST_KEY_ID, private_key_b64="fake", environment="prod", max_retries=1
         ) as client:
             client._rate_limiter = AsyncMock()
             with pytest.raises(ValidationError):

@@ -55,7 +55,7 @@ GOLDEN_DIR: Final[Path] = Path(__file__).resolve().parent.parent / "tests" / "fi
 
 def save_golden(
     endpoint: str,
-    data: dict[str, Any] | list[Any],
+    data: dict[str, Any] | list[object],
     metadata: dict[str, Any] | None = None,
 ) -> Path:
     """
@@ -1264,8 +1264,14 @@ async def _try_build_selected_markets_via_create_fallback(
     if not isinstance(size_min, int) or size_min != 2:
         return None
 
-    associated_events = contract.get("associated_events")
-    if not isinstance(associated_events, list) or len(associated_events) < size_min:
+    associated_events_raw = contract.get("associated_events")
+    if not isinstance(associated_events_raw, list) or len(associated_events_raw) < size_min:
+        return None
+
+    associated_events: list[dict[str, Any]] = [
+        event for event in associated_events_raw if isinstance(event, dict)
+    ]
+    if len(associated_events) < size_min:
         return None
 
     event_candidates = await _collect_multivariate_event_candidates(
@@ -1283,7 +1289,7 @@ async def _try_build_selected_markets_via_create_fallback(
 
 
 async def _collect_multivariate_event_candidates(
-    *, associated_events: list[Any], count: int
+    *, associated_events: list[dict[str, Any]], count: int
 ) -> list[tuple[str, list[str]]] | None:
     event_candidates: list[tuple[str, list[str]]] = []
 
@@ -1291,8 +1297,6 @@ async def _collect_multivariate_event_candidates(
         for event in associated_events:
             if len(event_candidates) >= count:
                 break
-            if not isinstance(event, dict):
-                continue
             event_ticker = event.get("ticker")
             if not isinstance(event_ticker, str) or not event_ticker:
                 continue
