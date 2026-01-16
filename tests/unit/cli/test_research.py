@@ -515,6 +515,65 @@ def test_research_thesis_show_missing_thesis_exits_with_not_found() -> None:
     assert "Thesis not found" in result.stdout
 
 
+def test_research_thesis_edit_updates_title() -> None:
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        thesis_file.write_text(
+            json.dumps(
+                {
+                    "theses": [
+                        {
+                            "id": "thesis-12345678",
+                            "title": "Old Title",
+                            "status": "active",
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(
+                app,
+                ["research", "thesis", "edit", "thesis-1", "--title", "New Title"],
+            )
+            stored = json.loads(thesis_file.read_text(encoding="utf-8"))
+
+    assert result.exit_code == 0
+    assert stored["theses"][0]["title"] == "New Title"
+
+
+def test_research_thesis_edit_missing_thesis_exits_with_not_found() -> None:
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        thesis_file.write_text(
+            json.dumps({"theses": [{"id": "thesis-12345678", "title": "Test Thesis"}]}),
+            encoding="utf-8",
+        )
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(
+                app,
+                ["research", "thesis", "edit", "missing", "--title", "New Title"],
+            )
+
+    assert result.exit_code == 2
+    assert "Thesis not found" in result.stdout
+
+
+def test_research_thesis_edit_no_changes_exits_with_error() -> None:
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        thesis_file.write_text(
+            json.dumps({"theses": [{"id": "thesis-12345678", "title": "Test Thesis"}]}),
+            encoding="utf-8",
+        )
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(app, ["research", "thesis", "edit", "thesis-1"])
+
+    assert result.exit_code == 1
+    assert "No changes specified" in result.stdout
+
+
 def test_research_thesis_resolve() -> None:
     with runner.isolated_filesystem():
         thesis_file = Path("theses.json")

@@ -231,6 +231,15 @@ def test_portfolio_positions_fresh_db_does_not_crash() -> None:
     assert "No open positions found" in result.stdout
 
 
+def test_portfolio_positions_full_flag_is_accepted() -> None:
+    with runner.isolated_filesystem():
+        db_path = Path("fresh.db")
+        result = runner.invoke(app, ["portfolio", "positions", "--db", str(db_path), "--full"])
+
+    assert result.exit_code == 0
+    assert "No open positions found" in result.stdout
+
+
 @patch("kalshi_research.cli.db.DatabaseManager")
 def test_portfolio_positions_shows_zero_mark_price(mock_db_cls: MagicMock) -> None:
     mock_position = MagicMock()
@@ -378,6 +387,50 @@ def test_portfolio_pnl_with_ticker_prints_summary(mock_db_cls: MagicMock) -> Non
 
     with patch("kalshi_research.portfolio.PnLCalculator", return_value=mock_calc):
         result = runner.invoke(app, ["portfolio", "pnl", "--ticker", "TEST-TICKER"])
+
+    assert result.exit_code == 0
+    assert "P&L Summary" in result.stdout
+
+
+@patch("kalshi_research.cli.db.DatabaseManager")
+def test_portfolio_pnl_full_flag_is_accepted(mock_db_cls: MagicMock) -> None:
+    from kalshi_research.portfolio.pnl import PnLSummary
+
+    mock_empty = MagicMock()
+    mock_empty.scalars.return_value.all.return_value = []
+
+    mock_session = AsyncMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+    mock_session.execute = AsyncMock(side_effect=[mock_empty, mock_empty, mock_empty])
+
+    mock_session_factory = MagicMock(return_value=mock_session)
+
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+    mock_db.__aexit__.return_value = False
+    mock_db.create_tables = AsyncMock()
+    mock_db.session_factory = mock_session_factory
+    mock_db_cls.return_value = mock_db
+
+    summary = PnLSummary(
+        unrealized_pnl_cents=0,
+        realized_pnl_cents=0,
+        total_pnl_cents=0,
+        total_trades=0,
+        winning_trades=0,
+        losing_trades=0,
+        win_rate=0.0,
+        avg_win_cents=0,
+        avg_loss_cents=0,
+        profit_factor=0.0,
+    )
+
+    mock_calc = MagicMock()
+    mock_calc.calculate_summary_with_trades.return_value = summary
+
+    with patch("kalshi_research.portfolio.PnLCalculator", return_value=mock_calc):
+        result = runner.invoke(app, ["portfolio", "pnl", "--ticker", "TEST-TICKER", "--full"])
 
     assert result.exit_code == 0
     assert "P&L Summary" in result.stdout
