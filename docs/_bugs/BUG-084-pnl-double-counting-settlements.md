@@ -9,10 +9,18 @@
 
 ## Summary
 
-The P&L calculator double-counts realized losses by summing BOTH the FIFO trade P&L AND the settlement P&L.
-These represent the SAME economic activity, causing reported losses to be ~2-4x higher than actual.
+`kalshi portfolio pnl` currently adds two separate “realized P&L” streams:
 
-**Impact:** User reported -$749 realized P&L when actual loss was ~$150.
+1. FIFO realized P&L from fills (`trades` table) — correct for this DB.
+2. A second value derived from `/portfolio/settlements` fields — currently **not a valid realized P&L
+   figure** for our observed settlement rows.
+
+Those values are summed together, producing materially inflated losses.
+
+**Impact (verified on this DB):**
+- Current CLI realized P&L: **-$749.05**
+- FIFO-only realized P&L: **-$174.43**
+- The two Trump tickers below: FIFO-only **-$153.49** vs CLI **-$672.62**
 
 ---
 
@@ -25,9 +33,10 @@ These represent the SAME economic activity, causing reported losses to be ~2-4x 
 - Bought 189 YES on CRED at avg 51¢ = $96.52
 - Total invested: **$193.60**
 
-**What user reported:**
-- Put in ~$200, left with ~$60
-- Actual loss: **~$140**
+**Correct realized P&L (FIFO-only on this DB):**
+- SOMA: **-$80.42**
+- CRED: **-$73.07**
+- Total: **-$153.49**
 
 **What CLI shows:**
 ```bash
@@ -38,7 +47,7 @@ $ uv run kalshi portfolio pnl -t KXTRUMPMENTION-26JAN15-CRED
 Realized P&L: $-339.89
 ```
 
-Total reported: **-$672.62** (4.8x the actual ~$140 loss!)
+Total reported: **-$672.62** (~4.4x the FIFO-only **-$153.49** loss).
 
 ---
 
@@ -49,15 +58,19 @@ Total reported: **-$672.62** (4.8x the actual ~$140 loss!)
 closed_trades = fifo_result.closed_pnls + settlement_pnls
 ```
 
-This line **ADDS** the FIFO trade P&L to the settlement P&L. But these represent the SAME economic activity:
+This line **ADDS** the FIFO trade P&L to the settlement-derived values. For the tickers in the Evidence section,
+FIFO-only matches the `positions.realized_pnl_cents` values in `data/kalshi.db`, while the settlement-derived
+component adds an extra (incorrect) loss term, so the sum is wildly wrong.
 
 1. **FIFO Trade P&L** (from `_get_closed_trade_pnls_fifo`):
-   - Tracks buy YES → sell NO (normalized to sell YES)
+   - Tracks closes from fills history (handles cross-side closing via normalization)
    - Correctly calculates: bought at X, sold at Y, P&L = Y - X
 
 2. **Settlement P&L** (from settlement loop):
-   - Tracks the SAME positions at settlement
-   - Formula: `revenue - yes_total_cost - no_total_cost - fees`
+   - Computes a value from settlement record fields:
+     `revenue - yes_total_cost - no_total_cost - fees`
+   - For the observed settlement rows in `data/kalshi.db`, `revenue` is 0 and both
+     `yes_total_cost` and `no_total_cost` are non-zero, so this term becomes a large negative number.
 
 When both are summed, the loss is counted twice (or more).
 
@@ -72,7 +85,10 @@ settlement_pnls.append(
 )
 ```
 
-For trades where user sold NO (cross-side closure), this formula subtracts `no_total_cost` (money received from selling) instead of treating it as revenue.
+In our DB, `PortfolioSettlement.yes_total_cost/no_total_cost` match the summed `trades.total_cost_cents` grouped by
+`side` (and `yes_count/no_count` match the summed `trades.quantity`), even when the user had no settlement payout
+(`revenue = 0`). That strongly suggests we cannot treat `yes_total_cost/no_total_cost` as “extra costs to subtract”
+on top of FIFO P&L — it double counts the same history in an incompatible way.
 
 ---
 
@@ -88,37 +104,76 @@ CRED: yes_total_cost=9652, no_total_cost=16555, revenue=0
 - Buy YES trades: ~$193.60 total
 - Sell NO trades: ~$316.89 total (but this is misleading - see normalization)
 
-The settlement and trades are recording the SAME underlying positions.
+**Verified on this DB:** for these tickers, settlement totals match trade totals by side:
+
+- `PortfolioSettlement.yes_total_cost == SUM(trades.total_cost_cents WHERE side='yes')`
+- `PortfolioSettlement.no_total_cost == SUM(trades.total_cost_cents WHERE side='no')`
+- `PortfolioSettlement.yes_count == SUM(trades.quantity WHERE side='yes')`
+- `PortfolioSettlement.no_count == SUM(trades.quantity WHERE side='no')`
+
+This means the settlement-derived term is *not independent* of fills history in our current dataset.
 
 ---
 
 ## Proposed Fix
 
-**Option A: Use ONLY settlement P&L for resolved markets (preferred)**
-- If a ticker has a settlement record, use ONLY that for P&L
-- Use FIFO trades only for positions that haven't settled yet
-- Need to deduplicate by ticker
+### Correct direction (SSOT-driven)
 
-**Option B: Use ONLY FIFO trades**
-- Remove settlement P&L calculation entirely
-- FIFO already captures all buy/sell activity including cross-side closures
+- Treat FIFO (fills) as the canonical realized P&L source for markets that were closed via trading.
+- Use `/portfolio/settlements` **only** as the “forced close” event for positions that reach settlement without a
+  corresponding closing trade in fills history (Kalshi does not emit a fill for settlement).
+- Do **not** add a second “settlement P&L” number on top of FIFO P&L.
 
-**Option C: Fix deduplication logic**
-- Filter out trades for tickers that have settlements
-- Requires careful handling of partial fills
+### Minimal safe fix (unblocks correct CLI output now)
+
+- Stop adding `settlement_pnls` into `closed_trades` until settlement handling is implemented correctly.
+  (For this DB, FIFO-only realized P&L is `-17443` cents, while current output is `-74905` cents.)
+
+If we later want settlement-aware realized P&L:
+- Compute remaining open lots from fills history per ticker/side.
+- For each settlement record, synthesize the appropriate closing leg(s) at the settlement payout price and feed that
+  into FIFO as the final close.
 
 ---
 
 ## Verification Steps
 
-1. Get user's actual Kalshi balance history to confirm real P&L
-2. Calculate expected P&L manually:
-   - SOMA: Bought 168 YES @ 58¢ = $97.08, market resolved NO, loss = $97.08
-   - CRED: Bought 189 YES @ 51¢ = $96.52, market resolved NO, loss = $96.52
-   - Total expected loss: ~$193.60 (or less if they exited early)
+1. Reproduce the inflated numbers (current behavior):
+   - `uv run kalshi portfolio pnl`
+   - `uv run kalshi portfolio pnl -t KXTRUMPMENTION-26JAN15-SOMA`
+   - `uv run kalshi portfolio pnl -t KXTRUMPMENTION-26JAN15-CRED`
 
-3. User says they got back $60 from $200 invested → loss = $140
-   - This suggests they may have exited BEFORE settlement, capturing some value
+2. Compute FIFO-only realized P&L (expected on this DB):
+   - Per-ticker:
+     ```bash
+     uv run python - <<'PY'
+     import asyncio
+     from pathlib import Path
+
+     from sqlalchemy import select
+
+     from kalshi_research.cli.db import open_db
+     from kalshi_research.portfolio.pnl import PnLCalculator
+     from kalshi_research.portfolio.models import Trade
+
+     async def main() -> None:
+         calc = PnLCalculator()
+         async with open_db(Path("data/kalshi.db")) as db, db.session_factory() as session:
+             for ticker in (
+                 "KXTRUMPMENTION-26JAN15-SOMA",
+                 "KXTRUMPMENTION-26JAN15-CRED",
+             ):
+                 trades = list(
+                     (await session.execute(select(Trade).where(Trade.ticker == ticker))).scalars()
+                 )
+                 print(ticker, calc.calculate_realized(trades))
+
+     asyncio.run(main())
+     PY
+     ```
+   - Expected totals on this DB:
+     - FIFO-only realized: **-$174.43**
+     - Current CLI realized: **-$749.05**
 
 ---
 
@@ -133,7 +188,7 @@ The settlement and trades are recording the SAME underlying positions.
 
 1. Test that settled tickers are NOT double-counted
 2. Test cross-side closure (buy YES, sell NO) P&L calculation
-3. Test that reported P&L matches actual money in/out
+3. Test that settlement-derived terms are not added on top of FIFO realized P&L
 
 ---
 
@@ -146,4 +201,5 @@ The settlement and trades are recording the SAME underlying positions.
 
 ## Workaround
 
-Until fixed, manually calculate P&L from Kalshi web interface account history.
+Until fixed, treat `kalshi portfolio pnl` output as unreliable for realized P&L and use FIFO-only calculations (or
+Kalshi’s web UI) as a sanity check.
