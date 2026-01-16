@@ -4,7 +4,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-No active bugs. ✅
+_No active bugs._
 
 ### Verification Note (2026-01-12)
 
@@ -34,7 +34,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-084**
+**BUG-085**
 
 ---
 
@@ -43,6 +43,12 @@ All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
+### Recently Archived (2026-01-16)
+
+| ID | Title | Status |
+|---|---|---|
+| **BUG-084** | P&L Double-Counting Between Trades and Settlements | ✅ Fixed |
 
 ### Recently Archived (2026-01-14)
 

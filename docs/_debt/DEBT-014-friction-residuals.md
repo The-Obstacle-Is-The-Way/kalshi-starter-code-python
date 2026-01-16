@@ -257,7 +257,7 @@ searches for both bullish AND bearish signals.
 
 ### B3. New Market Alert System (Information Arbitrage)
 
-**Status:** ✅ **IMPLEMENTED (Phase 1)** → See [SPEC-039](../_specs/SPEC-039-new-market-alerts.md)
+**Status:** ✅ **IMPLEMENTED (Phase 1)** → See [SPEC-039](../_archive/specs/SPEC-039-new-market-alerts.md)
 
 **Problem:** Best edge exists on newly opened markets where crowd hasn't priced in information yet.
 
@@ -351,24 +351,36 @@ SPEC-037 implemented the series discovery endpoints:
 
 ---
 
-### C2. Jan 15, 2026 Deprecation Cleanup (Scheduled)
+### C2. Jan 15, 2026 Deprecation Cleanup (Post-deadline)
 
-**Problem:** Kalshi removing cent-denominated fields on Jan 15, 2026.
+**Problem:** Kalshi announced removal of cent-denominated fields on Jan 15, 2026.
 
 **From backwards-compatibility.md:**
 - Market model: `yes_bid`, `yes_ask`, `no_bid`, `no_ask`, `last_price`, `liquidity`
 - Orderbook model: `yes`, `no` (cents format)
 - Candlestick model: cent fields
 
-**Design questions:**
-1. Remove fields entirely or keep as optional?
-2. Simplify computed properties or keep fallback logic?
+**Status update (2026-01-16):**
 
-**Effort:** Small (cleanup after date passes)
+✅ **VERIFIED:** Jan 15, 2026 has passed, but **Kalshi is STILL returning cent fields** alongside dollar fields.
 
-**Blocked by:** Wait until Jan 15, 2026
+Live API check on 2026-01-16:
+```text
+has yes_bid: True
+has yes_bid_dollars: True
+yes_bid value: 0
+yes_bid_dollars value: 0.0000
+```
 
-**Cross-reference:** See `docs/_future/TODO-00A-api-verification-post-deadline.md`
+**Conclusion:** Kalshi has done a "soft deprecation" - cent fields are deprecated but not removed yet. Our code
+handles this correctly (prefers `*_dollars` via computed properties, falls back to cents if needed).
+
+**Action items:**
+- [ ] Re-check monthly until Kalshi actually removes cent fields
+- [ ] When removal confirmed, delete fallback logic and mark fields as truly optional
+- [ ] No code changes needed now - our implementation is correct
+
+**Cross-reference:** See `docs/_archive/future/TODO-00A-api-verification-post-deadline.md`
 
 ---
 
@@ -386,7 +398,7 @@ SPEC-037 implemented the series discovery endpoints:
 | B2 | Adversarial research | High | Medium | P1 | ⏸️ Blocked (FUTURE-001) |
 | B3 | New market alerts | Medium | Medium | P2 | ✅ Implemented (SPEC-039 Phase 1) |
 | C1 | `/series` endpoint | Low | Medium | P3 | ✅ RESOLVED (SPEC-037) |
-| C2 | Jan 15 cleanup | Medium | Small | P2 | Scheduled |
+| C2 | Jan 15 cleanup | Medium | Small | P2 | Monitoring (soft deprecation) |
 
 ---
 
@@ -417,7 +429,7 @@ None for Section A.
 4. **B3**: ✅ Implemented via SPEC-039 Phase 1 (`kalshi scan new-markets`)
 
 ### Scheduled
-5. **C2**: Wait for Jan 15, 2026, then cleanup
+5. **C2**: Jan 15 has passed; re-evaluate and cleanup if still needed
 
 ### Recently Resolved
 6. **C1**: ✅ RESOLVED (2026-01-12) - Series endpoints implemented via SPEC-037
@@ -432,8 +444,108 @@ None for Section A.
 | `docs/_archive/debt/hacks.md` | Hacky implementations | Source (archived 2026-01-11) |
 | `docs/_archive/debt/backwards-compatibility.md` | Compat code inventory | Source (archived 2026-01-11) |
 | `docs/_future/FUTURE-001-exa-research-agent.md` | Exa agent spec | **Blocks B1/B2** |
-| `docs/_future/TODO-00A-api-verification-post-deadline.md` | Jan 15 verification | Related to C2 |
+| `docs/_archive/future/TODO-00A-api-verification-post-deadline.md` | Jan 15 verification | Related to C2 |
 | `docs/_future/TODO-00B-trade-executor-phase2.md` | TradeExecutor | Separate track |
+
+---
+
+## Section D: Newly Discovered Friction (2026-01-16)
+
+### D1. Portfolio Commands Missing `--full` Flag [P3]
+
+**Found:** 2026-01-16 (during portfolio investigation)
+
+**Problem:** `portfolio pnl` and `portfolio positions` don't have `--full` flag like other CLI commands.
+
+**Friction encountered:**
+```bash
+uv run kalshi portfolio pnl --full    # Error: No such option: --full
+uv run kalshi portfolio positions --full  # Error: No such option: --full
+```
+
+**Impact:** Can't disable truncation when analyzing positions. Inconsistent with other commands (`market list --full`, etc.).
+
+**Fix:** Add `--full/-F` option to `portfolio pnl` and `portfolio positions` commands.
+
+**Effort:** 15 minutes
+
+---
+
+### D2. Trade Display Confusion (Buy YES / Sell NO) [P2]
+
+**Found:** 2026-01-16 (during Trump speech trade analysis)
+
+**Problem:** Trade history shows "SELL NO" when user bought YES, making P&L calculation confusing.
+
+**Example from Trump speech trade:**
+- Bought 168 YES at 57¢ on KXTRUMPMENTION-26JAN15-SOMA
+- Trade history shows "SELL NO at 85¢" for closing
+- This is technically correct (selling NO = closing YES) but confuses P&L analysis
+
+**Impact:** Hard to understand realized P&L from trade history alone.
+
+**Possible fixes:**
+1. Add a "P&L" column to trade history showing net gain/loss per trade
+2. Show trades in "position-centric" view (what you held, what you exited at)
+3. Add explanation note when trade type differs from position side
+
+**Effort:** Medium (UX decision needed)
+
+---
+
+### D3. Finalized Markets Missing from Settlements Table [P2]
+
+**Found:** 2026-01-16
+
+**Problem:** Markets with status "finalized" don't appear in settlements table after sync.
+
+**Evidence:**
+```sql
+SELECT * FROM settlements WHERE ticker LIKE '%TRUMP%'
+-- Returns empty, but markets are status="finalized"
+```
+
+**Impact:** Can't query settlement outcomes for resolved positions.
+
+**Potential cause:** `portfolio sync` doesn't pull settlement data for markets not in current positions?
+
+**Effort:** Small (investigate settlement sync logic)
+
+---
+
+### D4. Can't Lookup Finalized Market Details [P3]
+
+**Found:** 2026-01-16
+
+**Problem:** Finalized markets don't return subtitle/rules via API.
+
+**Evidence:**
+```bash
+uv run kalshi market get KXTRUMPMENTION-26JAN15-SOMA
+# Returns basic info but no subtitle (what SOMA means - "Somalia"?)
+```
+
+**Impact:** Hard to understand old trades without knowing market rules.
+
+**Workaround:** Web search for market context.
+
+**Effort:** N/A (Kalshi API limitation, not actionable)
+
+---
+
+### D5. No "Edit Thesis" Command [P3]
+
+**Found:** 2026-01-16
+
+**Problem:** Can't edit thesis title/details after creation. Had to manually edit `data/theses.json`.
+
+**Example:** Created thesis with wrong title ("creed" instead of "credit"), had to fix JSON directly.
+
+**Impact:** Minor - direct JSON edit works, but inconsistent with CLI-first approach.
+
+**Fix:** Add `kalshi research thesis edit ID --title "new title"` command (or similar).
+
+**Effort:** 30 minutes
 
 ---
 
@@ -460,7 +572,7 @@ None for Section A.
 > - [x] Search `scan opportunities` for volume/liquidity filters ✅ Done (see B3)
 > - [x] Check if `created_time` field is available on Market model ✅ Yes (`market.py:84`)
 > - [ ] Verify Section A items (A1-A6) are still accurate (last verified: 2026-01-11)
-> - [ ] Check if Jan 15, 2026 has passed (C2 trigger)
+> - [x] Jan 15, 2026 has passed (C2 unblocked)
 >
 > **If you're reading this post-compaction:** Re-read this document and FUTURE-001 before
 > implementing anything. The design decisions are already made.

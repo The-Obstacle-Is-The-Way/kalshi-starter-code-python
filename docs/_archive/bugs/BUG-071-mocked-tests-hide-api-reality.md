@@ -18,7 +18,7 @@ We now have a concrete SSOT for Kalshi API response shapes:
 
 See **BUG-072** for the definitive response-key findings and the exact wrapper keys.
 
-Follow-up work (CI automation and reducing mock reliance) is tracked as technical debt (see `docs/_debt/DEBT-016-fixture-drift-ci.md`).
+Follow-up work (CI automation and reducing mock reliance) is tracked as technical debt (see `docs/_archive/debt/DEBT-016-fixture-drift-ci.md`).
 
 ## The Problem
 
@@ -218,8 +218,8 @@ def test_fill_contract():
 - Updated models + vendor docs to match observed wrapper keys and payload fields
 
 Follow-up hardening is tracked as debt:
-- `docs/_debt/DEBT-016-fixture-drift-ci.md` (automation)
-- `docs/_debt/DEBT-018-test-ssot-stabilization.md` (fixture-driven tests, Exa SSOT)
+- `docs/_archive/debt/DEBT-016-fixture-drift-ci.md` (automation)
+- `docs/_archive/debt/DEBT-018-test-ssot-stabilization.md` (fixture-driven tests, Exa SSOT)
 
 ---
 

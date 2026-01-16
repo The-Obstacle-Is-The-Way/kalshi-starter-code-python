@@ -3,6 +3,7 @@
 **Type:** Internal reference (derived from Kalshi OpenAPI)
 **Status:** Living Document
 **Created:** 2026-01-13
+**Updated:** 2026-01-16 - Added blocking reasons and future tracking
 **Source:** OpenAPI audit at `https://docs.kalshi.com/openapi.yaml`
 
 ---
@@ -26,7 +27,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | **Markets (Filters)** | 11 params | 11 params | **100%** | ✅ SPEC-040 Phase 1 |
 | **Series** | 4 | 4 | **100%** | SPEC-037 Phase 1 ✅ |
 | **Search/Discovery** | 2 | 2 | **100%** | ✅ SPEC-040 Phase 3 |
-| **Events** | 6 | 5 | 83% | 🚫 Forecast history API blocked |
+| **Events** | 6 | 5 | 83% | ⏸️ Forecast percentile history unimplemented |
 | **Structured Targets** | 2 | 2 | **100%** | ✅ SPEC-040 Phase 3 |
 | **Portfolio (Read)** | 6 | 6 | **100%** | ✅ SPEC-040 Phase 2 |
 | **Portfolio (Orders)** | 9 | 9 | **100%** | ✅ SPEC-040 Phase 2 |
@@ -117,7 +118,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `GET /events/multivariate` | ✅ | Done | `get_multivariate_events*()` (MVEs excluded from `/events`) |
 | `GET /events/{event_ticker}/metadata` | ✅ | SPEC-040 Phase 3 | `get_event_metadata()` |
 | `GET /series/{series_ticker}/events/{ticker}/candlesticks` | ✅ | SPEC-040 Phase 3 | `get_event_candlesticks()` |
-| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | ⬜ | - | OpenAPI exists, but returned `400 bad_request` for all tested events (2026-01-15) |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | ⬜ | - | 🔄 Added Sep 11, 2025 (changelog calls it `/forecast_percentiles_history`). Auth required + required query params; no validated `200` fixture recorded yet |
 
 ---
 
@@ -176,14 +177,19 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 ---
 
-### 10. Subaccounts (4 endpoints)
+### 10. Subaccounts (4 endpoints) - 🔄 REVISIT Q2 2026
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
 | `POST /portfolio/subaccounts` | ⬜ | - | OpenAPI exists, but endpoint returned `404 page not found` in demo + prod (2026-01-15) |
-| `GET /portfolio/subaccounts/balances` | ⬜ | - | Demo: `200` empty; Prod: `403 invalid_parameters` (“not available in production”) |
+| `GET /portfolio/subaccounts/balances` | ⬜ | - | Demo: `200` empty; Prod: `403 invalid_parameters` ("not available in production") |
 | `POST /portfolio/subaccounts/transfer` | ⬜ | - | OpenAPI exists, but endpoint returned `404 page not found` in demo + prod (2026-01-15) |
-| `GET /portfolio/subaccounts/transfers` | ⬜ | - | Demo: `200` empty; Prod: `403 invalid_parameters` (“not available in production”) |
+| `GET /portfolio/subaccounts/transfers` | ⬜ | - | Demo: `200` empty; Prod: `403 invalid_parameters` ("not available in production") |
+
+**Blocking reason:** Feature added **Jan 9, 2026** (per changelog) - only 7 days before testing. Likely in phased rollout /
+account-permission gated (exact rollout criteria unknown).
+
+**Action:** Re-check in Q2 2026 or contact Kalshi support to request access.
 
 **Note:** External fiat/crypto deposits are NOT available via API (use Kalshi web UI).
 
@@ -212,7 +218,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 ---
 
-### 13. RFQ / Communications (11 endpoints) - NOT PLANNED
+### 13. RFQ / Communications (11 endpoints) - ❌ INSTITUTIONAL ONLY
 
 | Endpoint | Status | Notes |
 |----------|--------|-------|
@@ -228,11 +234,14 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `PUT /communications/quotes/{quote_id}/accept` | ⬜ | Institutional use |
 | `PUT /communications/quotes/{quote_id}/confirm` | ⬜ | Institutional use |
 
-**Why not planned:** RFQ is for negotiating large block trades. Not relevant for research or retail automation.
+**Why not planned:** RFQ (Request for Quote) is for negotiating large block trades (1000+ contracts) outside the orderbook.
+Used by market makers, hedge funds, and institutional traders. Not relevant for retail/research automation.
+
+**Would implement if:** Trading very large positions where orderbook liquidity is insufficient.
 
 ---
 
-### 14. API Keys (4 endpoints) - NOT PLANNED
+### 14. API Keys (4 endpoints) - ❌ SECURITY RISK
 
 | Endpoint | Status | Notes |
 |----------|--------|-------|
@@ -241,18 +250,27 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `POST /api_keys/generate` | ⬜ | Manage via web UI |
 | `DELETE /api_keys/{api_key}` | ⬜ | Manage via web UI |
 
-**Why not planned:** Key management is better done via web UI with proper RBAC.
+**Why not planned:** Programmatic API key management is a security risk. Better managed via Kalshi web UI where you have
+2FA protection and audit trails.
+
+**Would implement if:** Building a multi-user service that needs to manage keys programmatically (not our use case).
 
 ---
 
-### 15. FCM (2 endpoints) - NOT PLANNED
+### 15. FCM (2 endpoints) - ❌ INSTITUTIONAL ONLY (EXPLICITLY DOCUMENTED)
 
 | Endpoint | Status | Notes |
 |----------|--------|-------|
-| `GET /fcm/orders` | ⬜ | Institutional only |
-| `GET /fcm/positions` | ⬜ | Institutional only |
+| `GET /fcm/orders` | ⬜ | FCM members only |
+| `GET /fcm/positions` | ⬜ | FCM members only |
 
-**Why not planned:** FCM (Futures Commission Merchant) endpoints are for institutional clearing members.
+**Why not planned:** Per the [Kalshi API Changelog](https://docs.kalshi.com/changelog):
+> "This endpoint requires FCM member access level... only intended for use by FCM members (rare)"
+
+FCM = Futures Commission Merchant. These are for broker integrations (Robinhood, Webull) and institutional clearing
+members. Not applicable to retail traders.
+
+**Would implement if:** Building a brokerage integration (not our use case).
 
 ---
 
@@ -301,11 +319,25 @@ These are NOT bugs in our code - they are Kalshi platform limitations:
 
 | Spec | Scope | Status |
 |------|-------|--------|
-| **SPEC-040** | Complete Kalshi endpoint implementation plan (TDD, SSOT-driven) | Draft (Ready) |
+| **SPEC-040** | Complete Kalshi endpoint implementation plan (TDD, SSOT-driven) | ✅ Complete (Phases 1-4) |
 | SPEC-029 | Strategic endpoint coverage (client + CLI) | Superseded by SPEC-040 |
 | SPEC-037 | SSOT-driven implementation with fixtures | Superseded by SPEC-040 |
 
 **All planned endpoints have spec coverage.** No new specs required.
+
+---
+
+## Future Tracking: Endpoints to Revisit
+
+These endpoints are tracked for future re-evaluation:
+
+| Category | Endpoints | Blocking Reason | Revisit When |
+|----------|-----------|-----------------|--------------|
+| **Subaccounts** | 4 | New feature (Jan 9, 2026) - not yet available | Q2 2026 |
+| **Forecast percentile history** | 1 | No validated `200` fixture yet (auth + required params) | Periodically |
+| **Multivariate create/lookup history** | 2 | Low value for solo workflow | If needed |
+
+**GitHub Issues:** See issue tracker for individual endpoint tracking.
 
 ---
 
@@ -317,5 +349,6 @@ These are NOT bugs in our code - they are Kalshi platform limitations:
 | SPEC-029 | Superseded strategy doc |
 | SPEC-037 | Superseded phase doc |
 | **DEBT-015** | Original missing endpoints list |
+| **FUTURE-002** | Blocked/unimplemented endpoint tracker |
 | **DEBT-020** | Discovery gaps (resolved by this work) |
 | `kalshi-api-reference.md` | SSOT vendor docs |

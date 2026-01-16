@@ -109,7 +109,8 @@ class Market(BaseModel):
     )
 
     # Pricing - NEW dollar fields (strings from API, format: "0.4500")
-    # These will become the primary fields after Jan 15, 2026
+    # Kalshi announced cent-field deprecation for Jan 15, 2026, but as of 2026-01-16 the API
+    # still returns both cents and dollars fields in some responses (soft deprecation).
     yes_bid_dollars: str | None = Field(default=None, description="Yes bid (dollars)")
     yes_ask_dollars: str | None = Field(default=None, description="Yes ask (dollars)")
     no_bid_dollars: str | None = Field(default=None, description="No bid (dollars)")
@@ -122,7 +123,7 @@ class Market(BaseModel):
     previous_yes_ask: int | None = Field(default=None, ge=0, le=100, description="DEPRECATED")
     previous_price: int | None = Field(default=None, ge=0, le=100, description="DEPRECATED")
 
-    # Legacy pricing (DEPRECATED: removed Jan 15, 2026 - use *_dollars fields)
+    # Legacy pricing (DEPRECATED: prefer *_dollars; still observed as of 2026-01-16)
     yes_bid: int | None = Field(default=None, ge=0, le=100, description="DEPRECATED")
     yes_ask: int | None = Field(default=None, ge=0, le=100, description="DEPRECATED")
     no_bid: int | None = Field(default=None, ge=0, le=100, description="DEPRECATED")
@@ -161,10 +162,12 @@ class Market(BaseModel):
         description="When promotional fee waiver expires (may be absent).",
     )
 
-    # Liquidity (DEPRECATED: removed Jan 15, 2026 - use dollar fields)
+    # Liquidity (DEPRECATED: prefer dollar fields; still observed as of 2026-01-16)
     liquidity: int | None = Field(
         default=None,
-        description="DEPRECATED: Use dollar-denominated fields. Removed Jan 15, 2026.",
+        description=(
+            "DEPRECATED: Use dollar-denominated fields (soft-deprecated as of Jan 15, 2026)."
+        ),
     )
     liquidity_dollars: str | None = Field(
         default=None,

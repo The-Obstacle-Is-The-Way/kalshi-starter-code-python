@@ -4,30 +4,33 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**4 active debt items + 1 reference doc.**
+**2 active debt items.**
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-| **[DEBT-018](DEBT-018-test-ssot-stabilization.md)** | Test SSOT Stabilization (Fixtures, Mocks, Exa Coverage) | **P1** | 🟡 In Progress |
-| **[DEBT-015](DEBT-015-missing-api-endpoints.md)** | Missing API Endpoints - Phase 5 Complete | **P2** | ✅ Complete (remaining endpoints blocked/unplanned) |
-| **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (Needs Design) |
-| **[DEBT-016](DEBT-016-fixture-drift-ci.md)** | Automate Fixture Drift Detection + Weekly Re-Recording | P2 | 🟡 Partially Implemented |
+| **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (B1/B2 blocked on FUTURE-001) |
 | **[DEBT-025](DEBT-025-subpenny-pricing-strategy.md)** | Subpenny Pricing Strategy (FixedPointDollars → rounding policy) | P2 | 🟡 Partially Implemented |
 
-### Recently Resolved (2026-01-15)
+### Recently Resolved (2026-01-16)
 
 | ID | Title | Status |
 |---|---|---|
+| **[DEBT-030](DEBT-030-trading-fees-from-settlements.md)** | Trading Fees Missing from P&L (Must Use Settlement Records) | ✅ Resolved |
+| **[DEBT-029](DEBT-029-settlement-synthetic-fill-reconciliation.md)** | Settlement-as-Synthetic-Fill Reconciliation (Professional P&L) | ✅ Implemented |
+
+### Previously Resolved (2026-01-16)
+
+| ID | Title | Status |
+|---|---|---|
+| **[DEBT-018](../_archive/debt/DEBT-018-test-ssot-stabilization.md)** | Test SSOT Stabilization (Fixtures, Mocks, Exa Coverage) | ✅ Resolved |
+| **[DEBT-016](../_archive/debt/DEBT-016-fixture-drift-ci.md)** | Automate Fixture Drift Detection + Weekly Re-Recording | ✅ Resolved |
+| **[DEBT-015](../_archive/debt/DEBT-015-missing-api-endpoints.md)** | Missing API Endpoints - 50/74 (68%) | ✅ Complete (remaining blocked/institutional) |
 | **[DEBT-028](../_archive/debt/DEBT-028-api-schema-drift-jan-2026.md)** | API Schema Drift - January 2026 Migration | ✅ Verified Working |
 
 ### Recommended Order
 
-```
-DEBT-018 (Test SSOT) ← DO THIS FIRST
-    ↓
-DEBT-016 (CI Automation)
-    ↓
-DEBT-014 (Friction/Design) ← Feature work
+```text
+DEBT-014 (Friction/Design) ← Blocked on FUTURE-001 (B1/B2), C2 is soft-deprecation monitoring
     ↓
 DEBT-025 (Subpenny Policy) ← If precision matters
 ```
@@ -35,7 +38,7 @@ DEBT-025 (Subpenny Policy) ← If precision matters
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-029**
+**DEBT-031**
 
 ---
 
@@ -43,11 +46,10 @@ Use this ID for the next debt item:
 
 | File | Purpose |
 |------|---------|
-| `DEBT-018-test-ssot-stabilization.md` | **Active debt P1** - Exa fixtures, test mock drift, validation gaps |
-| `DEBT-015-missing-api-endpoints.md` | **Reference doc** - endpoint decisions + API blocks (subaccounts/forecast history) |
-| `DEBT-016-fixture-drift-ci.md` | **Active debt P2** - CI automation for fixture drift detection |
 | `DEBT-014-friction-residuals.md` | **Active debt P1-P3** - friction, design decisions |
 | `DEBT-025-subpenny-pricing-strategy.md` | **Active debt P2** - subpenny precision and rounding policy |
+| `DEBT-030-trading-fees-from-settlements.md` | **Resolved** - Trading fees from settlements applied to P&L |
+| `DEBT-029-settlement-synthetic-fill-reconciliation.md` | **Resolved** - Professional P&L implementation |
 | `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
 
 ## Archived Reference Docs

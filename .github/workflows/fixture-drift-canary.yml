@@ -1,0 +1,41 @@
+name: Fixture Drift Canary (Kalshi SSOT)
+
+on:
+  schedule:
+    # Weekly canary: re-record public fixtures and validate models against live SSOT.
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: fixture-drift-canary
+  cancel-in-progress: true
+
+jobs:
+  canary:
+    name: Record + Validate (Prod, Public)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python
+        run: uv python install 3.11
+      - name: Install dependencies
+        run: uv sync --all-extras
+      - name: Record fixtures to temp dir (public-only)
+        run: |
+          mkdir -p tmp/golden
+          uv run python scripts/record_api_responses.py --env prod --endpoint public --yes --output-dir tmp/golden
+          uv run python scripts/record_api_responses.py --env prod --endpoint phase3 --yes --output-dir tmp/golden
+          uv run python scripts/record_api_responses.py --env prod --endpoint phase4 --yes --output-dir tmp/golden
+          uv run python scripts/record_api_responses.py --env prod --endpoint phase5 --yes --output-dir tmp/golden
+      - name: Validate models against recorded fixtures (SSOT)
+        run: uv run python scripts/validate_models_against_golden.py --golden-dir tmp/golden
+      - name: Upload recorded fixtures (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixture-drift-canary-golden
+          path: tmp/golden

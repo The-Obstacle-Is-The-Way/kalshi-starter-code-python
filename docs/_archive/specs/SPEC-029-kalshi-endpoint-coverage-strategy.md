@@ -1,6 +1,6 @@
 # SPEC-029: Kalshi Endpoint Coverage & Strategic Use
 
-**Status:** Draft
+**Status:** 🔀 Superseded by [SPEC-040](../_archive/specs/SPEC-040-kalshi-endpoint-implementation-complete.md) (complete)
 **Priority:** P1 (Data Quality / Discovery)
 **Created:** 2026-01-10
 **Owner:** Solo

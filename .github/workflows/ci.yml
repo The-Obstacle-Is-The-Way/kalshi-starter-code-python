@@ -37,6 +37,9 @@ jobs:
         run: uv run mkdocs build --strict
       - name: Validate models against golden fixtures (SSOT)
         run: uv run python scripts/validate_models_against_golden.py
+      - name: Check inline mock drift (warning only)
+        run: uv run python scripts/check_mock_drift.py
+        continue-on-error: true
 
   test:
     name: Test (Python ${{ matrix.python-version }})

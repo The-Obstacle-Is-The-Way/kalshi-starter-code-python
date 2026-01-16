@@ -25,6 +25,7 @@ Note:
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -93,7 +94,10 @@ from kalshi_research.exa.models.similar import FindSimilarResponse
 if TYPE_CHECKING:
     from pydantic import BaseModel
 
-GOLDEN_DIR: Final[Path] = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "golden"
+DEFAULT_GOLDEN_DIR: Final[Path] = (
+    Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "golden"
+)
+GOLDEN_DIR: Path = DEFAULT_GOLDEN_DIR
 
 JsonDict = dict[str, Any]
 
@@ -402,6 +406,17 @@ def print_report(results: list[dict[str, Any]]) -> bool:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Validate models against golden fixtures.")
+    parser.add_argument(
+        "--golden-dir",
+        default=str(DEFAULT_GOLDEN_DIR),
+        help="Base directory containing golden fixtures (default: tests/fixtures/golden).",
+    )
+    args = parser.parse_args()
+
+    global GOLDEN_DIR  # noqa: PLW0603 - runtime override for CI canary runs
+    GOLDEN_DIR = Path(args.golden_dir).expanduser().resolve()
+
     if not GOLDEN_DIR.exists():
         print(f"ERROR: Golden fixtures directory not found: {GOLDEN_DIR}")
         print("Run 'uv run python scripts/record_api_responses.py' first")

@@ -4,7 +4,7 @@
 **Status:** ✅ Complete (remaining endpoints blocked/unplanned)
 **Found:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
-**Updated:** 2026-01-15 - SPEC-041 implemented (multivariate subset); remaining endpoints blocked/unplanned
+**Updated:** 2026-01-16 - Clarified tier vs permissions; remaining gaps are API-blocked or institutional
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---
@@ -13,10 +13,24 @@
 
 Initial audit (baseline, 2026-01-12) identified **45+ missing documented endpoints** in our Kalshi API client.
 
-As of 2026-01-15, Phases 1-4 are complete (per `docs/_vendor-docs/kalshi-openapi-coverage.md`) and Phase 5 implemented
-the multivariate collections subset (+3 endpoints), bringing coverage to **50/74 (68%)**.
+As of 2026-01-16, Phases 1-5 are complete. Coverage: **50/74 (68%)**.
 
-Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluates each for solo-trader usefulness.
+Remaining unimplemented: 24 endpoints across 6 categories.
+
+### Key Finding: Rate Limit Tiers ≠ Feature Access
+
+Kalshi's **Basic/Advanced/Premier/Prime** tiers control **rate limits** (request throughput), but some endpoints/features
+can still be permissioned by API usage level or account access (see OpenAPI notes in `docs/_vendor-docs/kalshi-api-reference.md`).
+
+| Tier | Read/sec | Write/sec | How to Get |
+|------|----------|-----------|------------|
+| Basic | 20 | 10 | Automatic on signup |
+| Advanced | 30 | 30 | [Form](https://kalshi.typeform.com/advanced-api) |
+| Premier | 100 | 100 | 3.75% monthly volume + technical review |
+| Prime | 400 | 400 | 7.5% monthly volume + technical review |
+
+Rate limits are not a guarantee of endpoint access. The remaining gaps below appear to be API availability/permission
+issues or intentional non-implementations (institutional/security), not solvable by upgrading rate tier alone.
 
 **Completed:**
 - ~~Category/tag discovery (proper market browsing)~~ ✅ DONE
@@ -33,7 +47,7 @@ Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluat
 - ✅ **SPEC-040 Phase 3 Complete**: Discovery endpoints (event metadata, event candlesticks, filters by sport, structured targets)
 - ✅ **SPEC-040 Phase 4 Complete**: Operational endpoints (exchange info, milestones, live data, order groups, incentive programs)
 - ✅ **SPEC-041 Phase 5 Complete**: Multivariate collections subset (list/detail + lookup tickers)
-- 🚫 **Phase 5 (API blocked)**: Subaccounts + forecast percentile history (see below)
+- ⏸️ **Phase 5 (blocked/unverified)**: Subaccounts + forecast percentile history (see below)
 
 ---
 
@@ -58,7 +72,7 @@ Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluat
 
 **Recommendation:** Implement **LIST** + **GET details** + **PUT lookup**. Skip create + lookup history.
 
-### Subaccounts (4 endpoints) - 🚫 API BLOCKED (SSOT)
+### Subaccounts (4 endpoints) - 🚫 BRAND NEW FEATURE (Jan 9, 2026) - NOT GENERALLY AVAILABLE
 
 | Endpoint | Auth | Solo-Trader Value |
 |----------|------|-------------------|
@@ -66,6 +80,11 @@ Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluat
 | `GET /portfolio/subaccounts/balances` | Yes | **HIGH** - View all balances |
 | `POST /portfolio/subaccounts/transfer` | Yes | **MEDIUM** - Move funds |
 | `GET /portfolio/subaccounts/transfers` | Yes | **LOW** - Transfer history |
+
+**Root cause (researched 2026-01-16):**
+
+Per the [Kalshi API Changelog](https://docs.kalshi.com/changelog), subaccounts were added **Jan 9, 2026** - only 7 days
+before our testing. The feature is likely in phased rollout / account-permission gated (exact rollout criteria unknown).
 
 **SSOT (observed 2026-01-15):**
 - Demo:
@@ -76,40 +95,56 @@ Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluat
 - Prod:
   - `POST /portfolio/subaccounts` → `404 page not found`
   - `POST /portfolio/subaccounts/transfer` → `404 page not found`
-  - `GET /portfolio/subaccounts/balances` → `403 invalid_parameters` (“subaccount endpoints are not available in production”)
-  - `GET /portfolio/subaccounts/transfers` → `403 invalid_parameters` (“subaccount endpoints are not available in production”)
+  - `GET /portfolio/subaccounts/balances` → `403 invalid_parameters` ("subaccount endpoints are not available in production")
+  - `GET /portfolio/subaccounts/transfers` → `403 invalid_parameters` ("subaccount endpoints are not available in production")
 
-**Recommendation:** Treat as Kalshi API drift/permissions. Do not implement until the API returns real responses.
+**Recommendation:** Re-check in Q2 2026 or contact Kalshi support to request subaccount access.
 
-### Forecast Percentile History (1 endpoint) - 🚫 API BLOCKED (SSOT)
+### Forecast Percentile History (1 endpoint) - ⏸️ Unverified (no stable fixture)
 
 | Endpoint | Auth | Solo-Trader Value |
 |----------|------|-------------------|
-| `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` | Yes (OpenAPI) | **LOW-MEDIUM** |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Yes (OpenAPI) | **LOW-MEDIUM** |
 
-**SSOT (observed 2026-01-15):**
-- Demo + prod: `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` returned
-  `400 bad_request` for every event tested.
+**Root cause (researched 2026-01-16):**
 
-**Recommendation:** Treat as API drift/feature flag; defer until we find an event where this returns a real payload.
+Per the [Kalshi API Changelog](https://docs.kalshi.com/changelog), this endpoint was added **Sep 11, 2025**. However,
+the changelog entry names it `GET /forecast_percentiles_history`, while the current OpenAPI defines the series/event-scoped
+endpoint above.
 
-### RFQ / Communications (11 endpoints) - ❌ SKIP
+OpenAPI requires query params: `percentiles`, `start_ts`, `end_ts`, and `period_interval`. Without valid parameters,
+the API will return `400 bad_request`.
 
-**Why skip:** Large block trades (1000+ contracts). Institutional feature. Unless you're trading very large positions, the orderbook is sufficient.
+**Status (2026-01-16):** Not implemented. We have not recorded a stable `200` fixture yet; treat as unimplemented until we
+can capture and validate a real response.
 
-### API Keys (4 endpoints) - ❌ SKIP
+**Recommendation:** Re-check periodically and attempt recording a fixture using valid query params.
 
-**Why skip:** Security risk. Better managed via web UI where you have 2FA protection.
+### RFQ / Communications (11 endpoints) - ❌ INSTITUTIONAL ONLY
 
-### FCM (2 endpoints) - ❌ SKIP
+**Why skip:** Large block trades (1000+ contracts). Per Kalshi docs, RFQ is for negotiating trades outside the orderbook.
+Unless you're trading very large positions as a market maker or institutional trader, the orderbook is sufficient.
 
-**Why skip:** Futures Commission Merchant endpoints. Institutional clearing members only. Not applicable to retail traders.
+**Who uses this:** Market makers, hedge funds, institutional traders with large position sizes.
+
+### API Keys (4 endpoints) - ❌ SECURITY RISK
+
+**Why skip:** Programmatic API key management is a security risk. Better managed via Kalshi web UI where you have 2FA
+protection and audit trails.
+
+### FCM (2 endpoints) - ❌ INSTITUTIONAL ONLY (EXPLICITLY DOCUMENTED)
+
+**Why skip:** Per the [Kalshi API Changelog](https://docs.kalshi.com/changelog):
+> "This endpoint requires FCM member access level... only intended for use by FCM members (rare)"
+
+FCM = Futures Commission Merchant. These are for broker integrations (Robinhood, Webull) and institutional clearing
+members. Not applicable to retail traders.
 
 ---
 
 ## Phase 5 Implementation Recommendation
 
-**Implementation spec:** [SPEC-041](../_specs/SPEC-041-phase5-remaining-endpoints.md)
+**Implementation spec:** [SPEC-041](../specs/SPEC-041-phase5-remaining-endpoints.md)
 
 **Implemented (SPEC-041):**
 1. Multivariate collections: list + detail + lookup tickers (PUT)
@@ -146,7 +181,7 @@ Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluat
 |----------|-------------|----------|--------|
 | `GET /series` | List series with filters | **P2** | ✅ **DONE** |
 | `GET /series/{series_ticker}` | Single series details | P2 | ✅ **DONE** |
-| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Forecast history (auth) | P3 | ⬜ **API blocked** (400 bad_request) |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Forecast history (auth) | P3 | ⬜ **Unverified** (auth + required params; no stable fixture) |
 
 **Impact:** ~~Medium~~ **Resolved** - Series-centric navigation now available via:
 - `get_series_list()` - List all series with optional category filter
@@ -313,8 +348,8 @@ Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluat
 - ~~`GET /structured_targets`~~ ✅ `get_structured_targets()`
 - ~~`GET /structured_targets/{structured_target_id}`~~ ✅ `get_structured_target()`
 - ~~`GET /search/filters_by_sport`~~ ✅ `get_filters_by_sport()`
-- ~~`GET /series/{series_ticker}/events/{event_ticker}/candlesticks`~~ ✅ `get_event_candlesticks()`
-- `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` ⬜ (OpenAPI exists; API blocked - 400 bad_request)
+- ~~`GET /series/{series_ticker}/events/{ticker}/candlesticks`~~ ✅ `get_event_candlesticks()`
+- `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` ⬜ (OpenAPI exists; auth + required params; no stable fixture)
 
 ### Phase 4: Operational (P3) - ✅ COMPLETE (2026-01-15)
 - ~~Exchange schedule/announcements/user_data_timestamp~~ ✅ `get_exchange_schedule()`, `get_exchange_announcements()`, `get_user_data_timestamp()`
@@ -325,7 +360,7 @@ Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluat
 **Phase 5 complete** (SPEC-041): multivariate collections subset (list/detail + lookup tickers).
 
 Remaining endpoints are either intentionally not planned (RFQ, API keys, FCM, plus 2 low-value multivariate endpoints:
-create market + lookup history) or currently API blocked (subaccounts + forecast percentile history).
+create market + lookup history) or currently API blocked/unverified (subaccounts + forecast percentile history).
 
 ---
 
@@ -344,3 +379,5 @@ create market + lookup history) or currently API blocked (subaccounts + forecast
 | BUG-064 | Order params (not endpoints) |
 | SPEC-041 | Phase 5 implementation spec |
 | `docs/_vendor-docs/kalshi-api-reference.md` | SSOT for API |
+| `docs/_vendor-docs/kalshi-openapi-coverage.md` | Coverage matrix (counts + implementation status) |
+| `docs/_future/FUTURE-002-kalshi-blocked-endpoints.md` | Blocked/unimplemented endpoints tracker |
