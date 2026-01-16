@@ -70,11 +70,11 @@ For prediction markets, a settlement is economically equivalent to a forced sale
 ### Algorithm: Settlement-as-Synthetic-Fill
 
 ```python
-def _synthesize_settlement_fills(
+def _synthesize_settlement_closes(
     self,
     settlements: list[PortfolioSettlement],
     open_lots: dict[tuple[str, str], _Lot],
-) -> list[_EffectiveTrade]:
+) -> tuple[list[_EffectiveTrade], int]:
     """
     Convert settlements to synthetic closing fills for remaining open lots.
 
@@ -82,56 +82,57 @@ def _synthesize_settlement_fills(
     (100c if won, 0c if lost)"
     """
     synthetic_fills: list[_EffectiveTrade] = []
+    total_fees_cents = 0
 
     for settlement in settlements:
-        # Determine settlement prices based on market_result
-        if settlement.market_result == "yes":
-            yes_settlement_price = 100  # YES wins → YES sells at 100c
-            no_settlement_price = 0     # YES wins → NO sells at 0c
-        elif settlement.market_result == "no":
-            yes_settlement_price = 0    # NO wins → YES sells at 0c
-            no_settlement_price = 100   # NO wins → NO sells at 100c
-        elif settlement.market_result == "scalar":
-            # Scalar: settlement.value is the YES payout in cents (OpenAPI)
-            yes_settlement_price = settlement.value
-            no_settlement_price = 100 - settlement.value
-        elif settlement.market_result == "void":
-            # Void = refund at cost basis (effectively break-even)
-            # Skip - no P&L impact
+        # Get settlement prices (100/0 for binary, value/100-value for scalar)
+        prices = self._get_settlement_prices_cents(settlement.market_result, settlement.value)
+        if prices is None:  # void or unknown
             continue
-        else:
-            # unknown - skip for now
+        yes_settlement_price, no_settlement_price = prices
+
+        # Calculate quantities from open lots
+        yes_key = (settlement.ticker, "yes")
+        yes_qty = open_lots.get(yes_key, _Lot(0, 0)).qty_remaining
+        no_key = (settlement.ticker, "no")
+        no_qty = open_lots.get(no_key, _Lot(0, 0)).qty_remaining
+
+        if yes_qty + no_qty <= 0:
             continue
 
+        # Allocate settlement fees across sides (preserves total)
+        fee_cents = self._parse_settlement_fee_cents(settlement.fee_cost_dollars)
+        yes_fee, no_fee = self._allocate_settlement_fee_cents(fee_cents, yes_qty, no_qty)
+
         # Synthesize YES fill if open YES lots exist
-        yes_key = (settlement.ticker, "yes")
-        if yes_key in open_lots and open_lots[yes_key].qty_remaining > 0:
+        if yes_qty > 0:
             synthetic_fills.append(_EffectiveTrade(
                 ticker=settlement.ticker,
                 side="yes",
                 action="sell",
-                quantity=open_lots[yes_key].qty_remaining,
+                quantity=yes_qty,
                 price_cents=yes_settlement_price,
-                total_cost_cents=yes_settlement_price * open_lots[yes_key].qty_remaining,
-                fee_cents=0,  # Settlement fees handled separately
+                total_cost_cents=yes_settlement_price * yes_qty,
+                fee_cents=yes_fee,  # Prorated settlement fee
                 executed_at=settlement.settled_at,
             ))
+            total_fees_cents += yes_fee
 
         # Synthesize NO fill if open NO lots exist
-        no_key = (settlement.ticker, "no")
-        if no_key in open_lots and open_lots[no_key].qty_remaining > 0:
+        if no_qty > 0:
             synthetic_fills.append(_EffectiveTrade(
                 ticker=settlement.ticker,
                 side="no",
                 action="sell",
-                quantity=open_lots[no_key].qty_remaining,
+                quantity=no_qty,
                 price_cents=no_settlement_price,
-                total_cost_cents=no_settlement_price * open_lots[no_key].qty_remaining,
-                fee_cents=0,
+                total_cost_cents=no_settlement_price * no_qty,
+                fee_cents=no_fee,  # Prorated settlement fee
                 executed_at=settlement.settled_at,
             ))
+            total_fees_cents += no_fee
 
-    return synthetic_fills
+    return synthetic_fills, total_fees_cents
 ```
 
 ### Updated Flow
