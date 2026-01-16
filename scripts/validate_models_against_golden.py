@@ -49,6 +49,13 @@ from kalshi_research.api.models.incentive import IncentiveProgram, IncentiveProg
 from kalshi_research.api.models.live_data import LiveData, LiveDataBatchResponse, LiveDataResponse
 from kalshi_research.api.models.market import Market
 from kalshi_research.api.models.milestone import Milestone, MilestoneResponse, MilestonesResponse
+from kalshi_research.api.models.multivariate import (
+    GetMultivariateEventCollectionResponse,
+    GetMultivariateEventCollectionsResponse,
+    LookupTickersForMarketInMultivariateEventCollectionResponse,
+    MultivariateAssociatedEvent,
+    MultivariateEventCollection,
+)
 from kalshi_research.api.models.order_group import (
     CreateOrderGroupResponse,
     EmptyResponse,
@@ -171,6 +178,19 @@ MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
     "order_group_single_response.json": [("response", OrderGroupDetailResponse)],
     "order_group_reset_response.json": [("response", EmptyResponse)],
     "order_group_delete_response.json": [("response", EmptyResponse)],
+    # Phase 5 multivariate event collections (SPEC-041)
+    "multivariate_event_collections_list_response.json": [
+        ("response", GetMultivariateEventCollectionsResponse),
+        ("response.multivariate_contracts[0]", MultivariateEventCollection),
+        ("response.multivariate_contracts[0].associated_events[0]", MultivariateAssociatedEvent),
+    ],
+    "multivariate_event_collection_single_response.json": [
+        ("response", GetMultivariateEventCollectionResponse),
+        ("response.multivariate_contract", MultivariateEventCollection),
+    ],
+    "multivariate_event_collection_lookup_tickers_response.json": [
+        ("response", LookupTickersForMarketInMultivariateEventCollectionResponse),
+    ],
     # Exa endpoints (fixtures live under tests/fixtures/golden/exa/)
     "exa/search_response.json": [("response", SearchResponse)],
     "exa/search_and_contents_response.json": [("response", SearchResponse)],

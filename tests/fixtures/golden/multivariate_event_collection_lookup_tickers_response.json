@@ -1,0 +1,15 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T20:46:45.580152+00:00",
+    "endpoint": "multivariate_event_collection_lookup_tickers",
+    "environment": "prod",
+    "sanitized": false,
+    "collection_ticker": "KXMVENFLSINGLEGAME-26JAN18SFSEA",
+    "selected_markets_count": 2,
+    "note": "RAW API response (SSOT) - auth required"
+  },
+  "response": {
+    "event_ticker": "KXMVENFLSINGLEGAME-S202550CA6D2D4B5",
+    "market_ticker": "KXMVENFLSINGLEGAME-S202550CA6D2D4B5-06E057043C4"
+  }
+}

@@ -1,19 +1,22 @@
 # DEBT-015: Missing API Endpoints
 
 **Priority:** P2 (Complete personal system)
-**Status:** 🟡 Open → SPEC-041 created
+**Status:** ✅ Complete (remaining endpoints blocked/unplanned)
 **Found:** 2026-01-12
 **Verified:** 2026-01-12 - Confirmed endpoints missing from `api/client.py`
-**Updated:** 2026-01-15 - Phase 5 decision made, see [SPEC-041](../specs/SPEC-041-phase5-remaining-endpoints.md)
+**Updated:** 2026-01-15 - SPEC-041 implemented (multivariate subset); remaining endpoints blocked/unplanned
 **Source:** Audit against `docs/_vendor-docs/kalshi-api-reference.md`
 
 ---
 
 ## Summary
 
-The Kalshi API client was missing 45+ documented endpoints. **Phases 1-4 are complete (47/74 = 64% coverage).**
+Initial audit (baseline, 2026-01-12) identified **45+ missing documented endpoints** in our Kalshi API client.
 
-Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** evaluates each for solo-trader usefulness.
+As of 2026-01-15, Phases 1-4 are complete (per `docs/_vendor-docs/kalshi-openapi-coverage.md`) and Phase 5 implemented
+the multivariate collections subset (+3 endpoints), bringing coverage to **50/74 (68%)**.
+
+Remaining unimplemented: 24 endpoints across 6 categories. Phase 5 audit evaluates each for solo-trader usefulness.
 
 **Completed:**
 - ~~Category/tag discovery (proper market browsing)~~ ✅ DONE
@@ -29,7 +32,8 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 - ✅ **SPEC-040 Phase 2 Complete**: Order operations (batch create/cancel, get order, decrease, queue positions, resting value)
 - ✅ **SPEC-040 Phase 3 Complete**: Discovery endpoints (event metadata, event candlesticks, filters by sport, structured targets)
 - ✅ **SPEC-040 Phase 4 Complete**: Operational endpoints (exchange info, milestones, live data, order groups, incentive programs)
-- 🔲 **Phase 5 (Decision)**: Remaining endpoints evaluated below
+- ✅ **SPEC-041 Phase 5 Complete**: Multivariate collections subset (list/detail + lookup tickers)
+- 🚫 **Phase 5 (API blocked)**: Subaccounts + forecast percentile history (see below)
 
 ---
 
@@ -42,19 +46,19 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 | Endpoint | Auth | Solo-Trader Value |
 |----------|------|-------------------|
 | `GET /multivariate_event_collections` | No | **HIGH** - List available combo markets |
-| `GET /multivariate_event_collections/{ticker}` | Yes | **MEDIUM** - View combo details |
-| `POST /multivariate_event_collections/{ticker}` | Yes | **LOW** - Create combos (advanced) |
-| `GET /multivariate_event_collections/{ticker}/lookup` | Yes | **MEDIUM** - Map ticker→combo |
-| `PUT /multivariate_event_collections/{ticker}/lookup` | Yes | **LOW** - Update mappings |
+| `GET /multivariate_event_collections/{collection_ticker}` | No (OpenAPI; verified via unauthenticated `curl`) | **MEDIUM** - View combo details |
+| `POST /multivariate_event_collections/{collection_ticker}` | Yes | **LOW** - Create market in collection (advanced) |
+| `GET /multivariate_event_collections/{collection_ticker}/lookup` | No (OpenAPI) | **LOW** - Lookup *history* (requires `lookback_seconds`) |
+| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | Yes | **MEDIUM** - Lookup tickers for selected markets |
 
 **Why reconsider:** NOT just sports parlays! Can combine ANY events:
 - "Fed raises rates AND inflation stays above 3%"
 - "Bitcoin > $100k AND S&P > 5000"
 - Political event combinations
 
-**Recommendation:** Implement **LIST** (public) + **GET details** (auth). Skip create/update.
+**Recommendation:** Implement **LIST** + **GET details** + **PUT lookup**. Skip create + lookup history.
 
-### Subaccounts (4 endpoints) - ⚠️ POTENTIALLY USEFUL
+### Subaccounts (4 endpoints) - 🚫 API BLOCKED (SSOT)
 
 | Endpoint | Auth | Solo-Trader Value |
 |----------|------|-------------------|
@@ -63,22 +67,31 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 | `POST /portfolio/subaccounts/transfer` | Yes | **MEDIUM** - Move funds |
 | `GET /portfolio/subaccounts/transfers` | Yes | **LOW** - Transfer history |
 
-**Why potentially useful:** Capital segmentation for a solo trader:
-- "Thesis A fund" vs "Thesis B fund"
-- Track different strategies separately
-- Up to 32 subaccounts available
+**SSOT (observed 2026-01-15):**
+- Demo:
+  - `POST /portfolio/subaccounts` → `404 page not found`
+  - `POST /portfolio/subaccounts/transfer` → `404 page not found`
+  - `GET /portfolio/subaccounts/balances` → `200` with empty list
+  - `GET /portfolio/subaccounts/transfers` → `200` with empty list
+- Prod:
+  - `POST /portfolio/subaccounts` → `404 page not found`
+  - `POST /portfolio/subaccounts/transfer` → `404 page not found`
+  - `GET /portfolio/subaccounts/balances` → `403 invalid_parameters` (“subaccount endpoints are not available in production”)
+  - `GET /portfolio/subaccounts/transfers` → `403 invalid_parameters` (“subaccount endpoints are not available in production”)
 
-**Recommendation:** Implement if you want strategy isolation. Skip if single-strategy.
+**Recommendation:** Treat as Kalshi API drift/permissions. Do not implement until the API returns real responses.
 
-### Forecast Percentile History (1 endpoint) - 🤔 OPTIONAL
+### Forecast Percentile History (1 endpoint) - 🚫 API BLOCKED (SSOT)
 
 | Endpoint | Auth | Solo-Trader Value |
 |----------|------|-------------------|
-| `GET /series/{s}/events/{e}/forecast_percentile_history` | Yes | **LOW-MEDIUM** |
+| `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` | Yes (OpenAPI) | **LOW-MEDIUM** |
 
-**Why:** Shows historical forecast accuracy for events. Research value but not critical.
+**SSOT (observed 2026-01-15):**
+- Demo + prod: `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` returned
+  `400 bad_request` for every event tested.
 
-**Recommendation:** Skip for now, add if research needs arise.
+**Recommendation:** Treat as API drift/feature flag; defer until we find an event where this returns a real payload.
 
 ### RFQ / Communications (11 endpoints) - ❌ SKIP
 
@@ -96,20 +109,20 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 
 ## Phase 5 Implementation Recommendation
 
-**Implement (HIGH value for solo trader):**
-1. `GET /multivariate_event_collections` - List combo markets
-2. `GET /multivariate_event_collections/{ticker}` - View combo details
+**Implementation spec:** [SPEC-041](../_specs/SPEC-041-phase5-remaining-endpoints.md)
 
-**Consider (MEDIUM value, depends on workflow):**
-3. Subaccount endpoints (if you want capital segmentation)
-4. `GET /multivariate_event_collections/{ticker}/lookup` - Ticker mapping
+**Implemented (SPEC-041):**
+1. Multivariate collections: list + detail + lookup tickers (PUT)
 
-**Skip (LOW value / inappropriate for solo retail):**
+**Deferred (API blocked / do not implement yet):**
+1. Subaccounts: create + balances + transfer + transfers (403/404)
+2. Forecast percentile history: series/event-scoped endpoint (400 bad_request)
+
+**Skip (in this repo, intentionally):**
 - RFQ system (11 endpoints) - institutional
 - API Keys (4 endpoints) - security risk
 - FCM (2 endpoints) - institutional
-- Forecast history (1 endpoint) - nice-to-have only
-- Multivariate create/update (2 endpoints) - advanced feature
+- Multivariate collections: create market + lookup history (2 endpoints) - low value for solo workflow
 
 ---
 
@@ -119,10 +132,10 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 
 | Endpoint | Description | Priority | Status |
 |----------|-------------|----------|--------|
-| `GET /exchange/announcements` | Exchange-wide announcements | P3 | Missing |
-| `GET /exchange/schedule` | Trading schedule | P3 | Missing |
+| `GET /exchange/announcements` | Exchange-wide announcements | P3 | ✅ **DONE** (SPEC-040 Phase 4) |
+| `GET /exchange/schedule` | Trading schedule | P3 | ✅ **DONE** (SPEC-040 Phase 4) |
 | `GET /series/fee_changes` | Series fee change schedule | P3 | ✅ **DONE** |
-| `GET /exchange/user_data_timestamp` | User data timestamp | P3 | Missing |
+| `GET /exchange/user_data_timestamp` | User data timestamp | P3 | ✅ **DONE** (SPEC-040 Phase 4) |
 
 **Impact:** Low - informational only
 **Note:** `GET /series/fee_changes` implemented in SPEC-037 (`get_series_fee_changes()`)
@@ -133,7 +146,7 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 |----------|-------------|----------|--------|
 | `GET /series` | List series with filters | **P2** | ✅ **DONE** |
 | `GET /series/{series_ticker}` | Single series details | P2 | ✅ **DONE** |
-| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Forecast history (auth) | P3 | Missing |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | Forecast history (auth) | P3 | ⬜ **API blocked** (400 bad_request) |
 
 **Impact:** ~~Medium~~ **Resolved** - Series-centric navigation now available via:
 - `get_series_list()` - List all series with optional category filter
@@ -147,13 +160,13 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 | Endpoint | Description | Priority | Status |
 |----------|-------------|----------|--------|
 | `GET /search/tags_by_categories` | Category → tags mapping | **P2** | ✅ **DONE** |
-| `GET /search/filters_by_sport` | Sports-specific filters | P3 | Missing |
+| `GET /search/filters_by_sport` | Sports-specific filters | P3 | ✅ **DONE** (SPEC-040 Phase 3) |
 
 **Impact:** ~~Medium~~ **Resolved** - Category browsing now available via `get_tags_by_categories()`
 
 **Implemented:** SPEC-037 (2026-01-12)
 
-### 4. Structured Targets (2 endpoints) - P3
+### 4. Structured Targets (2 endpoints) - ✅ DONE (SPEC-040 Phase 3)
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
@@ -171,6 +184,8 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 | `GET /milestones/{milestone_id}` | Milestone details | P3 |
 | `GET /live_data/{type}/milestone/{milestone_id}` | Live data for milestone | P3 |
 | `GET /live_data/batch` | Batch live data | P3 |
+
+**Status:** ✅ DONE (SPEC-040 Phase 4)
 
 **Impact:** Low - Used for real-time event tracking
 
@@ -202,6 +217,8 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 
 **Impact:** Low - Advanced order management
 
+**Status:** ✅ DONE (SPEC-040 Phase 4)
+
 ### 8. RFQ / Communications System (11 endpoints) - P3
 
 | Endpoint | Description | Priority |
@@ -224,13 +241,13 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
-| `GET /multivariate_event_collections` | List collections | P3 |
-| `GET /multivariate_event_collections/{collection_ticker}` | Collection details | P3 |
-| `POST /multivariate_event_collections/{collection_ticker}` | Create/update | P3 |
-| `GET /multivariate_event_collections/{collection_ticker}/lookup` | Lookup tickers | P3 |
-| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | Update lookup | P3 |
+| `GET /multivariate_event_collections` | List collections (✅ implemented in SPEC-041) | P3 |
+| `GET /multivariate_event_collections/{collection_ticker}` | Collection details (✅ implemented in SPEC-041) | P3 |
+| `POST /multivariate_event_collections/{collection_ticker}` | Create market in collection (auth; not planned) | P3 |
+| `GET /multivariate_event_collections/{collection_ticker}/lookup` | Lookup history (public; not planned) | P3 |
+| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | Lookup tickers (✅ implemented in SPEC-041) | P3 |
 
-**Impact:** Low - Sports parlay combinations
+**Impact:** Medium - combo market discovery (not limited to sports). For solo workflows we only need list/detail/lookup.
 
 ### 10. API Key Management (4 endpoints) - P3
 
@@ -256,7 +273,7 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 
 | Endpoint | Description | Priority |
 |----------|-------------|----------|
-| `GET /events/{event_ticker}/metadata` | Event metadata | P3 |
+| `GET /events/{event_ticker}/metadata` | Event metadata | P3 ✅ **DONE** |
 | `GET /events/multivariate` | Multivariate events only | **P2** ✅ **DONE** |
 
 **Impact:** `/events/multivariate` is **P2 critical** - MVEs excluded from `/events` endpoint (data incomplete without it). Metadata is P3.
@@ -297,7 +314,7 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 - ~~`GET /structured_targets/{structured_target_id}`~~ ✅ `get_structured_target()`
 - ~~`GET /search/filters_by_sport`~~ ✅ `get_filters_by_sport()`
 - ~~`GET /series/{series_ticker}/events/{event_ticker}/candlesticks`~~ ✅ `get_event_candlesticks()`
-- `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` 🔲 (auth required; optional)
+- `GET /series/{series_ticker}/events/{event_ticker}/forecast_percentile_history` ⬜ (OpenAPI exists; API blocked - 400 bad_request)
 
 ### Phase 4: Operational (P3) - ✅ COMPLETE (2026-01-15)
 - ~~Exchange schedule/announcements/user_data_timestamp~~ ✅ `get_exchange_schedule()`, `get_exchange_announcements()`, `get_user_data_timestamp()`
@@ -305,7 +322,10 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 - ~~Milestones/live data~~ ✅ `get_milestones()`, `get_milestone()`, `get_milestone_live_data()`, `get_live_data_batch()`
 - ~~Incentive programs~~ ✅ `get_incentive_programs()`
 
-**All planned endpoint work is complete.** Remaining not-planned endpoints (RFQ, API keys, FCM, Multivariate Collections, Subaccounts) are institutional-only or low priority.
+**Phase 5 complete** (SPEC-041): multivariate collections subset (list/detail + lookup tickers).
+
+Remaining endpoints are either intentionally not planned (RFQ, API keys, FCM, plus 2 low-value multivariate endpoints:
+create market + lookup history) or currently API blocked (subaccounts + forecast percentile history).
 
 ---
 
@@ -322,4 +342,5 @@ Remaining unimplemented: 27 endpoints across 6 categories. **Phase 5 audit** eva
 |------|--------------|
 | DEBT-014 C1 | Series endpoint subset |
 | BUG-064 | Order params (not endpoints) |
+| SPEC-041 | Phase 5 implementation spec |
 | `docs/_vendor-docs/kalshi-api-reference.md` | SSOT for API |

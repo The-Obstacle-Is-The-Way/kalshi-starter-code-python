@@ -26,19 +26,19 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | **Markets (Filters)** | 11 params | 11 params | **100%** | ✅ SPEC-040 Phase 1 |
 | **Series** | 4 | 4 | **100%** | SPEC-037 Phase 1 ✅ |
 | **Search/Discovery** | 2 | 2 | **100%** | ✅ SPEC-040 Phase 3 |
-| **Events** | 6 | 5 | 83% | SPEC-040 Phase 3 |
+| **Events** | 6 | 5 | 83% | 🚫 Forecast history API blocked |
 | **Structured Targets** | 2 | 2 | **100%** | ✅ SPEC-040 Phase 3 |
 | **Portfolio (Read)** | 6 | 6 | **100%** | ✅ SPEC-040 Phase 2 |
 | **Portfolio (Orders)** | 9 | 9 | **100%** | ✅ SPEC-040 Phase 2 |
 | **Order Groups** | 5 | 5 | **100%** | ✅ SPEC-040 Phase 4 |
-| **Subaccounts** | 4 | 0 | 0% | SPEC-040 Phase 4 |
+| **Subaccounts** | 4 | 0 | 0% | 🚫 API blocked (403/404) |
 | **RFQ/Communications** | 11 | 0 | 0% | Not planned |
 | **Milestones & Live Data** | 4 | 4 | **100%** | ✅ SPEC-040 Phase 4 |
-| **Multivariate Collections** | 5 | 0 | 0% | Not planned |
+| **Multivariate Collections** | 5 | 3 | 60% | ✅ SPEC-041 Phase 5 (partial) |
 | **Incentive Programs** | 1 | 1 | **100%** | ✅ SPEC-040 Phase 4 |
 | **API Keys** | 4 | 0 | 0% | Not planned |
 | **FCM** | 2 | 0 | 0% | Not planned |
-| **TOTAL** | 74 | 47 | **64%** | - |
+| **TOTAL** | 74 | 50 | **68%** | - |
 
 ---
 
@@ -117,7 +117,7 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 | `GET /events/multivariate` | ✅ | Done | `get_multivariate_events*()` (MVEs excluded from `/events`) |
 | `GET /events/{event_ticker}/metadata` | ✅ | SPEC-040 Phase 3 | `get_event_metadata()` |
 | `GET /series/{series_ticker}/events/{ticker}/candlesticks` | ✅ | SPEC-040 Phase 3 | `get_event_candlesticks()` |
-| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | 🔲 | SPEC-040 Phase 3 | P3 - auth required |
+| `GET /series/{series_ticker}/events/{ticker}/forecast_percentile_history` | ⬜ | - | OpenAPI exists, but returned `400 bad_request` for all tested events (2026-01-15) |
 
 ---
 
@@ -180,10 +180,10 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
-| `POST /portfolio/subaccounts` | 🔲 | SPEC-040 Phase 4 | P3 |
-| `GET /portfolio/subaccounts/balances` | 🔲 | SPEC-040 Phase 4 | P3 |
-| `POST /portfolio/subaccounts/transfer` | 🔲 | SPEC-040 Phase 4 | Internal only |
-| `GET /portfolio/subaccounts/transfers` | 🔲 | SPEC-040 Phase 4 | P3 |
+| `POST /portfolio/subaccounts` | ⬜ | - | OpenAPI exists, but endpoint returned `404 page not found` in demo + prod (2026-01-15) |
+| `GET /portfolio/subaccounts/balances` | ⬜ | - | Demo: `200` empty; Prod: `403 invalid_parameters` (“not available in production”) |
+| `POST /portfolio/subaccounts/transfer` | ⬜ | - | OpenAPI exists, but endpoint returned `404 page not found` in demo + prod (2026-01-15) |
+| `GET /portfolio/subaccounts/transfers` | ⬜ | - | Demo: `200` empty; Prod: `403 invalid_parameters` (“not available in production”) |
 
 **Note:** External fiat/crypto deposits are NOT available via API (use Kalshi web UI).
 
@@ -204,11 +204,11 @@ This document is the **master reference** for Kalshi API endpoint coverage. It t
 
 | Endpoint | Status | Spec | Notes |
 |----------|--------|------|-------|
-| `GET /multivariate_event_collections` | ⬜ | - | P3 |
-| `GET /multivariate_event_collections/{collection_ticker}` | ⬜ | - | P3 |
+| `GET /multivariate_event_collections` | ✅ | SPEC-041 Phase 5 | `get_multivariate_event_collections()` |
+| `GET /multivariate_event_collections/{collection_ticker}` | ✅ | SPEC-041 Phase 5 | `get_multivariate_event_collection()` |
 | `POST /multivariate_event_collections/{collection_ticker}` | ⬜ | - | Auth required |
-| `GET /multivariate_event_collections/{collection_ticker}/lookup` | ⬜ | - | P3 |
-| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | ⬜ | - | Auth required |
+| `GET /multivariate_event_collections/{collection_ticker}/lookup` | ⬜ | - | Lookup history (low value) |
+| `PUT /multivariate_event_collections/{collection_ticker}/lookup` | ✅ | SPEC-041 Phase 5 | `lookup_multivariate_event_collection_tickers()` |
 
 ---
 

@@ -15,7 +15,7 @@ This directory contains **active** design specifications - work happening NOW.
 
 | ID | Title | Status |
 |---|---|---|
-| **SPEC-041** | [**Phase 5: Remaining High-Value Endpoints**](SPEC-041-phase5-remaining-endpoints.md) | **🎯 Ready** |
+| **SPEC-041** | [**Phase 5: Remaining High-Value Endpoints**](SPEC-041-phase5-remaining-endpoints.md) | ✅ Complete (multivariate subset) |
 | SPEC-028 | [Topic Search & Market Discovery (DB + CLI)](SPEC-028-topic-search-and-discovery.md) | 📝 Draft |
 | SPEC-029 | [Kalshi Endpoint Coverage & Strategic Use](SPEC-029-kalshi-endpoint-coverage-strategy.md) | 🔀 Superseded by SPEC-040 |
 | SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 📝 Draft |
@@ -32,7 +32,7 @@ This directory contains **active** design specifications - work happening NOW.
 ```
 SPEC-040 (Kalshi Endpoints)    ← ✅ DONE (Phases 1-4)
     ↓
-SPEC-041 (Phase 5 Endpoints)   ← 🎯 NEXT: Complete API coverage (74%)
+SPEC-041 (Phase 5 Endpoints)   ← ✅ DONE (multivariate collections subset)
     ↓
 SPEC-034 (TradeExecutor)       ← Safety harness for trading
     ↓

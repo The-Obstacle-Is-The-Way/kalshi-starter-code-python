@@ -1,0 +1,118 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-15T20:56:44.412066+00:00",
+    "endpoint": "multivariate_event_collection_single",
+    "environment": "prod",
+    "sanitized": false,
+    "collection_ticker": "KXMVENFLSINGLEGAME-26JAN18SFSEA",
+    "note": "RAW API response (SSOT)"
+  },
+  "response": {
+    "multivariate_contract": {
+      "associated_event_tickers": [
+        "KXNFLGAME-26JAN18SFSEA",
+        "KXNFLSPREAD-26JAN17SFSEA",
+        "KXNFLTOTAL-26JAN17SFSEA",
+        "KXNFLANYTD-26JAN17SFSEA",
+        "KXNFLFIRSTTD-26JAN17SFSEA",
+        "KXNFL2TD-26JAN17SFSEA",
+        "KXNFLPASSYDS-26JAN17SFSEA",
+        "KXNFLRECYDS-26JAN17SFSEA",
+        "KXNFLRSHYDS-26JAN17SFSEA",
+        "KXNFLREC-26JAN17SFSEA",
+        "KXNFLPASSTDS-26JAN17SFSEA"
+      ],
+      "associated_events": [
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": 1,
+          "size_min": null,
+          "ticker": "KXNFLGAME-26JAN18SFSEA"
+        },
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": 1,
+          "size_min": null,
+          "ticker": "KXNFLSPREAD-26JAN17SFSEA"
+        },
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": 1,
+          "size_min": null,
+          "ticker": "KXNFLTOTAL-26JAN17SFSEA"
+        },
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": null,
+          "size_min": null,
+          "ticker": "KXNFLANYTD-26JAN17SFSEA"
+        },
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": 1,
+          "size_min": null,
+          "ticker": "KXNFLFIRSTTD-26JAN17SFSEA"
+        },
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": null,
+          "size_min": null,
+          "ticker": "KXNFL2TD-26JAN17SFSEA"
+        },
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": null,
+          "size_min": null,
+          "ticker": "KXNFLPASSYDS-26JAN17SFSEA"
+        },
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": null,
+          "size_min": null,
+          "ticker": "KXNFLRECYDS-26JAN17SFSEA"
+        },
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": null,
+          "size_min": null,
+          "ticker": "KXNFLRSHYDS-26JAN17SFSEA"
+        },
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": null,
+          "size_min": null,
+          "ticker": "KXNFLREC-26JAN17SFSEA"
+        },
+        {
+          "active_quoters": [],
+          "is_yes_only": false,
+          "size_max": null,
+          "size_min": null,
+          "ticker": "KXNFLPASSTDS-26JAN17SFSEA"
+        }
+      ],
+      "close_date": "2026-01-18T05:00:00Z",
+      "collection_ticker": "KXMVENFLSINGLEGAME-26JAN18SFSEA",
+      "description": "Choose any combination of game stats and props.",
+      "functional_description": "The resulting market will only resolve to YES if every associated market resolves to YES. Scalar outcomes are multiplied (rounded down).",
+      "is_all_yes": false,
+      "is_ordered": false,
+      "is_single_market_per_event": false,
+      "open_date": "2026-01-15T20:50:39Z",
+      "series_ticker": "KXMVENFLSINGLEGAME",
+      "size_max": 0,
+      "size_min": 2,
+      "title": "What will happen in San Francisco at Seattle?"
+    }
+  }
+}
