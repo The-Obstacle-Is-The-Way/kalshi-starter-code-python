@@ -11,12 +11,12 @@ This directory tracks **known debt** and **audit checklists** for the repository
 | **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (B1/B2 blocked on FUTURE-001) |
 | **[DEBT-025](DEBT-025-subpenny-pricing-strategy.md)** | Subpenny Pricing Strategy (FixedPointDollars → rounding policy) | P2 | 🟡 Partially Implemented |
 
-### Recently Resolved (2026-01-16)
+### Recently Archived (2026-01-16)
 
 | ID | Title | Status |
 |---|---|---|
-| **[DEBT-030](DEBT-030-trading-fees-from-settlements.md)** | Trading Fees Missing from P&L (Must Use Settlement Records) | ✅ Resolved |
-| **[DEBT-029](DEBT-029-settlement-synthetic-fill-reconciliation.md)** | Settlement-as-Synthetic-Fill Reconciliation (Professional P&L) | ✅ Implemented |
+| **[DEBT-030](../_archive/debt/DEBT-030-trading-fees-from-settlements.md)** | Trading Fees Missing from P&L (Must Use Settlement Records) | ✅ Resolved |
+| **[DEBT-029](../_archive/debt/DEBT-029-settlement-synthetic-fill-reconciliation.md)** | Settlement-as-Synthetic-Fill Reconciliation (Professional P&L) | ✅ Implemented |
 
 ### Previously Resolved (2026-01-16)
 
@@ -48,8 +48,6 @@ Use this ID for the next debt item:
 |------|---------|
 | `DEBT-014-friction-residuals.md` | **Active debt P1-P3** - friction, design decisions |
 | `DEBT-025-subpenny-pricing-strategy.md` | **Active debt P2** - subpenny precision and rounding policy |
-| `DEBT-030-trading-fees-from-settlements.md` | **Resolved** - Trading fees from settlements applied to P&L |
-| `DEBT-029-settlement-synthetic-fill-reconciliation.md` | **Resolved** - Professional P&L implementation |
 | `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
 
 ## Archived Reference Docs
