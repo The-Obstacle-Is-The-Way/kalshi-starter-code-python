@@ -24,14 +24,13 @@ jobs:
         run: uv python install 3.11
       - name: Install dependencies
         run: uv sync --all-extras
-      - name: Record fixtures to temp dir (read-only)
+      - name: Record fixtures to temp dir (public-only)
         run: |
           mkdir -p tmp/golden
-          uv run python scripts/record_api_responses.py \
-            --env prod \
-            --endpoint all \
-            --yes \
-            --output-dir tmp/golden
+          uv run python scripts/record_api_responses.py --env prod --endpoint public --yes --output-dir tmp/golden
+          uv run python scripts/record_api_responses.py --env prod --endpoint phase3 --yes --output-dir tmp/golden
+          uv run python scripts/record_api_responses.py --env prod --endpoint phase4 --yes --output-dir tmp/golden
+          uv run python scripts/record_api_responses.py --env prod --endpoint phase5 --yes --output-dir tmp/golden
       - name: Validate models against recorded fixtures (SSOT)
         run: uv run python scripts/validate_models_against_golden.py --golden-dir tmp/golden
       - name: Upload recorded fixtures (on failure)

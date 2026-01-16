@@ -437,7 +437,7 @@ def test_portfolio_sync_and_positions() -> None:
 ## Implementation Order
 
 ```
-DEBT-018 Phase 4 (CLI Tests) - lower priority (remaining)
+DEBT-018 Phase 4 (CLI Tests) - completed (HTTP-boundary mocks)
     ↓
 DEBT-016 (CI Automation) - builds on SSOT baseline
     ↓

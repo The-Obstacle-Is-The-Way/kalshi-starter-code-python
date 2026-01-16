@@ -28,7 +28,8 @@ This debt is considered **resolved** for our current needs because:
 - ✅ Added a weekly fixture drift canary that re-records **public** fixtures to a temp directory and validates models
   against the live API (fails fast on schema drift):
   - `.github/workflows/fixture-drift-canary.yml`
-  - Uses `scripts/record_api_responses.py --output-dir ...` + `scripts/validate_models_against_golden.py --golden-dir ...`
+  - Uses `scripts/record_api_responses.py --output-dir ...` (public + Phase 3/4/5 groups) +
+    `scripts/validate_models_against_golden.py --golden-dir ...`
 - ✅ Made the recording/validation scripts support directory overrides (CI canary does not touch the repo baseline).
 - 🟡 Deferred (optional / may be noisy): auto-opening PRs with updated fixtures for volatile endpoints.
 
