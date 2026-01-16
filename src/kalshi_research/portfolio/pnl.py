@@ -54,6 +54,7 @@ class PnLCalculator:
     class _FifoResult:
         closed_pnls: list[int]
         orphan_sell_qty_skipped: int
+        open_lots: dict[tuple[str, str], PnLCalculator._Lot]
 
     @staticmethod
     def _normalize_trade_for_fifo(trade: Trade) -> _EffectiveTrade:
@@ -137,7 +138,9 @@ class PnLCalculator:
         closed_pnls: list[int] = []
         orphan_sell_qty_skipped = 0
 
-        for group_trades in ticker_side_trades.values():
+        open_lots: dict[tuple[str, str], PnLCalculator._Lot] = {}
+
+        for key, group_trades in ticker_side_trades.items():
             sorted_trades = sorted(group_trades, key=lambda t: t.executed_at)
             lots: deque[PnLCalculator._Lot] = deque()
 
@@ -191,9 +194,22 @@ class PnLCalculator:
                     closed_pnls.append(net_proceeds_cents - cost_basis_cents)
                     continue
 
+            if not lots:
+                continue
+
+            qty_remaining = sum(lot.qty_remaining for lot in lots)
+            cost_remaining = sum(lot.cost_remaining_cents for lot in lots)
+            if qty_remaining <= 0:
+                continue
+
+            open_lots[key] = PnLCalculator._Lot(
+                qty_remaining=qty_remaining, cost_remaining_cents=cost_remaining
+            )
+
         return PnLCalculator._FifoResult(
             closed_pnls=closed_pnls,
             orphan_sell_qty_skipped=orphan_sell_qty_skipped,
+            open_lots=open_lots,
         )
 
     def calculate_realized(self, trades: list[Trade]) -> int:
@@ -255,10 +271,19 @@ class PnLCalculator:
             if pos.unrealized_pnl_cents is not None
         )
         fifo_result = self._get_closed_trade_pnls_fifo(trades)
+        trades_tickers = {trade.ticker for trade in trades}
+        open_qty_by_ticker: dict[str, int] = {}
+        for (ticker, _side), lot in fifo_result.open_lots.items():
+            open_qty_by_ticker[ticker] = open_qty_by_ticker.get(ticker, 0) + lot.qty_remaining
 
         settlement_pnls: list[int] = []
         if settlements:
             for settlement in settlements:
+                if (
+                    settlement.ticker in trades_tickers
+                    and open_qty_by_ticker.get(settlement.ticker, 0) <= 0
+                ):
+                    continue
                 try:
                     fee_cents = int(
                         (Decimal(settlement.fee_cost_dollars) * 100).to_integral_value(

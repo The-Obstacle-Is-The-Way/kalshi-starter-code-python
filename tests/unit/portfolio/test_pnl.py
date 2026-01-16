@@ -660,3 +660,105 @@ class TestPnLCalculatorSummary:
         # P&L = revenue - cost - fees = 1000 - 400 - 50 = 550
         assert summary.realized_pnl_cents == 550
         assert summary.total_trades == 1
+
+    def test_summary_includes_settlement_pnl_when_open_lots_remain(self) -> None:
+        """BUG-084: Only apply settlement P&L when trades don't fully close the position."""
+        from kalshi_research.portfolio.models import PortfolioSettlement
+
+        trades = [
+            Trade(
+                kalshi_trade_id="trade_buy_yes",
+                ticker="SETTLED-TICKER",
+                side="yes",
+                action="buy",
+                quantity=10,
+                price_cents=40,
+                total_cost_cents=400,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            )
+        ]
+
+        settlement = PortfolioSettlement(
+            ticker="SETTLED-TICKER",
+            event_ticker="EVENT-1",
+            market_result="yes",
+            yes_count=10,
+            yes_total_cost=400,
+            no_count=0,
+            no_total_cost=0,
+            revenue=1000,
+            fee_cost_dollars="0.5000",
+            value=None,
+            settled_at=datetime(2026, 1, 5, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(
+            positions=[],
+            trades=trades,
+            settlements=[settlement],
+        )
+
+        assert summary.realized_pnl_cents == 550
+        assert summary.total_trades == 1
+
+    def test_summary_does_not_double_count_settlement_when_trades_closed(self) -> None:
+        """BUG-084: Settlements must not be added when FIFO already closed the position."""
+        from kalshi_research.portfolio.models import PortfolioSettlement
+
+        trades = [
+            Trade(
+                kalshi_trade_id="trade_buy_yes",
+                ticker="CLOSED-TICKER",
+                side="yes",
+                action="buy",
+                quantity=1,
+                price_cents=40,
+                total_cost_cents=40,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+            Trade(
+                kalshi_trade_id="trade_sell_no",
+                ticker="CLOSED-TICKER",
+                side="no",
+                action="sell",
+                quantity=1,
+                price_cents=30,
+                total_cost_cents=30,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 2, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+        ]
+
+        settlement = PortfolioSettlement(
+            ticker="CLOSED-TICKER",
+            event_ticker="EVENT-1",
+            market_result="yes",
+            yes_count=1,
+            yes_total_cost=40,
+            no_count=0,
+            no_total_cost=0,
+            revenue=100,
+            fee_cost_dollars="0.0000",
+            value=None,
+            settled_at=datetime(2026, 1, 5, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(
+            positions=[],
+            trades=trades,
+            settlements=[settlement],
+        )
+
+        # FIFO-only: buy 40, sell (normalized) at 70 => +30 cents.
+        # Settlement P&L would be +60 if incorrectly double-counted.
+        assert summary.realized_pnl_cents == 30
+        assert summary.total_trades == 1
