@@ -9,16 +9,17 @@
 
 ## Summary
 
-The current P&L calculation uses a **deduplication workaround** (skip settlements when trades closed all lots) instead of the **proper reconciliation approach** where settlements are converted to synthetic closing fills per Kalshi's documented behavior.
+Before DEBT-029, the P&L calculation used a **deduplication workaround** (skip settlements when trades closed all lots)
+instead of the **proper reconciliation approach** where settlements are converted to synthetic closing fills per
+Kalshi's documented behavior.
 
-**Current state:** Working but not ideal
-**Target state:** Professional-grade FIFO reconciliation with settlement synthesis
+**Now:** Implemented settlement-as-synthetic-fill reconciliation (including scalar settlements).
 
 ---
 
 ## Problem Statement
 
-### Current Implementation (BUG-084 Workaround)
+### Previous Implementation (BUG-084 Workaround)
 
 ```python
 # pnl.py:282-286
@@ -64,7 +65,7 @@ For prediction markets, a settlement is economically equivalent to a forced sale
 
 ---
 
-## Proposed Implementation
+## Implemented Approach
 
 ### Algorithm: Settlement-as-Synthetic-Fill
 
@@ -90,12 +91,16 @@ def _synthesize_settlement_fills(
         elif settlement.market_result == "no":
             yes_settlement_price = 0    # NO wins → YES sells at 0c
             no_settlement_price = 100   # NO wins → NO sells at 100c
+        elif settlement.market_result == "scalar":
+            # Scalar: settlement.value is the YES payout in cents (OpenAPI)
+            yes_settlement_price = settlement.value
+            no_settlement_price = 100 - settlement.value
         elif settlement.market_result == "void":
             # Void = refund at cost basis (effectively break-even)
             # Skip - no P&L impact
             continue
         else:
-            # scalar or unknown - skip for now
+            # unknown - skip for now
             continue
 
         # Synthesize YES fill if open YES lots exist
@@ -134,10 +139,10 @@ def _synthesize_settlement_fills(
 ```
 1. Process all fills via FIFO → get closed_pnls + open_lots
 2. For each settlement with open lots:
-   a. Synthesize closing fills at settlement price (100c or 0c)
+   a. Synthesize closing fills at settlement price (100c/0c for binary, value/100-value for scalar)
    b. Process synthetic fills through FIFO (consuming remaining lots)
    c. Add resulting P&L to closed_pnls
-3. Handle settlement fees separately (already in settlement.fee_cost_dollars)
+3. Apply settlement fees from settlement.fee_cost_dollars (prorated across settled quantities)
 4. Return unified P&L
 ```
 
@@ -162,6 +167,8 @@ def _synthesize_settlement_fills(
   - [x] Held NO to YES settlement (0c payout)
   - [x] Held NO to NO settlement (100c payout)
   - [x] Partial exit + held rest to settlement
+  - [x] Scalar settlement (YES payout = value, NO payout = 100-value)
+  - [x] Settlement fee proration across sides
   - [x] Void settlement (break-even)
   - [x] Both sides hedged to settlement
 - [x] Update docstrings with SSOT reference
@@ -185,17 +192,13 @@ The fix should produce identical results for the current data (since trades clos
 
 ## Risk Assessment
 
-**Low risk** - The current workaround is safe and tested. This is an enhancement for correctness in edge cases (partial exit + settlement).
-
-**When to implement:**
-- Before any trading strategy that holds positions to settlement
-- Or as general code quality improvement
+**Low risk** - This replaces the BUG-084 workaround with a single SSOT-aligned settlement reconciliation path.
 
 ---
 
 ## Sources
 
-- [Kalshi API Reference - Settlements](../docs/_vendor-docs/kalshi-api-reference.md#get-portfoliosettlements-response-fields)
+- [Kalshi API Reference - Settlements](../_vendor-docs/kalshi-api-reference.md)
 - [Vanguard FIFO Cost Basis](https://investor.vanguard.com/investor-resources-education/taxes/cost-basis-first-in-first-out)
 - [Charles Schwab Cost Basis Guide](https://www.schwab.com/learn/story/save-on-taxes-know-your-cost-basis)
 - [BUG-084 Archive](../_archive/bugs/BUG-084-pnl-double-counting-settlements.md)

@@ -65,6 +65,57 @@ class PnLCalculator:
         open_lots: dict[tuple[str, str], PnLCalculator._Lot]
 
     @staticmethod
+    def _get_settlement_prices_cents(
+        market_result: str, settlement_value: int | None
+    ) -> tuple[int, int] | None:
+        """
+        Get (yes_price_cents, no_price_cents) at settlement, or None if not supported.
+
+        Per Kalshi docs, binary settlements are at 100c/0c. For scalar markets, the API
+        provides `settlement_value` as the YES payout in cents, and NO pays (100 - value).
+        """
+        if market_result == "yes":
+            return 100, 0
+        if market_result == "no":
+            return 0, 100
+        if market_result != "scalar":
+            return None
+        if settlement_value is None or settlement_value < 0 or settlement_value > 100:
+            return None
+        return settlement_value, 100 - settlement_value
+
+    @staticmethod
+    def _parse_settlement_fee_cents(fee_cost_dollars: str) -> int:
+        """Parse settlement fee dollars (fixed-point string) into integer cents."""
+        try:
+            return int(
+                (Decimal(fee_cost_dollars) * 100).to_integral_value(rounding=ROUND_HALF_EVEN)
+            )
+        except (InvalidOperation, ValueError):
+            return 0
+
+    @staticmethod
+    def _allocate_settlement_fee_cents(
+        fee_cents: int, yes_qty: int, no_qty: int
+    ) -> tuple[int, int]:
+        """Allocate total settlement fees across YES/NO quantities, preserving the total."""
+        if fee_cents <= 0:
+            return 0, 0
+
+        total_qty = yes_qty + no_qty
+        if total_qty <= 0:
+            return 0, 0
+
+        if yes_qty <= 0:
+            return 0, fee_cents
+        if no_qty <= 0:
+            return fee_cents, 0
+
+        yes_fee = round(fee_cents * yes_qty / total_qty)
+        yes_fee = max(0, min(fee_cents, yes_fee))
+        return yes_fee, fee_cents - yes_fee
+
+    @staticmethod
     def _normalize_trade_for_fifo(trade: Trade) -> _EffectiveTrade:
         """
         Normalize fills into a consistent (ticker, side) stream for FIFO.
@@ -135,50 +186,41 @@ class PnLCalculator:
         total_fees_cents = 0
 
         for settlement in settlements:
-            # Determine settlement prices based on market_result
-            if settlement.market_result == "yes":
-                yes_settlement_price = 100  # YES wins -> YES sells at 100c
-                no_settlement_price = 0  # YES wins -> NO sells at 0c
-            elif settlement.market_result == "no":
-                yes_settlement_price = 0  # NO wins -> YES sells at 0c
-                no_settlement_price = 100  # NO wins -> NO sells at 100c
-            elif settlement.market_result == "void":
-                # Void = refund at cost basis (break-even, no P&L impact)
-                # Skip - synthetic fills would net to zero anyway
+            prices = self._get_settlement_prices_cents(settlement.market_result, settlement.value)
+            if prices is None:
                 continue
-            else:
-                # scalar or unknown - skip for now (would need different logic)
+            yes_settlement_price, no_settlement_price = prices
+
+            yes_key = (settlement.ticker, "yes")
+            yes_qty = (
+                open_lots[yes_key].qty_remaining
+                if yes_key in open_lots and open_lots[yes_key].qty_remaining > 0
+                else 0
+            )
+            no_key = (settlement.ticker, "no")
+            no_qty = (
+                open_lots[no_key].qty_remaining
+                if no_key in open_lots and open_lots[no_key].qty_remaining > 0
+                else 0
+            )
+
+            total_qty = yes_qty + no_qty
+            if total_qty <= 0:
                 continue
 
-            # Parse settlement fees
-            try:
-                fee_cents = int(
-                    (Decimal(settlement.fee_cost_dollars) * 100).to_integral_value(
-                        rounding=ROUND_HALF_EVEN
-                    )
-                )
-            except (InvalidOperation, ValueError):
-                fee_cents = 0
+            fee_cents = self._parse_settlement_fee_cents(settlement.fee_cost_dollars)
+            yes_fee, no_fee = self._allocate_settlement_fee_cents(fee_cents, yes_qty, no_qty)
 
             # Synthesize YES fill if open YES lots exist for this ticker
-            yes_key = (settlement.ticker, "yes")
-            if yes_key in open_lots and open_lots[yes_key].qty_remaining > 0:
-                qty = open_lots[yes_key].qty_remaining
-                # Prorate fee to YES side based on contract counts
-                total_contracts = settlement.yes_count + settlement.no_count
-                yes_fee = (
-                    round(fee_cents * settlement.yes_count / total_contracts)
-                    if total_contracts > 0
-                    else 0
-                )
+            if yes_qty > 0:
                 synthetic_fills.append(
                     PnLCalculator._EffectiveTrade(
                         ticker=settlement.ticker,
                         side="yes",
                         action="sell",
-                        quantity=qty,
+                        quantity=yes_qty,
                         price_cents=yes_settlement_price,
-                        total_cost_cents=yes_settlement_price * qty,
+                        total_cost_cents=yes_settlement_price * yes_qty,
                         fee_cents=yes_fee,
                         executed_at=settlement.settled_at,
                     )
@@ -186,24 +228,15 @@ class PnLCalculator:
                 total_fees_cents += yes_fee
 
             # Synthesize NO fill if open NO lots exist for this ticker
-            no_key = (settlement.ticker, "no")
-            if no_key in open_lots and open_lots[no_key].qty_remaining > 0:
-                qty = open_lots[no_key].qty_remaining
-                # Prorate fee to NO side based on contract counts
-                total_contracts = settlement.yes_count + settlement.no_count
-                no_fee = (
-                    round(fee_cents * settlement.no_count / total_contracts)
-                    if total_contracts > 0
-                    else 0
-                )
+            if no_qty > 0:
                 synthetic_fills.append(
                     PnLCalculator._EffectiveTrade(
                         ticker=settlement.ticker,
                         side="no",
                         action="sell",
-                        quantity=qty,
+                        quantity=no_qty,
                         price_cents=no_settlement_price,
-                        total_cost_cents=no_settlement_price * qty,
+                        total_cost_cents=no_settlement_price * no_qty,
                         fee_cents=no_fee,
                         executed_at=settlement.settled_at,
                     )

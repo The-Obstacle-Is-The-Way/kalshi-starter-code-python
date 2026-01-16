@@ -991,11 +991,11 @@ class TestSettlementSyntheticFills:
             ticker="TEST-MARKET",
             event_ticker="EVENT-1",
             market_result="yes",  # YES wins
-            yes_count=20,  # Original position
-            yes_total_cost=800,
+            yes_count=10,  # Remaining position at settlement
+            yes_total_cost=400,  # FIFO cost basis of remaining 10 YES
             no_count=0,
             no_total_cost=0,
-            revenue=1000,  # Only 10 remain at settlement
+            revenue=1000,  # 100c * 10
             fee_cost_dollars="0.0000",
             value=None,
             settled_at=datetime(2026, 1, 5, tzinfo=UTC),
@@ -1011,6 +1011,151 @@ class TestSettlementSyntheticFills:
         # Settlement close: sell 10 YES at 100c, cost 400 => +600
         # Total P&L = 100 + 600 = 700
         assert summary.realized_pnl_cents == 700
+        assert summary.total_trades == 2
+
+    def test_scalar_settlement_yes_payout(self) -> None:
+        """Scalar settlement uses settlement.value for YES payout."""
+        from kalshi_research.portfolio.models import PortfolioSettlement
+
+        trades = [
+            Trade(
+                kalshi_trade_id="buy_yes",
+                ticker="SCALAR-MARKET",
+                side="yes",
+                action="buy",
+                quantity=10,
+                price_cents=40,
+                total_cost_cents=400,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            )
+        ]
+
+        settlement = PortfolioSettlement(
+            ticker="SCALAR-MARKET",
+            event_ticker="EVENT-1",
+            market_result="scalar",
+            yes_count=10,
+            yes_total_cost=400,
+            no_count=0,
+            no_total_cost=0,
+            revenue=700,  # 70c * 10
+            fee_cost_dollars="0.0000",
+            value=70,
+            settled_at=datetime(2026, 1, 5, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(
+            positions=[], trades=trades, settlements=[settlement]
+        )
+
+        # Synthetic fill: sell 10 YES at 70c
+        # P&L = (70 * 10) - 400 = 300
+        assert summary.realized_pnl_cents == 300
+        assert summary.total_trades == 1
+        assert summary.winning_trades == 1
+
+    def test_scalar_settlement_no_payout(self) -> None:
+        """Scalar settlement uses 100 - settlement.value for NO payout."""
+        from kalshi_research.portfolio.models import PortfolioSettlement
+
+        trades = [
+            Trade(
+                kalshi_trade_id="buy_no",
+                ticker="SCALAR-MARKET",
+                side="no",
+                action="buy",
+                quantity=10,
+                price_cents=60,
+                total_cost_cents=600,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            )
+        ]
+
+        settlement = PortfolioSettlement(
+            ticker="SCALAR-MARKET",
+            event_ticker="EVENT-1",
+            market_result="scalar",
+            yes_count=0,
+            yes_total_cost=0,
+            no_count=10,
+            no_total_cost=600,
+            revenue=300,  # 30c * 10
+            fee_cost_dollars="0.0000",
+            value=70,
+            settled_at=datetime(2026, 1, 5, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(
+            positions=[], trades=trades, settlements=[settlement]
+        )
+
+        # Synthetic fill: sell 10 NO at 30c
+        # P&L = (30 * 10) - 600 = -300
+        assert summary.realized_pnl_cents == -300
+        assert summary.total_trades == 1
+        assert summary.losing_trades == 1
+
+    def test_settlement_fee_prorated_across_sides(self) -> None:
+        """Settlement fees are prorated across the settled quantities."""
+        from kalshi_research.portfolio.models import PortfolioSettlement
+
+        # Hedged position, settle YES with $1.00 total fees (should reduce net P&L by 100c).
+        trades = [
+            Trade(
+                kalshi_trade_id="buy_yes",
+                ticker="HEDGED-FEES",
+                side="yes",
+                action="buy",
+                quantity=10,
+                price_cents=45,
+                total_cost_cents=450,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+            Trade(
+                kalshi_trade_id="buy_no",
+                ticker="HEDGED-FEES",
+                side="no",
+                action="buy",
+                quantity=10,
+                price_cents=55,
+                total_cost_cents=550,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+        ]
+
+        settlement = PortfolioSettlement(
+            ticker="HEDGED-FEES",
+            event_ticker="EVENT-1",
+            market_result="yes",
+            yes_count=10,
+            yes_total_cost=450,
+            no_count=10,
+            no_total_cost=550,
+            revenue=1000,
+            fee_cost_dollars="1.0000",  # 100 cents total
+            value=None,
+            settled_at=datetime(2026, 1, 5, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(
+            positions=[], trades=trades, settlements=[settlement]
+        )
+
+        assert summary.realized_pnl_cents == -100
         assert summary.total_trades == 2
 
     def test_void_settlement_no_pnl_impact(self) -> None:
