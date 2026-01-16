@@ -15,6 +15,12 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 | ID | Title | Status |
 |---|---|---|
+| **[DEBT-029](DEBT-029-settlement-synthetic-fill-reconciliation.md)** | Settlement-as-Synthetic-Fill Reconciliation (Professional P&L) | ✅ Implemented |
+
+### Previously Resolved (2026-01-16)
+
+| ID | Title | Status |
+|---|---|---|
 | **[DEBT-018](../_archive/debt/DEBT-018-test-ssot-stabilization.md)** | Test SSOT Stabilization (Fixtures, Mocks, Exa Coverage) | ✅ Resolved |
 | **[DEBT-016](../_archive/debt/DEBT-016-fixture-drift-ci.md)** | Automate Fixture Drift Detection + Weekly Re-Recording | ✅ Resolved |
 | **[DEBT-015](../_archive/debt/DEBT-015-missing-api-endpoints.md)** | Missing API Endpoints - 50/74 (68%) | ✅ Complete (remaining blocked/institutional) |
@@ -31,7 +37,7 @@ DEBT-025 (Subpenny Policy) ← If precision matters
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-029**
+**DEBT-030**
 
 ---
 
@@ -41,6 +47,7 @@ Use this ID for the next debt item:
 |------|---------|
 | `DEBT-014-friction-residuals.md` | **Active debt P1-P3** - friction, design decisions |
 | `DEBT-025-subpenny-pricing-strategy.md` | **Active debt P2** - subpenny precision and rounding policy |
+| `DEBT-029-settlement-synthetic-fill-reconciliation.md` | **Resolved** - Professional P&L implementation |
 | `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
 
 ## Archived Reference Docs
