@@ -6,6 +6,12 @@ Settlement handling follows Kalshi's documented behavior:
 
 This means settlements are treated as synthetic closing fills at the binary outcome price,
 processed through the same FIFO logic as regular trades.
+
+Note on fees:
+    Kalshi's fills API does not include per-fill fees. The settlement record includes `fee_cost`
+    as a fixed-point dollar string; empirically this represents total trading fees for the
+    ticker (not a separate "settlement fee"). We apply these fees once at the end of the
+    realized P&L calculation to avoid double-counting and to cover positions closed via trades.
 """
 
 from __future__ import annotations
@@ -86,34 +92,13 @@ class PnLCalculator:
 
     @staticmethod
     def _parse_settlement_fee_cents(fee_cost_dollars: str) -> int:
-        """Parse settlement fee dollars (fixed-point string) into integer cents."""
+        """Parse trading fees from settlement `fee_cost_dollars` into integer cents."""
         try:
             return int(
                 (Decimal(fee_cost_dollars) * 100).to_integral_value(rounding=ROUND_HALF_EVEN)
             )
         except (InvalidOperation, ValueError):
             return 0
-
-    @staticmethod
-    def _allocate_settlement_fee_cents(
-        fee_cents: int, yes_qty: int, no_qty: int
-    ) -> tuple[int, int]:
-        """Allocate total settlement fees across YES/NO quantities, preserving the total."""
-        if fee_cents <= 0:
-            return 0, 0
-
-        total_qty = yes_qty + no_qty
-        if total_qty <= 0:
-            return 0, 0
-
-        if yes_qty <= 0:
-            return 0, fee_cents
-        if no_qty <= 0:
-            return fee_cents, 0
-
-        yes_fee = round(fee_cents * yes_qty / total_qty)
-        yes_fee = max(0, min(fee_cents, yes_fee))
-        return yes_fee, fee_cents - yes_fee
 
     @staticmethod
     def _normalize_trade_for_fifo(trade: Trade) -> _EffectiveTrade:
@@ -163,7 +148,7 @@ class PnLCalculator:
         self,
         settlements: list[PortfolioSettlement],
         open_lots: dict[tuple[str, str], _Lot],
-    ) -> tuple[list[_EffectiveTrade], int]:
+    ) -> list[_EffectiveTrade]:
         """
         Convert settlements to synthetic closing fills for remaining open lots.
 
@@ -180,10 +165,9 @@ class PnLCalculator:
             open_lots: Dict of (ticker, side) -> Lot with remaining open positions
 
         Returns:
-            Tuple of (synthetic_fills, total_settlement_fees_cents)
+            List of synthetic closing fills.
         """
         synthetic_fills: list[PnLCalculator._EffectiveTrade] = []
-        total_fees_cents = 0
 
         for settlement in settlements:
             prices = self._get_settlement_prices_cents(settlement.market_result, settlement.value)
@@ -208,9 +192,6 @@ class PnLCalculator:
             if total_qty <= 0:
                 continue
 
-            fee_cents = self._parse_settlement_fee_cents(settlement.fee_cost_dollars)
-            yes_fee, no_fee = self._allocate_settlement_fee_cents(fee_cents, yes_qty, no_qty)
-
             # Synthesize YES fill if open YES lots exist for this ticker
             if yes_qty > 0:
                 synthetic_fills.append(
@@ -221,11 +202,10 @@ class PnLCalculator:
                         quantity=yes_qty,
                         price_cents=yes_settlement_price,
                         total_cost_cents=yes_settlement_price * yes_qty,
-                        fee_cents=yes_fee,
+                        fee_cents=0,
                         executed_at=settlement.settled_at,
                     )
                 )
-                total_fees_cents += yes_fee
 
             # Synthesize NO fill if open NO lots exist for this ticker
             if no_qty > 0:
@@ -237,13 +217,12 @@ class PnLCalculator:
                         quantity=no_qty,
                         price_cents=no_settlement_price,
                         total_cost_cents=no_settlement_price * no_qty,
-                        fee_cents=no_fee,
+                        fee_cents=0,
                         executed_at=settlement.settled_at,
                     )
                 )
-                total_fees_cents += no_fee
 
-        return synthetic_fills, total_fees_cents
+        return synthetic_fills
 
     def _process_synthetic_fills(
         self,
@@ -481,7 +460,13 @@ class PnLCalculator:
         # Step 2: Synthesize settlement closes for remaining open lots
         # Per SSOT: settlements are synthetic sells at settlement price
         settlement_pnls: list[int] = []
+        settlement_trading_fees_cents = 0
         if settlements:
+            settlement_trading_fees_cents = sum(
+                self._parse_settlement_fee_cents(settlement.fee_cost_dollars)
+                for settlement in settlements
+            )
+
             # Build effective open lots: start with FIFO results, then add implicit
             # lots for settlements without corresponding trades (handles data gaps)
             effective_open_lots = dict(fifo_result.open_lots)
@@ -503,7 +488,7 @@ class PnLCalculator:
                         )
 
             if effective_open_lots:
-                synthetic_fills, _ = self._synthesize_settlement_closes(
+                synthetic_fills = self._synthesize_settlement_closes(
                     settlements, effective_open_lots
                 )
                 # Process synthetic fills against effective lots
@@ -514,7 +499,7 @@ class PnLCalculator:
         # Combine trade P&Ls and settlement P&Ls
         closed_trades = fifo_result.closed_pnls + settlement_pnls
 
-        realized = sum(closed_trades)
+        realized = sum(closed_trades) - settlement_trading_fees_cents
         total = unrealized + realized
 
         winning = [t for t in closed_trades if t > 0]

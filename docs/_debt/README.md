@@ -4,11 +4,10 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**3 active debt items.**
+**2 active debt items.**
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-| **[DEBT-030](DEBT-030-trading-fees-from-settlements.md)** | Trading Fees Missing from P&L (Must Use Settlement Records) | P1 | 🔴 Open |
 | **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (B1/B2 blocked on FUTURE-001) |
 | **[DEBT-025](DEBT-025-subpenny-pricing-strategy.md)** | Subpenny Pricing Strategy (FixedPointDollars → rounding policy) | P2 | 🟡 Partially Implemented |
 
@@ -16,6 +15,7 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 | ID | Title | Status |
 |---|---|---|
+| **[DEBT-030](DEBT-030-trading-fees-from-settlements.md)** | Trading Fees Missing from P&L (Must Use Settlement Records) | ✅ Resolved |
 | **[DEBT-029](DEBT-029-settlement-synthetic-fill-reconciliation.md)** | Settlement-as-Synthetic-Fill Reconciliation (Professional P&L) | ✅ Implemented |
 
 ### Previously Resolved (2026-01-16)
@@ -30,8 +30,6 @@ This directory tracks **known debt** and **audit checklists** for the repository
 ### Recommended Order
 
 ```
-DEBT-030 (Trading Fees) ← P1, P&L is understating losses by ~5%
-    ↓
 DEBT-014 (Friction/Design) ← Blocked on FUTURE-001 (B1/B2), C2 is soft-deprecation monitoring
     ↓
 DEBT-025 (Subpenny Policy) ← If precision matters
@@ -48,9 +46,9 @@ Use this ID for the next debt item:
 
 | File | Purpose |
 |------|---------|
-| `DEBT-030-trading-fees-from-settlements.md` | **Active debt P1** - Trading fees missing from P&L |
 | `DEBT-014-friction-residuals.md` | **Active debt P1-P3** - friction, design decisions |
 | `DEBT-025-subpenny-pricing-strategy.md` | **Active debt P2** - subpenny precision and rounding policy |
+| `DEBT-030-trading-fees-from-settlements.md` | **Resolved** - Trading fees from settlements applied to P&L |
 | `DEBT-029-settlement-synthetic-fill-reconciliation.md` | **Resolved** - Professional P&L implementation |
 | `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
 

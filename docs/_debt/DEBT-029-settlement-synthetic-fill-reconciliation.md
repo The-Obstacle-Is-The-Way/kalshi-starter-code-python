@@ -74,7 +74,7 @@ def _synthesize_settlement_closes(
     self,
     settlements: list[PortfolioSettlement],
     open_lots: dict[tuple[str, str], _Lot],
-) -> tuple[list[_EffectiveTrade], int]:
+) -> list[_EffectiveTrade]:
     """
     Convert settlements to synthetic closing fills for remaining open lots.
 
@@ -82,7 +82,6 @@ def _synthesize_settlement_closes(
     (100c if won, 0c if lost)"
     """
     synthetic_fills: list[_EffectiveTrade] = []
-    total_fees_cents = 0
 
     for settlement in settlements:
         # Get settlement prices (100/0 for binary, value/100-value for scalar)
@@ -100,10 +99,6 @@ def _synthesize_settlement_closes(
         if yes_qty + no_qty <= 0:
             continue
 
-        # Allocate settlement fees across sides (preserves total)
-        fee_cents = self._parse_settlement_fee_cents(settlement.fee_cost_dollars)
-        yes_fee, no_fee = self._allocate_settlement_fee_cents(fee_cents, yes_qty, no_qty)
-
         # Synthesize YES fill if open YES lots exist
         if yes_qty > 0:
             synthetic_fills.append(_EffectiveTrade(
@@ -113,10 +108,9 @@ def _synthesize_settlement_closes(
                 quantity=yes_qty,
                 price_cents=yes_settlement_price,
                 total_cost_cents=yes_settlement_price * yes_qty,
-                fee_cents=yes_fee,  # Prorated settlement fee
+                fee_cents=0,
                 executed_at=settlement.settled_at,
             ))
-            total_fees_cents += yes_fee
 
         # Synthesize NO fill if open NO lots exist
         if no_qty > 0:
@@ -127,12 +121,11 @@ def _synthesize_settlement_closes(
                 quantity=no_qty,
                 price_cents=no_settlement_price,
                 total_cost_cents=no_settlement_price * no_qty,
-                fee_cents=no_fee,  # Prorated settlement fee
+                fee_cents=0,
                 executed_at=settlement.settled_at,
             ))
-            total_fees_cents += no_fee
 
-    return synthetic_fills, total_fees_cents
+    return synthetic_fills
 ```
 
 ### Updated Flow
@@ -143,8 +136,8 @@ def _synthesize_settlement_closes(
    a. Synthesize closing fills at settlement price (100c/0c for binary, value/100-value for scalar)
    b. Process synthetic fills through FIFO (consuming remaining lots)
    c. Add resulting P&L to closed_pnls
-3. Apply settlement fees from settlement.fee_cost_dollars (prorated across settled quantities)
-4. Return unified P&L
+3. Apply trading fees from settlement.fee_cost_dollars (handled in DEBT-030)
+4. Return unified net P&L
 ```
 
 ### Benefits
@@ -169,7 +162,7 @@ def _synthesize_settlement_closes(
   - [x] Held NO to NO settlement (100c payout)
   - [x] Partial exit + held rest to settlement
   - [x] Scalar settlement (YES payout = value, NO payout = 100-value)
-  - [x] Settlement fee proration across sides
+  - [x] Trading fees from settlements (see DEBT-030)
   - [x] Void settlement (break-even)
   - [x] Both sides hedged to settlement
 - [x] Update docstrings with SSOT reference
@@ -179,15 +172,15 @@ def _synthesize_settlement_closes(
 
 ## Verification
 
-After implementation, these should still match:
+After DEBT-029 + DEBT-030, these should match the net P&L shown by Kalshi:
 
 | Ticker | Current P&L | Expected P&L |
 |--------|-------------|--------------|
-| KXTRUMPMENTION-26JAN15-SOMA | -$80.42 | -$80.42 |
-| KXTRUMPMENTION-26JAN15-CRED | -$73.07 | -$73.07 |
-| Total Realized | -$174.43 | -$174.43 |
+| KXTRUMPMENTION-26JAN15-SOMA | -$84.31 | -$84.31 |
+| KXTRUMPMENTION-26JAN15-CRED | -$77.82 | -$77.82 |
+| Total (SOMA+CRED) | -$162.13 | -$162.13 |
 
-The fix should produce identical results for the current data (since trades closed all lots before settlement) while being correct for future scenarios.
+The settlement reconciliation logic should be correct for partial exits / held-to-settlement scenarios, while DEBT-030 ensures trading fees are included even when positions were closed via trades.
 
 ---
 

@@ -1,7 +1,7 @@
 # DEBT-030: Trading Fees Missing from P&L (Must Use Settlement Records)
 
 **Priority:** P1 (Financial accuracy - understating losses)
-**Status:** Open
+**Status:** ✅ Resolved (2026-01-16)
 **Created:** 2026-01-16
 **Related:** [DEBT-029](DEBT-029-settlement-synthetic-fill-reconciliation.md), [Kalshi Fee Schedule](https://kalshi.com/fee-schedule)
 
@@ -27,8 +27,8 @@ This is a **P1 financial accuracy bug** in a trading application:
 - Kalshi's fills API does not return per-trade fees
 - We hardcode `fee_cents=0` for all trades (`syncer.py:287`)
 - The settlement record's `fee_cost_dollars` contains the **total trading fees** (NOT a settlement fee)
-- When positions are closed via trades (not held to settlement), we skip the settlement record entirely
-- **Result: Trading fees are never applied to P&L**
+- When positions are closed via trades (not held to settlement), we previously skipped settlement reconciliation and lost the fees
+- **Fix:** apply settlement `fee_cost_dollars` once per ticker as a trading cost, regardless of whether the position was closed via trades or held to settlement
 
 ---
 
@@ -98,17 +98,17 @@ When positions are closed via trades:
 
 ---
 
-## Proposed Fix
+## Implemented Fix
 
-### Option A: Apply Settlement Fees to Trade-Closed Positions (Recommended)
+### Apply Trading Fees From Settlement Records (SSOT-aligned)
 
-Even when trades closed all lots, apply `fee_cost_dollars` from the settlement record:
+Even when trades closed all lots, apply `fee_cost_dollars` from the settlement record as a trading cost:
 
 ```python
 def calculate_summary_with_trades(...):
     # ... existing FIFO processing ...
 
-    # Step 3: Apply settlement fees even for trade-closed positions
+    # Step 3: Apply trading fees even for trade-closed positions
     for settlement in settlements:
         fee_cents = self._parse_settlement_fee_cents(settlement.fee_cost_dollars)
         if fee_cents > 0:
@@ -118,7 +118,34 @@ def calculate_summary_with_trades(...):
     realized = sum(closed_trades) - total_fees_from_settlements
 ```
 
-### Option B: Parse Fees from Fills API (If Available)
+**Implementation:** `src/kalshi_research/portfolio/pnl.py` now subtracts the sum of settlement
+`fee_cost_dollars` from realized P&L for the requested tickers, regardless of whether settlement
+synthetic fills were generated.
+
+---
+
+## Verification (Local DB)
+
+After fix, P&L matches Kalshi ROI for the known repro tickers:
+
+| Ticker | P&L (Net, includes fees) |
+|--------|--------------------------|
+| KXTRUMPMENTION-26JAN15-CRED | -$77.82 |
+| KXTRUMPMENTION-26JAN15-SOMA | -$84.31 |
+| **Total** | **-$162.13** |
+
+---
+
+## Notes / Cleanup
+
+- `PnLCalculator._synthesize_settlement_closes()` no longer attaches fees to synthetic settlement fills.
+- Fee-related comments were updated to refer to **trading fees** (not “settlement fees”).
+
+---
+
+## Deferred Options (Not Needed For This Fix)
+
+### Parse Fees from Fills API (If Available)
 
 Investigate whether the fills API actually returns fees in some field we're not parsing. Check:
 - `taker_fee` / `maker_fee` fields
@@ -138,12 +165,11 @@ We could compute fees ourselves, but this is fragile if Kalshi changes their for
 
 ## Implementation Checklist
 
-- [ ] Verify fills API response structure (does it have fee fields we're missing?)
-- [ ] If no fees in fills API: Apply settlement `fee_cost_dollars` for trade-closed positions
-- [ ] Update `_get_closed_trade_pnls_fifo` or `calculate_summary_with_trades` to include fees
-- [ ] Add test: Positions closed via trades should include settlement fees in P&L
-- [ ] Verify against known data: SOMA + CRED should show -$162.13
-- [ ] Update DEBT-029 to clarify settlement fees vs trading fees
+- [x] Verify fills API response structure (no per-fill fee fields in our Fill model)
+- [x] Apply settlement `fee_cost_dollars` even when trades closed all lots
+- [x] Add test: positions closed via trades include settlement trading fees
+- [x] Verify against known data: SOMA + CRED show -$162.13 net
+- [x] Update DEBT-029 to clarify trading fees vs settlement handling
 
 ---
 
@@ -159,7 +185,9 @@ After fix, P&L should match Kalshi's ROI:
 
 ## Cleanup Required (DEBT-029 Interaction)
 
-DEBT-029 implemented "settlement-as-synthetic-fill" with fee proration. That work assumed `fee_cost_dollars` was a settlement-specific fee. **We now know it's actually the total trading fees.**
+DEBT-029 implemented "settlement-as-synthetic-fill" reconciliation for markets held to settlement.
+This debt clarifies that `fee_cost_dollars` should be treated as **total trading fees** (not a
+separate settlement fee) and applied independently of the synthetic close logic.
 
 ### What Changes
 
@@ -185,10 +213,9 @@ If you held to settlement:
 
 ### Dead Code After Fix?
 
-Once fixed, we should audit whether these are still needed:
-- [ ] `_allocate_settlement_fee_cents()` - possibly remove if we just subtract total
-- [ ] Fee fields on synthetic fills - possibly remove if fees are applied separately
-- [ ] Comments referencing "settlement fees" - update to "trading fees"
+Resolved:
+- [x] Synthetic settlement fills no longer carry fees
+- [x] Comments updated to reference trading fees
 
 ---
 

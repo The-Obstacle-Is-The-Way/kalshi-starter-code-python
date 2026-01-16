@@ -763,6 +763,64 @@ class TestPnLCalculatorSummary:
         assert summary.realized_pnl_cents == 30
         assert summary.total_trades == 1
 
+    def test_summary_applies_settlement_trading_fees_when_trades_closed(self) -> None:
+        """DEBT-030: Apply settlement fee_cost even when trades fully closed the position."""
+        from kalshi_research.portfolio.models import PortfolioSettlement
+
+        trades = [
+            Trade(
+                kalshi_trade_id="trade_buy_yes",
+                ticker="CLOSED-FEES",
+                side="yes",
+                action="buy",
+                quantity=1,
+                price_cents=40,
+                total_cost_cents=40,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+            Trade(
+                kalshi_trade_id="trade_sell_no",
+                ticker="CLOSED-FEES",
+                side="no",
+                action="sell",
+                quantity=1,
+                price_cents=30,
+                total_cost_cents=30,
+                fee_cents=0,
+                executed_at=datetime(2026, 1, 2, tzinfo=UTC),
+                synced_at=datetime.now(UTC),
+            ),
+        ]
+
+        settlement = PortfolioSettlement(
+            ticker="CLOSED-FEES",
+            event_ticker="EVENT-1",
+            market_result="yes",
+            yes_count=0,
+            yes_total_cost=0,
+            no_count=0,
+            no_total_cost=0,
+            revenue=0,
+            fee_cost_dollars="1.0000",  # $1.00 total trading fees for the ticker
+            value=None,
+            settled_at=datetime(2026, 1, 5, tzinfo=UTC),
+            synced_at=datetime.now(UTC),
+        )
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(
+            positions=[],
+            trades=trades,
+            settlements=[settlement],
+        )
+
+        # Gross FIFO P&L: buy 40, sell (normalized) at 70 => +30 cents.
+        # Net P&L must subtract the $1.00 fee_cost from settlements => 30 - 100 = -70.
+        assert summary.realized_pnl_cents == -70
+        assert summary.total_trades == 1
+
 
 class TestSettlementSyntheticFills:
     """DEBT-029: Tests for settlement-as-synthetic-fill implementation.
