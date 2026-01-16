@@ -27,7 +27,7 @@ DEBT-018 (Test SSOT) ← Phase 2 optional drift guard remaining
     ↓
 DEBT-016 (CI Automation) ← Phase 1-3 remaining
     ↓
-DEBT-014 (Friction/Design) ← Blocked on FUTURE-001 (B1/B2), C2 needs field removal
+DEBT-014 (Friction/Design) ← Blocked on FUTURE-001 (B1/B2), C2 is soft-deprecation monitoring
     ↓
 DEBT-025 (Subpenny Policy) ← If precision matters
 ```

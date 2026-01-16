@@ -4,7 +4,9 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-No active bugs. ✅
+| ID | Title | Priority | Status |
+|---|---|---|---|
+| **[BUG-084](BUG-084-pnl-double-counting-settlements.md)** | P&L Double-Counting Between Trades and Settlements | **P0** | 🔴 Open |
 
 ### Verification Note (2026-01-12)
 
@@ -34,7 +36,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-084**
+**BUG-085**
 
 ---
 

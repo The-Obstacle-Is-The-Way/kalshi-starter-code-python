@@ -18,7 +18,7 @@
 
 ### ~~Ticker Truncation~~
 
-**Status:** ✅ **IMPLEMENTED** (2026-01-11) - See [SPEC-035](../_specs/SPEC-035-ticker-display-enhancement.md)
+**Status:** ✅ **IMPLEMENTED** (2026-01-11) - See [SPEC-035](../specs/SPEC-035-ticker-display-enhancement.md)
 
 Use `--full` / `-F` flag on `market list`, `scan opportunities`, `scan movers` to show full tickers/titles.
 

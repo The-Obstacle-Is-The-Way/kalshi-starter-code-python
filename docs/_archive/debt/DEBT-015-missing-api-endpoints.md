@@ -144,7 +144,7 @@ members. Not applicable to retail traders.
 
 ## Phase 5 Implementation Recommendation
 
-**Implementation spec:** [SPEC-041](../_specs/SPEC-041-phase5-remaining-endpoints.md)
+**Implementation spec:** [SPEC-041](../specs/SPEC-041-phase5-remaining-endpoints.md)
 
 **Implemented (SPEC-041):**
 1. Multivariate collections: list + detail + lookup tickers (PUT)

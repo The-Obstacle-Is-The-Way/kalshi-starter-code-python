@@ -4,7 +4,7 @@
 **Priority:** P1 (Foundation robustness for discovery + safe automation)
 **Created:** 2026-01-12
 **Owner:** Solo
-**Related:** `docs/_debt/DEBT-015-missing-api-endpoints.md`, `docs/_archive/future/TODO-00A-api-verification-post-deadline.md`
+**Related:** `docs/_archive/debt/DEBT-015-missing-api-endpoints.md`, `docs/_archive/future/TODO-00A-api-verification-post-deadline.md`
 
 ---
 
