@@ -1,15 +1,15 @@
 # BUG-084: P&L Double-Counting Between Trades and Settlements
 
 **Priority:** P0 (Critical - financial calculations incorrect)
-**Status:** Open
+**Status:** ✅ Fixed (2026-01-16, dev `41d0c3a`)
 **Found:** 2026-01-16
-**Location:** `src/kalshi_research/portfolio/pnl.py:278`
+**Location:** `src/kalshi_research/portfolio/pnl.py:303` (`PnLCalculator.calculate_summary_with_trades`)
 
 ---
 
 ## Summary
 
-`kalshi portfolio pnl` currently adds two separate “realized P&L” streams:
+Before the fix, `kalshi portfolio pnl` added two separate “realized P&L” streams:
 
 1. FIFO realized P&L from fills (`trades` table) — correct for this DB.
 2. A second value derived from `/portfolio/settlements` fields — currently **not a valid realized P&L
@@ -18,8 +18,8 @@
 Those values are summed together, producing materially inflated losses.
 
 **Impact (verified on this DB):**
-- Current CLI realized P&L: **-$749.05**
-- FIFO-only realized P&L: **-$174.43**
+- Before fix: CLI realized P&L: **-$749.05**
+- After fix: CLI realized P&L: **-$174.43**
 - The two Trump tickers below: FIFO-only **-$153.49** vs CLI **-$672.62**
 
 ---
@@ -38,7 +38,7 @@ Those values are summed together, producing materially inflated losses.
 - CRED: **-$73.07**
 - Total: **-$153.49**
 
-**What CLI shows:**
+**Before fix, CLI showed:**
 ```bash
 $ uv run kalshi portfolio pnl -t KXTRUMPMENTION-26JAN15-SOMA
 Realized P&L: $-332.73
@@ -120,25 +120,30 @@ This means the settlement-derived term is *not independent* of fills history in 
 ### Correct direction (SSOT-driven)
 
 - Treat FIFO (fills) as the canonical realized P&L source for markets that were closed via trading.
-- Use `/portfolio/settlements` **only** as the “forced close” event for positions that reach settlement without a
-  corresponding closing trade in fills history (Kalshi does not emit a fill for settlement).
-- Do **not** add a second “settlement P&L” number on top of FIFO P&L.
+- Use `/portfolio/settlements` as the “forced close” event for positions that reach settlement without a corresponding
+  closing trade in fills history.
+- Do **not** add settlement-derived P&L for tickers whose positions are already fully closed by fills.
 
-### Minimal safe fix (unblocks correct CLI output now)
+### Fix implemented
 
-- Stop adding `settlement_pnls` into `closed_trades` until settlement handling is implemented correctly.
-  (For this DB, FIFO-only realized P&L is `-17443` cents, while current output is `-74905` cents.)
+In `PnLCalculator.calculate_summary_with_trades`, settlement-derived P&L is now included only when it is needed to
+complete history:
 
-If we later want settlement-aware realized P&L:
-- Compute remaining open lots from fills history per ticker/side.
-- For each settlement record, synthesize the appropriate closing leg(s) at the settlement payout price and feed that
-  into FIFO as the final close.
+- If a ticker has no trades, settlement records can contribute realized P&L (existing behavior).
+- If a ticker has trades but FIFO leaves open lots, settlement records can contribute realized P&L (to close remaining
+  lots without a fill record).
+- If a ticker has trades and FIFO closes all lots, settlement records for that ticker are skipped to avoid double
+  counting.
+
+Unit tests added to lock this in:
+- `tests/unit/portfolio/test_pnl.py::TestPnLCalculatorSummary.test_summary_includes_settlement_pnl_when_open_lots_remain`
+- `tests/unit/portfolio/test_pnl.py::TestPnLCalculatorSummary.test_summary_does_not_double_count_settlement_when_trades_closed`
 
 ---
 
 ## Verification Steps
 
-1. Reproduce the inflated numbers (current behavior):
+1. Reproduce the fixed output:
    - `uv run kalshi portfolio pnl`
    - `uv run kalshi portfolio pnl -t KXTRUMPMENTION-26JAN15-SOMA`
    - `uv run kalshi portfolio pnl -t KXTRUMPMENTION-26JAN15-CRED`
@@ -173,7 +178,7 @@ If we later want settlement-aware realized P&L:
      ```
    - Expected totals on this DB:
      - FIFO-only realized: **-$174.43**
-     - Current CLI realized: **-$749.05**
+     - CLI realized (after fix): **-$174.43**
 
 ---
 
@@ -186,9 +191,9 @@ If we later want settlement-aware realized P&L:
 
 ## Test Coverage Needed
 
-1. Test that settled tickers are NOT double-counted
-2. Test cross-side closure (buy YES, sell NO) P&L calculation
-3. Test that settlement-derived terms are not added on top of FIFO realized P&L
+✅ Added:
+1. Settlements are NOT double-counted when FIFO closed the ticker
+2. Settlement P&L is included when trades leave open lots
 
 ---
 
@@ -201,5 +206,5 @@ If we later want settlement-aware realized P&L:
 
 ## Workaround
 
-Until fixed, treat `kalshi portfolio pnl` output as unreliable for realized P&L and use FIFO-only calculations (or
-Kalshi’s web UI) as a sanity check.
+No workaround needed after the fix. For older commits (pre-`41d0c3a`), treat realized P&L from `kalshi portfolio pnl` as
+unreliable and use FIFO-only calculations (or Kalshi’s UI) as a sanity check.
