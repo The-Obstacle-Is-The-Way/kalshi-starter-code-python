@@ -37,7 +37,11 @@ def _is_priced(market: Market) -> bool:
     Returns:
         True if market has meaningful quotes
     """
-    return market.yes_bid_cents not in {0, 100} and market.yes_ask_cents not in {0, 100}
+    yes_bid = market.yes_bid_cents
+    yes_ask = market.yes_ask_cents
+    if yes_bid is None or yes_ask is None:
+        return False
+    return yes_bid not in {0, 100} and yes_ask not in {0, 100}
 
 
 class CorrelationType(str, Enum):
@@ -286,8 +290,12 @@ class CorrelationAnalyzer:
             if len(event_markets) == 2:
                 m1, m2 = event_markets
                 # Use midpoint of bid/ask as price
-                price1 = m1.midpoint / 100.0
-                price2 = m2.midpoint / 100.0
+                midpoint1 = m1.midpoint
+                midpoint2 = m2.midpoint
+                if midpoint1 is None or midpoint2 is None:
+                    continue
+                price1 = midpoint1 / 100.0
+                price2 = midpoint2 / 100.0
                 prob_sum = price1 + price2
 
                 if abs(prob_sum - 1.0) > tolerance:
@@ -332,7 +340,10 @@ class CorrelationAnalyzer:
                 continue
 
             priced.sort(key=lambda m: m.ticker)
-            prob_sum = sum(m.midpoint / 100.0 for m in priced)
+            midpoints = [m.midpoint for m in priced]
+            if any(midpoint is None for midpoint in midpoints):
+                continue
+            prob_sum = sum(midpoint / 100.0 for midpoint in midpoints if midpoint is not None)
             deviation = prob_sum - 1.0
 
             if abs(deviation) > tolerance:
@@ -359,7 +370,14 @@ class CorrelationAnalyzer:
         """
         opportunities: list[ArbitrageOpportunity] = []
         # Use midpoint of bid/ask as price
-        market_prices = {m.ticker: m.midpoint / 100.0 for m in markets if _is_priced(m)}
+        market_prices: dict[str, float] = {}
+        for m in markets:
+            if not _is_priced(m):
+                continue
+            midpoint = m.midpoint
+            if midpoint is None:
+                continue
+            market_prices[m.ticker] = midpoint / 100.0
 
         for pair in correlated_pairs:
             if pair.ticker_a not in market_prices:

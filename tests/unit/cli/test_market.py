@@ -309,7 +309,12 @@ def test_market_liquidity(make_market) -> None:
         volume_24h=7000,
         open_interest=3000,
     )
-    orderbook = {"yes": [[47, 500]], "no": [[53, 500]]}
+    orderbook = {
+        "yes": [[47, 500]],
+        "no": [[53, 500]],
+        "yes_dollars": [["0.47", 500]],
+        "no_dollars": [["0.53", 500]],
+    }
     respx.get(f"{KALSHI_PROD_BASE_URL}/markets/{ticker}").mock(
         return_value=Response(200, json={"market": market})
     )
@@ -334,7 +339,12 @@ def test_market_liquidity_renders_zero_prices(make_market) -> None:
         open_interest=3000,
     )
     # NO bid at 100c implies a YES ask at 0c; this is a valid numeric best price.
-    orderbook = {"yes": [[0, 500]], "no": [[100, 500]]}
+    orderbook = {
+        "yes": [[0, 500]],
+        "no": [[100, 500]],
+        "yes_dollars": [["0.00", 500]],
+        "no_dollars": [["1.00", 500]],
+    }
     respx.get(f"{KALSHI_PROD_BASE_URL}/markets/{ticker}").mock(
         return_value=Response(200, json={"market": market})
     )

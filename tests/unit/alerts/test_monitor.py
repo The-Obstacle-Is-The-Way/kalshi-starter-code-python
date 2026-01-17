@@ -28,6 +28,9 @@ def make_market(
     if yes_ask is None:
         yes_ask = yes_price + 2
 
+    no_bid = 100 - yes_ask
+    no_ask = 100 - yes_bid
+
     return Market(
         ticker=ticker,
         event_ticker="EVENT-1",
@@ -35,8 +38,12 @@ def make_market(
         status=MarketStatus.ACTIVE,
         yes_bid=yes_bid,
         yes_ask=yes_ask,
-        no_bid=100 - yes_ask,
-        no_ask=100 - yes_bid,
+        yes_bid_dollars=f"{yes_bid / 100:.4f}",
+        yes_ask_dollars=f"{yes_ask / 100:.4f}",
+        no_bid=no_bid,
+        no_ask=no_ask,
+        no_bid_dollars=f"{no_bid / 100:.4f}",
+        no_ask_dollars=f"{no_ask / 100:.4f}",
         volume=volume,
         volume_24h=volume_24h,
         open_interest=1000,

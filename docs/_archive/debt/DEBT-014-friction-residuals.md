@@ -1,8 +1,9 @@
 # DEBT-014: Technical Debt Consolidation
 
 **Priority:** Mixed (P0-P3)
-**Status:** Open
+**Status:** ✅ ARCHIVED - All actionable items resolved
 **Found:** 2026-01-11
+**Archived:** 2026-01-17
 **Sources:** (archived 2026-01-11)
 - `docs/_archive/debt/friction.md` - User friction items
 - `docs/_archive/debt/hacks.md` - Hacky implementations and missing APIs
@@ -19,6 +20,12 @@ backwards-compatibility.md into a single source of truth.
 - **Section A**: Can fix NOW (no blockers)
 - **Section B**: Needs design decisions
 - **Section C**: Blocked/Scheduled (external dependencies)
+
+## Archival Notes (2026-01-17)
+
+- B1/B2 (Exa Research) tracked in SPEC-033 (FUTURE-001 is the backlog seed that points to SPEC-033).
+- C2 (cent-field deprecation): cent fallbacks removed; code derives prices from `*_dollars` only.
+- D2 (trade UX) deferred as low priority.
 
 ---
 
@@ -214,6 +221,9 @@ compatibility layer.
 `docs/_future/FUTURE-001-exa-research-agent.md`. When FUTURE-001 is implemented, B1 and B2 become
 default behavior.
 
+**Status (2026-01-17):** B1/B2 are tracked in `docs/_specs/SPEC-033-exa-research-agent.md` (implementation spec).
+`docs/_future/FUTURE-001-exa-research-agent.md` is the deferred backlog seed that points to SPEC-033.
+
 ### B1. Exa Integration Gap (Research Pipeline Architecture)
 
 **Status:** ⏸️ **BLOCKED BY FUTURE-001**
@@ -373,12 +383,11 @@ yes_bid_dollars value: 0.0000
 ```
 
 **Conclusion:** Kalshi has done a "soft deprecation" - cent fields are deprecated but not removed yet. Our code
-handles this correctly (prefers `*_dollars` via computed properties, falls back to cents if needed).
+handles this correctly (uses `*_dollars` as the SSOT; legacy cent fields are not used for computed properties).
 
 **Action items:**
-- [ ] Re-check monthly until Kalshi actually removes cent fields
-- [ ] When removal confirmed, delete fallback logic and mark fields as truly optional
-- [ ] No code changes needed now - our implementation is correct
+- [x] Remove cent-field fallbacks in computed pricing (dollars-only)
+- [ ] Monitor for API field changes (see vendor doc monitoring notes)
 
 **Cross-reference:** See `docs/_archive/future/TODO-00A-api-verification-post-deadline.md`
 
@@ -398,7 +407,7 @@ handles this correctly (prefers `*_dollars` via computed properties, falls back 
 | B2 | Adversarial research | High | Medium | P1 | ⏸️ Blocked (FUTURE-001) |
 | B3 | New market alerts | Medium | Medium | P2 | ✅ Implemented (SPEC-039 Phase 1) |
 | C1 | `/series` endpoint | Low | Medium | P3 | ✅ RESOLVED (SPEC-037) |
-| C2 | Jan 15 cleanup | Medium | Small | P2 | Monitoring (soft deprecation) |
+| C2 | Jan 15 cleanup | Medium | Small | P2 | ✅ Resolved (dollars-only; monitor vendor notes) |
 
 ---
 
@@ -421,15 +430,15 @@ handles this correctly (prefers `*_dollars` via computed properties, falls back 
 
 None for Section A.
 
-### Blocked (Waiting on FUTURE-001)
-2. **B1**: Implement `ResearchAgent` from FUTURE-001 spec
-3. **B2**: Included in FUTURE-001 (bull/bear case generation)
+### Tracked (Deferred)
+2. **B1**: Tracked in SPEC-033 (FUTURE-001 is backlog seed)
+3. **B2**: Tracked in SPEC-033 (FUTURE-001 is backlog seed)
 
 ### Ready for Implementation
 4. **B3**: ✅ Implemented via SPEC-039 Phase 1 (`kalshi scan new-markets`)
 
 ### Scheduled
-5. **C2**: Jan 15 has passed; re-evaluate and cleanup if still needed
+5. **C2**: ✅ Resolved (2026-01-17) - removed cent fallback; keep vendor monitoring notes updated
 
 ### Recently Resolved
 6. **C1**: ✅ RESOLVED (2026-01-12) - Series endpoints implemented via SPEC-037

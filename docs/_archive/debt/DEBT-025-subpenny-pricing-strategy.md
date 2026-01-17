@@ -1,8 +1,9 @@
 # DEBT-025: Subpenny Pricing Strategy (FixedPointDollars → storage + rounding policy)
 
 **Priority:** P2 (Pricing/P&L correctness; forward compatibility with Kalshi subpenny migration)
-**Status:** 🟡 Partially Implemented
+**Status:** ✅ ARCHIVED - Policy Decided: Round to Cent
 **Created:** 2026-01-14
+**Archived:** 2026-01-17
 **Related:** BUG-081, BUG-074, DEBT-014
 
 ---
@@ -89,5 +90,8 @@ This is a larger migration and should be treated as its own spec once requiremen
 
 ## Next Actions
 
-- Decide if true subpenny precision is materially important for our research workflows.
-- If yes, write an implementation spec for Option B (DB + model precision migration).
+## Archived Notes
+
+- ✅ Policy decided for this repo: round-to-cent (half-up) when converting `*_dollars` to integer cents.
+- ✅ Implementation SSOT: `kalshi_research.api.models.pricing.fixed_dollars_to_cents`.
+- If Kalshi enables meaningful sub-cent increments, open a new SPEC for full precision storage.

@@ -109,16 +109,25 @@ class DataFetcher:
     ) -> PriceSnapshot:
         """Convert API market to price snapshot.
 
-        Uses computed properties that prefer new dollar fields over legacy cent fields.
+        Uses computed properties derived from Kalshi `*_dollars` fields (SSOT).
         Database stores cents (integers) for precision - avoids floating-point rounding issues.
         """
+        yes_bid = api_market.yes_bid_cents
+        yes_ask = api_market.yes_ask_cents
+        no_bid = api_market.no_bid_cents
+        no_ask = api_market.no_ask_cents
+        if yes_bid is None or yes_ask is None or no_bid is None or no_ask is None:
+            raise ValueError(
+                f"Market {api_market.ticker} missing dollar quote fields; "
+                "expected `*_dollars` prices to be present."
+            )
         return PriceSnapshot(
             ticker=api_market.ticker,
             snapshot_time=snapshot_time,
-            yes_bid=api_market.yes_bid_cents,
-            yes_ask=api_market.yes_ask_cents,
-            no_bid=api_market.no_bid_cents,
-            no_ask=api_market.no_ask_cents,
+            yes_bid=yes_bid,
+            yes_ask=yes_ask,
+            no_bid=no_bid,
+            no_ask=no_ask,
             last_price=api_market.last_price_cents,
             volume=api_market.volume,
             volume_24h=api_market.volume_24h,

@@ -242,6 +242,15 @@ class TestMarketModel:
 
         assert market.last_price_cents == 50
 
+    def test_market_cents_properties_do_not_fallback_to_legacy_fields(
+        self, make_market: MakeMarket
+    ) -> None:
+        market = Market.model_validate(make_market(yes_bid=55, yes_bid_dollars=None))
+        assert market.yes_bid_cents is None
+
+        market = Market.model_validate(make_market(last_price=49, last_price_dollars=None))
+        assert market.last_price_cents is None
+
     def test_market_dollar_conversion_rejects_out_of_range_prices(
         self, make_market: MakeMarket
     ) -> None:
@@ -285,8 +294,8 @@ class TestOrderbookModel:
     def test_orderbook_best_bids(self) -> None:
         """Computed properties return correct best prices."""
         orderbook = Orderbook(
-            yes=[(45, 100), (44, 200), (43, 500)],
-            no=[(53, 150), (54, 250), (55, 400)],
+            yes_dollars=[("0.45", 100), ("0.44", 200), ("0.43", 500)],
+            no_dollars=[("0.53", 150), ("0.54", 250), ("0.55", 400)],
         )
 
         assert orderbook.best_yes_bid == 45
@@ -295,8 +304,8 @@ class TestOrderbookModel:
     def test_orderbook_spread_calculation(self) -> None:
         """Spread = 100 - best_yes_bid - best_no_bid."""
         orderbook = Orderbook(
-            yes=[(45, 100)],
-            no=[(54, 100)],
+            yes_dollars=[("0.45", 100)],
+            no_dollars=[("0.54", 100)],
         )
 
         # Spread = 100 - 45 - 54 = 1
@@ -305,8 +314,8 @@ class TestOrderbookModel:
     def test_orderbook_midpoint_calculation(self) -> None:
         """Midpoint uses implied ask from NO side."""
         orderbook = Orderbook(
-            yes=[(45, 100)],
-            no=[(54, 100)],
+            yes_dollars=[("0.45", 100)],
+            no_dollars=[("0.54", 100)],
         )
 
         # Implied YES ask = 100 - best_no_bid = 100 - 54 = 46
@@ -337,13 +346,15 @@ class TestOrderbookModel:
         expected_spread: int,
     ) -> None:
         """Spread calculation handles various market conditions."""
-        orderbook = Orderbook(yes=yes_bids, no=no_bids)
+        yes_dollars = [(f"{price / 100:.2f}", qty) for price, qty in yes_bids]
+        no_dollars = [(f"{price / 100:.2f}", qty) for price, qty in no_bids]
+        orderbook = Orderbook(yes_dollars=yes_dollars, no_dollars=no_dollars)
         assert orderbook.spread == expected_spread
 
     # === Dollar field fallback tests (BUG-056 P0-1 fix) ===
 
     def test_orderbook_dollar_fallback_best_yes_bid(self) -> None:
-        """best_yes_bid falls back to yes_dollars when yes is None."""
+        """best_yes_bid derives from yes_dollars."""
         # Simulates post-Jan 15, 2026 API response (no legacy cents field)
         orderbook = Orderbook(
             yes=None,
@@ -356,7 +367,7 @@ class TestOrderbookModel:
         assert orderbook.best_yes_bid == 45
 
     def test_orderbook_dollar_fallback_best_no_bid(self) -> None:
-        """best_no_bid falls back to no_dollars when no is None."""
+        """best_no_bid derives from no_dollars."""
         orderbook = Orderbook(
             yes=None,
             no=None,
@@ -436,25 +447,25 @@ class TestOrderbookModel:
     # === Level accessor tests (forward-compatible API) ===
 
     def test_orderbook_yes_levels_from_legacy(self) -> None:
-        """yes_levels returns legacy cents when available."""
+        """yes_levels ignores legacy cents fields."""
         orderbook = Orderbook(
             yes=[(45, 100), (44, 200)],
             no=[(54, 100)],
         )
 
-        assert orderbook.yes_levels == [(45, 100), (44, 200)]
+        assert orderbook.yes_levels == []
 
     def test_orderbook_no_levels_from_legacy(self) -> None:
-        """no_levels returns legacy cents when available."""
+        """no_levels ignores legacy cents fields."""
         orderbook = Orderbook(
             yes=[(45, 100)],
             no=[(54, 100), (55, 200)],
         )
 
-        assert orderbook.no_levels == [(54, 100), (55, 200)]
+        assert orderbook.no_levels == []
 
     def test_orderbook_yes_levels_from_dollars(self) -> None:
-        """yes_levels falls back to dollar conversion when legacy is None."""
+        """yes_levels derives from yes_dollars."""
         orderbook = Orderbook(
             yes=None,
             yes_dollars=[("0.45", 100), ("0.44", 200)],
@@ -464,7 +475,7 @@ class TestOrderbookModel:
         assert orderbook.yes_levels == [(45, 100), (44, 200)]
 
     def test_orderbook_no_levels_from_dollars(self) -> None:
-        """no_levels falls back to dollar conversion when legacy is None."""
+        """no_levels derives from no_dollars."""
         orderbook = Orderbook(
             no=None,
             no_dollars=[("0.54", 100), ("0.55", 200)],
@@ -479,7 +490,7 @@ class TestOrderbookModel:
         assert orderbook.yes_levels == []
         assert orderbook.no_levels == []
 
-    def test_orderbook_levels_prefer_legacy_over_dollars(self) -> None:
+    def test_orderbook_levels_prefer_dollars_over_legacy(self) -> None:
         """Level accessors prefer dollars when both present (forward-compatible)."""
         orderbook = Orderbook(
             yes=[(45, 100)],

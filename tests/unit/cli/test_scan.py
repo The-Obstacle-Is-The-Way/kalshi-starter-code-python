@@ -270,7 +270,12 @@ def test_scan_opportunities_show_liquidity_fetches_orderbooks_with_depth(
     )
     markets_response = {"markets": [high_liquidity, low_liquidity], "cursor": None}
 
-    high_orderbook = {"yes": [[50, 5_000]], "no": [[49, 5_000]]}
+    high_orderbook = {
+        "yes": [[50, 5_000]],
+        "no": [[49, 5_000]],
+        "yes_dollars": [["0.50", 5_000]],
+        "no_dollars": [["0.49", 5_000]],
+    }
     low_orderbook = {"yes": None, "no": None}
 
     expected_score = liquidity_score(
@@ -339,8 +344,13 @@ def test_scan_opportunities_min_liquidity_filters_results(
     )
     markets_response = {"markets": [high_liquidity, low_liquidity], "cursor": None}
 
-    high_orderbook = {"yes": [[50, 5_000]], "no": [[49, 5_000]]}
-    low_orderbook = {"yes": None, "no": None}
+    high_orderbook = {
+        "yes": [[50, 5_000]],
+        "no": [[49, 5_000]],
+        "yes_dollars": [["0.50", 5_000]],
+        "no_dollars": [["0.49", 5_000]],
+    }
+    low_orderbook = {"yes": None, "no": None, "yes_dollars": None, "no_dollars": None}
 
     with respx.mock:
         respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
@@ -713,9 +723,14 @@ def test_market_yes_price_display_shows_half_cent_midpoints() -> None:
         status=MarketStatus.ACTIVE,
         yes_bid=49,
         yes_ask=50,
+        yes_bid_dollars="0.49",
+        yes_ask_dollars="0.50",
         no_bid=50,
         no_ask=51,
+        no_bid_dollars="0.50",
+        no_ask_dollars="0.51",
         last_price=49,
+        last_price_dollars="0.49",
         volume=0,
         volume_24h=0,
         open_interest=0,
@@ -740,8 +755,12 @@ def test_market_yes_price_display_shows_no_quotes_when_zero_zero() -> None:
         status=MarketStatus.ACTIVE,
         yes_bid=0,
         yes_ask=0,
+        yes_bid_dollars="0.00",
+        yes_ask_dollars="0.00",
         no_bid=0,
         no_ask=0,
+        no_bid_dollars="0.00",
+        no_ask_dollars="0.00",
         last_price=None,
         volume=0,
         volume_24h=0,

@@ -300,52 +300,57 @@ class Market(BaseModel):
             return None
         return v
 
-    # Computed properties for backwards compatibility
-    # These provide cents values, preferring new dollar fields over legacy cent fields
+    # Computed cents properties
+    #
+    # As of Kalshi's Jan 2026 pricing migration, `*_dollars` is the SSOT. The legacy
+    # cent-denominated fields may still appear during soft deprecation, but are not
+    # used for price computations in this codebase.
 
     @property
-    def yes_bid_cents(self) -> int:
-        """Get yes_bid in cents, preferring dollars field over legacy cents field."""
-        if self.yes_bid_dollars is not None:
-            return fixed_dollars_to_cents(self.yes_bid_dollars, label="market yes_bid_dollars")
-        return self.yes_bid or 0
+    def yes_bid_cents(self) -> int | None:
+        """YES bid price in cents, derived from `yes_bid_dollars`."""
+        if self.yes_bid_dollars is None:
+            return None
+        return fixed_dollars_to_cents(self.yes_bid_dollars, label="market yes_bid_dollars")
 
     @property
-    def yes_ask_cents(self) -> int:
-        """Get yes_ask in cents, preferring dollars field over legacy cents field."""
-        if self.yes_ask_dollars is not None:
-            return fixed_dollars_to_cents(self.yes_ask_dollars, label="market yes_ask_dollars")
-        return self.yes_ask or 0
+    def yes_ask_cents(self) -> int | None:
+        """YES ask price in cents, derived from `yes_ask_dollars`."""
+        if self.yes_ask_dollars is None:
+            return None
+        return fixed_dollars_to_cents(self.yes_ask_dollars, label="market yes_ask_dollars")
 
     @property
-    def no_bid_cents(self) -> int:
-        """Get no_bid in cents, preferring dollars field over legacy cents field."""
-        if self.no_bid_dollars is not None:
-            return fixed_dollars_to_cents(self.no_bid_dollars, label="market no_bid_dollars")
-        return self.no_bid or 0
+    def no_bid_cents(self) -> int | None:
+        """NO bid price in cents, derived from `no_bid_dollars`."""
+        if self.no_bid_dollars is None:
+            return None
+        return fixed_dollars_to_cents(self.no_bid_dollars, label="market no_bid_dollars")
 
     @property
-    def no_ask_cents(self) -> int:
-        """Get no_ask in cents, preferring dollars field over legacy cents field."""
-        if self.no_ask_dollars is not None:
-            return fixed_dollars_to_cents(self.no_ask_dollars, label="market no_ask_dollars")
-        return self.no_ask or 0
+    def no_ask_cents(self) -> int | None:
+        """NO ask price in cents, derived from `no_ask_dollars`."""
+        if self.no_ask_dollars is None:
+            return None
+        return fixed_dollars_to_cents(self.no_ask_dollars, label="market no_ask_dollars")
 
     @property
     def last_price_cents(self) -> int | None:
-        """Get last_price in cents, preferring dollars field over legacy cents field."""
-        if self.last_price_dollars is not None:
-            return fixed_dollars_to_cents(
-                self.last_price_dollars, label="market last_price_dollars"
-            )
-        return self.last_price
+        """Last traded price in cents, derived from `last_price_dollars`."""
+        if self.last_price_dollars is None:
+            return None
+        return fixed_dollars_to_cents(self.last_price_dollars, label="market last_price_dollars")
 
     @property
-    def midpoint(self) -> float:
-        """Calculate midpoint from yes bid/ask using cents values."""
+    def midpoint(self) -> float | None:
+        """Midpoint in cents, derived from YES bid/ask."""
+        if self.yes_bid_cents is None or self.yes_ask_cents is None:
+            return None
         return (self.yes_bid_cents + self.yes_ask_cents) / 2
 
     @property
-    def spread(self) -> int:
-        """Calculate spread (ask - bid) using cents values."""
+    def spread(self) -> int | None:
+        """Bid/ask spread in cents, derived from YES bid/ask."""
+        if self.yes_bid_cents is None or self.yes_ask_cents is None:
+            return None
         return self.yes_ask_cents - self.yes_bid_cents

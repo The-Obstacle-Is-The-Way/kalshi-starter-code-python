@@ -217,6 +217,8 @@ class MarketScanner:
         results: list[ScanResult] = []
 
         for m in tradeable_markets:
+            if m.yes_bid_cents is None or m.yes_ask_cents is None:
+                continue
             # SKIP: Unpriced markets (0/0 or 0/100 placeholder quotes)
             if m.yes_bid_cents == 0 and m.yes_ask_cents == 0:
                 continue  # No quotes at all
@@ -224,6 +226,8 @@ class MarketScanner:
                 continue  # Placeholder: no real price discovery
 
             spread = m.spread
+            if spread is None:
+                continue
 
             # SKIP: Illiquid markets
             if spread > max_spread:
@@ -235,7 +239,10 @@ class MarketScanner:
             # 200.0 = (bid + ask) / 2 for midpoint, then / 100 to convert cents to probability.
             # This is NOT a magic number - it's standard binary market math.
             # See: docs/_vendor-docs/kalshi-api-reference.md (Binary market math)
-            prob = m.midpoint / 100.0
+            midpoint = m.midpoint
+            if midpoint is None:
+                continue
+            prob = midpoint / 100.0
 
             # Check if in close race range
             if self.close_race_range[0] <= prob <= self.close_race_range[1]:
@@ -287,8 +294,11 @@ class MarketScanner:
             if m.volume_24h >= self.high_volume_threshold:
                 # Midpoint probability: convert cents to probability [0-1]
                 # See scan_close_races:199-201 for binary market math derivation
-                prob = m.midpoint / 100.0
                 spread = m.spread
+                midpoint = m.midpoint
+                if spread is None or midpoint is None:
+                    continue
+                prob = midpoint / 100.0
 
                 # Score by volume (log scale)
                 score = min(math.log10(m.volume_24h + 1) / 6, 1.0)
@@ -335,11 +345,16 @@ class MarketScanner:
 
         for m in tradeable_markets:
             spread = m.spread
+            if spread is None:
+                continue
 
             if spread >= self.wide_spread_threshold:
                 # Midpoint probability: convert cents to probability [0-1]
                 # See scan_close_races:199-201 for binary market math derivation
-                prob = m.midpoint / 100.0
+                midpoint = m.midpoint
+                if midpoint is None:
+                    continue
+                prob = midpoint / 100.0
 
                 # Score by spread (capped at 20c)
                 score = min(spread / 20, 1.0)
@@ -391,8 +406,11 @@ class MarketScanner:
             if m.close_time <= cutoff:
                 # Midpoint probability: convert cents to probability [0-1]
                 # See scan_close_races:199-201 for binary market math derivation
-                prob = m.midpoint / 100.0
                 spread = m.spread
+                midpoint = m.midpoint
+                if spread is None or midpoint is None:
+                    continue
+                prob = midpoint / 100.0
 
                 time_left = m.close_time - datetime.now(UTC)
                 hours_left = time_left.total_seconds() / 3600

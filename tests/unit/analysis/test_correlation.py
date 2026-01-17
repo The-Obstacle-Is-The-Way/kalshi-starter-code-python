@@ -65,6 +65,16 @@ def make_market(
         "liquidity": 10000,
     }
     defaults.update(kwargs)
+    for cent_key, dollar_key in (
+        ("yes_bid", "yes_bid_dollars"),
+        ("yes_ask", "yes_ask_dollars"),
+        ("no_bid", "no_bid_dollars"),
+        ("no_ask", "no_ask_dollars"),
+        ("last_price", "last_price_dollars"),
+    ):
+        value = defaults.get(cent_key)
+        if isinstance(value, int):
+            defaults[dollar_key] = f"{value / 100:.4f}"
     return Market(**defaults)
 
 

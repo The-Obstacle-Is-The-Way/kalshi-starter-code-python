@@ -91,7 +91,10 @@ class AlertMonitor:
             if market is None:
                 continue
 
-            mid_prob = market.midpoint / 100.0
+            midpoint = market.midpoint
+            if midpoint is None:
+                continue
+            mid_prob = midpoint / 100.0
             current_mid_probs[condition.ticker] = mid_prob
             alert = self._check_condition(
                 condition,
@@ -148,6 +151,8 @@ class AlertMonitor:
 
             case ConditionType.SPREAD_ABOVE:
                 spread = market.spread
+                if spread is None:
+                    return None
                 current_value = float(spread)
                 triggered = current_value > condition.threshold
 

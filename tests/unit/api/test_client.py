@@ -417,7 +417,7 @@ class TestKalshiPublicClient:
     @pytest.mark.asyncio
     @respx.mock
     async def test_get_orderbook(self) -> None:
-        """Test orderbook parsing with [[price, qty], ...] format."""
+        """Test orderbook parsing with dollar-denominated orderbook fields."""
         ticker = "KXBTC-25JAN-T100000"
         respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}/orderbook").mock(
             return_value=Response(
@@ -426,6 +426,8 @@ class TestKalshiPublicClient:
                     "orderbook": {
                         "yes": [[45, 100], [44, 200], [43, 500]],
                         "no": [[53, 150], [54, 250]],
+                        "yes_dollars": [["0.45", 100], ["0.44", 200], ["0.43", 500]],
+                        "no_dollars": [["0.53", 150], ["0.54", 250]],
                     }
                 },
             )

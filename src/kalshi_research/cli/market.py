@@ -76,8 +76,18 @@ def market_get(
         table.add_row("Title", market.title)
         table.add_row("Event", market.event_ticker)
         table.add_row("Status", market.status.value)
-        table.add_row("Yes Bid/Ask", f"{market.yes_bid_cents}¢ / {market.yes_ask_cents}¢")
-        table.add_row("No Bid/Ask", f"{market.no_bid_cents}¢ / {market.no_ask_cents}¢")
+        yes_bid = market.yes_bid_cents
+        yes_ask = market.yes_ask_cents
+        no_bid = market.no_bid_cents
+        no_ask = market.no_ask_cents
+        yes_display = (
+            f"{yes_bid}¢ / {yes_ask}¢" if yes_bid is not None and yes_ask is not None else "N/A"
+        )
+        no_display = (
+            f"{no_bid}¢ / {no_ask}¢" if no_bid is not None and no_ask is not None else "N/A"
+        )
+        table.add_row("Yes Bid/Ask", yes_display)
+        table.add_row("No Bid/Ask", no_display)
         table.add_row("Volume (24h)", f"{market.volume_24h:,}")
         table.add_row("Open Interest", f"{market.open_interest:,}")
         table.add_row("Open Time", market.open_time.isoformat())
@@ -456,11 +466,12 @@ def _render_market_list_table(
         title = (
             market.title if full else market.title[:40] + ("..." if len(market.title) > 40 else "")
         )
+        yes_bid = market.yes_bid_cents
         table.add_row(
             ticker,
             title,
             market.status.value,
-            f"{market.yes_bid_cents}¢",
+            f"{yes_bid}¢" if yes_bid is not None else "N/A",
             f"{market.volume_24h:,}",
         )
 

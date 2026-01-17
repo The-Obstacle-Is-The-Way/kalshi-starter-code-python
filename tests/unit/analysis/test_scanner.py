@@ -29,6 +29,8 @@ def make_market(
     """Helper to create test markets."""
     if close_time is None:
         close_time = datetime.now(UTC) + timedelta(days=1)
+    no_bid = 100 - yes_ask
+    no_ask = 100 - yes_bid
     return Market(
         ticker=ticker,
         event_ticker="EVENT-1",
@@ -36,8 +38,12 @@ def make_market(
         status=status,
         yes_bid=yes_bid,
         yes_ask=yes_ask,
-        no_bid=100 - yes_ask,
-        no_ask=100 - yes_bid,
+        yes_bid_dollars=f"{yes_bid / 100:.4f}",
+        yes_ask_dollars=f"{yes_ask / 100:.4f}",
+        no_bid=no_bid,
+        no_ask=no_ask,
+        no_bid_dollars=f"{no_bid / 100:.4f}",
+        no_ask_dollars=f"{no_ask / 100:.4f}",
         volume=10000,
         volume_24h=volume_24h,
         open_interest=1000,
