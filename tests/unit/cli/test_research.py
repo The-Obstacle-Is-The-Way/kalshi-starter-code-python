@@ -543,6 +543,46 @@ def test_research_thesis_edit_updates_title() -> None:
     assert stored["theses"][0]["title"] == "New Title"
 
 
+def test_research_thesis_edit_updates_bull_and_bear() -> None:
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        thesis_file.write_text(
+            json.dumps(
+                {
+                    "theses": [
+                        {
+                            "id": "thesis-12345678",
+                            "title": "Test Thesis",
+                            "status": "active",
+                            "bull_case": "Old bull",
+                            "bear_case": "Old bear",
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+            result = runner.invoke(
+                app,
+                [
+                    "research",
+                    "thesis",
+                    "edit",
+                    "thesis-1",
+                    "--bull",
+                    "New bull",
+                    "--bear",
+                    "New bear",
+                ],
+            )
+            stored = json.loads(thesis_file.read_text(encoding="utf-8"))
+
+    assert result.exit_code == 0
+    assert stored["theses"][0]["bull_case"] == "New bull"
+    assert stored["theses"][0]["bear_case"] == "New bear"
+
+
 def test_research_thesis_edit_missing_thesis_exits_with_not_found() -> None:
     with runner.isolated_filesystem():
         thesis_file = Path("theses.json")
