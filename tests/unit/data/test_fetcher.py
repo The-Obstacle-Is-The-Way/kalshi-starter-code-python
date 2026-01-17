@@ -514,3 +514,40 @@ async def test_sync_settlements_creates_missing_market_event_and_settlement(tmp_
             if settled_at.tzinfo is None:
                 settled_at = settled_at.replace(tzinfo=UTC)
             assert settled_at == api_market.settlement_ts
+
+
+def test_api_market_to_snapshot_raises_when_dollar_fields_missing(data_fetcher) -> None:
+    """Snapshot conversion should raise ValueError when *_dollars fields are missing.
+
+    This guards against writing NULL quote values to the database.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    # Market without dollar fields (simulates broken API response)
+    market = Market(
+        ticker="TEST-MARKET",
+        event_ticker="TEST-EVENT",
+        series_ticker=None,
+        title="Test Market",
+        subtitle="",
+        status=MarketStatus.ACTIVE,
+        result="",
+        # No *_dollars fields - only legacy cent fields
+        yes_bid=50,
+        yes_ask=52,
+        no_bid=48,
+        no_ask=50,
+        last_price=51,
+        volume=1000,
+        volume_24h=100,
+        open_interest=500,
+        open_time=datetime.now(UTC) - timedelta(days=1),
+        close_time=datetime.now(UTC) + timedelta(days=1),
+        expiration_time=datetime.now(UTC) + timedelta(days=2),
+        liquidity=10000,
+    )
+
+    snapshot_time = datetime.now(UTC)
+
+    with pytest.raises(ValueError, match="missing dollar quote fields"):
+        data_fetcher._api_market_to_snapshot(market, snapshot_time)

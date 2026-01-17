@@ -249,6 +249,42 @@ class TestCloseRaceScan:
         assert "UNPRICED_00" not in tickers
         assert "PLACEHOLDER_0_100" not in tickers
 
+    def test_excludes_markets_with_none_dollar_fields(self) -> None:
+        """Markets without *_dollars fields should be gracefully skipped."""
+        scanner = MarketScanner()
+
+        # Market without dollar fields (simulates missing API data)
+        market_without_dollars = Market(
+            ticker="NO_DOLLARS",
+            event_ticker="EVENT-1",
+            title="Market without dollar fields",
+            status=MarketStatus.ACTIVE,
+            # Legacy cent fields only - no *_dollars
+            yes_bid=48,
+            yes_ask=52,
+            no_bid=48,
+            no_ask=52,
+            volume=10000,
+            volume_24h=5000,
+            open_interest=1000,
+            open_time=datetime.now(UTC) - timedelta(days=1),
+            close_time=datetime.now(UTC) + timedelta(days=1),
+            expiration_time=datetime.now(UTC) + timedelta(days=1),
+            liquidity=50000,
+        )
+
+        markets = [
+            make_market("PRICED", yes_bid=48, yes_ask=52, volume_24h=1000),
+            market_without_dollars,
+        ]
+
+        # Should not raise, should just skip the market without dollars
+        results = scanner.scan_close_races(markets, top_n=10)
+
+        tickers = {r.ticker for r in results}
+        assert "PRICED" in tickers
+        assert "NO_DOLLARS" not in tickers
+
     def test_respects_min_volume_24h(self) -> None:
         """Markets below min_volume_24h should be excluded."""
         scanner = MarketScanner()
