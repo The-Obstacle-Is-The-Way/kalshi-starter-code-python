@@ -4,7 +4,22 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**0 active debt items.**
+**2 active debt items.**
+
+### Active Debt (2026-01-17)
+
+| ID | Title | Priority | Component |
+|---|---|---|---|
+| **[DEBT-031](DEBT-031-floor-division-statistics.md)** | Floor Division in P&L Statistics | P3 | `portfolio/pnl.py` |
+| **[DEBT-032](DEBT-032-midpoint-rounding-inconsistency.md)** | Midpoint Rounding Inconsistency | P3 | `portfolio/syncer.py` |
+
+### Recommended Order
+
+```text
+DEBT-031 → DEBT-032  (both P3, can be done together or opportunistically)
+```
+
+---
 
 All resolved debt items live in `docs/_archive/debt/`.
 
@@ -31,16 +46,10 @@ All resolved debt items live in `docs/_archive/debt/`.
 | **[DEBT-015](../_archive/debt/DEBT-015-missing-api-endpoints.md)** | Missing API Endpoints - 50/74 (68%) | ✅ Complete (remaining blocked/institutional) |
 | **[DEBT-028](../_archive/debt/DEBT-028-api-schema-drift-jan-2026.md)** | API Schema Drift - January 2026 Migration | ✅ Verified Working |
 
-### Recommended Order
-
-```text
-No active debt items. See `docs/_archive/debt/` for history.
-```
-
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-031**
+**DEBT-033**
 
 ---
 
