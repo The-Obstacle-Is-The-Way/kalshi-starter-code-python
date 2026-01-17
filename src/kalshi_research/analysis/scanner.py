@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -217,17 +217,17 @@ class MarketScanner:
         results: list[ScanResult] = []
 
         for m in tradeable_markets:
-            if m.yes_bid_cents is None or m.yes_ask_cents is None:
+            yes_bid = m.yes_bid_cents
+            yes_ask = m.yes_ask_cents
+            if yes_bid is None or yes_ask is None:
                 continue
             # SKIP: Unpriced markets (0/0 or 0/100 placeholder quotes)
-            if m.yes_bid_cents == 0 and m.yes_ask_cents == 0:
+            if yes_bid == 0 and yes_ask == 0:
                 continue  # No quotes at all
-            if m.yes_bid_cents == 0 and m.yes_ask_cents == 100:
+            if yes_bid == 0 and yes_ask == 100:
                 continue  # Placeholder: no real price discovery
 
-            spread = m.spread
-            if spread is None:
-                continue
+            spread = yes_ask - yes_bid
 
             # SKIP: Illiquid markets
             if spread > max_spread:
@@ -235,13 +235,7 @@ class MarketScanner:
             if m.volume_24h < min_volume_24h:
                 continue
 
-            # Calculate probability from midpoint.
-            # 200.0 = (bid + ask) / 2 for midpoint, then / 100 to convert cents to probability.
-            # This is NOT a magic number - it's standard binary market math.
-            # See: docs/_vendor-docs/kalshi-api-reference.md (Binary market math)
-            midpoint = m.midpoint
-            if midpoint is None:
-                continue
+            midpoint = (yes_bid + yes_ask) / 2
             prob = midpoint / 100.0
 
             # Check if in close race range
@@ -351,9 +345,7 @@ class MarketScanner:
             if spread >= self.wide_spread_threshold:
                 # Midpoint probability: convert cents to probability [0-1]
                 # See scan_close_races:199-201 for binary market math derivation
-                midpoint = m.midpoint
-                if midpoint is None:
-                    continue
+                midpoint = cast("float", m.midpoint)
                 prob = midpoint / 100.0
 
                 # Score by spread (capped at 20c)

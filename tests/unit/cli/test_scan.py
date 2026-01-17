@@ -773,6 +773,60 @@ def test_market_yes_price_display_shows_no_quotes_when_zero_zero() -> None:
     assert _market_yes_price_display(market) == "[NO QUOTES]"
 
 
+def test_is_unpriced_market_returns_true_when_price_missing() -> None:
+    from datetime import UTC, datetime
+
+    from kalshi_research.api.models import Market, MarketStatus
+    from kalshi_research.cli.scan import _is_unpriced_market
+
+    market = Market(
+        ticker="TEST",
+        event_ticker="EVT",
+        title="Test",
+        status=MarketStatus.ACTIVE,
+        yes_bid=49,
+        yes_ask=50,
+        no_bid=50,
+        no_ask=51,
+        last_price=49,
+        volume=0,
+        volume_24h=0,
+        open_interest=0,
+        open_time=datetime(2024, 1, 1, tzinfo=UTC),
+        close_time=datetime(2025, 1, 1, tzinfo=UTC),
+        expiration_time=datetime(2025, 1, 2, tzinfo=UTC),
+    )
+
+    assert _is_unpriced_market(market) is True
+
+
+def test_market_yes_price_display_returns_missing_price_when_price_missing() -> None:
+    from datetime import UTC, datetime
+
+    from kalshi_research.api.models import Market, MarketStatus
+    from kalshi_research.cli.scan import _market_yes_price_display
+
+    market = Market(
+        ticker="TEST",
+        event_ticker="EVT",
+        title="Test",
+        status=MarketStatus.ACTIVE,
+        yes_bid=49,
+        yes_ask=50,
+        no_bid=50,
+        no_ask=51,
+        last_price=49,
+        volume=0,
+        volume_24h=0,
+        open_interest=0,
+        open_time=datetime(2024, 1, 1, tzinfo=UTC),
+        close_time=datetime(2025, 1, 1, tzinfo=UTC),
+        expiration_time=datetime(2025, 1, 2, tzinfo=UTC),
+    )
+
+    assert _market_yes_price_display(market) == "[MISSING PRICE]"
+
+
 def test_format_relative_age_supports_seconds_minutes_hours_days_and_future() -> None:
     from datetime import UTC, datetime, timedelta
 

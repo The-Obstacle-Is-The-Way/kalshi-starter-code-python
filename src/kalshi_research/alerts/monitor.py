@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Protocol, cast
 
 from kalshi_research.alerts.conditions import (
     Alert,
@@ -150,9 +150,7 @@ class AlertMonitor:
                     triggered = crossed_up or crossed_down
 
             case ConditionType.SPREAD_ABOVE:
-                spread = market.spread
-                if spread is None:
-                    return None
+                spread = cast("int", market.spread)
                 current_value = float(spread)
                 triggered = current_value > condition.threshold
 

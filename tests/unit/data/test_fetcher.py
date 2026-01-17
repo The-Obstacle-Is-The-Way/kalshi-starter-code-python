@@ -378,6 +378,75 @@ async def test_take_snapshot(data_fetcher, mock_client, mock_db):
 
 
 @pytest.mark.asyncio
+async def test_take_snapshot_skips_markets_missing_dollar_quotes(data_fetcher, mock_client) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    good_market = Market(
+        ticker="GOOD",
+        event_ticker="TEST-EVENT",
+        series_ticker=None,
+        title="Good Market",
+        subtitle="",
+        status=MarketStatus.ACTIVE,
+        result="",
+        yes_bid=50,
+        yes_ask=52,
+        yes_bid_dollars="0.50",
+        yes_ask_dollars="0.52",
+        no_bid=48,
+        no_ask=50,
+        no_bid_dollars="0.48",
+        no_ask_dollars="0.50",
+        last_price=51,
+        last_price_dollars="0.51",
+        volume=1000,
+        volume_24h=100,
+        open_interest=500,
+        open_time=datetime.now(UTC) - timedelta(days=1),
+        close_time=datetime.now(UTC) + timedelta(days=1),
+        expiration_time=datetime.now(UTC) + timedelta(days=2),
+        liquidity=10000,
+    )
+    bad_market = Market(
+        ticker="BAD",
+        event_ticker="TEST-EVENT",
+        series_ticker=None,
+        title="Bad Market",
+        subtitle="",
+        status=MarketStatus.ACTIVE,
+        result="",
+        yes_bid=50,
+        yes_ask=52,
+        no_bid=48,
+        no_ask=50,
+        last_price=51,
+        volume=1000,
+        volume_24h=100,
+        open_interest=500,
+        open_time=datetime.now(UTC) - timedelta(days=1),
+        close_time=datetime.now(UTC) + timedelta(days=1),
+        expiration_time=datetime.now(UTC) + timedelta(days=2),
+        liquidity=10000,
+    )
+
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
+        del mve_filter
+        yield good_market
+        yield bad_market
+
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+
+    with patch("kalshi_research.data.fetcher.PriceRepository") as MockPriceRepo:
+        repo = AsyncMock()
+        MockPriceRepo.return_value = repo
+
+        count = await data_fetcher.take_snapshot(max_pages=5)
+
+        assert count == 1
+        assert repo.add.call_count == 1
+
+
+@pytest.mark.asyncio
 async def test_full_sync(data_fetcher):
     data_fetcher.sync_events = AsyncMock(return_value=5)
     data_fetcher.sync_markets = AsyncMock(return_value=10)

@@ -321,9 +321,11 @@ class DataFetcher:
         """
         Take a price snapshot of all markets.
 
-        This method is robust to missing market rows - it will upsert
-        minimal Market records before inserting snapshots to satisfy
-        foreign key constraints.
+        Notes:
+            - Robust to missing market rows: upserts minimal Market records before inserting
+              snapshots to satisfy foreign key constraints.
+            - Markets missing required `*_dollars` quotes are skipped (logged) to avoid inserting
+              NULL quote values into the database.
 
         Args:
             status: Optional filter for market status (default: open)
@@ -335,6 +337,7 @@ class DataFetcher:
         snapshot_time = datetime.now(UTC)
         logger.info("Taking price snapshot", snapshot_time=snapshot_time.isoformat())
         count = 0
+        skipped_missing_quotes = 0
 
         async with self._db.session_factory() as session, session.begin():
             price_repo = PriceRepository(session)
@@ -353,7 +356,16 @@ class DataFetcher:
                 )
                 await market_repo.insert_ignore(self._api_market_to_db(api_market))
 
-                snapshot = self._api_market_to_snapshot(api_market, snapshot_time)
+                try:
+                    snapshot = self._api_market_to_snapshot(api_market, snapshot_time)
+                except ValueError as exc:
+                    skipped_missing_quotes += 1
+                    logger.warning(
+                        "Skipping market snapshot due to invalid/missing dollar quotes",
+                        ticker=api_market.ticker,
+                        error=str(exc),
+                    )
+                    continue
                 await price_repo.add(snapshot, flush=False)
                 count += 1
 
@@ -362,7 +374,11 @@ class DataFetcher:
                     await session.flush()
                     logger.debug("Took snapshots so far", count=count)
 
-        logger.info("Took price snapshots", count=count)
+        logger.info(
+            "Took price snapshots",
+            count=count,
+            skipped_missing_quotes=skipped_missing_quotes,
+        )
         return count
 
     async def full_sync(

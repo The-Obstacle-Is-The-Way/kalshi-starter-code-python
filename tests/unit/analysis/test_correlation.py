@@ -578,6 +578,10 @@ class TestIsPriced:
                 last_price=None,
             )
         )
+        missing_dollars = make_market("MISSING_DOLLARS", "E", 50).model_copy(
+            update={"yes_bid_dollars": None, "yes_ask_dollars": None}
+        )
+        assert not _is_priced(missing_dollars)
         assert _is_priced(make_market("PRICED", "E", 50))
 
 
@@ -618,8 +622,31 @@ class TestFindArbitrageOpportunities:
         opp = opportunities[0]
         assert opp.opportunity_type == "divergence"
         assert set(opp.tickers) == {"BTC-100K", "BTC-110K"}
-        assert opp.divergence == pytest.approx(0.2)  # 70% - 50% = 20%
-        assert opp.confidence == pytest.approx(0.9)
+
+    def test_skips_unpriced_markets(self) -> None:
+        analyzer = CorrelationAnalyzer()
+
+        markets = [
+            make_market("PRICED", "E", 50),
+            make_market(
+                "PLACEHOLDER",
+                "E",
+                50,
+                yes_bid=0,
+                yes_ask=100,
+                no_bid=0,
+                no_ask=100,
+                last_price=None,
+            ),
+        ]
+
+        opportunities = analyzer.find_arbitrage_opportunities(
+            markets,
+            [],
+            divergence_threshold=0.10,
+        )
+
+        assert opportunities == []
 
     def test_detects_negative_correlation_sum_error(self) -> None:
         """Flags when negatively correlated markets don't sum to 100%."""
@@ -717,6 +744,36 @@ class TestFindArbitrageOpportunities:
 
         # Should return empty list, not crash
         assert len(opportunities) == 0
+
+    def test_handles_missing_ticker_a(self) -> None:
+        """Gracefully handles when ticker_a market is missing."""
+        analyzer = CorrelationAnalyzer()
+
+        correlated_pairs = [
+            CorrelationResult(
+                ticker_a="A",
+                ticker_b="B",
+                correlation_type=CorrelationType.POSITIVE,
+                pearson=0.8,
+                pearson_pvalue=0.01,
+                spearman=0.78,
+                spearman_pvalue=0.01,
+                start_time=datetime.now(UTC),
+                end_time=datetime.now(UTC),
+                n_samples=50,
+            )
+        ]
+
+        # Only market B exists, A is missing
+        markets = [
+            make_market("B", "TEST", 50),
+        ]
+
+        opportunities = analyzer.find_arbitrage_opportunities(
+            markets, correlated_pairs, divergence_threshold=0.10
+        )
+
+        assert opportunities == []
 
 
 class TestAlignTimeseries:

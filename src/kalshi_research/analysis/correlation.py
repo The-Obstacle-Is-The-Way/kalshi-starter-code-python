@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
+from typing import cast
 
 import numpy as np
 from scipy import stats
@@ -290,13 +291,9 @@ class CorrelationAnalyzer:
             if len(event_markets) == 2:
                 m1, m2 = event_markets
                 # Use midpoint of bid/ask as price
-                midpoint1 = m1.midpoint
-                midpoint2 = m2.midpoint
-                if midpoint1 is None or midpoint2 is None:
-                    continue
-                price1 = midpoint1 / 100.0
-                price2 = midpoint2 / 100.0
-                prob_sum = price1 + price2
+                midpoint1 = cast("float", m1.midpoint)
+                midpoint2 = cast("float", m2.midpoint)
+                prob_sum = (midpoint1 + midpoint2) / 100.0
 
                 if abs(prob_sum - 1.0) > tolerance:
                     deviation = prob_sum - 1.0
@@ -340,10 +337,8 @@ class CorrelationAnalyzer:
                 continue
 
             priced.sort(key=lambda m: m.ticker)
-            midpoints = [m.midpoint for m in priced]
-            if any(midpoint is None for midpoint in midpoints):
-                continue
-            prob_sum = sum(midpoint / 100.0 for midpoint in midpoints if midpoint is not None)
+            midpoints = [cast("float", m.midpoint) for m in priced]
+            prob_sum = sum(midpoints) / 100.0
             deviation = prob_sum - 1.0
 
             if abs(deviation) > tolerance:
@@ -374,9 +369,7 @@ class CorrelationAnalyzer:
         for m in markets:
             if not _is_priced(m):
                 continue
-            midpoint = m.midpoint
-            if midpoint is None:
-                continue
+            midpoint = cast("float", m.midpoint)
             market_prices[m.ticker] = midpoint / 100.0
 
         for pair in correlated_pairs:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, TypedDict
+from typing import TYPE_CHECKING, Annotated, TypedDict, cast
 
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -105,9 +105,7 @@ def _market_yes_price_display(market: Market) -> str:
         return "[NO QUOTES]"
     if bid == 0 and ask == 100:
         return "[AWAITING PRICE DISCOVERY]"
-    midpoint = market.midpoint
-    if midpoint is None:
-        return "[MISSING PRICE]"
+    midpoint = (bid + ask) / 2
     if midpoint.is_integer():
         return f"{int(midpoint)}¢"
     return f"{midpoint:.1f}¢"
@@ -1021,8 +1019,7 @@ async def _scan_arbitrage_async(
     ):
         prices: dict[str, float] = {}
         for m in group_markets:
-            midpoint = m.midpoint
-            assert midpoint is not None
+            midpoint = cast("float", m.midpoint)
             prices[m.ticker] = midpoint / 100.0
         prices["sum"] = sum(prices[m.ticker] for m in group_markets)
         opportunities.append(

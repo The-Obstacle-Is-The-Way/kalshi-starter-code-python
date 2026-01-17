@@ -25,12 +25,18 @@ def make_market(
     volume_24h: int = 5000,
     close_time: datetime | None = None,
     status: MarketStatus = MarketStatus.ACTIVE,
+    *,
+    include_dollars: bool = True,
 ) -> Market:
     """Helper to create test markets."""
     if close_time is None:
         close_time = datetime.now(UTC) + timedelta(days=1)
     no_bid = 100 - yes_ask
     no_ask = 100 - yes_bid
+    yes_bid_dollars = f"{yes_bid / 100:.4f}" if include_dollars else None
+    yes_ask_dollars = f"{yes_ask / 100:.4f}" if include_dollars else None
+    no_bid_dollars = f"{no_bid / 100:.4f}" if include_dollars else None
+    no_ask_dollars = f"{no_ask / 100:.4f}" if include_dollars else None
     return Market(
         ticker=ticker,
         event_ticker="EVENT-1",
@@ -38,12 +44,12 @@ def make_market(
         status=status,
         yes_bid=yes_bid,
         yes_ask=yes_ask,
-        yes_bid_dollars=f"{yes_bid / 100:.4f}",
-        yes_ask_dollars=f"{yes_ask / 100:.4f}",
+        yes_bid_dollars=yes_bid_dollars,
+        yes_ask_dollars=yes_ask_dollars,
         no_bid=no_bid,
         no_ask=no_ask,
-        no_bid_dollars=f"{no_bid / 100:.4f}",
-        no_ask_dollars=f"{no_ask / 100:.4f}",
+        no_bid_dollars=no_bid_dollars,
+        no_ask_dollars=no_ask_dollars,
         volume=10000,
         volume_24h=volume_24h,
         open_interest=1000,
@@ -368,6 +374,14 @@ class TestHighVolumeScan:
 
         assert len(results) == 0
 
+    def test_skips_markets_missing_dollar_quotes(self) -> None:
+        scanner = MarketScanner(high_volume_threshold=10000)
+        markets = [make_market("MISSING", volume_24h=50000, include_dollars=False)]
+
+        results = scanner.scan_high_volume(markets)
+
+        assert results == []
+
 
 class TestWideSpreadScan:
     """Test scanning for wide spreads."""
@@ -394,6 +408,14 @@ class TestWideSpreadScan:
         results = scanner.scan_wide_spread(markets)
 
         assert len(results) == 0
+
+    def test_skips_markets_missing_dollar_quotes(self) -> None:
+        scanner = MarketScanner(wide_spread_threshold=5)
+        markets = [make_market("MISSING", yes_bid=40, yes_ask=55, include_dollars=False)]
+
+        results = scanner.scan_wide_spread(markets)
+
+        assert results == []
 
 
 class TestExpiringSoonScan:
@@ -423,3 +445,18 @@ class TestExpiringSoonScan:
         results = scanner.scan_expiring_soon(markets, hours=24)
 
         assert len(results) == 0
+
+    def test_skips_markets_missing_dollar_quotes(self) -> None:
+        scanner = MarketScanner()
+        now = datetime.now(UTC)
+        markets = [
+            make_market(
+                "MISSING",
+                close_time=now + timedelta(hours=2),
+                include_dollars=False,
+            )
+        ]
+
+        results = scanner.scan_expiring_soon(markets, hours=24)
+
+        assert results == []
