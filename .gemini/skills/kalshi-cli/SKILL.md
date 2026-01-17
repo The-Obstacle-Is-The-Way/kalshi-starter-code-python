@@ -72,7 +72,7 @@ uv run kalshi data vacuum                                  # Reclaim DB space af
 
 ### market - Market Lookup
 ```bash
-uv run kalshi market list [--status open] [--event EVT] [--event-prefix PREFIX] [--category TEXT] [--exclude-category TEXT] [--limit N] [--full]  # List markets (NO --search!)
+uv run kalshi market list [--status open] [--event EVT] [--event-prefix PREFIX] [--category TEXT] [--exclude-category TEXT] [--limit N] [--full/-F]  # List markets (NO --search!)
 uv run kalshi market get TICKER                                    # Fetch single market
 uv run kalshi market orderbook TICKER [--depth 5]                  # Get orderbook
 uv run kalshi market liquidity TICKER [--depth 25] [--max-slippage-cents 3]
@@ -81,17 +81,17 @@ uv run kalshi market history TICKER [--series SERIES] [--interval 1h] [--days 7]
 
 ### scan - Opportunity Scanning
 ```bash
-uv run kalshi scan opportunities [--filter close-race] [--category TEXT] [--no-sports] [--event-prefix PREFIX] [--top 10] [--max-pages N] [--full]
-uv run kalshi scan new-markets [--hours 24] [--category econ,ai] [--include-unpriced] [--limit 20] [--max-pages N] [--json] [--full]
-uv run kalshi scan arbitrage [--db PATH] [--threshold 0.1] [--top 10] [--tickers-limit N] [--max-pages N] [--full]
-uv run kalshi scan movers [--db PATH] [--period 24h] [--top 10] [--max-pages N] [--full]
+uv run kalshi scan opportunities [--filter close-race] [--category TEXT] [--no-sports] [--event-prefix PREFIX] [--top 10] [--max-pages N] [--full/-F]
+uv run kalshi scan new-markets [--hours 24] [--category econ,ai] [--include-unpriced] [--limit 20] [--max-pages N] [--json] [--full/-F]
+uv run kalshi scan arbitrage [--db PATH] [--threshold 0.1] [--top 10] [--tickers-limit N] [--max-pages N] [--full/-F]
+uv run kalshi scan movers [--db PATH] [--period 24h] [--top 10] [--max-pages N] [--full/-F]
 ```
 
 ### portfolio - Portfolio Tracking (Requires Auth)
 ```bash
 uv run kalshi portfolio sync [--db PATH] [--env demo|prod] [--rate-tier basic|advanced|premier|prime] [--skip-mark-prices]
-uv run kalshi portfolio positions [--db PATH] [--ticker TICKER]
-uv run kalshi portfolio pnl [--db PATH] [--ticker TICKER]
+uv run kalshi portfolio positions [--db PATH] [--ticker TICKER] [--full/-F]
+uv run kalshi portfolio pnl [--db PATH] [--ticker TICKER] [--full/-F]
 uv run kalshi portfolio balance [--env demo|prod] [--rate-tier basic|advanced|premier|prime]
 uv run kalshi portfolio history [-n 20] [--db PATH] [--ticker TICKER]
 uv run kalshi portfolio link TICKER --thesis ID [--db PATH]  # Link position to thesis
@@ -107,8 +107,9 @@ uv run kalshi research similar URL [-n 10] [--json]
 uv run kalshi research deep "TOPIC" [--model exa-research-fast|exa-research|exa-research-pro] [--wait] [--schema FILE] [--json]  # Paid API
 uv run kalshi research cache clear [--all] [--cache-dir DIR]
 uv run kalshi research thesis create "TITLE" -m T1,T2 --your-prob 0.7 --market-prob 0.5 --confidence 0.8 [--with-research] [-y]
-uv run kalshi research thesis list [--full]
+uv run kalshi research thesis list [--full/-F]
 uv run kalshi research thesis show ID [--with-positions] [--db PATH]
+uv run kalshi research thesis edit ID [--title TEXT] [--bull TEXT] [--bear TEXT]
 uv run kalshi research thesis resolve ID --outcome yes|no|void
 uv run kalshi research thesis check-invalidation ID [--hours 48]
 uv run kalshi research thesis suggest [--category TEXT]

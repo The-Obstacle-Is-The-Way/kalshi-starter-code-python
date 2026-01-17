@@ -19,6 +19,15 @@ PORTFOLIO_SYNC_TIP = (
 )
 
 
+def _format_signed_currency(cents: int) -> str:
+    value = f"${cents / 100:.2f}"
+    if cents > 0:
+        return f"[green]+{value}[/green]"
+    if cents < 0:
+        return f"[red]{value}[/red]"
+    return value
+
+
 def _load_theses() -> dict[str, Any]:
     """Load theses from storage."""
     return load_json_storage_file(
@@ -200,10 +209,16 @@ def portfolio_positions(
         str | None,
         typer.Option("--ticker", "-t", help="Filter by specific ticker."),
     ] = None,
+    full: Annotated[
+        bool,
+        typer.Option("--full", "-F", help="Show full tickers without truncation."),
+    ] = False,
 ) -> None:
     """View current positions."""
     from kalshi_research.cli.db import open_db
     from kalshi_research.portfolio import Position
+
+    output_console = console if not full else console.__class__(width=200)
 
     async def _positions() -> None:
         async with open_db(db_path) as db, db.session_factory() as session:
@@ -216,8 +231,8 @@ def portfolio_positions(
             positions = result.scalars().all()
 
             if not positions:
-                console.print("[yellow]No open positions found[/yellow]")
-                console.print(PORTFOLIO_SYNC_TIP)
+                output_console.print("[yellow]No open positions found[/yellow]")
+                output_console.print(PORTFOLIO_SYNC_TIP)
                 return
 
             # Display positions table
@@ -259,13 +274,13 @@ def portfolio_positions(
                     pnl_str,
                 )
 
-            console.print(table)
+            output_console.print(table)
             total_label = "Total Unrealized P&L"
             if unknown_unrealized:
                 total_label = "Total Unrealized P&L (known only)"
-            console.print(f"\n{total_label}: ${total_unrealized_cents / 100:.2f}")
+            output_console.print(f"\n{total_label}: ${total_unrealized_cents / 100:.2f}")
             if unknown_unrealized:
-                console.print(
+                output_console.print(
                     f"[yellow]{unknown_unrealized} position(s) have unknown unrealized P&L "
                     "(missing cost basis or mark prices).[/yellow]"
                 )
@@ -283,19 +298,17 @@ def portfolio_pnl(
         str | None,
         typer.Option("--ticker", "-t", help="Filter by specific ticker."),
     ] = None,
+    full: Annotated[
+        bool,
+        typer.Option("--full", "-F", help="Show full tickers without truncation."),
+    ] = False,
 ) -> None:
     """View profit & loss summary."""
     from kalshi_research.cli.db import open_db
     from kalshi_research.portfolio import PnLCalculator, PnLSummary, Position, Trade
     from kalshi_research.portfolio.models import PortfolioSettlement
 
-    def _format_signed_currency(cents: int) -> str:
-        value = f"${cents / 100:.2f}"
-        if cents > 0:
-            return f"[green]+{value}[/green]"
-        if cents < 0:
-            return f"[red]{value}[/red]"
-        return value
+    output_console = console if not full else console.__class__(width=200)
 
     def _build_summary_table(summary: PnLSummary) -> Table:
         table = Table(title="P&L Summary (Synced History)", show_header=False)
@@ -362,7 +375,7 @@ def portfolio_pnl(
             )
 
             # Display summary
-            console.print(_build_summary_table(summary))
+            output_console.print(_build_summary_table(summary))
 
     asyncio.run(_pnl())
 

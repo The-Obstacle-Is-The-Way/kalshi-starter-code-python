@@ -3,7 +3,7 @@
 **Priority:** P2 (Correctness - affects edge cases, current workaround is safe)
 **Status:** ✅ Implemented (2026-01-16)
 **Created:** 2026-01-16
-**Related:** [BUG-084](../_archive/bugs/BUG-084-pnl-double-counting-settlements.md) (original workaround)
+**Related:** [BUG-084](../bugs/BUG-084-pnl-double-counting-settlements.md) (original workaround)
 
 ---
 
@@ -192,7 +192,7 @@ The settlement reconciliation logic should be correct for partial exits / held-t
 
 ## Sources
 
-- [Kalshi API Reference - Settlements](../_vendor-docs/kalshi-api-reference.md)
+- [Kalshi API Reference - Settlements](../../_vendor-docs/kalshi-api-reference.md)
 - [Vanguard FIFO Cost Basis](https://investor.vanguard.com/investor-resources-education/taxes/cost-basis-first-in-first-out)
 - [Charles Schwab Cost Basis Guide](https://www.schwab.com/learn/story/save-on-taxes-know-your-cost-basis)
-- [BUG-084 Archive](../_archive/bugs/BUG-084-pnl-double-counting-settlements.md)
+- [BUG-084 Archive](../bugs/BUG-084-pnl-double-counting-settlements.md)

@@ -453,6 +453,41 @@ def research_thesis_show(  # noqa: PLR0915
         asyncio.run(_show_positions())
 
 
+@thesis_app.command("edit")
+def research_thesis_edit(
+    thesis_id: Annotated[str, typer.Argument(help="Thesis ID to edit")],
+    title: Annotated[str | None, typer.Option("--title", help="Update thesis title")] = None,
+    bull_case: Annotated[str | None, typer.Option("--bull", help="Update bull case")] = None,
+    bear_case: Annotated[str | None, typer.Option("--bear", help="Update bear case")] = None,
+) -> None:
+    """Edit a thesis stored in the local thesis file."""
+    if title is None and bull_case is None and bear_case is None:
+        console.print("[red]Error:[/red] No changes specified.")
+        raise typer.Exit(1)
+
+    data = _load_theses()
+    theses = data.get("theses", [])
+
+    for thesis in theses:
+        if thesis.get("id", "").startswith(thesis_id):
+            if title is not None:
+                thesis["title"] = title
+            if bull_case is not None:
+                thesis["bull_case"] = bull_case
+            if bear_case is not None:
+                thesis["bear_case"] = bear_case
+
+            _save_theses(data)
+            console.print(
+                f"[green]✓[/green] Thesis updated: {thesis.get('title', '(missing title)')}"
+            )
+            console.print(f"[dim]ID: {thesis.get('id', '')[:8]}[/dim]")
+            return
+
+    console.print(f"[red]Error:[/red] Thesis not found: {thesis_id}")
+    raise typer.Exit(2)
+
+
 @thesis_app.command("resolve")
 def research_thesis_resolve(
     thesis_id: Annotated[str, typer.Argument(help="Thesis ID to resolve")],

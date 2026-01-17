@@ -451,13 +451,14 @@ None for Section A.
 
 ## Section D: Newly Discovered Friction (2026-01-16)
 
-### D1. Portfolio Commands Missing `--full` Flag [P3]
+### D1. Portfolio Commands Missing `--full` Flag [P3] - ✅ COMPLETED
 
 **Found:** 2026-01-16 (during portfolio investigation)
+**Resolved:** 2026-01-16
 
 **Problem:** `portfolio pnl` and `portfolio positions` don't have `--full` flag like other CLI commands.
 
-**Friction encountered:**
+**Previous friction encountered:**
 ```bash
 uv run kalshi portfolio pnl --full    # Error: No such option: --full
 uv run kalshi portfolio positions --full  # Error: No such option: --full
@@ -465,7 +466,7 @@ uv run kalshi portfolio positions --full  # Error: No such option: --full
 
 **Impact:** Can't disable truncation when analyzing positions. Inconsistent with other commands (`market list --full`, etc.).
 
-**Fix:** Add `--full/-F` option to `portfolio pnl` and `portfolio positions` commands.
+**Fix:** Added `--full/-F` option to `portfolio pnl` and `portfolio positions` commands.
 
 **Effort:** 15 minutes
 
@@ -493,23 +494,28 @@ uv run kalshi portfolio positions --full  # Error: No such option: --full
 
 ---
 
-### D3. Finalized Markets Missing from Settlements Table [P2]
+### D3. Settlement Query Confusion (`settlements` vs `portfolio_settlements`) [P3] - ✅ VERIFIED
 
 **Found:** 2026-01-16
 
-**Problem:** Markets with status "finalized" don't appear in settlements table after sync.
+**Problem:** The correct table name is `portfolio_settlements` (SQLAlchemy model: `PortfolioSettlement`), not
+`settlements`.
 
-**Evidence:**
+**Previous (incorrect) evidence query:**
 ```sql
 SELECT * FROM settlements WHERE ticker LIKE '%TRUMP%'
 -- Returns empty, but markets are status="finalized"
 ```
 
-**Impact:** Can't query settlement outcomes for resolved positions.
+**Correct query:**
+```sql
+SELECT * FROM portfolio_settlements WHERE ticker LIKE '%TRUMP%'
+```
 
-**Potential cause:** `portfolio sync` doesn't pull settlement data for markets not in current positions?
+**SSOT check:** `kalshi portfolio sync` already calls `/portfolio/settlements` and stores results in
+`portfolio_settlements` (see `PortfolioSyncer.sync_settlements()`).
 
-**Effort:** Small (investigate settlement sync logic)
+**Impact:** Avoids false "missing settlement" debugging due to querying the wrong table.
 
 ---
 
@@ -533,9 +539,10 @@ uv run kalshi market get KXTRUMPMENTION-26JAN15-SOMA
 
 ---
 
-### D5. No "Edit Thesis" Command [P3]
+### D5. No "Edit Thesis" Command [P3] - ✅ COMPLETED
 
 **Found:** 2026-01-16
+**Resolved:** 2026-01-16
 
 **Problem:** Can't edit thesis title/details after creation. Had to manually edit `data/theses.json`.
 
@@ -543,7 +550,7 @@ uv run kalshi market get KXTRUMPMENTION-26JAN15-SOMA
 
 **Impact:** Minor - direct JSON edit works, but inconsistent with CLI-first approach.
 
-**Fix:** Add `kalshi research thesis edit ID --title "new title"` command (or similar).
+**Fix:** Added `kalshi research thesis edit ID --title "new title"` command (also supports `--bull` and `--bear`).
 
 **Effort:** 30 minutes
 
