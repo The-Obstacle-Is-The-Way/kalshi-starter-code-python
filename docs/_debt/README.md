@@ -4,12 +4,16 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**2 active debt items.**
+**0 active debt items.**
 
-| ID | Title | Priority | Status |
-|---|---|---|---|
-| **[DEBT-014](DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | P1-P3 | Open (B1/B2 blocked on FUTURE-001) |
-| **[DEBT-025](DEBT-025-subpenny-pricing-strategy.md)** | Subpenny Pricing Strategy (FixedPointDollars → rounding policy) | P2 | 🟡 Partially Implemented |
+All resolved debt items live in `docs/_archive/debt/`.
+
+### Recently Archived (2026-01-17)
+
+| ID | Title | Status |
+|---|---|---|
+| **[DEBT-014](../_archive/debt/DEBT-014-friction-residuals.md)** | Friction Residuals - Research Pipeline & Agent Design | ✅ Archived |
+| **[DEBT-025](../_archive/debt/DEBT-025-subpenny-pricing-strategy.md)** | Subpenny Pricing Strategy (FixedPointDollars → rounding policy) | ✅ Archived |
 
 ### Recently Archived (2026-01-16)
 
@@ -30,9 +34,7 @@ This directory tracks **known debt** and **audit checklists** for the repository
 ### Recommended Order
 
 ```text
-DEBT-014 (Friction/Design) ← Blocked on FUTURE-001 (B1/B2), C2 is soft-deprecation monitoring
-    ↓
-DEBT-025 (Subpenny Policy) ← If precision matters
+No active debt items. See `docs/_archive/debt/` for history.
 ```
 
 ## Next ID Tracker
@@ -46,8 +48,6 @@ Use this ID for the next debt item:
 
 | File | Purpose |
 |------|---------|
-| `DEBT-014-friction-residuals.md` | **Active debt P1-P3** - friction, design decisions |
-| `DEBT-025-subpenny-pricing-strategy.md` | **Active debt P2** - subpenny precision and rounding policy |
 | `code-audit-checklist.md` | Periodic audit checklist / runbook (reference doc) |
 
 ## Archived Reference Docs

@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
+from typing import cast
 
 import numpy as np
 from scipy import stats
@@ -37,7 +38,11 @@ def _is_priced(market: Market) -> bool:
     Returns:
         True if market has meaningful quotes
     """
-    return market.yes_bid_cents not in {0, 100} and market.yes_ask_cents not in {0, 100}
+    yes_bid = market.yes_bid_cents
+    yes_ask = market.yes_ask_cents
+    if yes_bid is None or yes_ask is None:
+        return False
+    return yes_bid not in {0, 100} and yes_ask not in {0, 100}
 
 
 class CorrelationType(str, Enum):
@@ -286,9 +291,9 @@ class CorrelationAnalyzer:
             if len(event_markets) == 2:
                 m1, m2 = event_markets
                 # Use midpoint of bid/ask as price
-                price1 = m1.midpoint / 100.0
-                price2 = m2.midpoint / 100.0
-                prob_sum = price1 + price2
+                midpoint1 = cast("float", m1.midpoint)
+                midpoint2 = cast("float", m2.midpoint)
+                prob_sum = (midpoint1 + midpoint2) / 100.0
 
                 if abs(prob_sum - 1.0) > tolerance:
                     deviation = prob_sum - 1.0
@@ -332,7 +337,8 @@ class CorrelationAnalyzer:
                 continue
 
             priced.sort(key=lambda m: m.ticker)
-            prob_sum = sum(m.midpoint / 100.0 for m in priced)
+            midpoints = [cast("float", m.midpoint) for m in priced]
+            prob_sum = sum(midpoints) / 100.0
             deviation = prob_sum - 1.0
 
             if abs(deviation) > tolerance:
@@ -359,7 +365,12 @@ class CorrelationAnalyzer:
         """
         opportunities: list[ArbitrageOpportunity] = []
         # Use midpoint of bid/ask as price
-        market_prices = {m.ticker: m.midpoint / 100.0 for m in markets if _is_priced(m)}
+        market_prices: dict[str, float] = {}
+        for m in markets:
+            if not _is_priced(m):
+                continue
+            midpoint = cast("float", m.midpoint)
+            market_prices[m.ticker] = midpoint / 100.0
 
         for pair in correlated_pairs:
             if pair.ticker_a not in market_prices:

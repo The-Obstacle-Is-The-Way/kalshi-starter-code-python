@@ -423,15 +423,26 @@ class PortfolioSyncer:
                 try:
                     market = await public_client.get_market(pos.ticker)
 
+                    yes_bid = market.yes_bid_cents
+                    yes_ask = market.yes_ask_cents
+                    no_bid = market.no_bid_cents
+                    no_ask = market.no_ask_cents
+                    if yes_bid is None or yes_ask is None or no_bid is None or no_ask is None:
+                        logger.warning(
+                            "Market missing dollar quotes; skipping mark price update",
+                            ticker=pos.ticker,
+                        )
+                        continue
+
                     # Compute mark price as midpoint (in cents)
                     # Handle unpriced markets (0/0 or 0/100) - skip update
-                    if market.yes_bid_cents == 0 and market.yes_ask_cents == 0:
+                    if yes_bid == 0 and yes_ask == 0:
                         logger.warning(
                             "Market has no quotes; skipping mark price update",
                             ticker=pos.ticker,
                         )
                         continue
-                    if market.yes_bid_cents == 0 and market.yes_ask_cents == 100:
+                    if yes_bid == 0 and yes_ask == 100:
                         logger.warning(
                             "Market has placeholder quotes; skipping mark price update",
                             ticker=pos.ticker,
@@ -440,10 +451,10 @@ class PortfolioSyncer:
 
                     # Mark price = midpoint of bid/ask
                     if pos.side == "yes":
-                        mark_price = (market.yes_bid_cents + market.yes_ask_cents + 1) // 2
+                        mark_price = (yes_bid + yes_ask + 1) // 2
                     else:
                         # For NO positions, use NO side midpoint
-                        mark_price = (market.no_bid_cents + market.no_ask_cents + 1) // 2
+                        mark_price = (no_bid + no_ask + 1) // 2
 
                     pos.current_price_cents = mark_price
 

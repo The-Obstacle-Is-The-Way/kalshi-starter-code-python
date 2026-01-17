@@ -30,6 +30,7 @@ def _market_dict(
     yes_bid: int = 49,
     yes_ask: int = 51,
 ) -> dict[str, Any]:
+    last_price = (yes_bid + yes_ask) // 2
     return {
         "ticker": ticker,
         "event_ticker": event_ticker,
@@ -40,9 +41,14 @@ def _market_dict(
         "result": "",
         "yes_bid": yes_bid,
         "yes_ask": yes_ask,
+        "yes_bid_dollars": f"{yes_bid / 100:.4f}",
+        "yes_ask_dollars": f"{yes_ask / 100:.4f}",
         "no_bid": 100 - yes_ask,
         "no_ask": 100 - yes_bid,
-        "last_price": (yes_bid + yes_ask) // 2,
+        "no_bid_dollars": f"{(100 - yes_ask) / 100:.4f}",
+        "no_ask_dollars": f"{(100 - yes_bid) / 100:.4f}",
+        "last_price": last_price,
+        "last_price_dollars": f"{last_price / 100:.4f}",
         "volume": 1_000,
         "volume_24h": 10_000,
         "open_interest": 100,

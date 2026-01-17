@@ -28,6 +28,9 @@ def make_market(
     if yes_ask is None:
         yes_ask = yes_price + 2
 
+    no_bid = 100 - yes_ask
+    no_ask = 100 - yes_bid
+
     return Market(
         ticker=ticker,
         event_ticker="EVENT-1",
@@ -35,8 +38,12 @@ def make_market(
         status=MarketStatus.ACTIVE,
         yes_bid=yes_bid,
         yes_ask=yes_ask,
-        no_bid=100 - yes_ask,
-        no_ask=100 - yes_bid,
+        yes_bid_dollars=f"{yes_bid / 100:.4f}",
+        yes_ask_dollars=f"{yes_ask / 100:.4f}",
+        no_bid=no_bid,
+        no_ask=no_ask,
+        no_bid_dollars=f"{no_bid / 100:.4f}",
+        no_ask_dollars=f"{no_ask / 100:.4f}",
         volume=volume,
         volume_24h=volume_24h,
         open_interest=1000,
@@ -145,6 +152,28 @@ class TestAlertMonitor:
 
         alerts = await monitor.check_conditions([market])
         assert len(alerts) == 0
+
+    @pytest.mark.asyncio
+    async def test_check_conditions_skips_markets_with_missing_midpoint(self) -> None:
+        monitor = AlertMonitor()
+
+        condition = AlertCondition(
+            id="price-test",
+            condition_type=ConditionType.PRICE_ABOVE,
+            ticker="MISSING",
+            threshold=0.50,
+            label="Missing midpoint",
+        )
+        monitor.add_condition(condition)
+
+        market = make_market(ticker="MISSING", yes_price=60).model_copy(
+            update={"yes_bid_dollars": None, "yes_ask_dollars": None}
+        )
+
+        alerts = await monitor.check_conditions([market])
+
+        assert alerts == []
+        assert len(monitor.list_conditions()) == 1
 
     @pytest.mark.asyncio
     async def test_check_price_below_triggers(self) -> None:

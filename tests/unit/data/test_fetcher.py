@@ -342,9 +342,14 @@ async def test_take_snapshot(data_fetcher, mock_client, mock_db):
         result="",
         yes_bid=50,
         yes_ask=52,
+        yes_bid_dollars="0.50",
+        yes_ask_dollars="0.52",
         no_bid=48,
         no_ask=50,
+        no_bid_dollars="0.48",
+        no_ask_dollars="0.50",
         last_price=51,
+        last_price_dollars="0.51",
         volume=1000,
         volume_24h=100,
         open_interest=500,
@@ -370,6 +375,75 @@ async def test_take_snapshot(data_fetcher, mock_client, mock_db):
         repo.add.assert_called_once()
         mock_client.get_all_markets.assert_called_once_with(status="open", max_pages=5)
         # With session.begin() pattern, commits are automatic on context exit
+
+
+@pytest.mark.asyncio
+async def test_take_snapshot_skips_markets_missing_dollar_quotes(data_fetcher, mock_client) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    good_market = Market(
+        ticker="GOOD",
+        event_ticker="TEST-EVENT",
+        series_ticker=None,
+        title="Good Market",
+        subtitle="",
+        status=MarketStatus.ACTIVE,
+        result="",
+        yes_bid=50,
+        yes_ask=52,
+        yes_bid_dollars="0.50",
+        yes_ask_dollars="0.52",
+        no_bid=48,
+        no_ask=50,
+        no_bid_dollars="0.48",
+        no_ask_dollars="0.50",
+        last_price=51,
+        last_price_dollars="0.51",
+        volume=1000,
+        volume_24h=100,
+        open_interest=500,
+        open_time=datetime.now(UTC) - timedelta(days=1),
+        close_time=datetime.now(UTC) + timedelta(days=1),
+        expiration_time=datetime.now(UTC) + timedelta(days=2),
+        liquidity=10000,
+    )
+    bad_market = Market(
+        ticker="BAD",
+        event_ticker="TEST-EVENT",
+        series_ticker=None,
+        title="Bad Market",
+        subtitle="",
+        status=MarketStatus.ACTIVE,
+        result="",
+        yes_bid=50,
+        yes_ask=52,
+        no_bid=48,
+        no_ask=50,
+        last_price=51,
+        volume=1000,
+        volume_24h=100,
+        open_interest=500,
+        open_time=datetime.now(UTC) - timedelta(days=1),
+        close_time=datetime.now(UTC) + timedelta(days=1),
+        expiration_time=datetime.now(UTC) + timedelta(days=2),
+        liquidity=10000,
+    )
+
+    async def market_gen(status=None, max_pages: int | None = None, mve_filter=None):
+        del mve_filter
+        yield good_market
+        yield bad_market
+
+    mock_client.get_all_markets = MagicMock(side_effect=market_gen)
+
+    with patch("kalshi_research.data.fetcher.PriceRepository") as MockPriceRepo:
+        repo = AsyncMock()
+        MockPriceRepo.return_value = repo
+
+        count = await data_fetcher.take_snapshot(max_pages=5)
+
+        assert count == 1
+        assert repo.add.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -405,9 +479,14 @@ async def test_take_snapshot_creates_missing_market_and_event(tmp_path) -> None:
         result="",
         yes_bid=50,
         yes_ask=52,
+        yes_bid_dollars="0.50",
+        yes_ask_dollars="0.52",
         no_bid=48,
         no_ask=50,
+        no_bid_dollars="0.48",
+        no_ask_dollars="0.50",
         last_price=51,
+        last_price_dollars="0.51",
         volume=100,
         volume_24h=10,
         open_interest=20,
@@ -504,3 +583,40 @@ async def test_sync_settlements_creates_missing_market_event_and_settlement(tmp_
             if settled_at.tzinfo is None:
                 settled_at = settled_at.replace(tzinfo=UTC)
             assert settled_at == api_market.settlement_ts
+
+
+def test_api_market_to_snapshot_raises_when_dollar_fields_missing(data_fetcher) -> None:
+    """Snapshot conversion should raise ValueError when *_dollars fields are missing.
+
+    This guards against writing NULL quote values to the database.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    # Market without dollar fields (simulates broken API response)
+    market = Market(
+        ticker="TEST-MARKET",
+        event_ticker="TEST-EVENT",
+        series_ticker=None,
+        title="Test Market",
+        subtitle="",
+        status=MarketStatus.ACTIVE,
+        result="",
+        # No *_dollars fields - only legacy cent fields
+        yes_bid=50,
+        yes_ask=52,
+        no_bid=48,
+        no_ask=50,
+        last_price=51,
+        volume=1000,
+        volume_24h=100,
+        open_interest=500,
+        open_time=datetime.now(UTC) - timedelta(days=1),
+        close_time=datetime.now(UTC) + timedelta(days=1),
+        expiration_time=datetime.now(UTC) + timedelta(days=2),
+        liquidity=10000,
+    )
+
+    snapshot_time = datetime.now(UTC)
+
+    with pytest.raises(ValueError, match="missing dollar quote fields"):
+        data_fetcher._api_market_to_snapshot(market, snapshot_time)

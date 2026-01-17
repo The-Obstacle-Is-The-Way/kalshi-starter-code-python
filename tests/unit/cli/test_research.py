@@ -61,6 +61,57 @@ def test_research_context_ticker_not_found_exits() -> None:
     assert "API Error 404" in result.stdout
 
 
+def test_research_context_renders_market_context(make_market) -> None:
+    from kalshi_research.api.models.market import Market
+    from kalshi_research.research.context import MarketResearch
+
+    market = Market.model_validate(make_market(ticker="TEST-MARKET"))
+    research = MarketResearch(
+        market_ticker=market.ticker,
+        market_title=market.title,
+        exa_cost_dollars=0.0,
+    )
+
+    with patch(
+        "kalshi_research.cli.research._research_market_context",
+        AsyncMock(return_value=(market, research)),
+    ):
+        result = runner.invoke(app, ["research", "context", market.ticker])
+
+    assert result.exit_code == 0
+    assert "Current:" in result.stdout
+    assert "Spread:" in result.stdout
+
+
+def test_research_context_renders_na_when_market_missing_prices(make_market) -> None:
+    from kalshi_research.api.models.market import Market
+    from kalshi_research.research.context import MarketResearch
+
+    market = Market.model_validate(make_market(ticker="TEST-MARKET")).model_copy(
+        update={
+            "yes_bid_dollars": None,
+            "yes_ask_dollars": None,
+            "no_bid_dollars": None,
+            "no_ask_dollars": None,
+        }
+    )
+    research = MarketResearch(
+        market_ticker=market.ticker,
+        market_title=market.title,
+        exa_cost_dollars=0.0,
+    )
+
+    with patch(
+        "kalshi_research.cli.research._research_market_context",
+        AsyncMock(return_value=(market, research)),
+    ):
+        result = runner.invoke(app, ["research", "context", market.ticker])
+
+    assert result.exit_code == 0
+    assert "Current: N/A" in result.stdout
+    assert "Spread: N/A" in result.stdout
+
+
 def test_research_topic_missing_exa_key_exits_with_error() -> None:
     exa_error = ValueError("EXA_API_KEY is required")
     with patch("kalshi_research.exa.ExaClient.from_env", side_effect=exa_error):

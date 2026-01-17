@@ -98,12 +98,13 @@ async def load_markets(
         async for market in client.get_all_markets(status=status):
             if limit is not None and count >= limit:
                 break
+            midpoint = market.midpoint
             markets.append(
                 {
                     "ticker": market.ticker,
                     "title": market.title,
                     "subtitle": market.subtitle,
-                    "yes_price": market.midpoint / 100.0,
+                    "yes_price": (midpoint / 100.0) if midpoint is not None else None,
                     "yes_bid": market.yes_bid_cents,
                     "yes_ask": market.yes_ask_cents,
                     "spread": market.spread,
@@ -154,6 +155,18 @@ def display_market(market: Market) -> None:
         print(f"Market: {market.ticker}")
         return
 
+    midpoint = market.midpoint
+    midpoint_display = f"{midpoint:.1f}c ({midpoint / 100:.0%})" if midpoint is not None else "N/A"
+
+    bid = market.yes_bid_cents
+    ask = market.yes_ask_cents
+    spread = market.spread
+    bid_ask_display = (
+        f"{bid}c / {ask}c (spread: {spread}c)"
+        if bid is not None and ask is not None and spread is not None
+        else "N/A"
+    )
+
     html = f"""
     <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin: 10px 0;">
         <h3 style="margin-top: 0;">{market.ticker}</h3>
@@ -162,13 +175,13 @@ def display_market(market: Market) -> None:
         <table style="width: 100%;">
             <tr>
                 <td><strong>YES Price:</strong></td>
-                <td>{market.midpoint:.1f}c ({market.midpoint / 100:.0%})</td>
+                <td>{midpoint_display}</td>
                 <td><strong>Volume:</strong></td>
                 <td>{market.volume:,}</td>
             </tr>
             <tr>
                 <td><strong>Bid/Ask:</strong></td>
-                <td>{market.yes_bid_cents}c / {market.yes_ask_cents}c (spread: {market.spread}c)</td>
+                <td>{bid_ask_display}</td>
                 <td><strong>Open Interest:</strong></td>
                 <td>{market.open_interest:,}</td>
             </tr>
@@ -249,8 +262,8 @@ def display_markets_table(
                 {
                     "ticker": m.ticker,
                     "title": m.title[:50] + "..." if len(m.title) > 50 else m.title,
-                    "yes_price": f"{m.midpoint:.1f}c",
-                    "spread": f"{m.spread}c",
+                    "yes_price": f"{m.midpoint:.1f}c" if m.midpoint is not None else "N/A",
+                    "spread": f"{m.spread}c" if m.spread is not None else "N/A",
                     "volume": f"{m.volume:,}",
                     "status": m.status,
                 }

@@ -806,3 +806,147 @@ async def test_update_mark_prices_skips_unpriced_markets() -> None:
     assert result == 0
     assert position.current_price_cents is None
     assert position.unrealized_pnl_cents is None
+
+
+@pytest.mark.asyncio
+async def test_update_mark_prices_skips_markets_missing_dollar_quotes() -> None:
+    client = MagicMock()
+    db = MagicMock()
+
+    now = datetime.now(UTC)
+    position = Position(
+        ticker="MISSING",
+        side="yes",
+        quantity=10,
+        avg_price_cents=40,
+        current_price_cents=None,
+        unrealized_pnl_cents=None,
+        realized_pnl_cents=0,
+        opened_at=now,
+        last_synced=now,
+    )
+
+    positions_result = MagicMock()
+    positions_result.scalars.return_value.all.return_value = [position]
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=positions_result)
+    session.commit = AsyncMock()
+
+    session_cm = AsyncMock()
+    session_cm.__aenter__.return_value = session
+    session_cm.__aexit__.return_value = None
+    db.session_factory.return_value = session_cm
+
+    syncer = PortfolioSyncer(client=client, db=db)
+
+    market = MagicMock()
+    market.yes_bid_cents = None
+    market.yes_ask_cents = None
+    market.no_bid_cents = None
+    market.no_ask_cents = None
+
+    public_client = AsyncMock()
+    public_client.get_market = AsyncMock(return_value=market)
+
+    result = await syncer.update_mark_prices(public_client)
+
+    assert result == 0
+    assert position.current_price_cents is None
+    assert position.unrealized_pnl_cents is None
+
+
+@pytest.mark.asyncio
+async def test_update_mark_prices_skips_placeholder_quotes() -> None:
+    client = MagicMock()
+    db = MagicMock()
+
+    now = datetime.now(UTC)
+    position = Position(
+        ticker="PLACEHOLDER",
+        side="yes",
+        quantity=10,
+        avg_price_cents=40,
+        current_price_cents=None,
+        unrealized_pnl_cents=None,
+        realized_pnl_cents=0,
+        opened_at=now,
+        last_synced=now,
+    )
+
+    positions_result = MagicMock()
+    positions_result.scalars.return_value.all.return_value = [position]
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=positions_result)
+    session.commit = AsyncMock()
+
+    session_cm = AsyncMock()
+    session_cm.__aenter__.return_value = session
+    session_cm.__aexit__.return_value = None
+    db.session_factory.return_value = session_cm
+
+    syncer = PortfolioSyncer(client=client, db=db)
+
+    market = MagicMock()
+    market.yes_bid_cents = 0
+    market.yes_ask_cents = 100
+    market.no_bid_cents = 0
+    market.no_ask_cents = 100
+
+    public_client = AsyncMock()
+    public_client.get_market = AsyncMock(return_value=market)
+
+    result = await syncer.update_mark_prices(public_client)
+
+    assert result == 0
+    assert position.current_price_cents is None
+    assert position.unrealized_pnl_cents is None
+
+
+@pytest.mark.asyncio
+async def test_update_mark_prices_updates_no_side_positions() -> None:
+    client = MagicMock()
+    db = MagicMock()
+
+    now = datetime.now(UTC)
+    position = Position(
+        ticker="NO-SIDE",
+        side="no",
+        quantity=10,
+        avg_price_cents=60,
+        current_price_cents=None,
+        unrealized_pnl_cents=None,
+        realized_pnl_cents=0,
+        opened_at=now,
+        last_synced=now,
+    )
+
+    positions_result = MagicMock()
+    positions_result.scalars.return_value.all.return_value = [position]
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=positions_result)
+    session.commit = AsyncMock()
+
+    session_cm = AsyncMock()
+    session_cm.__aenter__.return_value = session
+    session_cm.__aexit__.return_value = None
+    db.session_factory.return_value = session_cm
+
+    syncer = PortfolioSyncer(client=client, db=db)
+
+    market = MagicMock()
+    market.yes_bid_cents = 40
+    market.yes_ask_cents = 42
+    market.no_bid_cents = 58
+    market.no_ask_cents = 60
+
+    public_client = AsyncMock()
+    public_client.get_market = AsyncMock(return_value=market)
+
+    result = await syncer.update_mark_prices(public_client)
+
+    assert result == 1
+    assert position.current_price_cents == 59
+    assert position.unrealized_pnl_cents == -10

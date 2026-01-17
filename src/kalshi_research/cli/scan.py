@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, TypedDict
+from typing import TYPE_CHECKING, Annotated, TypedDict, cast
 
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -41,8 +41,8 @@ class NewMarketRow(TypedDict):
     title: str
     event_ticker: str
     status: str
-    yes_bid_cents: int
-    yes_ask_cents: int
+    yes_bid_cents: int | None
+    yes_ask_cents: int | None
     yes_price_display: str
     category: str
     created_time: str
@@ -91,17 +91,21 @@ def _parse_category_filter(category: str | None) -> set[str] | None:
 def _is_unpriced_market(market: Market) -> bool:
     bid = market.yes_bid_cents
     ask = market.yes_ask_cents
+    if bid is None or ask is None:
+        return True
     return (bid == 0 and ask == 0) or (bid == 0 and ask == 100)
 
 
 def _market_yes_price_display(market: Market) -> str:
     bid = market.yes_bid_cents
     ask = market.yes_ask_cents
+    if bid is None or ask is None:
+        return "[MISSING PRICE]"
     if bid == 0 and ask == 0:
         return "[NO QUOTES]"
     if bid == 0 and ask == 100:
         return "[AWAITING PRICE DISCOVERY]"
-    midpoint = market.midpoint
+    midpoint = (bid + ask) / 2
     if midpoint.is_integer():
         return f"{int(midpoint)}¢"
     return f"{midpoint:.1f}¢"
@@ -1013,7 +1017,10 @@ async def _scan_arbitrage_async(
     for group_markets, deviation in analyzer.find_inverse_market_groups(
         markets, tolerance=divergence_threshold
     ):
-        prices = {m.ticker: m.midpoint / 100.0 for m in group_markets}
+        prices: dict[str, float] = {}
+        for m in group_markets:
+            midpoint = cast("float", m.midpoint)
+            prices[m.ticker] = midpoint / 100.0
         prices["sum"] = sum(prices[m.ticker] for m in group_markets)
         opportunities.append(
             ArbitrageOpportunity(

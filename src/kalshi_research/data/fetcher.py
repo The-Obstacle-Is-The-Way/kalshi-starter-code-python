@@ -109,16 +109,25 @@ class DataFetcher:
     ) -> PriceSnapshot:
         """Convert API market to price snapshot.
 
-        Uses computed properties that prefer new dollar fields over legacy cent fields.
+        Uses computed properties derived from Kalshi `*_dollars` fields (SSOT).
         Database stores cents (integers) for precision - avoids floating-point rounding issues.
         """
+        yes_bid = api_market.yes_bid_cents
+        yes_ask = api_market.yes_ask_cents
+        no_bid = api_market.no_bid_cents
+        no_ask = api_market.no_ask_cents
+        if yes_bid is None or yes_ask is None or no_bid is None or no_ask is None:
+            raise ValueError(
+                f"Market {api_market.ticker} missing dollar quote fields; "
+                "expected `*_dollars` prices to be present."
+            )
         return PriceSnapshot(
             ticker=api_market.ticker,
             snapshot_time=snapshot_time,
-            yes_bid=api_market.yes_bid_cents,
-            yes_ask=api_market.yes_ask_cents,
-            no_bid=api_market.no_bid_cents,
-            no_ask=api_market.no_ask_cents,
+            yes_bid=yes_bid,
+            yes_ask=yes_ask,
+            no_bid=no_bid,
+            no_ask=no_ask,
             last_price=api_market.last_price_cents,
             volume=api_market.volume,
             volume_24h=api_market.volume_24h,
@@ -312,9 +321,11 @@ class DataFetcher:
         """
         Take a price snapshot of all markets.
 
-        This method is robust to missing market rows - it will upsert
-        minimal Market records before inserting snapshots to satisfy
-        foreign key constraints.
+        Notes:
+            - Robust to missing market rows: upserts minimal Market records before inserting
+              snapshots to satisfy foreign key constraints.
+            - Markets missing required `*_dollars` quotes are skipped (logged) to avoid inserting
+              NULL quote values into the database.
 
         Args:
             status: Optional filter for market status (default: open)
@@ -326,6 +337,7 @@ class DataFetcher:
         snapshot_time = datetime.now(UTC)
         logger.info("Taking price snapshot", snapshot_time=snapshot_time.isoformat())
         count = 0
+        skipped_missing_quotes = 0
 
         async with self._db.session_factory() as session, session.begin():
             price_repo = PriceRepository(session)
@@ -344,7 +356,16 @@ class DataFetcher:
                 )
                 await market_repo.insert_ignore(self._api_market_to_db(api_market))
 
-                snapshot = self._api_market_to_snapshot(api_market, snapshot_time)
+                try:
+                    snapshot = self._api_market_to_snapshot(api_market, snapshot_time)
+                except ValueError as exc:
+                    skipped_missing_quotes += 1
+                    logger.warning(
+                        "Skipping market snapshot due to invalid/missing dollar quotes",
+                        ticker=api_market.ticker,
+                        error=str(exc),
+                    )
+                    continue
                 await price_repo.add(snapshot, flush=False)
                 count += 1
 
@@ -353,7 +374,11 @@ class DataFetcher:
                     await session.flush()
                     logger.debug("Took snapshots so far", count=count)
 
-        logger.info("Took price snapshots", count=count)
+        logger.info(
+            "Took price snapshots",
+            count=count,
+            skipped_missing_quotes=skipped_missing_quotes,
+        )
         return count
 
     async def full_sync(

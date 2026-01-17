@@ -14,8 +14,8 @@ def _dollar_to_cents(dollar_str: str) -> int:
     Convert dollar string (e.g., "0.50") to cents (e.g., 50).
 
     This handles the Kalshi API migration from integer cents to dollar strings.
-    Kalshi announced cent-field deprecation for Jan 15, 2026, but as of 2026-01-16 the API
-    still returns both formats in some responses (soft deprecation).
+    As of Jan 2026, `*_dollars` fields are the SSOT; legacy integer-cent arrays may still
+    appear during soft deprecation, but are not used for computed properties.
     """
     return fixed_dollars_to_cents(dollar_str, label="orderbook price")
 
@@ -27,9 +27,9 @@ class Orderbook(BaseModel):
     Note: API returns yes/no as list of [price, quantity] tuples, or null if empty.
     The API only returns bids (no asks) - use yes for YES bids, no for NO bids.
 
-    IMPORTANT: As of Jan 15, 2026, Kalshi is deprecating the integer cents fields
-    (yes, no) in favor of dollar-denominated strings (yes_dollars, no_dollars).
-    The computed properties below handle both formats for backward compatibility.
+    IMPORTANT: As of Jan 2026, `yes_dollars` / `no_dollars` are the SSOT. The legacy integer-cent
+    arrays (`yes`, `no`) may still appear during soft deprecation, but computed properties use
+    dollar fields only.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -47,43 +47,29 @@ class Orderbook(BaseModel):
         """
         YES bid levels as [(price_cents, quantity), ...].
 
-        Prefers dollar-denominated `yes_dollars` when provided, falls back to legacy `yes`.
-        Use this instead of accessing `yes` directly for forward compatibility.
+        Derived from dollar-denominated `yes_dollars`.
         """
-        if self.yes_dollars is not None:
-            if self.yes_dollars:
-                return [(_dollar_to_cents(price), qty) for price, qty in self.yes_dollars]
-            if self.yes is not None:
-                return list(self.yes)
+        if not self.yes_dollars:
             return []
-        if self.yes is not None:
-            return list(self.yes)
-        return []
+        return [(_dollar_to_cents(price), qty) for price, qty in self.yes_dollars]
 
     @property
     def no_levels(self) -> list[tuple[int, int]]:
         """
         NO bid levels as [(price_cents, quantity), ...].
 
-        Prefers dollar-denominated `no_dollars` when provided, falls back to legacy `no`.
-        Use this instead of accessing `no` directly for forward compatibility.
+        Derived from dollar-denominated `no_dollars`.
         """
-        if self.no_dollars is not None:
-            if self.no_dollars:
-                return [(_dollar_to_cents(price), qty) for price, qty in self.no_dollars]
-            if self.no is not None:
-                return list(self.no)
+        if not self.no_dollars:
             return []
-        if self.no is not None:
-            return list(self.no)
-        return []
+        return [(_dollar_to_cents(price), qty) for price, qty in self.no_dollars]
 
     @property
     def best_yes_bid(self) -> int | None:
         """
         Best YES bid price in cents.
 
-        Prefers dollar-denominated `yes_dollars` when provided, falls back to legacy `yes`.
+        Derived from dollar-denominated `yes_dollars`.
         """
         levels = self.yes_levels
         if levels:
@@ -95,7 +81,7 @@ class Orderbook(BaseModel):
         """
         Best NO bid price in cents.
 
-        Prefers dollar-denominated `no_dollars` when provided, falls back to legacy `no`.
+        Derived from dollar-denominated `no_dollars`.
         """
         levels = self.no_levels
         if levels:

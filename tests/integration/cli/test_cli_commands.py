@@ -49,6 +49,7 @@ def _market_dict(
     volume_24h: int = 10_000,
 ) -> dict[str, Any]:
     now = datetime.now(UTC)
+    last_price = (yes_bid + yes_ask) // 2
     return {
         "ticker": ticker,
         "event_ticker": event_ticker,
@@ -59,9 +60,14 @@ def _market_dict(
         "result": "",
         "yes_bid": yes_bid,
         "yes_ask": yes_ask,
+        "yes_bid_dollars": f"{yes_bid / 100:.4f}",
+        "yes_ask_dollars": f"{yes_ask / 100:.4f}",
         "no_bid": 100 - yes_ask,
         "no_ask": 100 - yes_bid,
-        "last_price": (yes_bid + yes_ask) // 2,
+        "no_bid_dollars": f"{(100 - yes_ask) / 100:.4f}",
+        "no_ask_dollars": f"{(100 - yes_bid) / 100:.4f}",
+        "last_price": last_price,
+        "last_price_dollars": f"{last_price / 100:.4f}",
         "volume": 1_000,
         "volume_24h": volume_24h,
         "open_interest": 100,
@@ -322,7 +328,17 @@ def test_market_commands(runner: CliRunner) -> None:
             return_value=Response(200, json={"market": _market_dict(ticker)})
         )
         respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}/orderbook").mock(
-            return_value=Response(200, json={"orderbook": {"yes": [[49, 10]], "no": [[51, 10]]}})
+            return_value=Response(
+                200,
+                json={
+                    "orderbook": {
+                        "yes": [[49, 10]],
+                        "no": [[51, 10]],
+                        "yes_dollars": [["0.49", 10]],
+                        "no_dollars": [["0.51", 10]],
+                    }
+                },
+            )
         )
         _mock_events_and_markets(markets=[_market_dict(ticker)])
 

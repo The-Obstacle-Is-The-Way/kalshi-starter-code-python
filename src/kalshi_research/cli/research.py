@@ -770,11 +770,15 @@ def _print_market_related(sources: list["ResearchSource"]) -> None:
 
 def _render_market_context(market: "Market", research: "MarketResearch") -> None:
     console.print(f"\n[bold]Market:[/bold] {market.title}")
-    mid_prob = market.midpoint / 100.0
+    midpoint = market.midpoint
+    spread = market.spread
+    mid_prob = (midpoint / 100.0) if midpoint is not None else None
+    mid_display = f"{mid_prob:.0%} YES" if mid_prob is not None else "N/A"
+    spread_display = f"{spread}¢" if spread is not None else "N/A"
     console.print(
-        f"[dim]Current: {mid_prob:.0%} YES | "
+        f"[dim]Current: {mid_display} | "
         f"Volume: {market.volume_24h:,} | "
-        f"Spread: {market.spread}¢[/dim]\n"
+        f"Spread: {spread_display}[/dim]\n"
     )
 
     if research.news:

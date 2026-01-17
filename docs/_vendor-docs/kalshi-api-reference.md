@@ -1028,11 +1028,11 @@ Returns both order states:
 
 ## Recent Breaking Changes (2025-2026)
 
-### Market response field removals (release Jan 15, 2026)
+### Market response field removals (planned Jan 15, 2026)
 
-> **⚠️ IMMINENT:** These fields are being removed in 5 days (Jan 15, 2026).
+> **Status (last checked: 2026-01-17):** Soft deprecated — cent fields may still be returned alongside `*_dollars`.
 
-Cent-denominated fields being removed from **Market** responses:
+Cent-denominated fields slated for removal from **Market** responses:
 - `response_price_units`, `notional_value`, `yes_bid`, `yes_ask`, `no_bid`, `no_ask`, `last_price`,
   `previous_yes_bid`, `previous_yes_ask`, `previous_price`, `liquidity` → Use `*_dollars` equivalents.
 - `tick_size` → Use `price_level_structure` and `price_ranges`.
@@ -1043,7 +1043,7 @@ values as `None`/unknown rather than crashing on validation.
 
 **Dollar replacements (these REMAIN in API):**
 
-| REMOVED (Jan 15) | REMAINS (Use This) | Format |
+| DEPRECATED (cent) | REMAINS (Use This) | Format |
 |------------------|-------------------|--------|
 | `yes_bid` | `yes_bid_dollars` | String like `"0.4500"` |
 | `yes_ask` | `yes_ask_dollars` | String like `"0.5500"` |
@@ -1082,6 +1082,15 @@ New `include_volume` query parameter on `GET /series` endpoints. When set, retur
   TBD release date in the changelog; code defensively.
 
 ---
+
+## Monitoring Notes
+
+### Cent Field Deprecation (Last checked: 2026-01-17)
+
+- Kalshi announced cent-denominated field removal for Jan 15, 2026
+- Status: Soft deprecated (cent fields still returned alongside dollars)
+- Our code: Uses `*_dollars` only (fallback removed)
+- Action: If API errors occur, check if Kalshi changed field names
 
 ## Key Concepts
 
