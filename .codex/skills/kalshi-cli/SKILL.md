@@ -90,8 +90,8 @@ uv run kalshi scan movers [--db PATH] [--period 24h] [--top 10] [--max-pages N] 
 ### portfolio - Portfolio Tracking (Requires Auth)
 ```bash
 uv run kalshi portfolio sync [--db PATH] [--env demo|prod] [--rate-tier basic|advanced|premier|prime] [--skip-mark-prices]
-uv run kalshi portfolio positions [--db PATH] [--ticker TICKER]
-uv run kalshi portfolio pnl [--db PATH] [--ticker TICKER]
+uv run kalshi portfolio positions [--db PATH] [--ticker TICKER] [--full]
+uv run kalshi portfolio pnl [--db PATH] [--ticker TICKER] [--full]
 uv run kalshi portfolio balance [--env demo|prod] [--rate-tier basic|advanced|premier|prime]
 uv run kalshi portfolio history [-n 20] [--db PATH] [--ticker TICKER]
 uv run kalshi portfolio link TICKER --thesis ID [--db PATH]  # Link position to thesis
@@ -109,6 +109,7 @@ uv run kalshi research cache clear [--all] [--cache-dir DIR]
 uv run kalshi research thesis create "TITLE" -m T1,T2 --your-prob 0.7 --market-prob 0.5 --confidence 0.8 [--with-research] [-y]
 uv run kalshi research thesis list [--full]
 uv run kalshi research thesis show ID [--with-positions] [--db PATH]
+uv run kalshi research thesis edit ID [--title TEXT] [--bull TEXT] [--bear TEXT]
 uv run kalshi research thesis resolve ID --outcome yes|no|void
 uv run kalshi research thesis check-invalidation ID [--hours 48]
 uv run kalshi research thesis suggest [--category TEXT]

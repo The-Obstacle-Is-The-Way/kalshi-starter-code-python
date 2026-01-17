@@ -369,6 +369,7 @@ uv run kalshi portfolio positions [OPTIONS]
 |--------|---------|-------------|
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
 | `--ticker`, `-t` | None | Filter by specific ticker |
+| `--full`, `-F` | False | Show full tickers without truncation |
 
 ### portfolio pnl
 View profit & loss summary.
@@ -381,6 +382,7 @@ uv run kalshi portfolio pnl [OPTIONS]
 |--------|---------|-------------|
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
 | `--ticker`, `-t` | None | Filter by specific ticker |
+| `--full`, `-F` | False | Show full tickers without truncation |
 
 ### portfolio balance
 View account balance.
@@ -477,6 +479,20 @@ uv run kalshi research thesis show THESIS_ID [OPTIONS]
 | `THESIS_ID` | Required | Thesis ID to show |
 | `--with-positions` | False | Show linked positions |
 | `--db`, `-d` | `data/kalshi.db` | Path to SQLite database file |
+
+### research thesis edit
+Edit a thesis stored in the local thesis file.
+
+```bash
+uv run kalshi research thesis edit THESIS_ID [OPTIONS]
+```
+
+| Argument/Option | Default | Description |
+|-----------------|---------|-------------|
+| `THESIS_ID` | Required | Thesis ID to edit |
+| `--title` | None | Update thesis title |
+| `--bull` | None | Update bull case |
+| `--bear` | None | Update bear case |
 
 ### research thesis resolve
 Resolve a thesis with an outcome.
