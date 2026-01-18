@@ -33,7 +33,7 @@
 **Guidelines:**
 
 - SPEC-* tasks require a follow-up review iteration and a `[REVIEWED]` marker.
-- Read `AGENTS.md` first (project intent + safety constraints).
+- Read [`AGENTS.md`](AGENTS.md) first (project intent + safety constraints).
 - Complete SPEC-033 before SPEC-032 (SPEC-032 depends on SPEC-033 for the research provider + shared schemas).
 - SPEC-028 is independent (local DB) and can be implemented anytime.
 - Do not run cost-incurring or irreversible operations during the loop (Exa paid calls, live trading). Prefer unit tests + fixtures.

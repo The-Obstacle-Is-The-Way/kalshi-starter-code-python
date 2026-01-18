@@ -70,4 +70,8 @@ Polymarket uses a similar structure to Kalshi:
 
 ## Acceptance Criteria
 
-_To be defined when promoted to spec._
+When promoted to a spec, the MVP should be considered complete when:
+
+- [ ] `kalshi polymarket compare <KALSHI_TICKER>` prints a comparable yes/no probability snapshot for both venues.
+- [ ] `kalshi polymarket scan --threshold 0.05` flags opportunities above the threshold deterministically.
+- [ ] Unit tests validate mapping + threshold logic (no network).
