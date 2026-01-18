@@ -1,6 +1,6 @@
 # SPEC-028: Topic Search & Market Discovery (DB + CLI)
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** P1 (Core UX / Research Loop)
 **Created:** 2026-01-10
 **Owner:** Solo

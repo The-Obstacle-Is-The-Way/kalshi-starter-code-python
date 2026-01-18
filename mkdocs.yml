@@ -15,6 +15,7 @@ exclude_docs: |
 not_in_nav: |
   _bugs/BUG-*.md
   _specs/SPEC-*.md
+  _future/FUTURE-*.md
   _future/TODO-*.md
   _debt/DEBT-*.md
 

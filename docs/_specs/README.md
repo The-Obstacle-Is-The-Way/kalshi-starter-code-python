@@ -15,24 +15,28 @@ This directory contains **active** design specifications - work happening NOW.
 
 | ID | Title | Status |
 |---|---|---|
-| SPEC-028 | [Topic Search & Market Discovery (DB + CLI)](SPEC-028-topic-search-and-discovery.md) | 📝 Draft |
-| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 🟡 Phase 1 implemented |
-| SPEC-031 | [Scanner Quality Profiles (Slop Filtering + "Get In Early" Mode)](SPEC-031-scanner-quality-profiles.md) | 🟡 Phase 1–2 implemented (Phase 3 deferred) |
-| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft (depends on SPEC-033 for research provider) |
-| SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft (depends on SPEC-030 policy + DEBT-022 crash recovery) |
+| SPEC-028 | [Topic Search & Market Discovery (DB + CLI)](SPEC-028-topic-search-and-discovery.md) | 📝 Ready |
+| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | ✅ Phase 1 Complete |
+| SPEC-031 | [Scanner Quality Profiles (Slop Filtering + "Get In Early" Mode)](SPEC-031-scanner-quality-profiles.md) | ✅ Phase 1–2 Complete (Phase 3 deferred) |
+| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Ready (blocked by SPEC-033) |
+| SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 **READY** (all deps resolved) |
 | SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 🟡 Phase 1 implemented (Phase 2 deferred) |
 | SPEC-038 | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](SPEC-038-exa-websets-endpoint-coverage.md) | 📝 Draft |
 
 ### Implementation Order (Critical Path)
 
-```text
-SPEC-030 (Exa Policy)          ← Budgeted, deterministic Exa usage
-    ↓
-SPEC-033 (Exa Research Agent)  ← Deterministic Exa workflows + crash recovery
-    ↓
-SPEC-032 (Agent Orchestration) ← Orchestrator integrates research + verification (+ trading later)
+Execution order is tracked in `PROGRESS.md` (Ralph Wiggum queue). This section lists the dependency order.
 
-SPEC-034 (TradeExecutor)       ← Trading safety harness (Phase 1 done; Phase 2 only when needed)
+```text
+✅ SPEC-030 (Exa Policy)       ← DONE: ExaMode, ExaPolicy, ExaBudget in src/kalshi_research/exa/policy.py
+    ↓
+⏳ SPEC-033 (Exa Research Agent)  ← NEXT: Creates src/kalshi_research/agent/ module
+    ↓
+⏳ SPEC-032 (Agent Orchestration) ← THEN: Orchestrator integrates research + verification
+
+🟡 SPEC-034 (TradeExecutor)       ← Phase 1 done; Phase 2 deferred
+📝 SPEC-028 (Topic Search)        ← Independent, can implement anytime
+📝 SPEC-038 (Exa Websets)         ← P2, future automation
 ```
 
 ---

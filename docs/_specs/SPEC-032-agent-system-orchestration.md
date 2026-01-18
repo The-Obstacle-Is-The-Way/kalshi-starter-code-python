@@ -1,6 +1,6 @@
 # SPEC-032: Agent System Orchestration (Single-Agent Default + Escalation)
 
-**Status:** Draft
+**Status:** Ready (blocked by SPEC-033)
 **Priority:** P1 (Core “mispricing research” roadmap)
 **Created:** 2026-01-10
 **Owner:** Solo
@@ -76,7 +76,7 @@ model by default.
 src/kalshi_research/agent/
   __init__.py
   orchestrator.py          # AgentKernel orchestration (this spec)
-  schemas.py               # Pydantic I/O models (this spec)
+  schemas.py               # Shared Pydantic I/O models (introduced in SPEC-033; extended here)
   verify.py                # Rule-based verification (this spec)
   escalation.py            # Escalation gating + optional critics (Phase 2)
   providers/
@@ -336,7 +336,7 @@ usable without LLM keys.
 
 ### Phase 1 (single orchestrator + rules verifier)
 
-1. Add `src/kalshi_research/agent/schemas.py` and `verify.py`.
+1. Extend `src/kalshi_research/agent/schemas.py` (introduced in SPEC-033) and add `verify.py`.
 2. Add `src/kalshi_research/agent/orchestrator.py` with a pure, testable workflow.
 3. Add `src/kalshi_research/cli/agent.py` with `agent analyze` command.
 4. Add unit tests:

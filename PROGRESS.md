@@ -1,36 +1,42 @@
 # Kalshi Research Platform — Ralph Wiggum Progress Tracker
 
 **Last Updated:** 2026-01-18
-**Status:** Idle (no active queue)
+**Status:** Active (Spec Implementation Queue)
 **Purpose:** State file for the Ralph Wiggum loop (see `docs/_ralph-wiggum/protocol.md`)
 
 ---
 
 ## Active Queue
 
-No active items.
+### Phase 1: P1 Specs (Core)
 
-To start a new loop run:
+#### 1A) Local discovery (independent)
 
-1. Create a sandbox branch for Ralph work.
-2. Add tasks below as checklist items (one task per line).
-3. Run the loop using `PROMPT.md`.
+- [ ] **SPEC-028**: Topic Search & Market Discovery → `docs/_specs/SPEC-028-topic-search-and-discovery.md`
 
-Guidelines:
+#### 1B) Agent stack (depends on SPEC-030)
 
-- Prefer referencing an existing task doc: `docs/_bugs/BUG-*.md`, `docs/_debt/DEBT-*.md`, `docs/_specs/SPEC-*.md`, `docs/_future/*.md`.
+- [ ] **SPEC-033**: Exa Research Agent → `docs/_specs/SPEC-033-exa-research-agent.md`
+- [ ] **SPEC-032**: Agent System Orchestration → `docs/_specs/SPEC-032-agent-system-orchestration.md`
+
+### Phase 2: P2 Specs (Optional / When Needed)
+
+- [ ] **SPEC-038**: Exa Websets API Coverage → `docs/_specs/SPEC-038-exa-websets-endpoint-coverage.md`
+- [ ] **SPEC-034**: TradeExecutor Safety Harness (Phase 2 hardening) → `docs/_specs/SPEC-034-trade-executor-safety-harness.md`
+
+### Phase 3: Final Verification
+
+- [ ] **FINAL-GATES**: All quality gates pass (`pre-commit`, `mypy`, `pytest`, `mkdocs build --strict`)
+
+---
+
+**Guidelines:**
+
 - SPEC-* tasks require a follow-up review iteration and a `[REVIEWED]` marker.
-
-<!-- Template (uncomment and edit when ready)
-  ## Phase 1: Bugs
-  - [ ] **BUG-###**: Short description → docs/_bugs/BUG-###-....
-  ## Phase 2: Debt
-  - [ ] **DEBT-###**: Short description → docs/_debt/DEBT-###-....
-  ## Phase 3: Specs
-  - [ ] **SPEC-###**: Short description → docs/_specs/SPEC-###-....
-  ## Phase 4: Final Verification
-  - [ ] **FINAL-GATES**: All quality gates pass
--->
+- Read [`AGENTS.md`](AGENTS.md) first (project intent + safety constraints).
+- Complete SPEC-033 before SPEC-032 (SPEC-032 depends on SPEC-033 for the research provider + shared schemas).
+- SPEC-028 is independent (local DB) and can be implemented anytime.
+- Do not run cost-incurring or irreversible operations during the loop (Exa paid calls, live trading). Prefer unit tests + fixtures.
 
 ---
 

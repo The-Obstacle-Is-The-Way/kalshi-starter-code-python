@@ -19,6 +19,19 @@ This directory contains **future work** - items that are blocked, deferred, or p
 |----|-------|-------------|
 | **FUTURE-002** | [Kalshi Blocked Endpoints](FUTURE-002-kalshi-blocked-endpoints.md) | Subaccounts (new feature), Forecast history (no data), Institutional endpoints |
 
+### Ideas (External Data Sources)
+
+These are potential future integrations for information arbitrage. Prioritized by signal-to-effort ratio.
+
+| ID | Title | Priority | Cost | Notes |
+|----|-------|----------|------|-------|
+| **FUTURE-003** | [Polymarket Cross-Arbitrage](FUTURE-003-polymarket-cross-arbitrage.md) | High | Free | Best ROI - similar data model, direct price comparison |
+| **FUTURE-004** | [Twitter/X Real-Time Data](FUTURE-004-twitter-realtime-data.md) | Medium-High | $100+/mo | Breaking news, but expensive and noisy |
+| **FUTURE-005** | [Sportsbook Odds API](FUTURE-005-sportsbook-odds-api.md) | Medium | Free-$80/mo | Sports markets only, aggregator APIs available |
+| **FUTURE-006** | [Alternative News Sources](FUTURE-006-alternative-news-sources.md) | Low | Free | HN/Reddit/RSS - Exa already covers most |
+
+**Strategy:** Complete vertical stack (SPEC-030 → 033 → 032) first. Design ResearchProvider interface to be pluggable, then add external sources as providers.
+
 ---
 
 ## Workflow
