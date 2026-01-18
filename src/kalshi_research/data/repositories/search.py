@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, and_, cast, func, or_, select, text
+from sqlalchemy import String, and_, cast, column, func, or_, select, table, text
 
 from kalshi_research.data.models import Event, Market, PriceSnapshot
 from kalshi_research.data.search_utils import fts_tables_exist, has_fts5_support
@@ -131,6 +131,16 @@ class SearchRepository:
             .cte("latest")
         )
 
+        # Create a virtual table reference for the FTS5 table
+        market_fts = table(
+            "market_fts",
+            column("ticker"),
+            column("title"),
+            column("subtitle"),
+            column("event_ticker"),
+            column("series_ticker"),
+        )
+
         # Join market_fts with markets, events, and latest snapshots
         stmt = (
             select(
@@ -146,8 +156,8 @@ class SearchRepository:
                 Market.close_time,
                 Market.expiration_time,
             )
-            .select_from(text("market_fts"))
-            .join(Market, text("market_fts.ticker = markets.ticker"))
+            .select_from(market_fts)
+            .join(Market, market_fts.c.ticker == Market.ticker)
             .join(Event, Market.event_ticker == Event.ticker)
             .outerjoin(latest_cte, Market.ticker == latest_cte.c.ticker)
             .outerjoin(

@@ -226,3 +226,97 @@ async def test_search_markets_limit(
     # Search with limit
     results = await repo.search_markets("", limit=2)
     assert len(results) <= 2
+
+
+@pytest.mark.asyncio
+async def test_search_markets_fts5_path(
+    session: AsyncSession,
+    sample_data: None,
+) -> None:
+    """Test market search using FTS5 virtual tables (if available)."""
+    _ = sample_data  # Ensure fixture is executed
+
+    # Check if FTS5 is available
+    has_fts5 = await has_fts5_support(session)
+    if not has_fts5:
+        pytest.skip("FTS5 not available in this SQLite build")
+
+    # Create FTS5 virtual tables manually (mimics migration)
+    from sqlalchemy import text
+
+    await session.execute(
+        text(
+            """
+        CREATE VIRTUAL TABLE IF NOT EXISTS market_fts USING fts5(
+          ticker UNINDEXED,
+          title,
+          subtitle,
+          event_ticker UNINDEXED,
+          series_ticker UNINDEXED
+        )
+        """
+        )
+    )
+
+    # Create triggers to maintain market_fts
+    await session.execute(
+        text(
+            """
+        CREATE TRIGGER IF NOT EXISTS market_fts_ai
+        AFTER INSERT ON markets BEGIN
+          INSERT INTO market_fts(ticker, title, subtitle, event_ticker, series_ticker)
+          VALUES (new.ticker, new.title, new.subtitle, new.event_ticker, new.series_ticker);
+        END
+        """
+        )
+    )
+
+    await session.execute(
+        text(
+            """
+        CREATE TRIGGER IF NOT EXISTS market_fts_ad
+        AFTER DELETE ON markets BEGIN
+          DELETE FROM market_fts WHERE ticker = old.ticker;
+        END
+        """
+        )
+    )
+
+    await session.execute(
+        text(
+            """
+        CREATE TRIGGER IF NOT EXISTS market_fts_au
+        AFTER UPDATE ON markets BEGIN
+          DELETE FROM market_fts WHERE ticker = old.ticker;
+          INSERT INTO market_fts(ticker, title, subtitle, event_ticker, series_ticker)
+          VALUES (new.ticker, new.title, new.subtitle, new.event_ticker, new.series_ticker);
+        END
+        """
+        )
+    )
+
+    # Populate existing data into FTS table
+    await session.execute(
+        text(
+            """
+        INSERT INTO market_fts(ticker, title, subtitle, event_ticker, series_ticker)
+        SELECT ticker, title, subtitle, event_ticker, series_ticker
+        FROM markets
+        """
+        )
+    )
+    await session.commit()
+
+    # Create a new repository instance to force re-checking FTS5 support
+    repo = SearchRepository(session)
+
+    # Search using FTS5 - this should now exercise the _search_markets_fts5 path
+    results = await repo.search_markets("Bitcoin", limit=10)
+    assert len(results) >= 1
+    assert any("Bitcoin" in r.title for r in results)
+
+    # Test that FTS5 code path works with category filter
+    results = await repo.search_markets("price", category="Crypto", limit=10)
+    assert len(results) >= 1
+    for result in results:
+        assert result.event_category == "Crypto"
