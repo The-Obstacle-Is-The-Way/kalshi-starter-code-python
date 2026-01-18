@@ -80,9 +80,7 @@ nav:
           - Index: _specs/README.md
       - Future:
           - Index: _future/README.md
-          - FUTURE-001: _future/FUTURE-001-exa-research-agent.md
           - FUTURE-002: _future/FUTURE-002-kalshi-blocked-endpoints.md
-          - TODO-00B: _future/TODO-00B-trade-executor-phase2.md
       - Bug Tracker: _bugs/README.md
       - Debt Overview: _debt/README.md
       - Code Audit Checklist: _debt/code-audit-checklist.md

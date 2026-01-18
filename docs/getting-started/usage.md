@@ -128,12 +128,23 @@ uv run kalshi market history <TICKER> --interval 1h --days 7
 ### Opportunities
 
 ```bash
-uv run kalshi scan opportunities --filter close-race --top 10 --min-volume 1000 --max-spread 10 --max-pages 10
-uv run kalshi scan opportunities --filter close-race --category ai --top 10 --min-volume 1000 --max-spread 10 --max-pages 10 --full
+uv run kalshi scan opportunities --profile tradeable --filter close-race --top 10 --max-pages 10
+uv run kalshi scan opportunities --profile tradeable --filter close-race --category ai --top 10 --max-pages 10 --full
+uv run kalshi scan opportunities --profile liquid --filter close-race --top 10 --max-pages 10
+uv run kalshi scan opportunities --profile early --early-hours 48 --top 10 --max-pages 10
 uv run kalshi scan opportunities --filter high-volume --top 10 --max-pages 10
 uv run kalshi scan opportunities --filter wide-spread --top 10 --max-pages 10
 uv run kalshi scan opportunities --filter expiring-soon --top 10 --max-pages 10
 ```
+
+Quality profiles set sensible defaults for the close-race filter (and optionally liquidity scoring):
+
+- `raw`: no filtering (`min_volume=0`, `max_spread=100`, no liquidity filter)
+- `tradeable`: `min_volume=1000`, `max_spread=10`
+- `liquid`: `min_volume=5000`, `max_spread=5`, `min_liquidity=60`
+- `early`: `min_volume=100`, `max_spread=5`, `min_liquidity=40` (intended for new markets; use `--early-hours`)
+
+Explicit flags override profile defaults (e.g., `--profile liquid --min-volume 1000` uses 1000).
 
 ### New Markets
 

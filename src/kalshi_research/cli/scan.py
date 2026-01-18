@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, TypedDict, cast
 
@@ -47,6 +48,92 @@ class NewMarketRow(TypedDict):
     category: str
     created_time: str
     age: str
+
+
+class ScanProfile(str, Enum):
+    """Opinionated presets for `kalshi scan opportunities`."""
+
+    RAW = "raw"
+    TRADEABLE = "tradeable"
+    LIQUID = "liquid"
+    EARLY = "early"
+
+
+def _scan_profile_defaults(profile: ScanProfile) -> tuple[int, int, int | None]:
+    """Return (min_volume, max_spread, min_liquidity) defaults for the given profile."""
+    if profile is ScanProfile.RAW:
+        return 0, 100, None
+    if profile is ScanProfile.TRADEABLE:
+        return 1000, 10, None
+    if profile is ScanProfile.LIQUID:
+        return 5000, 5, 60
+    if profile is ScanProfile.EARLY:
+        return 100, 5, 40
+    raise ValueError(f"Unknown ScanProfile: {profile}")
+
+
+async def _fetch_opportunities_markets(
+    client: KalshiPublicClient,
+    *,
+    category: str | None,
+    no_sports: bool,
+    event_prefix: str | None,
+    max_pages: int | None,
+) -> list[Market]:
+    if not category and not no_sports and not event_prefix:
+        return [m async for m in client.get_all_markets(status="open", max_pages=max_pages)]
+
+    from kalshi_research.analysis.categories import SPORTS_CATEGORY, normalize_category
+
+    include_category = normalize_category(category) if category else None
+    include_lower = include_category.strip().lower() if include_category else None
+    prefix_upper = event_prefix.upper() if event_prefix else None
+
+    markets: list[Market] = []
+    async for api_event in client.get_all_events(
+        status="open",
+        limit=200,
+        max_pages=max_pages,
+        with_nested_markets=True,
+    ):
+        if prefix_upper and not api_event.event_ticker.upper().startswith(prefix_upper):
+            continue
+
+        event_category = api_event.category
+        if (
+            no_sports
+            and isinstance(event_category, str)
+            and event_category.strip().lower() == SPORTS_CATEGORY.lower()
+        ):
+            continue
+
+        if include_lower and (
+            not isinstance(event_category, str) or event_category.strip().lower() != include_lower
+        ):
+            continue
+
+        markets.extend(api_event.markets or [])
+
+    return markets
+
+
+def _filter_markets_by_age(
+    markets: list[Market],
+    *,
+    cutoff: datetime,
+) -> tuple[list[Market], int]:
+    filtered_markets: list[Market] = []
+    missing_created_time = 0
+
+    for market in markets:
+        reference_time = market.created_time or market.open_time
+        if reference_time < cutoff:
+            continue
+        if market.created_time is None:
+            missing_created_time += 1
+        filtered_markets.append(market)
+
+    return filtered_markets, missing_created_time
 
 
 def _format_relative_age(*, now: datetime, timestamp: datetime) -> str:
@@ -481,14 +568,16 @@ async def _fetch_exchange_status(
 
 async def _scan_opportunities_async(
     *,
+    profile: ScanProfile,
     filter_type: str | None,
     category: str | None,
     no_sports: bool,
     event_prefix: str | None,
     full: bool,
     top_n: int,
-    min_volume: int,
-    max_spread: int,
+    min_volume: int | None,
+    max_spread: int | None,
+    early_hours: int,
     max_pages: int | None,
     min_liquidity: int | None,
     show_liquidity: bool,
@@ -497,7 +586,12 @@ async def _scan_opportunities_async(
     from kalshi_research.analysis.scanner import MarketScanner
     from kalshi_research.api import KalshiPublicClient
 
-    scan_top_n = top_n if min_liquidity is None else min(top_n * 5, 50)
+    profile_min_volume, profile_max_spread, profile_min_liquidity = _scan_profile_defaults(profile)
+    effective_min_volume = min_volume if min_volume is not None else profile_min_volume
+    effective_max_spread = max_spread if max_spread is not None else profile_max_spread
+    effective_min_liquidity = min_liquidity if min_liquidity is not None else profile_min_liquidity
+
+    scan_top_n = top_n if effective_min_liquidity is None else min(top_n * 5, 50)
 
     async with KalshiPublicClient() as client:
         exchange_status = await _fetch_exchange_status(client)
@@ -508,44 +602,38 @@ async def _scan_opportunities_async(
             console=console,
         ) as progress:
             progress.add_task("Fetching markets...", total=None)
-            if category or no_sports or event_prefix:
-                from kalshi_research.analysis.categories import SPORTS_CATEGORY, normalize_category
-
-                include_category = normalize_category(category) if category else None
-                include_lower = include_category.strip().lower() if include_category else None
-                prefix_upper = event_prefix.upper() if event_prefix else None
-
-                markets = []
-                async for api_event in client.get_all_events(
-                    status="open",
-                    limit=200,
-                    max_pages=max_pages,
-                    with_nested_markets=True,
-                ):
-                    if prefix_upper and not api_event.event_ticker.upper().startswith(prefix_upper):
-                        continue
-
-                    event_category = api_event.category
-                    if no_sports and (
-                        isinstance(event_category, str)
-                        and event_category.strip().lower() == SPORTS_CATEGORY.lower()
-                    ):
-                        continue
-                    if include_lower and (
-                        not isinstance(event_category, str)
-                        or event_category.strip().lower() != include_lower
-                    ):
-                        continue
-
-                    markets.extend(api_event.markets or [])
-            else:
-                markets = [
-                    m async for m in client.get_all_markets(status="open", max_pages=max_pages)
-                ]
+            markets = await _fetch_opportunities_markets(
+                client,
+                category=category,
+                no_sports=no_sports,
+                event_prefix=event_prefix,
+                max_pages=max_pages,
+            )
 
             if not markets:
                 console.print("[yellow]No markets found matching category filters.[/yellow]")
                 return
+
+            if profile is ScanProfile.EARLY:
+                from datetime import UTC
+
+                if early_hours <= 0:
+                    console.print("[red]Error:[/red] --early-hours must be positive.")
+                    raise typer.Exit(1)
+
+                now = datetime.now(UTC)
+                cutoff = now - timedelta(hours=early_hours)
+                markets, missing_created_time = _filter_markets_by_age(markets, cutoff=cutoff)
+                if not markets:
+                    console.print(
+                        f"[yellow]No markets found in the last {early_hours} hours.[/yellow]"
+                    )
+                    return
+                if missing_created_time:
+                    console.print(
+                        "[yellow]Warning:[/yellow] Some markets are missing created_time; "
+                        "approximating newness with open_time."
+                    )
 
             from kalshi_research.analysis.scanner import MarketStatusVerifier
 
@@ -555,8 +643,8 @@ async def _scan_opportunities_async(
                 markets,
                 filter_type=filter_type,
                 top_n=scan_top_n,
-                min_volume=min_volume,
-                max_spread=max_spread,
+                min_volume=effective_min_volume,
+                max_spread=effective_max_spread,
             )
 
             if not results:
@@ -564,7 +652,7 @@ async def _scan_opportunities_async(
                 return
 
             liquidity_by_ticker: dict[str, int] = {}
-            if show_liquidity or min_liquidity is not None:
+            if show_liquidity or effective_min_liquidity is not None:
                 progress.add_task("Analyzing liquidity...", total=None)
                 markets_by_ticker = {m.ticker: m for m in markets}
                 liquidity_by_ticker = await _compute_liquidity_scores(
@@ -574,11 +662,11 @@ async def _scan_opportunities_async(
                     liquidity_depth=liquidity_depth,
                 )
 
-            if min_liquidity is not None:
+            if effective_min_liquidity is not None:
                 results = _filter_results_by_liquidity(
                     results,
                     liquidity_by_ticker,
-                    min_liquidity=min_liquidity,
+                    min_liquidity=effective_min_liquidity,
                     top_n=top_n,
                 )
 
@@ -591,13 +679,20 @@ async def _scan_opportunities_async(
         title,
         full=full,
         show_liquidity=show_liquidity,
-        min_liquidity=min_liquidity,
+        min_liquidity=effective_min_liquidity,
         liquidity_by_ticker=liquidity_by_ticker,
     )
 
 
 @app.command("opportunities")
 def scan_opportunities(
+    profile: Annotated[
+        ScanProfile,
+        typer.Option(
+            "--profile",
+            help="Quality profile preset for `scan opportunities` (raw, tradeable, liquid, early).",
+        ),
+    ] = ScanProfile.RAW,
     filter_type: Annotated[
         str | None,
         typer.Option(
@@ -624,19 +719,31 @@ def scan_opportunities(
     ] = None,
     top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
     min_volume: Annotated[
-        int,
+        int | None,
         typer.Option(
             "--min-volume",
-            help="Minimum 24h volume (close-race filter only).",
+            help="Minimum 24h volume (close-race filter only). Overrides --profile default.",
         ),
-    ] = 0,
+    ] = None,
     max_spread: Annotated[
-        int,
+        int | None,
         typer.Option(
             "--max-spread",
-            help="Maximum bid-ask spread in cents (close-race filter only).",
+            help=(
+                "Maximum bid-ask spread in cents (close-race filter only). "
+                "Overrides --profile default."
+            ),
         ),
-    ] = 100,
+    ] = None,
+    early_hours: Annotated[
+        int,
+        typer.Option(
+            "--early-hours",
+            help=(
+                "When --profile early, only consider markets created/opened within this many hours."
+            ),
+        ),
+    ] = 72,
     max_pages: Annotated[
         int | None,
         typer.Option(
@@ -673,6 +780,7 @@ def scan_opportunities(
     """Scan markets for opportunities."""
     asyncio.run(
         _scan_opportunities_async(
+            profile=profile,
             filter_type=filter_type,
             category=category,
             no_sports=no_sports,
@@ -681,6 +789,7 @@ def scan_opportunities(
             top_n=top_n,
             min_volume=min_volume,
             max_spread=max_spread,
+            early_hours=early_hours,
             max_pages=max_pages,
             min_liquidity=min_liquidity,
             show_liquidity=show_liquidity,

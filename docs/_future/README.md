@@ -19,13 +19,6 @@ This directory contains **future work** - items that are blocked, deferred, or p
 |----|-------|-------------|
 | **FUTURE-002** | [Kalshi Blocked Endpoints](FUTURE-002-kalshi-blocked-endpoints.md) | Subaccounts (new feature), Forecast history (no data), Institutional endpoints |
 
-### Deferred (Not Priority)
-
-| ID | Title | Why Deferred |
-|----|-------|--------------|
-| **FUTURE-001** | [Exa Research Agent](FUTURE-001-exa-research-agent.md) | Complex (~20hrs), MCP alternative exists |
-| **TODO-00B** | [TradeExecutor Phase 2](TODO-00B-trade-executor-phase2.md) | Until agent trading needed |
-
 ---
 
 ## Workflow
@@ -45,6 +38,13 @@ This directory contains **future work** - items that are blocked, deferred, or p
 
 Completed backlog items are stored under `docs/_archive/future/` (excluded from the MkDocs site
 build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive structure.
+
+### Recently Promoted to Specs (2026-01-18)
+
+| ID | Title | Status |
+|---|---|---|
+| [FUTURE-001](../_archive/future/FUTURE-001-exa-research-agent.md) | Exa Research Agent | ✅ Promoted → SPEC-033 |
+| [TODO-00B](../_archive/future/TODO-00B-trade-executor-phase2.md) | TradeExecutor Phase 2 | ✅ Promoted → SPEC-034 |
 
 ### Recently Completed (2026-01-15)
 

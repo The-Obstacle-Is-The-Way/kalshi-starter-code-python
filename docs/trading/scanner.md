@@ -218,8 +218,10 @@ Add `--full/-F` to disable truncation in table output.
 ### Opportunities
 
 ```bash
---min-volume 1000    # Minimum 24h volume (close-race filter only)
---max-spread 10      # Maximum spread in cents (close-race filter only)
+--profile tradeable  # Preset filters: raw|tradeable|liquid|early
+--early-hours 72     # Only used with --profile early (newness window)
+--min-volume 1000    # Minimum 24h volume (close-race filter only; overrides --profile default)
+--max-spread 10      # Maximum spread in cents (close-race filter only; overrides --profile default)
 --max-pages 10       # Optional pagination safety limit (omit for full)
 --top 10             # Number of results to show
 --category ai        # Filter by category (e.g. Politics, Economics, AI)
@@ -257,9 +259,19 @@ Add `--full/-F` to disable truncation in table output.
 ### Examples
 
 ```bash
-# Close races with decent liquidity
+# Close races (recommended default slop filters)
+uv run kalshi scan opportunities --profile tradeable --filter close-race --top 10
+
+# Close races with stronger execution constraints (fetches orderbooks)
+uv run kalshi scan opportunities --profile liquid --filter close-race --top 10
+
+# Close races in newly-created markets (tight spread + liquidity; fetches orderbooks)
+uv run kalshi scan opportunities --profile early --early-hours 72 --top 10
+
+# Fully manual (overrides all profile defaults)
 uv run kalshi scan opportunities \
   --filter close-race \
+  --profile raw \
   --min-volume 1000 \
   --max-spread 10 \
   --min-liquidity 50 \
