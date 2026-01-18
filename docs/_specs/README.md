@@ -16,7 +16,7 @@ This directory contains **active** design specifications - work happening NOW.
 | ID | Title | Status |
 |---|---|---|
 | SPEC-028 | [Topic Search & Market Discovery (DB + CLI)](SPEC-028-topic-search-and-discovery.md) | 📝 Draft |
-| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 📝 Draft |
+| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 🟡 Phase 1 implemented |
 | SPEC-031 | [Scanner Quality Profiles (Slop Filtering + "Get In Early" Mode)](SPEC-031-scanner-quality-profiles.md) | 🟡 Phase 1–2 implemented (Phase 3 deferred) |
 | SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft (depends on SPEC-033 for research provider) |
 | SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft (depends on SPEC-030 policy + DEBT-022 crash recovery) |

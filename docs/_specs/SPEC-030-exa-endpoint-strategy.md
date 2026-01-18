@@ -1,6 +1,6 @@
 # SPEC-030: Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)
 
-**Status:** Draft
+**Status:** 🟡 Phase 1 implemented (2026-01-18)
 **Priority:** P1 (Research Quality + Cost Control)
 **Created:** 2026-01-10
 **Owner:** Solo
@@ -69,7 +69,8 @@ SSOT: `src/kalshi_research/exa/client.py`
 ### Observed gaps
 
 - We do not use **Find Similar** or **Research** endpoints in any user-facing flow yet.
-- There is no explicit “budget” per CLI command; cost is only reported after the fact.
+- There is no explicit “budget” per CLI command; cost is only reported after the fact. ✅ Fixed for
+  `kalshi research context` and `kalshi research topic` in Phase 1.
 - “Answer” is helpful but can hallucinate; we currently trust citations without verification.
 
 ---
@@ -178,14 +179,14 @@ These commands should output JSON only (tooling-friendly).
 
 ### Phase 1: Policy + budgets
 
-1. Add `ExaPolicy` and `ExaBudget` types (pure Python, no network).
-2. Thread `mode/budget` flags through `research context` and `research topic`.
-3. Enforce budgets:
+1. ✅ Add `ExaPolicy` and `ExaBudget` types (pure Python, no network).
+2. ✅ Thread `mode/budget` flags through `research context` and `research topic`.
+3. ✅ Enforce budgets:
    - track cumulative `cost_dollars.total` (SSOT: Exa responses include `costDollars`)
    - stop early and warn when budget would be exceeded
-4. Standardize caching keys:
-   - include mode + all request params in the cache key (already mostly true)
-   - consider day-level bucketing for “news” queries (already used in context research)
+4. ✅ Standardize caching keys:
+   - include mode + all request params in the cache key
+   - keep day-level bucketing for “news” queries (already used in context research)
 
 ### Phase 2: Find Similar + Deep Research (gated)
 
@@ -205,11 +206,12 @@ These commands should output JSON only (tooling-friendly).
 
 ## Acceptance Criteria
 
-- [ ] Every Exa-powered CLI command has explicit `--mode` and `--budget-usd` controls.
-- [ ] Default behavior is cost-bounded and produces citations.
-- [ ] Deep mode uses `/research` only when requested (explicitly or by mode), never silently.
-- [ ] Caching remains effective (no accidental cache busting from unstable params).
-- [ ] Unit tests cover:
-  - [ ] budget enforcement logic (no network; use mocked responses)
-  - [ ] cache key stability
-  - [ ] citation verification logic (respx + fixture responses)
+- [x] `kalshi research context` and `kalshi research topic` have explicit `--mode` and `--budget-usd` controls.
+- [x] `kalshi research context/topic` stop early when budget would be exceeded and set `budget_exhausted=true`.
+- [ ] Other Exa-powered commands have policy controls (Phase 2+; e.g. `news`, `research similar/deep`, thesis flows).
+- [x] Policy does not introduce `/research` calls implicitly; `/research` remains behind `kalshi research deep` (existing).
+- [x] Caching remains effective (no accidental cache busting from unstable params).
+- [x] Unit tests cover:
+  - [x] budget enforcement logic (no network; use mocked responses)
+  - [x] cache key stability
+  - [ ] citation verification logic (Phase 3)
