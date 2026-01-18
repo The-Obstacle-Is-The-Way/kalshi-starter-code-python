@@ -164,6 +164,148 @@ class TestPnLCalculatorRealized:
         assert summary.total_trades == 0
         assert summary.orphan_sell_qty_skipped == 10
 
+    def test_summary_with_trades_rounds_avg_win_and_loss_half_up(self) -> None:
+        """
+        Avg win/loss cents should use half-up rounding, not floor division.
+
+        - avg win: (3 + 4) / 2 = 3.5 → 4
+        - avg loss: (-1 + -1 + -2) / 3 = -1.333... → -1 (abs → 1)
+        """
+        base_time = datetime(2026, 1, 1, tzinfo=UTC)
+        trades = [
+            # Winners: +3, +4
+            Trade(
+                kalshi_trade_id="w1_buy",
+                ticker="W1",
+                side="yes",
+                action="buy",
+                quantity=1,
+                price_cents=50,
+                total_cost_cents=50,
+                fee_cents=0,
+                executed_at=base_time,
+                synced_at=base_time,
+            ),
+            # SELL YES @ 53 is represented as side=no, action=sell, price=47 (100 - 47 = 53)
+            Trade(
+                kalshi_trade_id="w1_sell",
+                ticker="W1",
+                side="no",
+                action="sell",
+                quantity=1,
+                price_cents=47,
+                total_cost_cents=47,
+                fee_cents=0,
+                executed_at=base_time,
+                synced_at=base_time,
+            ),
+            Trade(
+                kalshi_trade_id="w2_buy",
+                ticker="W2",
+                side="yes",
+                action="buy",
+                quantity=1,
+                price_cents=50,
+                total_cost_cents=50,
+                fee_cents=0,
+                executed_at=base_time,
+                synced_at=base_time,
+            ),
+            Trade(
+                kalshi_trade_id="w2_sell",
+                ticker="W2",
+                side="no",
+                action="sell",
+                quantity=1,
+                price_cents=46,
+                total_cost_cents=46,
+                fee_cents=0,
+                executed_at=base_time,
+                synced_at=base_time,
+            ),
+            # Losers: -1, -1, -2
+            Trade(
+                kalshi_trade_id="l1_buy",
+                ticker="L1",
+                side="yes",
+                action="buy",
+                quantity=1,
+                price_cents=50,
+                total_cost_cents=50,
+                fee_cents=0,
+                executed_at=base_time,
+                synced_at=base_time,
+            ),
+            # SELL YES @ 49 → price=51 (100 - 51 = 49)
+            Trade(
+                kalshi_trade_id="l1_sell",
+                ticker="L1",
+                side="no",
+                action="sell",
+                quantity=1,
+                price_cents=51,
+                total_cost_cents=51,
+                fee_cents=0,
+                executed_at=base_time,
+                synced_at=base_time,
+            ),
+            Trade(
+                kalshi_trade_id="l2_buy",
+                ticker="L2",
+                side="yes",
+                action="buy",
+                quantity=1,
+                price_cents=50,
+                total_cost_cents=50,
+                fee_cents=0,
+                executed_at=base_time,
+                synced_at=base_time,
+            ),
+            Trade(
+                kalshi_trade_id="l2_sell",
+                ticker="L2",
+                side="no",
+                action="sell",
+                quantity=1,
+                price_cents=51,
+                total_cost_cents=51,
+                fee_cents=0,
+                executed_at=base_time,
+                synced_at=base_time,
+            ),
+            Trade(
+                kalshi_trade_id="l3_buy",
+                ticker="L3",
+                side="yes",
+                action="buy",
+                quantity=1,
+                price_cents=50,
+                total_cost_cents=50,
+                fee_cents=0,
+                executed_at=base_time,
+                synced_at=base_time,
+            ),
+            # SELL YES @ 48 → price=52 (100 - 52 = 48)
+            Trade(
+                kalshi_trade_id="l3_sell",
+                ticker="L3",
+                side="no",
+                action="sell",
+                quantity=1,
+                price_cents=52,
+                total_cost_cents=52,
+                fee_cents=0,
+                executed_at=base_time,
+                synced_at=base_time,
+            ),
+        ]
+
+        calculator = PnLCalculator()
+        summary = calculator.calculate_summary_with_trades(positions=[], trades=trades)
+
+        assert summary.avg_win_cents == 4
+        assert summary.avg_loss_cents == 1
+
     def test_summary_with_trades_does_not_use_positions_realized_pnl_for_totals(self) -> None:
         """Total realized P&L is computed from synced history (fills + settlements)."""
         positions = [
@@ -484,6 +626,16 @@ class TestPnLCalculatorRealized:
 
 class TestPnLCalculatorSummary:
     """Tests for P&L summary generation."""
+
+    def test_round_div_half_up_rejects_non_positive_denominator(self) -> None:
+        """_round_div_half_up raises ValueError for non-positive denominator."""
+        calculator = PnLCalculator()
+
+        with pytest.raises(ValueError, match="denominator must be positive"):
+            calculator._round_div_half_up(10, 0)
+
+        with pytest.raises(ValueError, match="denominator must be positive"):
+            calculator._round_div_half_up(10, -1)
 
     def test_summary_basic(self):
         """Test basic P&L summary calculation."""

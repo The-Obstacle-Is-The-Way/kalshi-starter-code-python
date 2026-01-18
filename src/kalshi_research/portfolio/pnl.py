@@ -48,6 +48,16 @@ class PnLSummary:
 class PnLCalculator:
     """Calculate profit/loss on positions and trades."""
 
+    @staticmethod
+    def _round_div_half_up(numerator: int, denominator: int) -> int:
+        """Round numerator/denominator to nearest int with half-up semantics."""
+        if denominator <= 0:
+            raise ValueError("denominator must be positive")
+
+        if numerator >= 0:
+            return (numerator + (denominator // 2)) // denominator
+        return -((-numerator + (denominator // 2)) // denominator)
+
     @dataclass
     class _Lot:
         qty_remaining: int
@@ -520,8 +530,8 @@ class PnLCalculator:
         winning_trades = len(winning)
         losing_trades = len(losing)
         win_rate = winning_trades / total_trades if total_trades > 0 else 0.0
-        avg_win = sum(winning) // len(winning) if winning else 0
-        avg_loss = abs(sum(losing) // len(losing)) if losing else 0
+        avg_win = self._round_div_half_up(sum(winning), len(winning)) if winning else 0
+        avg_loss = abs(self._round_div_half_up(sum(losing), len(losing))) if losing else 0
         profit_factor = abs(sum(winning) / sum(losing)) if losing and sum(losing) != 0 else 0.0
 
         return PnLSummary(
