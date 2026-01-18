@@ -197,7 +197,9 @@ Integration tests (optional, require EXA_API_KEY):
 - [x] Budget enforcement is deterministic and never exceeds the requested budget by more than a single step's cost.
 - [x] Outputs include URLs for all factors; no factor exists without a source URL.
 - [x] Unit tests cover plan building per mode, budget enforcement, and JSON serialization stability (no network).
-- [x] Deep mode `/research/v1` tasks are crash-recoverable after restart (persisted `research_id`, list/find reconciliation).
+- [ ] Deep mode `/research/v1` tasks are crash-recoverable after restart (persisted `research_id`, list/find reconciliation).
+
+**REVIEW FINDING (2026-01-18):** Criterion 5 is NOT met. The research task ID is logged but not persisted. No recovery logic using `list_research_tasks()` or `find_recent_research_task()` is implemented. If the agent crashes during the polling loop, the task ID is lost. See SPEC-033-FIX.
 
 ---
 
