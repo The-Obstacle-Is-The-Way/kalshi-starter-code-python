@@ -1,6 +1,6 @@
 # Kalshi Research Platform — Ralph Wiggum Progress Tracker
 
-**Last Updated:** 2026-01-13
+**Last Updated:** 2026-01-18
 **Status:** Idle (no active queue)
 **Purpose:** State file for the Ralph Wiggum loop (see `docs/_ralph-wiggum/protocol.md`)
 
@@ -36,6 +36,8 @@ Guidelines:
 
 ## Work Log
 
+- 2026-01-18: Implemented SPEC-031 scanner quality profiles (PR #29) and SPEC-030 Exa policy mode/budget controls (PR #30).
+- 2026-01-17: Archived DEBT-029/030/031/032 and cleaned up `_future/` (promoted items to specs).
 - 2026-01-13: Reset PROGRESS.md/PROMPT.md templates (idle queue).
 - 2026-01-10: Fixed portfolio P&L integrity (FIFO realized P&L + unknown handling), updated BUG-056/057, ran `uv run pre-commit run --all-files` and `uv run mkdocs build --strict`
 - 2026-01-10: Skills refactor - created `kalshi-ralph-wiggum` skill, simplified `kalshi-codebase`, enhanced PROMPT.md with SPEC-* self-review protocol, verified SPEC-029/032 against SSOT

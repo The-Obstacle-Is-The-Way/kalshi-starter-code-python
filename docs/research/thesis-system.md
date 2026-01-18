@@ -166,6 +166,10 @@ uv run kalshi research thesis create "My prediction" \
 # List all theses
 uv run kalshi research thesis list --full
 
+# Edit an existing thesis
+uv run kalshi research thesis edit <ID_PREFIX> --title "New title"
+uv run kalshi research thesis edit <ID_PREFIX> --bull "Updated bull case"
+
 # View details
 uv run kalshi research thesis show <ID_PREFIX>
 
