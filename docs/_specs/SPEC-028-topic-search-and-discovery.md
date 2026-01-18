@@ -316,11 +316,11 @@ uv run kalshi market topics delete "crypto"
 
 ## Acceptance Criteria
 
-- [ ] Keyword searching works via CLI without requiring raw SQL.
-- [ ] Filtering by denormalized event categories (`markets.category`) is supported (and documented).
-- [ ] Search returns stable JSON when requested.
-- [ ] If FTS5 is unavailable, commands still work via LIKE fallback (with a warning).
-- [ ] `uv run mkdocs build --strict` passes after docs updates that accompany implementation.
+- [x] Keyword searching works via CLI without requiring raw SQL.
+- [x] Filtering by denormalized event categories (`markets.category`) is supported (and documented).
+- [x] Search returns stable JSON when requested.
+- [x] If FTS5 is unavailable, commands still work via LIKE fallback (with a warning).
+- [x] `uv run mkdocs build --strict` passes after docs updates that accompany implementation.
 
 ---
 

@@ -12,7 +12,7 @@
 
 #### 1A) Local discovery (independent)
 
-- [ ] **SPEC-028**: Topic Search & Market Discovery → `docs/_specs/SPEC-028-topic-search-and-discovery.md`
+- [x] **SPEC-028**: Topic Search & Market Discovery → `docs/_specs/SPEC-028-topic-search-and-discovery.md`
 
 #### 1B) Agent stack (depends on SPEC-030)
 
@@ -42,6 +42,7 @@
 
 ## Work Log
 
+- 2026-01-18: Implemented SPEC-028 topic search & market discovery (FTS5 virtual tables, SearchRepository, `kalshi market search` CLI command, unit tests). All quality gates pass.
 - 2026-01-18: Implemented SPEC-031 scanner quality profiles (PR #29) and SPEC-030 Exa policy mode/budget controls (PR #30).
 - 2026-01-17: Archived DEBT-029/030/031/032 and cleaned up `_future/` (promoted items to specs).
 - 2026-01-13: Reset PROGRESS.md/PROMPT.md templates (idle queue).
