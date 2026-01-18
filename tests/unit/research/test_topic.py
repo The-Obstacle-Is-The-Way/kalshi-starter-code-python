@@ -61,7 +61,9 @@ class StubExa:
         self.answer_calls += 1
         return self._answer
 
-    async def search_and_contents(self, query: str, *, num_results: int = 10) -> SearchResponse:
+    async def search_and_contents(
+        self, query: str, *, num_results: int = 10, **kwargs
+    ) -> SearchResponse:
         self.search_calls += 1
         return self._search
 

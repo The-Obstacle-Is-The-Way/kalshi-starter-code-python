@@ -128,6 +128,8 @@ uv run kalshi news collect
 uv run kalshi news sentiment <TICKER> --days 7
 ```
 
+Use `--mode fast|standard|deep` and `--budget-usd` on `kalshi research context/topic` to cap Exa spend per run.
+
 ## Next
 
 - `docs/getting-started/usage.md` for task-based workflows

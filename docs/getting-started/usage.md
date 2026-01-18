@@ -253,6 +253,8 @@ uv run kalshi research thesis check-invalidation <THESIS_ID_PREFIX> --hours 48
 uv run kalshi research thesis suggest --category crypto
 ```
 
+Use `--mode fast|standard|deep` and `--budget-usd` on `kalshi research context/topic` to cap Exa spend per run.
+
 Exa deep research is a paid endpoint:
 
 ```bash

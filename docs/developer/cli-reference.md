@@ -105,8 +105,8 @@ Alerts are stored locally at `data/alerts.json`.
 ## `kalshi research`
 
 - `kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH] [--thesis THESIS_ID_PREFIX]` (`--end` is inclusive)
-- `kalshi research context <TICKER> [--max-news N] [--max-papers N] [--days N] [--json]`
-- `kalshi research topic <TOPIC> [--no-summary] [--json]`
+- `kalshi research context <TICKER> [--max-news N] [--max-papers N] [--days N] [--mode fast|standard|deep] [--budget-usd FLOAT] [--json]`
+- `kalshi research topic <TOPIC> [--no-summary] [--mode fast|standard|deep] [--budget-usd FLOAT] [--json]`
 - `kalshi research similar <URL> [--num-results N] [--json]`
 - `kalshi research deep <TOPIC> [--model exa-research-fast|exa-research|exa-research-pro] [--wait] [--poll-interval SEC] [--timeout SEC] [--schema FILE] [--json]`
 - `kalshi research cache clear [--all] [--cache-dir DIR]`
