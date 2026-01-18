@@ -396,3 +396,228 @@ def test_trade_executor_counts_only_valid_live_entries_today(tmp_path: Path) -> 
     )
 
     assert executor._count_live_orders_today() == 1
+
+
+# Phase 2 tests
+
+
+@pytest.mark.asyncio
+@pytest.mark.asyncio
+@pytest.mark.asyncio
+async def test_executor_daily_loss_cap_blocks_when_exceeded(tmp_path: Path) -> None:
+    """Test that daily loss cap blocks orders when limit is reached."""
+    from unittest.mock import AsyncMock
+
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    budget_tracker = AsyncMock()
+    budget_tracker.get_daily_loss_usd = AsyncMock(return_value=60.0)
+    budget_tracker.get_daily_spend_usd = AsyncMock(return_value=0.0)
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+        max_daily_loss_usd=50.0,
+        budget_tracker=budget_tracker,
+    )
+
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=1,
+            yes_price_cents=55,
+        )
+
+    client.create_order.assert_not_awaited()
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "max_daily_loss_exceeded" in event["checks"]["failures"]
+
+
+@pytest.mark.asyncio
+async def test_executor_max_notional_blocks_when_exceeded(tmp_path: Path) -> None:
+    """Test that max notional cap blocks orders when limit would be exceeded."""
+    from unittest.mock import AsyncMock
+
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    budget_tracker = AsyncMock()
+    budget_tracker.get_daily_loss_usd = AsyncMock(return_value=0.0)
+    budget_tracker.get_daily_spend_usd = AsyncMock(return_value=195.0)
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+        max_notional_usd=200.0,
+        budget_tracker=budget_tracker,
+    )
+
+    # This order would risk ~$55, exceeding $200 total (195 + 55 = 250)
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=100,
+            yes_price_cents=55,
+        )
+
+    client.create_order.assert_not_awaited()
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "max_notional_exceeded" in event["checks"]["failures"]
+
+
+@pytest.mark.asyncio
+async def test_executor_position_cap_blocks_when_exceeded(tmp_path: Path) -> None:
+    """Test that position cap blocks orders that would exceed max contracts."""
+    from unittest.mock import AsyncMock
+
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    position_provider = AsyncMock()
+    position_provider.get_position_quantity = AsyncMock(return_value=95)
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+        max_position_contracts=100,
+        position_provider=position_provider,
+    )
+
+    # Current position: 95, trying to buy 10 more => 105 > 100
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=10,
+            yes_price_cents=55,
+        )
+
+    client.create_order.assert_not_awaited()
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "max_position_contracts_exceeded" in event["checks"]["failures"]
+
+
+@pytest.mark.asyncio
+async def test_executor_slippage_limit_blocks_when_exceeded(tmp_path: Path) -> None:
+    """Test that slippage limit blocks orders with excessive slippage."""
+    from unittest.mock import AsyncMock
+
+    from kalshi_research.api.models.orderbook import Orderbook
+
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    # Mock orderbook with thin liquidity (small quantities)
+    orderbook_provider = AsyncMock()
+    orderbook = Orderbook(
+        yes=[(50, 5)],  # Only 5 contracts available
+        no=[(50, 5)],
+    )
+    orderbook_provider.get_orderbook = AsyncMock(return_value=orderbook)
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+        max_slippage_pct=5.0,
+        orderbook_provider=orderbook_provider,
+    )
+
+    # Try to buy 100 contracts (way more than available)
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=100,
+            yes_price_cents=50,
+        )
+
+    client.create_order.assert_not_awaited()
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "slippage_limit_exceeded" in event["checks"]["failures"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.asyncio
+async def test_executor_cancel_order_respects_kill_switch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test that cancel_order wrapper respects the kill switch."""
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    monkeypatch.setenv("KALSHI_TRADE_KILL_SWITCH", "1")
+
+    client = AsyncMock()
+    client.cancel_order = AsyncMock()
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+    )
+
+    with pytest.raises(TradeSafetyError) as exc_info:
+        await executor.cancel_order("order-123")
+
+    assert "kill_switch_enabled" in str(exc_info.value)
+    client.cancel_order.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_executor_amend_order_respects_production_gate(tmp_path: Path) -> None:
+    """Test that amend_order wrapper respects production gating."""
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.amend_order = AsyncMock()
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.PRODUCTION,
+        allow_production=False,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+    )
+
+    with pytest.raises(TradeSafetyError) as exc_info:
+        await executor.amend_order(
+            order_id="order-123",
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            client_order_id="client-123",
+            updated_client_order_id="client-124",
+            price=55,
+        )
+
+    assert "production_trading_disabled" in str(exc_info.value)
+    client.amend_order.assert_not_awaited()
