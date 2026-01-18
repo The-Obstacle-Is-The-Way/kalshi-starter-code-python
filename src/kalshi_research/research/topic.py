@@ -180,6 +180,8 @@ class TopicResearcher:
 
         research.exa_cost_dollars = total_cost
         research.budget_spent_usd = budget.spent_usd
+        if budget.spent_usd > budget.limit_usd:
+            research.budget_exhausted = True
         return research
 
     def _extract_domain(self, url: str) -> str:

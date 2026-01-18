@@ -85,7 +85,18 @@ class ExaPolicy:
             return 0.0
 
         effective_type = search_type or self.exa_search_type
-        base_cost = 0.015 if effective_type == "deep" else 0.005
+        # Pricing tiers per Exa vendor docs:
+        # - neuralSearch_1_25_results: $0.005
+        # - neuralSearch_26_100_results: $0.025
+        # - deepSearch_1_25_results: $0.015
+        # - deepSearch_26_100_results: $0.075
+        #
+        # For `type="auto"`, we assume the more expensive deep tier to avoid budget overruns.
+        results_tier = 25 if num_results <= 25 else 100
+        if effective_type in {"deep", "auto"}:
+            base_cost = 0.015 if results_tier == 25 else 0.075
+        else:
+            base_cost = 0.005 if results_tier == 25 else 0.025
 
         per_page_cost = 0.0
         if include_text:

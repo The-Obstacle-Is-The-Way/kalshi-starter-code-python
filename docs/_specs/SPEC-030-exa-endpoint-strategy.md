@@ -207,8 +207,9 @@ These commands should output JSON only (tooling-friendly).
 ## Acceptance Criteria
 
 - [x] `kalshi research context` and `kalshi research topic` have explicit `--mode` and `--budget-usd` controls.
-- [x] Default behavior is cost-bounded and produces citations.
-- [x] Deep mode uses `/research` only when requested (explicitly or by mode), never silently.
+- [x] `kalshi research context/topic` stop early when budget would be exceeded and set `budget_exhausted=true`.
+- [ ] Other Exa-powered commands have policy controls (Phase 2+; e.g. `news`, `research similar/deep`, thesis flows).
+- [x] Policy does not introduce `/research` calls implicitly; `/research` remains behind `kalshi research deep` (existing).
 - [x] Caching remains effective (no accidental cache busting from unstable params).
 - [x] Unit tests cover:
   - [x] budget enforcement logic (no network; use mocked responses)

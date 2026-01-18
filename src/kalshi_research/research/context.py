@@ -306,6 +306,8 @@ class MarketContextResearcher:
         )
         research.exa_cost_dollars = total_cost
         research.budget_spent_usd = budget.spent_usd
+        if budget.spent_usd > budget.limit_usd:
+            research.budget_exhausted = True
 
         logger.info(
             "Market research complete",
