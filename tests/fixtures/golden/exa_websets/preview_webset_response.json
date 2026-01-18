@@ -1,0 +1,20 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-18T00:00:00+00:00",
+    "endpoint": "POST /v0/websets/preview",
+    "environment": "test",
+    "sanitized": false,
+    "note": "Hand-crafted fixture based on OpenAPI spec for testing"
+  },
+  "response": {
+    "object": "list",
+    "data": [
+      {
+        "url": "https://example.com/ai-startup-preview",
+        "title": "AI Startup Preview",
+        "entityType": "company",
+        "evaluations": []
+      }
+    ]
+  }
+}

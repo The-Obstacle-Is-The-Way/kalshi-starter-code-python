@@ -90,6 +90,13 @@ from kalshi_research.exa.models.contents import ContentsResponse
 from kalshi_research.exa.models.research import ResearchTask
 from kalshi_research.exa.models.search import SearchResponse
 from kalshi_research.exa.models.similar import FindSimilarResponse
+from kalshi_research.exa.websets.models import (
+    GetWebsetResponse,
+    ListWebsetItemResponse,
+    PreviewWebsetResponse,
+    Webset,
+    WebsetItem,
+)
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
@@ -205,6 +212,14 @@ MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
     # Optional (only recorded when explicitly enabled)
     "exa/research_task_create_response.json": [("response", ResearchTask)],
     "exa/research_task_response.json": [("response", ResearchTask)],
+    # Exa Websets endpoints (fixtures live under tests/fixtures/golden/exa_websets/)
+    "exa_websets/create_webset_response.json": [("response", Webset)],
+    "exa_websets/get_webset_response.json": [("response", GetWebsetResponse)],
+    "exa_websets/list_webset_items_response.json": [
+        ("response", ListWebsetItemResponse),
+        ("response.data[0]", WebsetItem),
+    ],
+    "exa_websets/preview_webset_response.json": [("response", PreviewWebsetResponse)],
 }
 
 
