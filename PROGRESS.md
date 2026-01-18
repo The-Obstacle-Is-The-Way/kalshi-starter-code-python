@@ -12,7 +12,8 @@
 
 #### 1A) Local discovery (independent)
 
-- [x] **SPEC-028**: Topic Search & Market Discovery → `docs/_specs/SPEC-028-topic-search-and-discovery.md`
+- [x] **SPEC-028**: Topic Search & Market Discovery → `docs/_specs/SPEC-028-topic-search-and-discovery.md` [NEEDS-FIX]
+- [ ] **SPEC-028-FIX**: Fix FTS5 query crash (TextClause.selectable AttributeError)
 
 #### 1B) Agent stack (depends on SPEC-030)
 
@@ -42,6 +43,7 @@
 
 ## Work Log
 
+- 2026-01-18: SPEC-028 review iteration - found critical bug: FTS5 query crashes with TextClause AttributeError. Tests pass but CLI fails on real DB. Created SPEC-028-FIX task. Marked SPEC-028 as [NEEDS-FIX].
 - 2026-01-18: Implemented SPEC-028 topic search & market discovery (FTS5 virtual tables, SearchRepository, `kalshi market search` CLI command, unit tests). All quality gates pass.
 - 2026-01-18: Implemented SPEC-031 scanner quality profiles (PR #29) and SPEC-030 Exa policy mode/budget controls (PR #30).
 - 2026-01-17: Archived DEBT-029/030/031/032 and cleaned up `_future/` (promoted items to specs).
