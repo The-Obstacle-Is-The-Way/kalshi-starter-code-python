@@ -115,6 +115,7 @@ Alerts are stored locally at `data/alerts.json`.
   - optional: `--yes/-y` (accept research suggestions without prompting; only relevant with `--with-research`)
 - `kalshi research thesis list [--full]`
 - `kalshi research thesis show <THESIS_ID_PREFIX> [--with-positions] [--db PATH]`
+- `kalshi research thesis edit <THESIS_ID_PREFIX> [--title TEXT] [--bull TEXT] [--bear TEXT]`
 - `kalshi research thesis resolve <THESIS_ID_PREFIX> --outcome yes|no|void`
 - `kalshi research thesis check-invalidation <THESIS_ID_PREFIX> [--hours N]`
 - `kalshi research thesis suggest [--category TEXT]`
@@ -143,8 +144,8 @@ Commands:
 
 - `kalshi portfolio balance [--env demo|prod] [--rate-tier basic|advanced|premier|prime]`
 - `kalshi portfolio sync [--db PATH] [--env demo|prod] [--rate-tier basic|advanced|premier|prime] [--skip-mark-prices]`
-- `kalshi portfolio positions [--db PATH] [--ticker TICKER]`
-- `kalshi portfolio pnl [--db PATH] [--ticker TICKER]`
+- `kalshi portfolio positions [--db PATH] [--ticker TICKER] [--full]`
+- `kalshi portfolio pnl [--db PATH] [--ticker TICKER] [--full]`
 - `kalshi portfolio history [--db PATH] [--limit N] [--ticker TICKER]`
 - `kalshi portfolio link <TICKER> --thesis <THESIS_ID> [--db PATH]`
 - `kalshi portfolio suggest-links [--db PATH]`

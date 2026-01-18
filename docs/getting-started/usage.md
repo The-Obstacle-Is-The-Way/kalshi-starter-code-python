@@ -237,6 +237,7 @@ uv run kalshi research thesis create "My thesis title" \\
 
 uv run kalshi research thesis list
 uv run kalshi research thesis show <THESIS_ID_PREFIX>
+uv run kalshi research thesis edit <THESIS_ID_PREFIX> --title "New title"
 uv run kalshi research thesis resolve <THESIS_ID_PREFIX> --outcome yes
 ```
 
