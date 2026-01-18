@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
 
 from kalshi_research.exa.cache import ExaCache
-from kalshi_research.exa.policy import ExaBudget, ExaMode, ExaPolicy
+from kalshi_research.exa.policy import ExaBudget, ExaMode, ExaPolicy, extract_exa_cost_total
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -74,3 +75,74 @@ def test_cache_params_are_stable_and_mode_scoped(tmp_path: Path) -> None:
 
     policy_fast = ExaPolicy.from_mode(mode=ExaMode.FAST)
     assert cache.get("search", policy_fast.normalize_cache_params(params_b)) is None
+
+
+def test_policy_from_mode_rejects_non_positive_budget() -> None:
+    with pytest.raises(ValueError, match="budget_usd must be positive"):
+        ExaPolicy.from_mode(mode=ExaMode.STANDARD, budget_usd=0.0)
+
+    with pytest.raises(ValueError, match="budget_usd must be positive"):
+        ExaPolicy.from_mode(mode=ExaMode.STANDARD, budget_usd=-0.01)
+
+
+def test_estimate_search_cost_usd_returns_zero_when_num_results_is_non_positive() -> None:
+    policy = ExaPolicy.from_mode(mode=ExaMode.STANDARD)
+    assert (
+        policy.estimate_search_cost_usd(
+            num_results=0,
+            include_text=True,
+            include_highlights=True,
+        )
+        == 0.0
+    )
+    assert (
+        policy.estimate_search_cost_usd(
+            num_results=-1,
+            include_text=True,
+            include_highlights=True,
+        )
+        == 0.0
+    )
+
+
+def test_estimate_search_cost_usd_covers_tiers_and_output_options() -> None:
+    fast = ExaPolicy.from_mode(mode=ExaMode.FAST)
+    deep = ExaPolicy.from_mode(mode=ExaMode.DEEP)
+
+    assert fast.estimate_search_cost_usd(
+        num_results=25,
+        include_text=False,
+        include_highlights=False,
+    ) == pytest.approx(0.006)
+    assert fast.estimate_search_cost_usd(
+        num_results=100,
+        include_text=False,
+        include_highlights=False,
+    ) == pytest.approx(0.03)
+    assert deep.estimate_search_cost_usd(
+        num_results=25,
+        include_text=False,
+        include_highlights=False,
+    ) == pytest.approx(0.018)
+
+    cost_with_text_and_highlights = fast.estimate_search_cost_usd(
+        num_results=10,
+        include_text=True,
+        include_highlights=True,
+    )
+    assert cost_with_text_and_highlights > 0.006
+
+
+def test_estimate_answer_cost_usd_is_conservative() -> None:
+    policy = ExaPolicy.from_mode(mode=ExaMode.STANDARD)
+    assert policy.estimate_answer_cost_usd(include_text=True) == 0.05
+    assert policy.estimate_answer_cost_usd(include_text=False) == 0.03
+
+
+def test_extract_exa_cost_total_handles_missing_values() -> None:
+    assert extract_exa_cost_total(object()) == 0.0
+    assert extract_exa_cost_total(SimpleNamespace(cost_dollars=None)) == 0.0
+    assert extract_exa_cost_total(SimpleNamespace(cost_dollars=SimpleNamespace(total=None))) == 0.0
+    assert extract_exa_cost_total(
+        SimpleNamespace(cost_dollars=SimpleNamespace(total=0.12))
+    ) == pytest.approx(0.12)

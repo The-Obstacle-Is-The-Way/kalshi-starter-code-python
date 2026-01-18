@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from kalshi_research.api.models.market import Market
 from kalshi_research.exa.cache import ExaCache
 from kalshi_research.exa.models.search import SearchResponse
+from kalshi_research.exa.policy import ExaMode, ExaPolicy
 from kalshi_research.research.context import MarketContextResearcher
 
 if TYPE_CHECKING:
@@ -92,3 +93,34 @@ async def test_research_market_aggregates_and_caches_results(tmp_path: Path, mak
     assert second.total_sources_found == 3
     assert first.exa_cost_dollars == 0.06
     assert second.exa_cost_dollars == 0.0
+
+
+async def test_research_market_stops_early_when_budget_exhausted(
+    tmp_path: Path, make_market
+) -> None:
+    exa = StubExa([])
+    cache = ExaCache(tmp_path)
+    policy = ExaPolicy.from_mode(mode=ExaMode.STANDARD, budget_usd=0.001)
+
+    market = Market.model_validate(
+        make_market(
+            ticker="TEST-MARKET",
+            title="Will Something happen?",
+        )
+    )
+    researcher = MarketContextResearcher(
+        exa,
+        cache=cache,
+        max_news_results=1,
+        max_paper_results=1,
+        news_recency_days=30,
+        policy=policy,
+    )
+
+    research = await researcher.research_market(market)
+
+    assert exa.search_calls == 0
+    assert research.total_sources_found == 0
+    assert research.budget_exhausted is True
+    assert research.budget_spent_usd == 0.0
+    assert research.exa_cost_dollars == 0.0
