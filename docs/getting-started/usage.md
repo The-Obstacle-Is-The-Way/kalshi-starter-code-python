@@ -128,8 +128,8 @@ uv run kalshi market history <TICKER> --interval 1h --days 7
 ### Opportunities
 
 ```bash
-uv run kalshi scan opportunities --filter close-race --top 10 --min-volume 1000 --max-spread 10 --max-pages 10
-uv run kalshi scan opportunities --filter close-race --category ai --top 10 --min-volume 1000 --max-spread 10 --max-pages 10 --full
+uv run kalshi scan opportunities --profile tradeable --filter close-race --top 10 --max-pages 10
+uv run kalshi scan opportunities --profile tradeable --filter close-race --category ai --top 10 --max-pages 10 --full
 uv run kalshi scan opportunities --filter high-volume --top 10 --max-pages 10
 uv run kalshi scan opportunities --filter wide-spread --top 10 --max-pages 10
 uv run kalshi scan opportunities --filter expiring-soon --top 10 --max-pages 10

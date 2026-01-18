@@ -1,6 +1,6 @@
 # SPEC-031: Scanner Quality Profiles (Slop Filtering + “Get In Early” Mode)
 
-**Status:** Draft
+**Status:** ✅ Implemented (Phase 1–2) / Phase 3 deferred
 **Priority:** P1 (Trading UX / Signal Quality)
 **Created:** 2026-01-10
 **Owner:** Solo
@@ -51,10 +51,10 @@ This is a “quality profile” layer on top of existing scanner logic.
 
 ### CLI defaults (slop-prone)
 
-- `kalshi scan opportunities` defaults:
-  - `--min-volume 0`
-  - `--max-spread 100`
-  - no liquidity filter unless user opts in
+- `kalshi scan opportunities` defaults (backwards-compatible):
+  - `--profile raw` (same as historical behavior)
+  - effective close-race defaults: `--min-volume 0`, `--max-spread 100`
+  - no liquidity filter unless user opts in (or selects a profile that sets one)
   (SSOT: `src/kalshi_research/cli/scan.py`)
 
 This makes it easy to surface technically “close race” markets that are not realistically tradable.
@@ -146,7 +146,7 @@ This prevents confusion (“why did it show garbage?”).
 
 ## Acceptance Criteria
 
-- [ ] Running `uv run kalshi scan opportunities --profile tradeable` produces materially less slop out-of-the-box.
-- [ ] `--profile early` surfaces some low-volume markets but still enforces tight spread + liquidity score.
-- [ ] Existing invocations without `--profile` continue to work exactly as before (unless we intentionally change the default and document it).
-- [ ] Docs reflect the recommended operational defaults and explicitly explain the tradeoff (“slop vs early”).
+- [x] Running `uv run kalshi scan opportunities --profile tradeable` produces materially less slop out-of-the-box.
+- [x] `--profile early` surfaces some low-volume markets but still enforces tight spread + liquidity score.
+- [x] Existing invocations without `--profile` continue to work exactly as before.
+- [x] Docs reflect the recommended operational defaults and explicitly explain the tradeoff (“slop vs early”).

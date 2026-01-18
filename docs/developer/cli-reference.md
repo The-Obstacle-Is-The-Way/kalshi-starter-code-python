@@ -76,7 +76,7 @@ Note: Kalshi's **response** `status` values (e.g. `active`) differ from the `/ma
 
 ## `kalshi scan`
 
-- `kalshi scan opportunities [--filter close-race|high-volume|wide-spread|expiring-soon] [--category TEXT] [--no-sports] [--event-prefix PREFIX] [--top N] [--max-pages N] [--full]`
+- `kalshi scan opportunities [--profile raw|tradeable|liquid|early] [--early-hours N] [--filter close-race|high-volume|wide-spread|expiring-soon] [--category TEXT] [--no-sports] [--event-prefix PREFIX] [--top N] [--max-pages N] [--full]`
   - close-race-only: `--min-volume INT`, `--max-spread INT`
   - optional liquidity scoring: `--min-liquidity INT`, `--show-liquidity`, `--liquidity-depth INT`
 - `kalshi scan new-markets [--hours N] [--category TEXT] [--include-unpriced] [--limit N] [--max-pages N] [--json] [--full]`

@@ -245,6 +245,104 @@ def test_scan_opportunities_does_not_fetch_orderbooks_by_default(
     assert "Liquidity" not in result.stdout
 
 
+def test_scan_opportunities_profile_tradeable_filters_low_volume(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    high_volume = make_market(
+        ticker="HIGH-VOL",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=2_000,
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    low_volume = make_market(
+        ticker="LOW-VOL",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=500,
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [high_volume, low_volume], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
+            return_value=Response(200, json={"exchange_active": True, "trading_active": True})
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "scan",
+                "opportunities",
+                "--profile",
+                "tradeable",
+                "--filter",
+                "close-race",
+                "--top",
+                "2",
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert "HIGH-VOL" in result.stdout
+    assert "LOW-VOL" not in result.stdout
+
+
+def test_scan_opportunities_profile_tradeable_allows_overriding_min_volume(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    high_volume = make_market(
+        ticker="HIGH-VOL",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=2_000,
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    low_volume = make_market(
+        ticker="LOW-VOL",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=500,
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [high_volume, low_volume], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
+            return_value=Response(200, json={"exchange_active": True, "trading_active": True})
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "scan",
+                "opportunities",
+                "--profile",
+                "tradeable",
+                "--filter",
+                "close-race",
+                "--top",
+                "2",
+                "--min-volume",
+                "0",
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert "HIGH-VOL" in result.stdout
+    assert "LOW-VOL" in result.stdout
+
+
 def test_scan_opportunities_show_liquidity_fetches_orderbooks_with_depth(
     make_market: Callable[..., dict[str, object]],
 ) -> None:
@@ -319,6 +417,84 @@ def test_scan_opportunities_show_liquidity_fetches_orderbooks_with_depth(
     assert str(expected_score) in result.stdout
     assert high_route.calls[0].request.url.params["depth"] == "7"
     assert low_route.calls[0].request.url.params["depth"] == "7"
+
+
+def test_scan_opportunities_profile_early_filters_by_created_time_and_avoids_old_orderbooks(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from kalshi_research.analysis.liquidity import liquidity_score
+
+    now = datetime.now(UTC)
+
+    new_market = make_market(
+        ticker="NEW-MKT",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=1_000,
+        created_time=(now - timedelta(hours=1)).isoformat(),
+        open_time=(now - timedelta(hours=1)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    old_market = make_market(
+        ticker="OLD-MKT",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=1_000,
+        created_time=(now - timedelta(hours=200)).isoformat(),
+        open_time=(now - timedelta(hours=200)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [new_market, old_market], "cursor": None}
+
+    orderbook = {
+        "yes": [[50, 5_000]],
+        "no": [[49, 5_000]],
+        "yes_dollars": [["0.50", 5_000]],
+        "no_dollars": [["0.49", 5_000]],
+    }
+    expected_score = liquidity_score(
+        Market.model_validate(new_market),
+        Orderbook.model_validate(orderbook),
+    ).score
+    assert expected_score >= 40
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
+            return_value=Response(200, json={"exchange_active": True, "trading_active": True})
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+        new_orderbook_route = respx.get(f"{KALSHI_PROD_BASE_URL}/markets/NEW-MKT/orderbook").mock(
+            return_value=Response(200, json={"orderbook": orderbook})
+        )
+        old_orderbook_route = respx.get(f"{KALSHI_PROD_BASE_URL}/markets/OLD-MKT/orderbook").mock(
+            return_value=Response(200, json={"orderbook": orderbook})
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "scan",
+                "opportunities",
+                "--profile",
+                "early",
+                "--top",
+                "10",
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert "Liquidity" in result.stdout
+    assert "NEW-MKT" in result.stdout
+    assert "OLD-MKT" not in result.stdout
+    assert str(expected_score) in result.stdout
+    assert len(new_orderbook_route.calls) == 1
+    assert len(old_orderbook_route.calls) == 0
 
 
 def test_scan_opportunities_min_liquidity_filters_results(
