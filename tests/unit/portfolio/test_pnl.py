@@ -627,6 +627,16 @@ class TestPnLCalculatorRealized:
 class TestPnLCalculatorSummary:
     """Tests for P&L summary generation."""
 
+    def test_round_div_half_up_rejects_non_positive_denominator(self) -> None:
+        """_round_div_half_up raises ValueError for non-positive denominator."""
+        calculator = PnLCalculator()
+
+        with pytest.raises(ValueError, match="denominator must be positive"):
+            calculator._round_div_half_up(10, 0)
+
+        with pytest.raises(ValueError, match="denominator must be positive"):
+            calculator._round_div_half_up(10, -1)
+
     def test_summary_basic(self):
         """Test basic P&L summary calculation."""
         positions = [
