@@ -117,3 +117,113 @@ class ResearchStepResult(BaseModel):
     actual_cost_usd: float = Field(ge=0.0)
     sources_found: int = Field(ge=0, default=0)
     error_message: str | None = None
+
+
+# === SPEC-032: Agent System Orchestration Schemas ===
+
+
+class MarketInfo(BaseModel):
+    """Market metadata from Kalshi API."""
+
+    model_config = ConfigDict(frozen=True)
+
+    ticker: str
+    event_ticker: str
+    series_ticker: str | None
+    title: str
+    subtitle: str
+    status: str
+    open_time: datetime
+    close_time: datetime
+    expiration_time: datetime
+    settlement_ts: datetime | None
+
+
+class MarketPriceSnapshot(BaseModel):
+    """Market orderbook and price snapshot."""
+
+    model_config = ConfigDict(frozen=True)
+
+    yes_bid_cents: int
+    yes_ask_cents: int
+    no_bid_cents: int
+    no_ask_cents: int
+    last_price_cents: int | None
+    volume_24h: int
+    open_interest: int
+    midpoint_prob: float = Field(ge=0.0, le=1.0, description="Probability (0..1)")
+    spread_cents: int
+    captured_at: datetime
+
+
+class NewsArticle(BaseModel):
+    """A single news article citation."""
+
+    model_config = ConfigDict(frozen=True)
+
+    title: str
+    url: str
+    source_domain: str
+    published_at: datetime | None
+    snippet: str | None
+    relevance_score: float | None
+
+
+class AnalysisFactor(BaseModel):
+    """A factor influencing predicted probability."""
+
+    model_config = ConfigDict(frozen=True)
+
+    description: str
+    impact: str | None = Field(
+        default=None,
+        description="Impact direction: 'up', 'down', or 'unclear'",
+    )
+    source_url: str
+
+
+class AnalysisResult(BaseModel):
+    """Synthesized probability estimate with reasoning."""
+
+    model_config = ConfigDict(frozen=True)
+
+    ticker: str
+    market_prob: float = Field(ge=0.0, le=1.0, description="Market-implied probability (0..1)")
+    predicted_prob: int = Field(ge=0, le=100, description="Predicted probability (0..100)")
+    confidence: str = Field(description="Confidence level: 'low', 'medium', or 'high'")
+    reasoning: str
+    factors: list[AnalysisFactor] = Field(default_factory=list)
+    sources: list[str] = Field(default_factory=list, description="Unique source URLs cited")
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    model_id: str | None = None
+
+
+class VerificationReport(BaseModel):
+    """Rule-based verification report for AnalysisResult."""
+
+    model_config = ConfigDict(frozen=True)
+
+    passed: bool
+    issues: list[str] = Field(default_factory=list, description="Validation failures found")
+    checked_sources: list[str] = Field(
+        default_factory=list, description="Source URLs checked for validity"
+    )
+    suggested_escalation: bool = Field(
+        default=False, description="Whether escalation is recommended"
+    )
+
+
+class AgentRunResult(BaseModel):
+    """Complete result of an agent run."""
+
+    model_config = ConfigDict(frozen=True)
+
+    analysis: AnalysisResult
+    verification: VerificationReport
+    research: ResearchSummary | None = None
+    escalated: bool = False
+    total_cost_usd: float = Field(ge=0.0, description="Total cost (Exa + LLM)")
+
+    def model_dump_json(self, **kwargs: Any) -> str:
+        """Serialize to JSON with datetime handling."""
+        return super().model_dump_json(**kwargs)

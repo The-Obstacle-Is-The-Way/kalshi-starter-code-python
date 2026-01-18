@@ -19,7 +19,7 @@
 
 - [x] **SPEC-033**: Exa Research Agent → `docs/_specs/SPEC-033-exa-research-agent.md` [REVIEWED]
 - [x] **SPEC-033-FIX**: Add crash recovery for deep research tasks (persist research_id, use list/find reconciliation)
-- [ ] **SPEC-032**: Agent System Orchestration → `docs/_specs/SPEC-032-agent-system-orchestration.md`
+- [x] **SPEC-032**: Agent System Orchestration → `docs/_specs/SPEC-032-agent-system-orchestration.md`
 
 ### Phase 2: P2 Specs (Optional / When Needed)
 
@@ -44,6 +44,7 @@
 
 ## Work Log
 
+- 2026-01-18: Implemented SPEC-032 Agent System Orchestration (Phase 1). Added AgentKernel orchestrator with deterministic workflow: (1) fetch market + orderbook, (2) gather research via ResearchAgent, (3) synthesize probability via LLM (MockSynthesizer for Phase 1), (4) verify via rule-based checks. Created modules: orchestrator.py, verify.py, providers/kalshi.py, providers/llm.py. Extended schemas.py with MarketInfo, MarketPriceSnapshot, AnalysisResult, VerificationReport, AgentRunResult. Added CLI command `kalshi agent analyze` with JSON/human output modes. Escalation disabled by default (Phase 2). Added 18 unit tests (11 for verifier, 7 for orchestrator). All quality gates pass. All acceptance criteria met.
 - 2026-01-18: SPEC-033-FIX complete - implemented crash recovery for deep research tasks. Added `ResearchTaskState` for JSON-based persistence in `data/agent_state/`. Recovery attempts ID lookup first, falls back to `find_recent_research_task()`. State cleared after completion. Added 10 unit tests (4 for crash recovery, 6 for state management). All quality gates pass. SPEC-033 now [REVIEWED] with all acceptance criteria met.
 - 2026-01-18: SPEC-033 review iteration - found missing crash recovery: research_id is logged but not persisted, no list/find reconciliation for orphaned tasks. Acceptance criterion 5 incomplete. Created SPEC-033-FIX task. Marked SPEC-033 as [NEEDS-FIX].
 - 2026-01-18: Implemented SPEC-033 Exa Research Agent - deterministic plan builder, budget enforcement, crash recovery for deep research tasks, CLI command `kalshi agent research`, 17 unit tests. All quality gates pass.
