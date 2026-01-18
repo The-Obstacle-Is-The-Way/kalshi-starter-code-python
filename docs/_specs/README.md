@@ -25,7 +25,7 @@ This directory contains **active** design specifications - work happening NOW.
 
 ### Implementation Order (Critical Path)
 
-```
+```text
 SPEC-030 (Exa Policy)          ← Budgeted, deterministic Exa usage
     ↓
 SPEC-033 (Exa Research Agent)  ← Deterministic Exa workflows + crash recovery
