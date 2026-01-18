@@ -1,6 +1,6 @@
 # SPEC-033: Exa Research Agent (Cost-Bounded, Reproducible)
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** P1 (High leverage research automation)
 **Created:** 2026-01-10
 **Owner:** Solo
@@ -43,6 +43,7 @@ This is not “LLM agent magic”; it is a **deterministic planner + bounded too
 
 - Exa endpoint semantics and cost fields: `docs/_vendor-docs/exa-api-reference.md`
 - Exa client in code: `src/kalshi_research/exa/client.py`
+- Exa policy/budget implementation: `src/kalshi_research/exa/policy.py` (SPEC-030 Phase 1)
 - Existing Exa research utilities (can be reused): `src/kalshi_research/research/context.py`
 - Endpoint policy spec: `docs/_specs/SPEC-030-exa-endpoint-strategy.md`
 
@@ -80,6 +81,8 @@ Track cost via Exa responses:
 - `AnswerResponse.cost_dollars.total`
 - `ResearchTask.cost_dollars.total` (when completed)
 
+Use `ExaBudget` for deterministic “stop before exceed” behavior and to avoid double-counting cached responses.
+
 Stop early when the next step would exceed `budget_usd`:
 
 - mark remaining steps as skipped
@@ -93,7 +96,7 @@ Any `deep` run that creates a `/research/v1` task must be recoverable after a cr
 - On restart, call `ExaClient.list_research_tasks()` to reconcile orphaned tasks and recover results.
 - Prefer `ExaClient.find_recent_research_task()` as a convenience helper when the ID is missing.
 
-This is a hard dependency for robust budget tracking and cost auditing (DEBT-022).
+This is implemented via `ExaClient.list_research_tasks()` and `find_recent_research_task()` (DEBT-022 resolved).
 
 ### 3) Output schema
 
@@ -121,10 +124,13 @@ This follows SPEC-030’s “trust but verify” policy.
 
 ```txt
 src/kalshi_research/agent/
-  research_models.py        # Pydantic models for plan/result (this spec)
+  __init__.py
+  schemas.py                # Shared Pydantic I/O models (introduced here; reused by SPEC-032)
+  research_agent.py         # Deterministic planning + execution (this spec)
   reporter.py               # Markdown formatter (optional)
   providers/
-    exa.py                  # planning + execution (this spec)
+    __init__.py
+    exa.py                  # Exa-backed research provider (this spec)
 ```
 
 Prefer Pydantic models (not dataclasses) for:
@@ -190,6 +196,8 @@ Integration tests (optional, require EXA_API_KEY):
 - [ ] `kalshi agent research TICKER --json` returns valid JSON even when Exa fails (empty results, `total_cost_usd=0.0`).
 - [ ] Budget enforcement is deterministic and never exceeds the requested budget by more than a single step’s cost.
 - [ ] Outputs include URLs for all factors; no factor exists without a source URL.
+- [ ] Unit tests cover plan building per mode, budget enforcement, and JSON serialization stability (no network).
+- [ ] Deep mode `/research/v1` tasks are crash-recoverable after restart (persisted `research_id`, list/find reconciliation).
 
 ---
 

@@ -16,6 +16,8 @@ If `PROGRESS.md` has no unchecked items, exit cleanly without making changes.
 
 **IMMEDIATELY** read state files:
 ```bash
+cat AGENTS.md
+cat CLAUDE.md
 cat PROGRESS.md
 ```
 
@@ -126,6 +128,8 @@ If ANY check fails, fix it before proceeding.
 3. **REFACTOR**: Clean up, keep tests green
 
 ## Guardrails
+
+**Safety:** This repo is an internal, single-user CLI. Avoid service infrastructure patterns (circuit breakers, Prometheus/Otel, DI frameworks) unless a SPEC explicitly requires it. Do not run cost-incurring or irreversible operations (Exa paid calls, live trading) during the loop; prefer unit tests + golden fixtures/respx.
 
 1. **Check for unreviewed SPEC-* first**
 2. **ONE task per iteration**
