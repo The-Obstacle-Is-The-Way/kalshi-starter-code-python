@@ -24,7 +24,7 @@
 ### Phase 2: P2 Specs (Optional / When Needed)
 
 - [x] **SPEC-038**: Exa Websets API Coverage → `docs/_specs/SPEC-038-exa-websets-endpoint-coverage.md` [REVIEWED]
-- [ ] **SPEC-034**: TradeExecutor Safety Harness (Phase 2 hardening) → `docs/_specs/SPEC-034-trade-executor-safety-harness.md`
+- [x] **SPEC-034**: TradeExecutor Safety Harness (Phase 2 hardening) → `docs/_specs/SPEC-034-trade-executor-safety-harness.md`
 
 ### Phase 3: Final Verification
 
@@ -44,6 +44,7 @@
 
 ## Work Log
 
+- 2026-01-18: Implemented SPEC-034 TradeExecutor Phase 2 Safety Rails. Added fat-finger guard (midpoint deviation check), daily budget/loss tracking (max_daily_loss_usd, max_notional_usd), position caps (max_position_contracts), liquidity-aware sizing (slippage limits + grade filters), and order management wrappers (cancel_order, amend_order). All providers use Protocol types for dependency injection. Added 6 Phase 2 unit tests. All quality gates pass (18 execution tests, pre-commit, ruff, mypy, pytest). All acceptance criteria met.
 - 2026-01-18: SPEC-038 reviewed and verified. All acceptance criteria confirmed: (1) ExaWebsetsClient with 9 Phase 1 endpoints implemented, (2) Pydantic models in websets/models.py, (3) golden fixtures in tests/fixtures/golden/exa_websets/ with hand-crafted responses, (4) SSOT validator integration passes all fixtures, (5) 12 unit tests (7 client + 5 fixture validation) all pass, (6) Websets not required by default CLI. Quality gates pass. Implementation complete per spec.
 - 2026-01-18: Implemented SPEC-038 Exa Websets API Coverage (Phase 1). Created ExaWebsetsClient with 9 Phase 1 endpoints (create, preview, get, cancel webset; list/get items; create/get/cancel search). Added Pydantic models (Webset, WebsetItem, WebsetSearch, etc.) with proper datetime handling. Created recording script `scripts/record_exa_websets_responses.py` (requires --yes flag for cost awareness). Generated hand-crafted golden fixtures based on OpenAPI schemas for testing without live API calls. Integrated with SSOT validator. Added 12 unit tests (7 client tests via respx, 5 fixture validation tests). All quality gates pass (pre-commit, ruff, mypy, pytest). All acceptance criteria met.
 - 2026-01-18: SPEC-032 reviewed and verified. All acceptance criteria confirmed: (1) CLI returns valid JSON and handles expected failures, (2) no secret leakage in output, (3) verification failures explicit with VerificationReport, (4) escalation OFF by default (enable_escalation=False), (5) full test coverage (11 verifier tests + 7 orchestrator tests). Quality gates pass. Implementation complete per spec.
