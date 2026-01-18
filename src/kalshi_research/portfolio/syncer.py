@@ -449,7 +449,9 @@ class PortfolioSyncer:
                         )
                         continue
 
-                    # Mark price = midpoint of bid/ask
+                    # Mark price = midpoint of bid/ask, stored as integer cents.
+                    # Midpoints can be half-cent (e.g., 50/51 -> 50.5), so we round half-up
+                    # to the nearest cent to match this repo's round-to-cent policy (DEBT-025).
                     if pos.side == "yes":
                         mark_price = (yes_bid + yes_ask + 1) // 2
                     else:

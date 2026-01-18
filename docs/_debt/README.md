@@ -4,24 +4,18 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**2 active debt items.**
-
-### Active Debt (2026-01-17)
-
-| ID | Title | Priority | Component |
-|---|---|---|---|
-| **[DEBT-031](DEBT-031-floor-division-statistics.md)** | Floor Division in P&L Statistics | P3 | `portfolio/pnl.py` |
-| **[DEBT-032](DEBT-032-midpoint-rounding-inconsistency.md)** | Midpoint Rounding Inconsistency | P3 | `portfolio/syncer.py` |
-
-### Recommended Order
-
-```text
-DEBT-031 → DEBT-032  (both P3, can be done together or opportunistically)
-```
+**0 active debt items.**
 
 ---
 
 All resolved debt items live in `docs/_archive/debt/`.
+
+### Recently Archived (2026-01-18)
+
+| ID | Title | Status |
+|---|---|---|
+| **[DEBT-031](../_archive/debt/DEBT-031-floor-division-statistics.md)** | Floor Division in P&L Statistics | ✅ Archived |
+| **[DEBT-032](../_archive/debt/DEBT-032-midpoint-rounding-inconsistency.md)** | Midpoint Rounding Inconsistency | ✅ Archived |
 
 ### Recently Archived (2026-01-17)
 
