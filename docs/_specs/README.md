@@ -16,20 +16,23 @@ This directory contains **active** design specifications - work happening NOW.
 | ID | Title | Status |
 |---|---|---|
 | SPEC-028 | [Topic Search & Market Discovery (DB + CLI)](SPEC-028-topic-search-and-discovery.md) | 📝 Draft |
-| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 📝 Draft |
+| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 🟡 Phase 1 implemented |
 | SPEC-031 | [Scanner Quality Profiles (Slop Filtering + "Get In Early" Mode)](SPEC-031-scanner-quality-profiles.md) | 📝 Draft |
-| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft (unblocked) |
-| SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft (unblocked) |
-| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft (unblocked) |
+| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 📝 Draft (depends on SPEC-033 for research provider) |
+| SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | 📝 Draft (depends on SPEC-030 policy) |
+| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 📝 Draft |
 | SPEC-038 | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](SPEC-038-exa-websets-endpoint-coverage.md) | 📝 Draft |
 
 ### Implementation Order (Critical Path)
 
 ```
-SPEC-034 (TradeExecutor)       ← Safety harness for trading
+SPEC-030 (Exa Policy)          ← Budgeted, deterministic Exa usage
     ↓
-SPEC-032 (Agent Orchestration) ← The agentic system
-SPEC-033 (Exa Research Agent)
+SPEC-033 (Exa Research Agent)  ← Deterministic Exa workflows + crash recovery
+    ↓
+SPEC-032 (Agent Orchestration) ← Orchestrator integrates research + verification (+ trading later)
+
+SPEC-034 (TradeExecutor)       ← Trading safety harness (independent)
 ```
 
 ---

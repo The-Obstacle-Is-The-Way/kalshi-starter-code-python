@@ -3,9 +3,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+import pytest
+
 from kalshi_research.exa.cache import ExaCache
 from kalshi_research.exa.models.answer import AnswerResponse
 from kalshi_research.exa.models.search import SearchResponse
+from kalshi_research.exa.policy import ExaMode, ExaPolicy
 from kalshi_research.research.topic import TopicResearcher
 
 if TYPE_CHECKING:
@@ -61,7 +64,9 @@ class StubExa:
         self.answer_calls += 1
         return self._answer
 
-    async def search_and_contents(self, query: str, *, num_results: int = 10) -> SearchResponse:
+    async def search_and_contents(
+        self, query: str, *, num_results: int = 10, **kwargs
+    ) -> SearchResponse:
         self.search_calls += 1
         return self._search
 
@@ -83,4 +88,41 @@ async def test_research_topic_aggregates_and_caches_results(tmp_path: Path) -> N
     assert len(first.summary_citations) == 1
     assert len(first.articles) == 1
     assert first.exa_cost_dollars == 0.03
-    assert second.exa_cost_dollars == 0.03
+    assert second.exa_cost_dollars == 0.0
+
+
+async def test_research_topic_marks_budget_exhausted_when_budget_too_small(tmp_path: Path) -> None:
+    exa = StubExa(
+        answer=_answer_response(answer="This is a comprehensive summary.", cost_total=0.01),
+        search=_search_response(request_id="req_1", cost_total=0.02),
+    )
+    cache = ExaCache(tmp_path)
+    policy = ExaPolicy.from_mode(mode=ExaMode.STANDARD, budget_usd=0.001)
+    researcher = TopicResearcher(exa, cache=cache, max_results=5, policy=policy)
+
+    research = await researcher.research_topic("Test topic", include_answer=True)
+
+    assert exa.answer_calls == 0
+    assert exa.search_calls == 0
+    assert research.summary is None
+    assert research.articles == []
+    assert research.exa_cost_dollars == 0.0
+    assert research.budget_spent_usd == 0.0
+    assert research.budget_exhausted is True
+
+
+async def test_research_topic_fast_mode_skips_answer_and_still_searches(tmp_path: Path) -> None:
+    exa = StubExa(
+        answer=_answer_response(answer="This is a comprehensive summary.", cost_total=0.01),
+        search=_search_response(request_id="req_1", cost_total=0.02),
+    )
+    cache = ExaCache(tmp_path)
+    policy = ExaPolicy.from_mode(mode=ExaMode.FAST, budget_usd=1.0)
+    researcher = TopicResearcher(exa, cache=cache, max_results=5, policy=policy)
+
+    research = await researcher.research_topic("Test topic", include_answer=True)
+
+    assert exa.answer_calls == 0
+    assert exa.search_calls == 1
+    assert research.summary is None
+    assert research.exa_cost_dollars == pytest.approx(0.02)

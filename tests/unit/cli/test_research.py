@@ -43,7 +43,33 @@ def test_research_context_missing_exa_key_exits_with_error(make_market) -> None:
 
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
-    assert "Set EXA_API_KEY" in result.stdout
+    assert "Check EXA_API_KEY" in result.stdout
+    assert "--budget-usd" in result.stdout
+
+
+def test_research_context_invalid_budget_exits_with_error(make_market) -> None:
+    from kalshi_research.api.models.market import Market
+
+    market = Market.model_validate(make_market(ticker="TEST-MARKET"))
+
+    mock_kalshi = AsyncMock()
+    mock_kalshi.__aenter__.return_value = mock_kalshi
+    mock_kalshi.__aexit__.return_value = None
+    mock_kalshi.get_market = AsyncMock(return_value=market)
+
+    mock_exa_cm = AsyncMock()
+    mock_exa_cm.__aenter__.return_value = AsyncMock()
+    mock_exa_cm.__aexit__.return_value = None
+
+    with (
+        patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi),
+        patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa_cm),
+    ):
+        result = runner.invoke(app, ["research", "context", "TEST-MARKET", "--budget-usd", "0"])
+
+    assert result.exit_code == 1
+    assert "budget_usd must be positive" in result.stdout
+    assert "must be > 0" in result.stdout
 
 
 def test_research_context_ticker_not_found_exits() -> None:
@@ -119,7 +145,21 @@ def test_research_topic_missing_exa_key_exits_with_error() -> None:
 
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
-    assert "Set EXA_API_KEY" in result.stdout
+    assert "Check EXA_API_KEY" in result.stdout
+    assert "--budget-usd" in result.stdout
+
+
+def test_research_topic_invalid_budget_exits_with_error() -> None:
+    mock_exa_cm = AsyncMock()
+    mock_exa_cm.__aenter__.return_value = AsyncMock()
+    mock_exa_cm.__aexit__.return_value = None
+
+    with patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa_cm):
+        result = runner.invoke(app, ["research", "topic", "Test topic", "--budget-usd", "0"])
+
+    assert result.exit_code == 1
+    assert "budget_usd must be positive" in result.stdout
+    assert "must be > 0" in result.stdout
 
 
 def test_research_similar_missing_exa_key_exits_with_error() -> None:

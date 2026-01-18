@@ -237,6 +237,7 @@ uv run kalshi research thesis create "My thesis title" \\
 
 uv run kalshi research thesis list
 uv run kalshi research thesis show <THESIS_ID_PREFIX>
+uv run kalshi research thesis edit <THESIS_ID_PREFIX> --title "New title"
 uv run kalshi research thesis resolve <THESIS_ID_PREFIX> --outcome yes
 ```
 
@@ -252,6 +253,8 @@ uv run kalshi research thesis create "My thesis title" ... --with-research
 uv run kalshi research thesis check-invalidation <THESIS_ID_PREFIX> --hours 48
 uv run kalshi research thesis suggest --category crypto
 ```
+
+Use `--mode fast|standard|deep` and `--budget-usd` on `kalshi research context/topic` to cap Exa spend per run.
 
 Exa deep research is a paid endpoint:
 

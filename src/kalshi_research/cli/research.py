@@ -17,6 +17,7 @@ from kalshi_research.cli.utils import (
     console,
     load_json_storage_file,
 )
+from kalshi_research.exa.policy import ExaMode, ExaPolicy
 from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
 
 if TYPE_CHECKING:
@@ -789,6 +790,12 @@ def _render_market_context(market: "Market", research: "MarketResearch") -> None
         _print_market_related(research.related_coverage)
 
     console.print(f"\n[dim]Cost: ${research.exa_cost_dollars:.4f}[/dim]")
+    if research.budget_exhausted:
+        console.print(
+            f"[yellow]Budget exhausted[/yellow] "
+            f"(${research.budget_spent_usd:.4f} / ${research.budget_usd:.2f}); "
+            "results may be partial."
+        )
 
 
 async def _fetch_market(ticker: str) -> "Market":
@@ -826,6 +833,8 @@ async def _run_market_context_research(
     max_news: int,
     max_papers: int,
     days: int,
+    mode: ExaMode,
+    budget_usd: float | None,
 ) -> "MarketResearch":
     """Run Exa-backed market context research for a given market.
 
@@ -847,17 +856,19 @@ async def _run_market_context_research(
     try:
         async with ExaClient.from_env() as exa:
             cache = ExaCache()
+            policy = ExaPolicy.from_mode(mode=mode, budget_usd=budget_usd)
             researcher = MarketContextResearcher(
                 exa,
                 cache=cache,
                 max_news_results=max_news,
                 max_paper_results=max_papers,
                 news_recency_days=days,
+                policy=policy,
             )
             return await researcher.research_market(market)
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
-        console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+        console.print("[dim]Check EXA_API_KEY and --budget-usd (must be > 0).[/dim]")
         raise typer.Exit(1) from None
 
 
@@ -867,6 +878,8 @@ async def _research_market_context(
     max_news: int,
     max_papers: int,
     days: int,
+    mode: ExaMode,
+    budget_usd: float | None,
 ) -> tuple["Market", "MarketResearch"]:
     market = await _fetch_market(ticker)
     research = await _run_market_context_research(
@@ -874,6 +887,8 @@ async def _research_market_context(
         max_news=max_news,
         max_papers=max_papers,
         days=days,
+        mode=mode,
+        budget_usd=budget_usd,
     )
     return market, research
 
@@ -884,11 +899,29 @@ def research_context(
     max_news: Annotated[int, typer.Option("--max-news", help="Max news articles")] = 10,
     max_papers: Annotated[int, typer.Option("--max-papers", help="Max research papers")] = 5,
     days: Annotated[int, typer.Option("--days", help="News recency in days")] = 30,
+    mode: Annotated[
+        ExaMode,
+        typer.Option("--mode", help="Exa policy mode: fast (cheap), standard, deep (expensive)."),
+    ] = ExaMode.STANDARD,
+    budget_usd: Annotated[
+        float | None,
+        typer.Option(
+            "--budget-usd",
+            help="Max Exa spend (USD) for this command. Default depends on mode.",
+        ),
+    ] = None,
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
 ) -> None:
     """Research context for a specific market using Exa."""
     market, research = asyncio.run(
-        _research_market_context(ticker, max_news=max_news, max_papers=max_papers, days=days)
+        _research_market_context(
+            ticker,
+            max_news=max_news,
+            max_papers=max_papers,
+            days=days,
+            mode=mode,
+            budget_usd=budget_usd,
+        )
     )
 
     if output_json:
@@ -927,9 +960,21 @@ def _render_topic_research(topic: str, research: "TopicResearch") -> None:
             console.print()
 
     console.print(f"\n[dim]Cost: ${research.exa_cost_dollars:.4f}[/dim]")
+    if research.budget_exhausted:
+        console.print(
+            f"[yellow]Budget exhausted[/yellow] "
+            f"(${research.budget_spent_usd:.4f} / ${research.budget_usd:.2f}); "
+            "results may be partial."
+        )
 
 
-async def _run_topic_research(topic: str, *, include_answer: bool) -> "TopicResearch":
+async def _run_topic_research(
+    topic: str,
+    *,
+    include_answer: bool,
+    mode: ExaMode,
+    budget_usd: float | None,
+) -> "TopicResearch":
     """Run Exa-backed topic research for thesis ideation.
 
     Args:
@@ -948,11 +993,12 @@ async def _run_topic_research(topic: str, *, include_answer: bool) -> "TopicRese
     try:
         async with ExaClient.from_env() as exa:
             cache = ExaCache()
-            researcher = TopicResearcher(exa, cache=cache)
+            policy = ExaPolicy.from_mode(mode=mode, budget_usd=budget_usd)
+            researcher = TopicResearcher(exa, cache=cache, policy=policy)
             return await researcher.research_topic(topic, include_answer=include_answer)
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
-        console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+        console.print("[dim]Check EXA_API_KEY and --budget-usd (must be > 0).[/dim]")
         raise typer.Exit(1) from None
 
 
@@ -960,10 +1006,31 @@ async def _run_topic_research(topic: str, *, include_answer: bool) -> "TopicRese
 def research_topic(
     topic: Annotated[str, typer.Argument(help="Topic or question to research")],
     no_summary: Annotated[bool, typer.Option("--no-summary", help="Skip LLM summary")] = False,
+    mode: Annotated[
+        ExaMode,
+        typer.Option("--mode", help="Exa policy mode: fast (cheap), standard, deep (expensive)."),
+    ] = ExaMode.STANDARD,
+    budget_usd: Annotated[
+        float | None,
+        typer.Option(
+            "--budget-usd",
+            help="Max Exa spend (USD) for this command. Default depends on mode.",
+        ),
+    ] = None,
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
 ) -> None:
     """Research a topic for thesis ideation using Exa."""
-    research = asyncio.run(_run_topic_research(topic, include_answer=not no_summary))
+    if mode == ExaMode.FAST and not no_summary:
+        console.print("[dim]Note: --mode fast disables LLM summary output (retrieve-only).[/dim]")
+
+    research = asyncio.run(
+        _run_topic_research(
+            topic,
+            include_answer=not no_summary,
+            mode=mode,
+            budget_usd=budget_usd,
+        )
+    )
 
     if output_json:
         console.print(json.dumps(asdict(research), indent=2, default=str))
