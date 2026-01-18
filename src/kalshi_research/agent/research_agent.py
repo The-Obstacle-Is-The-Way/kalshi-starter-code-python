@@ -21,6 +21,7 @@ from kalshi_research.agent.schemas import (
     ResearchStepStatus,
     ResearchSummary,
 )
+from kalshi_research.agent.state import ResearchTaskState
 from kalshi_research.exa.models import ResearchStatus
 from kalshi_research.exa.policy import ExaBudget, ExaMode, ExaPolicy, extract_exa_cost_total
 
@@ -42,6 +43,7 @@ class ResearchAgent:
 
     def __init__(self, exa: ExaClient) -> None:
         self._exa = exa
+        self._state = ResearchTaskState()
 
     def build_plan(
         self,
@@ -281,9 +283,104 @@ class ResearchAgent:
 
         return await self.execute_plan(plan, market, budget=budget)
 
-    async def _execute_step(  # noqa: PLR0912
-        self, step: ResearchStep, _market: Market
-    ) -> ResearchStepResult:
+    async def _execute_research_task(
+        self, step: ResearchStep, market: Market
+    ) -> tuple[list[Factor], float, int]:
+        """
+        Execute deep research task with crash recovery.
+
+        Returns:
+            Tuple of (factors, actual_cost, sources_found)
+        """
+        instructions = step.params["instructions"]
+        ticker = market.ticker
+
+        # Check for existing orphaned task first (crash recovery)
+        task = None
+        saved_state = self._state.load_research_task(ticker)
+
+        if saved_state:
+            logger.info(
+                "attempting_research_task_recovery",
+                ticker=ticker,
+                saved_research_id=saved_state.get("research_id"),
+            )
+
+            # Try to recover using saved ID first
+            try:
+                task = await self._exa.get_research_task(saved_state["research_id"])
+                logger.info(
+                    "recovered_research_task_by_id",
+                    research_id=task.research_id,
+                    status=task.status.value,
+                )
+            except Exception:
+                # Saved ID failed, try finding by instructions
+                logger.warning(
+                    "saved_id_recovery_failed_trying_list",
+                    saved_research_id=saved_state.get("research_id"),
+                )
+                task = await self._exa.find_recent_research_task(
+                    instructions_prefix=instructions[:50],
+                )
+                if task:
+                    logger.info(
+                        "recovered_research_task_by_list",
+                        research_id=task.research_id,
+                        status=task.status.value,
+                    )
+
+        # If no recoverable task found, create new one
+        if task is None:
+            task = await self._exa.create_research_task(instructions=instructions)
+            logger.info("research_task_created", research_id=task.research_id)
+
+            # Persist task ID BEFORE polling starts (crash recovery point)
+            self._state.save_research_task(
+                ticker=ticker,
+                research_id=task.research_id,
+                instructions=instructions,
+            )
+
+        # Poll for completion (with timeout)
+        max_polls = 60
+        poll_count = 0
+        while task.status != ResearchStatus.COMPLETED and poll_count < max_polls:
+            await asyncio.sleep(5)  # Wait 5 seconds between polls
+            task = await self._exa.get_research_task(task.research_id)
+            poll_count += 1
+
+        factors: list[Factor] = []
+        actual_cost = 0.0
+        sources_found = 0
+
+        if task.status == ResearchStatus.COMPLETED:
+            actual_cost = extract_exa_cost_total(task)
+            sources_found = len(task.citations) if task.citations else 0
+
+            # Extract factors from research citations
+            if task.citations:
+                for research_citation in task.citations[:10]:
+                    factors.append(
+                        Factor(
+                            factor_text=research_citation.title or "Research finding",
+                            source_url=research_citation.url,
+                            confidence="high",
+                        )
+                    )
+
+            # Clear state after successful completion
+            self._state.clear_research_task(ticker)
+        else:
+            logger.warning(
+                "research_task_timeout",
+                research_id=task.research_id,
+                status=task.status.value,
+            )
+
+        return factors, actual_cost, sources_found
+
+    async def _execute_step(self, step: ResearchStep, market: Market) -> ResearchStepResult:
         """Execute a single research step and return results with factors."""
 
         logger.info("executing_step", step_id=step.step_id, endpoint=step.endpoint)
@@ -354,39 +451,8 @@ class ResearchAgent:
                     )
 
         elif step.endpoint == "research":
-            # Execute deep research task (async)
-            # Create and poll research task
-            task = await self._exa.create_research_task(instructions=step.params["instructions"])
-            logger.info("research_task_created", research_id=task.research_id)
-
-            # Poll for completion (with timeout)
-            max_polls = 60
-            poll_count = 0
-            while task.status != ResearchStatus.COMPLETED and poll_count < max_polls:
-                await asyncio.sleep(5)  # Wait 5 seconds between polls
-                task = await self._exa.get_research_task(task.research_id)
-                poll_count += 1
-
-            if task.status == ResearchStatus.COMPLETED:
-                actual_cost = extract_exa_cost_total(task)
-                sources_found = len(task.citations) if task.citations else 0
-
-                # Extract factors from research citations
-                if task.citations:
-                    for research_citation in task.citations[:10]:
-                        factors.append(
-                            Factor(
-                                factor_text=research_citation.title or "Research finding",
-                                source_url=research_citation.url,
-                                confidence="high",
-                            )
-                        )
-            else:
-                logger.warning(
-                    "research_task_timeout",
-                    research_id=task.research_id,
-                    status=task.status.value,
-                )
+            # Execute deep research task (async) with crash recovery
+            factors, actual_cost, sources_found = await self._execute_research_task(step, market)
 
         # Create result with factors attached
         result = ResearchStepResult(

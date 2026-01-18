@@ -232,3 +232,204 @@ def test_plan_serialization_roundtrip(mock_exa_client: AsyncMock, sample_market:
     assert restored_plan.ticker == plan.ticker
     assert restored_plan.mode == plan.mode
     assert len(restored_plan.steps) == len(plan.steps)
+
+
+@pytest.mark.asyncio
+async def test_deep_research_crash_recovery_by_id(
+    mock_exa_client: AsyncMock, sample_market: Market
+) -> None:
+    """Test that deep research tasks can be recovered by saved research_id."""
+    from kalshi_research.exa.models import ResearchStatus, ResearchTask
+
+    agent = ResearchAgent(mock_exa_client)
+
+    # Create a research step
+    from kalshi_research.agent.schemas import ResearchStep
+
+    step = ResearchStep(
+        step_id="deep_research_1",
+        endpoint="research",
+        description="Test research",
+        estimated_cost_usd=0.50,
+        params={"instructions": "Research on test topic"},
+    )
+
+    # Simulate saved state from previous crash
+    agent._state.save_research_task(
+        ticker=sample_market.ticker,
+        research_id="test-research-id-123",
+        instructions="Research on test topic",
+    )
+
+    # Mock get_research_task to return completed task
+    from kalshi_research.exa.models.research import ResearchCostDollars
+
+    completed_task = ResearchTask(
+        researchId="test-research-id-123",
+        instructions="Research on test topic",
+        status=ResearchStatus.COMPLETED,
+        createdAt=int(datetime.now(UTC).timestamp()),
+        citations=[],
+        costDollars=ResearchCostDollars(total=0.25, numSearches=1, numPages=5, reasoningTokens=100),
+    )
+    mock_exa_client.get_research_task = AsyncMock(return_value=completed_task)
+
+    # Execute step - should recover existing task
+    result = await agent._execute_step(step, sample_market)
+
+    # Verify recovery was attempted with saved ID
+    mock_exa_client.get_research_task.assert_called_with("test-research-id-123")
+
+    # Should NOT create a new task
+    mock_exa_client.create_research_task.assert_not_called()
+
+    # Result should be successful
+    assert result.status == ResearchStepStatus.COMPLETED
+    assert result.actual_cost_usd == 0.25
+
+
+@pytest.mark.asyncio
+async def test_deep_research_crash_recovery_by_list(
+    mock_exa_client: AsyncMock, sample_market: Market
+) -> None:
+    """Test recovery falls back to find_recent_research_task when ID fails."""
+    from kalshi_research.exa.models import ResearchStatus, ResearchTask
+
+    agent = ResearchAgent(mock_exa_client)
+
+    from kalshi_research.agent.schemas import ResearchStep
+
+    step = ResearchStep(
+        step_id="deep_research_1",
+        endpoint="research",
+        description="Test research",
+        estimated_cost_usd=0.50,
+        params={"instructions": "Research on test topic"},
+    )
+
+    # Simulate saved state with invalid ID
+    agent._state.save_research_task(
+        ticker=sample_market.ticker,
+        research_id="invalid-id-404",
+        instructions="Research on test topic",
+    )
+
+    # Mock get_research_task to fail
+    mock_exa_client.get_research_task = AsyncMock(side_effect=Exception("Not found"))
+
+    # Mock find_recent_research_task to return recovered task
+    from kalshi_research.exa.models.research import ResearchCostDollars
+
+    recovered_task = ResearchTask(
+        researchId="recovered-task-id-789",
+        instructions="Research on test topic",
+        status=ResearchStatus.COMPLETED,
+        createdAt=int(datetime.now(UTC).timestamp()),
+        citations=[],
+        costDollars=ResearchCostDollars(total=0.30, numSearches=1, numPages=5, reasoningTokens=100),
+    )
+    mock_exa_client.find_recent_research_task = AsyncMock(return_value=recovered_task)
+
+    # Execute step - should recover via list
+    result = await agent._execute_step(step, sample_market)
+
+    # Verify fallback to find_recent_research_task
+    mock_exa_client.find_recent_research_task.assert_called_once()
+    call_kwargs = mock_exa_client.find_recent_research_task.call_args[1]
+    assert call_kwargs["instructions_prefix"] == "Research on test topic"[:50]
+
+    # Should NOT create new task
+    mock_exa_client.create_research_task.assert_not_called()
+
+    # Result should be successful
+    assert result.status == ResearchStepStatus.COMPLETED
+    assert result.actual_cost_usd == 0.30
+
+
+@pytest.mark.asyncio
+async def test_deep_research_creates_new_when_no_recovery(
+    mock_exa_client: AsyncMock, sample_market: Market
+) -> None:
+    """Test that new research task is created when no recovery possible."""
+    from kalshi_research.exa.models import ResearchStatus, ResearchTask
+
+    agent = ResearchAgent(mock_exa_client)
+
+    from kalshi_research.agent.schemas import ResearchStep
+
+    step = ResearchStep(
+        step_id="deep_research_1",
+        endpoint="research",
+        description="Test research",
+        estimated_cost_usd=0.50,
+        params={"instructions": "Research on test topic"},
+    )
+
+    # No saved state (fresh run)
+
+    # Mock create_research_task to return new task
+    from kalshi_research.exa.models.research import ResearchCostDollars
+
+    new_task = ResearchTask(
+        researchId="new-task-id-456",
+        instructions="Research on test topic",
+        status=ResearchStatus.COMPLETED,
+        createdAt=int(datetime.now(UTC).timestamp()),
+        citations=[],
+        costDollars=ResearchCostDollars(total=0.40, numSearches=1, numPages=5, reasoningTokens=100),
+    )
+    mock_exa_client.create_research_task = AsyncMock(return_value=new_task)
+    mock_exa_client.get_research_task = AsyncMock(return_value=new_task)
+
+    # Execute step - should create new task
+    result = await agent._execute_step(step, sample_market)
+
+    # Verify new task was created
+    mock_exa_client.create_research_task.assert_called_once_with(
+        instructions="Research on test topic"
+    )
+
+    # Result should be successful
+    assert result.status == ResearchStepStatus.COMPLETED
+    assert result.actual_cost_usd == 0.40
+
+
+@pytest.mark.asyncio
+async def test_deep_research_clears_state_after_completion(
+    mock_exa_client: AsyncMock, sample_market: Market
+) -> None:
+    """Test that state is cleared after successful completion."""
+    from kalshi_research.exa.models import ResearchStatus, ResearchTask
+
+    agent = ResearchAgent(mock_exa_client)
+
+    from kalshi_research.agent.schemas import ResearchStep
+
+    step = ResearchStep(
+        step_id="deep_research_1",
+        endpoint="research",
+        description="Test research",
+        estimated_cost_usd=0.50,
+        params={"instructions": "Research on test topic"},
+    )
+
+    # Mock create and complete cycle
+    from kalshi_research.exa.models.research import ResearchCostDollars
+
+    completed_task = ResearchTask(
+        researchId="task-to-clear-999",
+        instructions="Research on test topic",
+        status=ResearchStatus.COMPLETED,
+        createdAt=int(datetime.now(UTC).timestamp()),
+        citations=[],
+        costDollars=ResearchCostDollars(total=0.35, numSearches=1, numPages=5, reasoningTokens=100),
+    )
+    mock_exa_client.create_research_task = AsyncMock(return_value=completed_task)
+    mock_exa_client.get_research_task = AsyncMock(return_value=completed_task)
+
+    # Execute step
+    await agent._execute_step(step, sample_market)
+
+    # Verify state file does not exist after completion
+    state_file = agent._state._get_state_file(sample_market.ticker)
+    assert not state_file.exists(), "State file should be cleaned up after completion"
