@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
 from kalshi_research.exa.cache import ExaCache
 from kalshi_research.exa.policy import ExaBudget, ExaMode, ExaPolicy
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_policy_mode_maps_to_exa_search_type() -> None:
@@ -50,7 +55,7 @@ def test_budget_rejects_invalid_values() -> None:
         budget.record_spend(-0.01)
 
 
-def test_cache_params_are_stable_and_mode_scoped(tmp_path) -> None:
+def test_cache_params_are_stable_and_mode_scoped(tmp_path: Path) -> None:
     cache = ExaCache(tmp_path)
 
     policy_standard = ExaPolicy.from_mode(mode=ExaMode.STANDARD)

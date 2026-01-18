@@ -91,3 +91,4 @@ async def test_research_market_aggregates_and_caches_results(tmp_path: Path, mak
     assert first.total_sources_found == 3
     assert second.total_sources_found == 3
     assert first.exa_cost_dollars == 0.06
+    assert second.exa_cost_dollars == 0.0

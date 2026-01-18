@@ -868,7 +868,7 @@ async def _run_market_context_research(
             return await researcher.research_market(market)
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
-        console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+        console.print("[dim]Check EXA_API_KEY and --budget-usd (must be > 0).[/dim]")
         raise typer.Exit(1) from None
 
 
@@ -998,7 +998,7 @@ async def _run_topic_research(
             return await researcher.research_topic(topic, include_answer=include_answer)
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
-        console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+        console.print("[dim]Check EXA_API_KEY and --budget-usd (must be > 0).[/dim]")
         raise typer.Exit(1) from None
 
 

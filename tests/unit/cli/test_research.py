@@ -43,7 +43,8 @@ def test_research_context_missing_exa_key_exits_with_error(make_market) -> None:
 
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
-    assert "Set EXA_API_KEY" in result.stdout
+    assert "Check EXA_API_KEY" in result.stdout
+    assert "--budget-usd" in result.stdout
 
 
 def test_research_context_ticker_not_found_exits() -> None:
@@ -119,7 +120,8 @@ def test_research_topic_missing_exa_key_exits_with_error() -> None:
 
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
-    assert "Set EXA_API_KEY" in result.stdout
+    assert "Check EXA_API_KEY" in result.stdout
+    assert "--budget-usd" in result.stdout
 
 
 def test_research_similar_missing_exa_key_exits_with_error() -> None:

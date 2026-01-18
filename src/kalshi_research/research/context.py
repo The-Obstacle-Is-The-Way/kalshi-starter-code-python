@@ -201,7 +201,7 @@ class MarketContextResearcher:
             params["exclude_domains"] = exclude_domains
 
         try:
-            response, _cached = await self._search_with_cache(
+            response, cached = await self._search_with_cache(
                 params=params,
                 query=query,
                 num_results=num_results,
@@ -233,7 +233,9 @@ class MarketContextResearcher:
             return ([], 0.0, True)
 
         sources = [self._result_to_source(r, source_category) for r in response.results]
-        cost = response.cost_dollars.total if response.cost_dollars else 0.0
+        cost = 0.0
+        if not cached and response.cost_dollars:
+            cost = response.cost_dollars.total
         return (sources, cost, False)
 
     async def research_market(self, market: Market) -> MarketResearch:

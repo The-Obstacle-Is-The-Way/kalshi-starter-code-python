@@ -134,7 +134,6 @@ class TopicResearcher:
         research = TopicResearch(topic=topic)
         research.budget_usd = self._policy.budget_usd
         budget = ExaBudget(limit_usd=self._policy.budget_usd)
-        total_cost = 0.0
 
         if include_answer and self._policy.include_answer:
             answer, budget_exhausted = await self._get_answer(topic, budget=budget)
@@ -155,8 +154,6 @@ class TopicResearcher:
                             category="citation",
                         )
                     )
-                if answer.cost_dollars:
-                    total_cost += answer.cost_dollars.total
 
         search, budget_exhausted = await self._get_search(topic, budget=budget)
         if budget_exhausted:
@@ -175,11 +172,9 @@ class TopicResearcher:
                         category="article",
                     )
                 )
-            if search.cost_dollars:
-                total_cost += search.cost_dollars.total
 
-        research.exa_cost_dollars = total_cost
         research.budget_spent_usd = budget.spent_usd
+        research.exa_cost_dollars = budget.spent_usd
         if budget.spent_usd > budget.limit_usd:
             research.budget_exhausted = True
         return research

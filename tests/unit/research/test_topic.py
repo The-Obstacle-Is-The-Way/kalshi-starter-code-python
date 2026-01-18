@@ -85,4 +85,4 @@ async def test_research_topic_aggregates_and_caches_results(tmp_path: Path) -> N
     assert len(first.summary_citations) == 1
     assert len(first.articles) == 1
     assert first.exa_cost_dollars == 0.03
-    assert second.exa_cost_dollars == 0.03
+    assert second.exa_cost_dollars == 0.0
