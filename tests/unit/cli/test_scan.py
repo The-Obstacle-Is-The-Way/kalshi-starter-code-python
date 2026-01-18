@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -18,6 +18,22 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 runner = CliRunner()
+
+
+def test_scan_profile_defaults_cover_all_profiles() -> None:
+    from kalshi_research.cli.scan import ScanProfile, _scan_profile_defaults
+
+    assert _scan_profile_defaults(ScanProfile.RAW) == (0, 100, None)
+    assert _scan_profile_defaults(ScanProfile.TRADEABLE) == (1000, 10, None)
+    assert _scan_profile_defaults(ScanProfile.LIQUID) == (5000, 5, 60)
+    assert _scan_profile_defaults(ScanProfile.EARLY) == (100, 5, 40)
+
+
+def test_scan_profile_defaults_rejects_unknown_profile() -> None:
+    from kalshi_research.cli.scan import ScanProfile, _scan_profile_defaults
+
+    with pytest.raises(ValueError, match="Unknown ScanProfile"):
+        _scan_profile_defaults(cast("ScanProfile", "unknown"))
 
 
 @patch("kalshi_research.data.repositories.PriceRepository")
@@ -497,6 +513,240 @@ def test_scan_opportunities_profile_early_filters_by_created_time_and_avoids_old
     assert len(old_orderbook_route.calls) == 0
 
 
+def test_scan_opportunities_profile_early_rejects_non_positive_early_hours(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    market = make_market(
+        ticker="TEST-MARKET",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=1_000,
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [market], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
+            return_value=Response(200, json={"exchange_active": True, "trading_active": True})
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "scan",
+                "opportunities",
+                "--profile",
+                "early",
+                "--early-hours",
+                "0",
+                "--top",
+                "10",
+            ],
+        )
+
+    assert result.exit_code == 1
+    assert "--early-hours must be positive" in result.stdout
+
+
+def test_scan_opportunities_profile_early_reports_when_no_recent_markets(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    old_market = make_market(
+        ticker="OLD-MKT",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=1_000,
+        created_time=(now - timedelta(hours=200)).isoformat(),
+        open_time=(now - timedelta(hours=200)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [old_market], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
+            return_value=Response(200, json={"exchange_active": True, "trading_active": True})
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "scan",
+                "opportunities",
+                "--profile",
+                "early",
+                "--early-hours",
+                "1",
+                "--top",
+                "10",
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert "No markets found in the last 1 hours" in result.stdout
+
+
+def test_scan_opportunities_profile_early_warns_when_created_time_missing(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from kalshi_research.analysis.liquidity import liquidity_score
+
+    now = datetime.now(UTC)
+    market = make_market(
+        ticker="NEW-MKT",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=1_000,
+        created_time=None,
+        open_time=(now - timedelta(hours=1)).isoformat(),
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [market], "cursor": None}
+
+    orderbook = {
+        "yes": [[50, 5_000]],
+        "no": [[49, 5_000]],
+        "yes_dollars": [["0.50", 5_000]],
+        "no_dollars": [["0.49", 5_000]],
+    }
+    expected_score = liquidity_score(
+        Market.model_validate(market),
+        Orderbook.model_validate(orderbook),
+    ).score
+    assert expected_score >= 40
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
+            return_value=Response(200, json={"exchange_active": True, "trading_active": True})
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+        orderbook_route = respx.get(f"{KALSHI_PROD_BASE_URL}/markets/NEW-MKT/orderbook").mock(
+            return_value=Response(200, json={"orderbook": orderbook})
+        )
+
+        result = runner.invoke(app, ["scan", "opportunities", "--profile", "early", "--top", "10"])
+
+    assert result.exit_code == 0
+    assert "missing created_time" in result.stdout
+    assert "NEW-MKT" in result.stdout
+    assert str(expected_score) in result.stdout
+    assert len(orderbook_route.calls) == 1
+
+
+def test_scan_opportunities_reports_when_no_markets_found() -> None:
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
+            return_value=Response(200, json={"exchange_active": True, "trading_active": True})
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json={"markets": [], "cursor": None})
+        )
+
+        result = runner.invoke(app, ["scan", "opportunities", "--top", "1"])
+
+    assert result.exit_code == 0
+    assert "No markets found matching category filters" in result.stdout
+
+
+def test_scan_opportunities_reports_when_no_results(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    market = make_market(
+        ticker="LOW-VOL",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=0,
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [market], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
+            return_value=Response(200, json={"exchange_active": True, "trading_active": True})
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "scan",
+                "opportunities",
+                "--profile",
+                "tradeable",
+                "--filter",
+                "close-race",
+                "--top",
+                "10",
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert "No markets found matching criteria" in result.stdout
+
+
+def test_scan_opportunities_reports_when_no_markets_match_liquidity_threshold(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    market = make_market(
+        ticker="LOW-LIQ",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=10_000,
+        open_interest=0,
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    markets_response = {"markets": [market], "cursor": None}
+
+    low_orderbook = {"yes": None, "no": None, "yes_dollars": None, "no_dollars": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
+            return_value=Response(200, json={"exchange_active": True, "trading_active": True})
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets").mock(
+            return_value=Response(200, json=markets_response)
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/markets/LOW-LIQ/orderbook").mock(
+            return_value=Response(200, json={"orderbook": low_orderbook})
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "scan",
+                "opportunities",
+                "--filter",
+                "close-race",
+                "--top",
+                "10",
+                "--min-liquidity",
+                "99",
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert "No markets found matching liquidity threshold" in result.stdout
+
+
 def test_scan_opportunities_min_liquidity_filters_results(
     make_market: Callable[..., dict[str, object]],
 ) -> None:
@@ -685,6 +935,76 @@ def test_scan_opportunities_no_sports_excludes_sports_markets(
                 "--top",
                 "2",
                 "--no-sports",
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert "ECON-MARKET" in result.stdout
+    assert "SPORTS-MARKET" not in result.stdout
+
+
+def test_scan_opportunities_event_prefix_filters_markets(
+    make_market: Callable[..., dict[str, object]],
+) -> None:
+    econ_market = make_market(
+        ticker="ECON-MARKET",
+        event_ticker="KXFEDRATE-26JAN",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=10_000,
+        open_interest=5_000,
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+    sports_market = make_market(
+        ticker="SPORTS-MARKET",
+        event_ticker="KXNFLAFCCHAMP-26JAN",
+        yes_bid=50,
+        yes_ask=51,
+        volume_24h=10_000,
+        open_interest=5_000,
+        close_time="2099-12-31T00:00:00Z",
+        expiration_time="2100-01-01T00:00:00Z",
+    )
+
+    template = load_events_list_fixture()["events"][0]
+
+    econ_event = dict(template)
+    econ_event.update(
+        {
+            "event_ticker": econ_market["event_ticker"],
+            "category": "Economics",
+            "markets": [econ_market],
+        }
+    )
+    sports_event = dict(template)
+    sports_event.update(
+        {
+            "event_ticker": sports_market["event_ticker"],
+            "category": "Sports",
+            "markets": [sports_market],
+        }
+    )
+
+    response = {"events": [econ_event, sports_event], "cursor": None}
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/exchange/status").mock(
+            return_value=Response(200, json={"exchange_active": True, "trading_active": True})
+        )
+        respx.get(f"{KALSHI_PROD_BASE_URL}/events").mock(return_value=Response(200, json=response))
+
+        result = runner.invoke(
+            app,
+            [
+                "scan",
+                "opportunities",
+                "--filter",
+                "close-race",
+                "--top",
+                "2",
+                "--event-prefix",
+                "KXFED",
             ],
         )
 
