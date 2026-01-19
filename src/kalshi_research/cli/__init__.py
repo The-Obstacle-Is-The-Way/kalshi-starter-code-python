@@ -24,6 +24,7 @@ from kalshi_research.cli.news import app as news_app
 from kalshi_research.cli.portfolio import app as portfolio_app
 from kalshi_research.cli.research import app as research_app
 from kalshi_research.cli.scan import app as scan_app
+from kalshi_research.cli.series import app as series_app
 from kalshi_research.cli.status import app as status_app
 from kalshi_research.cli.utils import console
 from kalshi_research.logging import configure_structlog
@@ -39,6 +40,7 @@ app.add_typer(data_app, name="data")
 app.add_typer(market_app, name="market")
 app.add_typer(scan_app, name="scan")
 app.add_typer(browse_app, name="browse")
+app.add_typer(series_app, name="series")
 app.add_typer(event_app, name="event")
 app.add_typer(mve_app, name="mve")
 app.add_typer(status_app, name="status")
