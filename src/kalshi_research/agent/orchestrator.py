@@ -114,6 +114,7 @@ class AgentKernel:
             research=research_summary,
         )
         analysis = await self.synthesizer.synthesize(input=synthesis_input)
+        total_cost_usd += self.synthesizer.get_last_call_cost_usd()
 
         # Step 4: Verify output
         verification = verify_analysis(analysis)

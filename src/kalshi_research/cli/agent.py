@@ -229,7 +229,7 @@ def analyze(  # noqa: PLR0915
     """
     from kalshi_research.agent import ResearchAgent
     from kalshi_research.agent.orchestrator import AgentKernel
-    from kalshi_research.agent.providers.llm import MockSynthesizer
+    from kalshi_research.agent.providers.llm import MockSynthesizer, get_synthesizer
     from kalshi_research.api import KalshiPublicClient
     from kalshi_research.exa.client import ExaClient
     from kalshi_research.exa.policy import ExaMode
@@ -259,13 +259,13 @@ def analyze(  # noqa: PLR0915
                 # Create research agent
                 research_agent = ResearchAgent(exa)
 
-                # Create synthesizer (mock for Phase 1)
-                if human or not output_json:
+                synthesizer = get_synthesizer(max_cost_usd=max_llm_usd)
+                is_mock = isinstance(synthesizer, MockSynthesizer)
+                if is_mock and (human or not output_json):
                     console.print(
-                        "[yellow]Warning:[/yellow] Using MockSynthesizer (Phase 1). "
-                        "Results are placeholder."
+                        "[yellow]Warning:[/yellow] Using MockSynthesizer. "
+                        "Set KALSHI_SYNTHESIZER_BACKEND=anthropic for real analysis."
                     )
-                synthesizer = MockSynthesizer()
 
                 # Create kernel
                 kernel = AgentKernel(
@@ -286,7 +286,13 @@ def analyze(  # noqa: PLR0915
                     research_mode=research_mode.value,
                 )
 
-                return result.model_dump(mode="json")
+                output = result.model_dump(mode="json")
+                if is_mock:
+                    output["warning"] = (
+                        "MockSynthesizer active. "
+                        "Set KALSHI_SYNTHESIZER_BACKEND=anthropic for real analysis."
+                    )
+                return output
 
         except KalshiAPIError as e:
             console.print(f"[red]Kalshi API Error {e.status_code}:[/red] {e.message}")

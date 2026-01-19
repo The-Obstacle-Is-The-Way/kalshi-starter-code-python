@@ -18,13 +18,11 @@ This directory contains **active** design specifications - work happening NOW.
 | SPEC-028 | [Topic Search & Market Discovery (DB + CLI)](SPEC-028-topic-search-and-discovery.md) | 📝 Ready |
 | SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | ✅ Phase 1 Complete |
 | SPEC-031 | [Scanner Quality Profiles (Slop Filtering + "Get In Early" Mode)](SPEC-031-scanner-quality-profiles.md) | ✅ Phase 1–2 Complete (Phase 3 deferred) |
-| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | 🟡 **Phase 1 Complete** (uses MockSynthesizer - see [DEBT-037](../_debt/DEBT-037-mock-synthesizer-production-gap.md)) |
+| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | ✅ **Phase 1 Complete** (LLM synthesizer backend configurable) |
 | SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | ✅ **Phase 1 Complete** |
 | SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 🟡 Phase 1 implemented (Phase 2 deferred) |
 | SPEC-038 | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](SPEC-038-exa-websets-endpoint-coverage.md) | 📝 Draft |
-| **SPEC-042** | [LLM Synthesizer Implementation](SPEC-042-llm-synthesizer-implementation.md) | 🔴 **P1 - NEXT** (fixes DEBT-037, enables agent value) |
-
-**Critical:** SPEC-042 is the highest priority active spec. SPEC-032 uses MockSynthesizer until SPEC-042 is implemented.
+| **SPEC-042** | [LLM Synthesizer Implementation](SPEC-042-llm-synthesizer-implementation.md) | ✅ **Phase 1 Complete** (resolves DEBT-037, enables agent value) |
 
 ### Implementation Order (Critical Path)
 
@@ -35,9 +33,9 @@ Execution order is tracked in `PROGRESS.md` (Ralph Wiggum queue). This section l
     ↓
 ✅ SPEC-033 (Exa Research Agent)   ← DONE: ResearchAgent, crash recovery, CLI
     ↓
-🟡 SPEC-032 (Agent Orchestration)  ← DONE (Phase 1): Uses MockSynthesizer
+✅ SPEC-032 (Agent Orchestration)  ← DONE: Deterministic kernel + rules verifier
     ↓
-🔴 SPEC-042 (LLM Synthesizer)      ← NEXT: Implement real LLM synthesizer (Anthropic-first per spec)
+✅ SPEC-042 (LLM Synthesizer)      ← DONE: Anthropic-first synthesizer backend + selection
 
 🟡 SPEC-034 (TradeExecutor)        ← Phase 1 done; Phase 2 deferred
 📝 SPEC-028 (Topic Search)         ← Independent, can implement anytime

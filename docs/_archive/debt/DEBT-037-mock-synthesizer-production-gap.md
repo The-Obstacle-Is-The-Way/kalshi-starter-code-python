@@ -1,7 +1,7 @@
 # DEBT-037: MockSynthesizer in Production Path
 
-**Status:** Active
-**Priority:** P1 (High - Blocks entire agent system value proposition)
+**Status:** ✅ Archived (Resolved by SPEC-042)
+**Priority:** P1 (Historical)
 **Created:** 2026-01-18
 **Component:** `kalshi_research.agent.providers.llm`, `kalshi_research.cli.agent`
 
@@ -9,7 +9,7 @@
 
 ## Summary
 
-The `kalshi agent analyze` command uses `MockSynthesizer` unconditionally, which returns a trivial "+5% from market" prediction. This makes the entire agent analysis workflow **useless** until a real LLM synthesizer is implemented.
+The `kalshi agent analyze` command originally used `MockSynthesizer` unconditionally, which returned a trivial "+5% from market" prediction. This made the agent analysis workflow **useless** until a real LLM synthesizer was implemented.
 
 **This is not a bug but a spec design flaw:** SPEC-032 acceptance criteria never required real LLM predictions, only valid JSON output and schema compliance.
 
@@ -34,25 +34,10 @@ The acceptance criteria did NOT require:
 
 ## Location
 
-```python
-# src/kalshi_research/cli/agent.py:262-268
-# Create synthesizer (mock for Phase 1)
-if human or not output_json:
-    console.print(
-        "[yellow]Warning:[/yellow] Using MockSynthesizer (Phase 1). "
-        "Results are placeholder."
-    )
-synthesizer = MockSynthesizer()  # ALWAYS mock, no configuration
-```
-
-And:
-
-```python
-# src/kalshi_research/agent/providers/llm.py:77-79
-# Simple mock: predict market price + 5% with low confidence
-market_pct = int(input.snapshot.midpoint_prob * 100)
-predicted = min(100, max(0, market_pct + 5))
-```
+This was resolved by implementing SPEC-042:
+- `ClaudeSynthesizer` (Anthropic) added with tool-based structured outputs.
+- `get_synthesizer()` factory added; backend controlled via `KALSHI_SYNTHESIZER_BACKEND`.
+- CLI now uses the factory and emits a warning in JSON output when mock is active.
 
 ## Problems
 
@@ -69,19 +54,9 @@ predicted = min(100, max(0, market_pct + 5))
 | **Cost** | Users pay Exa API costs for research that gets discarded |
 | **UX** | JSON mode silently returns garbage with no indication |
 
-## Recommended Fix
+## Resolution
 
-### Immediate (P1 - Do First)
-
-1. Add warning to JSON mode output (add `"warning": "MockSynthesizer active"` to JSON)
-2. Update docs to clearly state analyze is non-functional until Phase 2
-
-### Phase 2 Implementation
-
-See [SPEC-042](../_specs/SPEC-042-llm-synthesizer-implementation.md) for the implementation plan:
-- Implement `ClaudeSynthesizer` (Anthropic) or another real backend
-- Add `KALSHI_SYNTHESIZER_BACKEND` env var
-- Factory function to select based on config
+This item is resolved by [SPEC-042](../_specs/SPEC-042-llm-synthesizer-implementation.md).
 
 ## Files Affected
 
@@ -90,10 +65,10 @@ See [SPEC-042](../_specs/SPEC-042-llm-synthesizer-implementation.md) for the imp
 
 ## Acceptance Criteria
 
-- [ ] JSON mode includes warning field when mock is active
-- [ ] At least one real LLM synthesizer implemented (SPEC-042)
-- [ ] Environment variable to select synthesizer backend
-- [ ] Documentation clearly states Phase 1 limitation
+- [x] JSON mode includes warning field when mock is active
+- [x] At least one real LLM synthesizer implemented (SPEC-042)
+- [x] Environment variable to select synthesizer backend
+- [x] Documentation includes env var instructions (`.env.example`)
 
 ## Related
 

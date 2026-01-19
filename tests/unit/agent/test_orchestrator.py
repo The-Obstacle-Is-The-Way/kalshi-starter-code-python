@@ -156,6 +156,15 @@ async def test_orchestrator_verification_fails(mock_kalshi_client, mock_research
                 model_id="bad-v1",
             )
 
+        def get_last_call_cost_usd(self) -> float:
+            return 0.0
+
+        def get_total_cost_usd(self) -> float:
+            return 0.0
+
+        def get_total_tokens(self) -> int:
+            return 0
+
     synthesizer = BadSynthesizer()
 
     kernel = AgentKernel(
@@ -241,6 +250,15 @@ async def test_orchestrator_escalation_disabled_by_default(mock_kalshi_client, m
                 generated_at=datetime.now(UTC),
                 model_id="bad-v1",
             )
+
+        def get_last_call_cost_usd(self) -> float:
+            return 0.0
+
+        def get_total_cost_usd(self) -> float:
+            return 0.0
+
+        def get_total_tokens(self) -> int:
+            return 0
 
     synthesizer = BadSynthesizer()
 

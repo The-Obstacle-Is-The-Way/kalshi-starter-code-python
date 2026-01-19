@@ -4,14 +4,11 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**2 active debt items.**
+**1 active debt item.**
 
 | ID | Title | Priority | Component |
 |---|---|---|---|
 | **[DEBT-034](DEBT-034-broad-exception-catches.md)** | Broad Exception Catches in Agent/Execution Code | P3 | agent, execution |
-| **[DEBT-037](DEBT-037-mock-synthesizer-production-gap.md)** | MockSynthesizer in Production Path | **P1** | agent.providers.llm |
-
-**Note:** DEBT-037 is P1 because it blocks the entire agent system value proposition. See [SPEC-042](../_specs/SPEC-042-llm-synthesizer-implementation.md) for the implementation plan.
 
 ---
 
@@ -21,6 +18,7 @@ All resolved debt items live in `docs/_archive/debt/`.
 
 | ID | Title | Status |
 |---|---|---|
+| **[DEBT-037](../_archive/debt/DEBT-037-mock-synthesizer-production-gap.md)** | MockSynthesizer in Production Path | ✅ Resolved (SPEC-042) |
 | **[DEBT-033](../_archive/debt/DEBT-033-frozen-model-setattr-hack.md)** | Frozen Pydantic Model `object.__setattr__` Hack | ✅ Closed (False Positive) |
 | **[DEBT-035](../_archive/debt/DEBT-035-missing-agent-integration-tests.md)** | Missing Agent Integration Tests | ✅ Resolved |
 | **[DEBT-036](../_archive/debt/DEBT-036-deep-research-timeout-hardcoded.md)** | Deep Research Timeout Hardcoded | ✅ Resolved |

@@ -48,6 +48,9 @@ dev = [
     "polyfactory>=3.0.0",
     "hypothesis>=6.122.0",
 ]
+llm = [
+    "anthropic>=0.40.0",
+]
 research = [
     "pandas>=2.2.0",
     "numpy>=2.2.0",
@@ -57,7 +60,7 @@ research = [
     "jupyter>=1.1.0",
     "ipykernel>=6.29.0",
 ]
-all = ["kalshi-research[dev,research]"]
+all = ["kalshi-research[dev,llm,research]"]
 
 [project.scripts]
 kalshi = "kalshi_research.cli:app"
@@ -123,7 +126,7 @@ warn_unused_configs = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["websockets.*", "respx.*", "scipy.*", "matplotlib.*", "pandas.*", "duckdb.*", "aiosqlite.*", "nest_asyncio", "IPython.*"]
+module = ["anthropic.*", "websockets.*", "respx.*", "scipy.*", "matplotlib.*", "pandas.*", "duckdb.*", "aiosqlite.*", "nest_asyncio", "IPython.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

@@ -1,6 +1,6 @@
 # SPEC-042: LLM Synthesizer Implementation
 
-**Status:** Active
+**Status:** 🟡 Phase 1 implemented (2026-01-19)
 **Priority:** P1 (High - Required for agent system value)
 **Created:** 2026-01-18
 **Promoted From:** FUTURE-007
@@ -13,7 +13,7 @@
 
 Implement a real LLM-based synthesizer to replace `MockSynthesizer` in the agent analysis workflow. Without this, `kalshi agent analyze` returns meaningless "+5% from market" predictions.
 
-This spec addresses [DEBT-037](../_debt/DEBT-037-mock-synthesizer-production-gap.md) which is blocking the entire agent system value proposition.
+This spec resolved [DEBT-037](../_archive/debt/DEBT-037-mock-synthesizer-production-gap.md) which previously blocked the entire agent system value proposition.
 
 **Model Choice:** Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`) - pinned model ID for reproducibility (confirmed in Anthropic model docs).
 
@@ -22,7 +22,7 @@ This spec addresses [DEBT-037](../_debt/DEBT-037-mock-synthesizer-production-gap
 ## Goals
 
 1. **Implement Claude Sonnet 4.5 synthesizer** using Anthropic's native structured outputs
-2. **Ensure structured output validation** via Pydantic + Anthropic beta header
+2. **Ensure structured output validation** via Pydantic + tool-use JSON schema validation
 3. **Make backend configurable** via environment variable (default: `anthropic`)
 4. **Add cost tracking** for LLM calls
 5. **Preserve mock for testing** - Mock stays available for CI/testing
@@ -42,9 +42,9 @@ This spec addresses [DEBT-037](../_debt/DEBT-037-mock-synthesizer-production-gap
 
 1. **Protocol defined**: `StructuredSynthesizer` in `src/kalshi_research/agent/providers/llm.py`
 2. **Mock implementation**: `MockSynthesizer` returns `market_price + 5%`
-3. **CLI hardcoded**: `src/kalshi_research/cli/agent.py:262-268` always uses mock
+3. **CLI configurable**: `src/kalshi_research/cli/agent.py` uses `get_synthesizer()` (env-controlled backend)
 4. **Schemas exist**: `SynthesisInput` in `providers/llm.py`, `AnalysisResult` in `schemas.py`
-5. **Warning exists** (human mode only): Lines 263-267 print warning for `--human` output
+5. **Warnings**: When `mock` is active, JSON output includes a `"warning"` field (and human output prints a warning)
 
 ---
 
@@ -72,7 +72,7 @@ def get_synthesizer(backend: str | None = None) -> StructuredSynthesizer:
     if backend == "mock":
         return MockSynthesizer()
     elif backend == "anthropic":
-        return ClaudeSynthesizer()
+        return ClaudeSynthesizer()  # optional: budget via max_cost_usd
     else:
         raise ValueError(f"Unknown synthesizer backend: {backend}")
 ```
@@ -342,16 +342,16 @@ async def test_real_claude_synthesis():
 
 ## Acceptance Criteria
 
-- [ ] `ClaudeSynthesizer` implemented using `claude-sonnet-4-5-20250929`
-- [ ] Native structured outputs enabled per Anthropic vendor docs (beta header if required)
-- [ ] `get_synthesizer()` factory function works
-- [ ] `KALSHI_SYNTHESIZER_BACKEND` env var controls backend (default: `anthropic`)
-- [ ] CLI uses factory, warns when mock is active
-- [ ] Prompt template optimized for calibrated probability estimation
-- [ ] Cost tracking for LLM calls (tokens used, USD spent)
-- [ ] Unit tests with mocked API (no real calls in CI)
-- [ ] Integration test with real API (opt-in via env var)
-- [ ] Documentation updated with env var instructions
+- [x] `ClaudeSynthesizer` implemented using `claude-sonnet-4-5-20250929`
+- [x] Native structured outputs enabled via Anthropic tool use + JSON schema
+- [x] `get_synthesizer()` factory function works
+- [x] `KALSHI_SYNTHESIZER_BACKEND` env var controls backend (default: `anthropic`)
+- [x] CLI uses factory, warns when mock is active (including JSON output)
+- [x] Prompt template optimized for calibrated probability estimation
+- [x] Cost tracking for LLM calls (tokens used, USD spent)
+- [x] Unit tests with mocked API (no real calls in CI)
+- [x] Integration test with real API (opt-in via env var)
+- [x] Documentation updated with env var instructions (`.env.example`)
 
 ---
 
@@ -370,7 +370,7 @@ async def test_real_claude_synthesis():
 
 ## References
 
-- [DEBT-037: MockSynthesizer in Production Path](../_debt/DEBT-037-mock-synthesizer-production-gap.md)
+- [DEBT-037: MockSynthesizer in Production Path (Archived)](../_archive/debt/DEBT-037-mock-synthesizer-production-gap.md)
 - [SPEC-032: Agent System Orchestration](SPEC-032-agent-system-orchestration.md)
 - [SPEC-033: Exa Research Agent](SPEC-033-exa-research-agent.md)
 - [Claude Models Overview (model IDs)](https://platform.claude.com/docs/en/about-claude/models/overview)
