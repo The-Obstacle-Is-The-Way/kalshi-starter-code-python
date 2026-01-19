@@ -189,14 +189,6 @@ class StructuredSynthesizer(Protocol):
         """Return the estimated USD cost of the most recent call."""
         ...
 
-    def get_total_cost_usd(self) -> float:
-        """Return the cumulative estimated USD cost for this synthesizer instance."""
-        ...
-
-    def get_total_tokens(self) -> int:
-        """Return cumulative tokens (input + output) for this synthesizer instance."""
-        ...
-
 
 class _AnthropicMessages(Protocol):
     async def create(self, **kwargs: object) -> object: ...
@@ -233,9 +225,6 @@ class ClaudeSynthesizer:
 
         self._pricing = _default_pricing_for_model(model)
 
-        self._total_input_tokens = 0
-        self._total_output_tokens = 0
-        self._total_cost_usd = 0.0
         self._last_cost_usd = 0.0
 
         if client is not None:
@@ -333,12 +322,6 @@ class ClaudeSynthesizer:
     def get_last_call_cost_usd(self) -> float:
         return self._last_cost_usd
 
-    def get_total_cost_usd(self) -> float:
-        return self._total_cost_usd
-
-    def get_total_tokens(self) -> int:
-        return self._total_input_tokens + self._total_output_tokens
-
     def _build_prompt(self, input: SynthesisInput) -> str:
         factors_text = self._format_research_factors(input.research)
         subtitle = input.market.subtitle or ""
@@ -398,12 +381,9 @@ class ClaudeSynthesizer:
             self._last_cost_usd = 0.0
             return
 
-        self._total_input_tokens += input_tokens
-        self._total_output_tokens += output_tokens
-
-        cost = self._pricing.cost_usd(input_tokens=input_tokens, output_tokens=output_tokens)
-        self._last_cost_usd = cost
-        self._total_cost_usd += cost
+        self._last_cost_usd = self._pricing.cost_usd(
+            input_tokens=input_tokens, output_tokens=output_tokens
+        )
 
 
 class MockSynthesizer:
@@ -413,9 +393,7 @@ class MockSynthesizer:
     """
 
     def __init__(self) -> None:
-        self._total_cost_usd = 0.0
         self._last_cost_usd = 0.0
-        self._total_tokens = 0
 
     async def synthesize(self, *, input: SynthesisInput) -> AnalysisResult:
         """Return mock analysis result.
@@ -463,12 +441,6 @@ class MockSynthesizer:
 
     def get_last_call_cost_usd(self) -> float:
         return self._last_cost_usd
-
-    def get_total_cost_usd(self) -> float:
-        return self._total_cost_usd
-
-    def get_total_tokens(self) -> int:
-        return self._total_tokens
 
 
 def get_synthesizer(
