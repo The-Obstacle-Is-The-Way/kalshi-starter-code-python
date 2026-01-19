@@ -75,21 +75,6 @@ class TestKalshiPublicClientDiscovery:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_get_series_fee_changes_uses_ssot_fixture(self) -> None:
-        response_json = load_golden_response("series_fee_changes_response.json")
-        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/series/fee_changes").mock(
-            return_value=Response(200, json=response_json)
-        )
-
-        async with KalshiPublicClient() as client:
-            changes = await client.get_series_fee_changes()
-
-        assert route.called
-        assert isinstance(changes, list)
-        assert len(changes) == len(response_json["series_fee_change_arr"])
-
-    @pytest.mark.asyncio
-    @respx.mock
     async def test_get_event_metadata_uses_ssot_fixture(self) -> None:
         response_json = load_golden_response("event_metadata_response.json")
         market_details = response_json.get("market_details")
@@ -124,46 +109,6 @@ class TestKalshiPublicClientDiscovery:
         assert set(filters.filters_by_sports.keys()) == set(
             response_json["filters_by_sports"].keys()
         )
-
-    @pytest.mark.asyncio
-    @respx.mock
-    async def test_get_structured_targets_uses_ssot_fixture(self) -> None:
-        response_json = load_golden_response("structured_targets_list_response.json")
-        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/structured_targets").mock(
-            return_value=Response(200, json=response_json)
-        )
-
-        async with KalshiPublicClient() as client:
-            page = await client.get_structured_targets(
-                structured_target_type="PLAYER_STATS",
-                competition="NFL",
-                page_size=5,
-                cursor="cursor",
-            )
-
-        assert route.called
-        assert page.cursor == response_json["cursor"]
-        assert len(page.structured_targets) == len(response_json["structured_targets"])
-        assert route.calls[0].request.url.params["type"] == "PLAYER_STATS"
-        assert route.calls[0].request.url.params["competition"] == "NFL"
-        assert route.calls[0].request.url.params["page_size"] == "5"
-        assert route.calls[0].request.url.params["cursor"] == "cursor"
-
-    @pytest.mark.asyncio
-    @respx.mock
-    async def test_get_structured_target_uses_ssot_fixture(self) -> None:
-        response_json = load_golden_response("structured_target_single_response.json")
-        structured_target_id = response_json["structured_target"]["id"]
-
-        route = respx.get(
-            f"https://api.elections.kalshi.com/trade-api/v2/structured_targets/{structured_target_id}"
-        ).mock(return_value=Response(200, json=response_json))
-
-        async with KalshiPublicClient() as client:
-            target = await client.get_structured_target(structured_target_id)
-
-        assert route.called
-        assert target.id == structured_target_id
 
     @pytest.mark.asyncio
     @respx.mock

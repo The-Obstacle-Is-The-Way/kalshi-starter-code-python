@@ -166,9 +166,7 @@ async def test_claude_synthesizer_synthesizes_valid_result_and_tracks_cost() -> 
     assert result.model_id == synth.model
     assert result.sources == ["https://example.com/a"]
 
-    assert synth.get_total_tokens() == 300
     assert synth.get_last_call_cost_usd() == pytest.approx(0.0033)
-    assert synth.get_total_cost_usd() == pytest.approx(0.0033)
 
 
 @pytest.mark.asyncio

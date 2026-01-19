@@ -307,6 +307,8 @@ class TradeExecutor:
                     except LiquidityError:
                         failures.append("slippage_limit_exceeded")
             except Exception as exc:
+                # TODO(DEBT-039): Narrow to expected provider failures.
+                # (e.g., KalshiAPIError, httpx.HTTPError)
                 # Fail closed for live trading when safety checks cannot be evaluated.
                 failures.append("orderbook_provider_failed")
                 logger.exception("orderbook_provider_failed", ticker=ticker, error=str(exc))
@@ -329,6 +331,8 @@ class TradeExecutor:
                 if grade_order[analysis.grade] < grade_order[self._min_liquidity_grade]:
                     failures.append("liquidity_grade_too_low")
             except Exception as exc:
+                # TODO(DEBT-039): Narrow to expected API/provider failures.
+                # (Enumerate failure modes first.)
                 failures.append("liquidity_check_failed")
                 logger.exception("liquidity_check_failed", ticker=ticker, error=str(exc))
 
@@ -425,6 +429,8 @@ class TradeExecutor:
             )
             return response
         except Exception as exc:
+            # TODO(DEBT-039): Consider narrowing to expected API/client exceptions.
+            # Keep broad catch so audit capture includes unexpected failures.
             error = str(exc)
             raise
         finally:

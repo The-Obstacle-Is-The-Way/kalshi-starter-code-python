@@ -44,12 +44,8 @@ from kalshi_research.api.models.event import Event, EventMetadataResponse
 from kalshi_research.api.models.exchange import (
     ExchangeAnnouncementsResponse,
     ExchangeScheduleResponse,
-    UserDataTimestampResponse,
 )
-from kalshi_research.api.models.incentive import IncentiveProgram, IncentiveProgramsResponse
-from kalshi_research.api.models.live_data import LiveData, LiveDataBatchResponse, LiveDataResponse
 from kalshi_research.api.models.market import Market
-from kalshi_research.api.models.milestone import Milestone, MilestoneResponse, MilestonesResponse
 from kalshi_research.api.models.multivariate import (
     GetMultivariateEventCollectionResponse,
     GetMultivariateEventCollectionsResponse,
@@ -79,11 +75,7 @@ from kalshi_research.api.models.portfolio import (
     Settlement,
 )
 from kalshi_research.api.models.search import FiltersBySportsResponse, TagsByCategoriesResponse
-from kalshi_research.api.models.series import Series, SeriesFeeChangesResponse
-from kalshi_research.api.models.structured_target import (
-    StructuredTargetResponse,
-    StructuredTargetsListResponse,
-)
+from kalshi_research.api.models.series import Series
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.exa.models.answer import AnswerResponse
 from kalshi_research.exa.models.contents import ContentsResponse
@@ -122,7 +114,6 @@ MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
     "tags_by_categories_response.json": [("response", TagsByCategoriesResponse)],
     "series_list_response.json": [("response.series[0]", Series)],
     "series_single_response.json": [("response.series", Series)],
-    "series_fee_changes_response.json": [("response", SeriesFeeChangesResponse)],
     # GET /events/{event_ticker} returns {"event": {...}, "markets": [...]}
     "event_single_response.json": [("response.event", Event)],
     "events_list_response.json": [("response.events[0]", Event)],
@@ -131,33 +122,10 @@ MODEL_MAPPING: Final[dict[str, list[tuple[str, type[BaseModel]]]]] = {
     "event_candlesticks_response.json": [("response", EventCandlesticksResponse)],
     "exchange_schedule_response.json": [("response", ExchangeScheduleResponse)],
     "exchange_announcements_response.json": [("response", ExchangeAnnouncementsResponse)],
-    "user_data_timestamp_response.json": [("response", UserDataTimestampResponse)],
     # GET /markets/{ticker}/orderbook returns {"orderbook": {...}}
     "orderbook_response.json": [("response.orderbook", Orderbook)],
     # Note: exchange_status_response returns dict, not a model (skipped)
     "filters_by_sport_response.json": [("response", FiltersBySportsResponse)],
-    "structured_targets_list_response.json": [("response", StructuredTargetsListResponse)],
-    "structured_target_single_response.json": [("response", StructuredTargetResponse)],
-    "milestones_list_response.json": [
-        ("response", MilestonesResponse),
-        ("response.milestones[0]", Milestone),
-    ],
-    "milestone_single_response.json": [
-        ("response", MilestoneResponse),
-        ("response.milestone", Milestone),
-    ],
-    "live_data_milestone_response.json": [
-        ("response", LiveDataResponse),
-        ("response.live_data", LiveData),
-    ],
-    "live_data_batch_response.json": [
-        ("response", LiveDataBatchResponse),
-        ("response.live_datas[0]", LiveData),
-    ],
-    "incentive_programs_response.json": [
-        ("response", IncentiveProgramsResponse),
-        ("response.incentive_programs[0]", IncentiveProgram),
-    ],
     # Portfolio endpoints
     "portfolio_balance_response.json": [("response", PortfolioBalance)],
     # GET /portfolio/positions returns market_positions + event_positions

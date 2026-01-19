@@ -1,6 +1,6 @@
 # SPEC-033: Exa Research Agent (Cost-Bounded, Reproducible)
 
-**Status:** Ready
+**Status:** ✅ Implemented
 **Priority:** P1 (High leverage research automation)
 **Created:** 2026-01-10
 **Owner:** Solo

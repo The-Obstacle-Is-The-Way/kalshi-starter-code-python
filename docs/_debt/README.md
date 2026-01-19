@@ -4,9 +4,13 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**0 active debt items.**
+**3 active debt items.**
 
-_None._
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| **[DEBT-038](DEBT-038-orchestrator-escalation-not-implemented.md)** | Orchestrator Escalation Logic Not Implemented | P2 | Active |
+| **[DEBT-039](DEBT-039-broad-exception-catches.md)** | Broad Exception Catches Throughout Codebase | P3 | Active |
+| **[DEBT-041](DEBT-041-spec-030-incomplete.md)** | SPEC-030 Has Unchecked Acceptance Criteria | P2 | Active |
 
 ---
 
@@ -16,6 +20,8 @@ All resolved debt items live in `docs/_archive/debt/`.
 
 | ID | Title | Status |
 |---|---|---|
+| **[DEBT-042](../_archive/debt/DEBT-042-unused-api-client-methods.md)** | Unused API Client Methods | ✅ Resolved (SPEC-043) |
+| **[DEBT-040](../_archive/debt/DEBT-040-unused-synthesizer-methods.md)** | Unused Synthesizer Cost/Token Tracking Methods | ✅ Resolved |
 | **[DEBT-034](../_archive/debt/DEBT-034-broad-exception-catches.md)** | Broad Exception Catches in Agent/Execution Code | ✅ Resolved |
 | **[DEBT-037](../_archive/debt/DEBT-037-mock-synthesizer-production-gap.md)** | MockSynthesizer in Production Path | ✅ Resolved (SPEC-042) |
 | **[DEBT-033](../_archive/debt/DEBT-033-frozen-model-setattr-hack.md)** | Frozen Pydantic Model `object.__setattr__` Hack | ✅ Closed (False Positive) |
@@ -55,7 +61,7 @@ All resolved debt items live in `docs/_archive/debt/`.
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-038**
+**DEBT-043**
 
 ---
 

@@ -75,11 +75,3 @@ class ExchangeAnnouncementsResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     announcements: list[ExchangeAnnouncement]
-
-
-class UserDataTimestampResponse(BaseModel):
-    """Response schema for `GET /exchange/user_data_timestamp`."""
-
-    model_config = ConfigDict(frozen=True)
-
-    as_of_time: datetime

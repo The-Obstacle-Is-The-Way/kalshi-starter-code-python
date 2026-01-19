@@ -370,8 +370,8 @@ async def test_real_claude_synthesis():
 ## References
 
 - [DEBT-037: MockSynthesizer in Production Path (Archived)](../_archive/debt/DEBT-037-mock-synthesizer-production-gap.md)
-- [SPEC-032: Agent System Orchestration](SPEC-032-agent-system-orchestration.md)
-- [SPEC-033: Exa Research Agent](SPEC-033-exa-research-agent.md)
+- [SPEC-032: Agent System Orchestration](../_archive/specs/SPEC-032-agent-system-orchestration.md)
+- [SPEC-033: Exa Research Agent](../_archive/specs/SPEC-033-exa-research-agent.md)
 - [Claude Models Overview (model IDs)](https://platform.claude.com/docs/en/about-claude/models/overview)
 - [Anthropic Docs: Structured Outputs](https://docs.anthropic.com/en/docs/build-with-claude/structured-outputs)
 - [Anthropic Docs: Pricing](https://docs.anthropic.com/en/docs/about-claude/pricing)

@@ -1,6 +1,6 @@
 # SPEC-038: Exa Websets API Coverage (Monitoring + Alerts Foundation)
 
-**Status:** Draft
+**Status:** ✅ Implemented (Phase 1 - client + models)
 **Priority:** P2 (Future automation + monitoring; not required for core CLI today)
 **Created:** 2026-01-12
 **Owner:** Solo

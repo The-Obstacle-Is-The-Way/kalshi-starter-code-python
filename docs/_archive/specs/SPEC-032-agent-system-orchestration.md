@@ -1,6 +1,6 @@
 # SPEC-032: Agent System Orchestration (Single-Agent Default + Escalation)
 
-**Status:** Ready (blocked by SPEC-033)
+**Status:** ✅ Implemented (Phase 1)
 **Priority:** P1 (Core “mispricing research” roadmap)
 **Created:** 2026-01-10
 **Owner:** Solo

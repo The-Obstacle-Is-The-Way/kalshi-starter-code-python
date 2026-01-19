@@ -26,12 +26,8 @@ from kalshi_research.api.models.event import Event, EventMetadataResponse
 from kalshi_research.api.models.exchange import (
     ExchangeAnnouncementsResponse,
     ExchangeScheduleResponse,
-    UserDataTimestampResponse,
 )
-from kalshi_research.api.models.incentive import IncentiveProgramsResponse
-from kalshi_research.api.models.live_data import LiveData, LiveDataBatchResponse, LiveDataResponse
 from kalshi_research.api.models.market import Market, MarketFilterStatus
-from kalshi_research.api.models.milestone import Milestone, MilestoneResponse, MilestonesResponse
 from kalshi_research.api.models.multivariate import (
     GetMultivariateEventCollectionResponse,
     GetMultivariateEventCollectionsResponse,
@@ -74,15 +70,8 @@ from kalshi_research.api.models.portfolio import (
 from kalshi_research.api.models.search import FiltersBySportsResponse, TagsByCategoriesResponse
 from kalshi_research.api.models.series import (
     Series,
-    SeriesFeeChange,
-    SeriesFeeChangesResponse,
     SeriesListResponse,
     SeriesResponse,
-)
-from kalshi_research.api.models.structured_target import (
-    StructuredTarget,
-    StructuredTargetResponse,
-    StructuredTargetsListResponse,
 )
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.api.rate_limiter import RateLimiter, RateTier
@@ -729,39 +718,6 @@ class KalshiPublicClient:
         data = await self._get("/search/filters_by_sport")
         return FiltersBySportsResponse.model_validate(data)
 
-    async def get_structured_targets(
-        self,
-        *,
-        structured_target_type: str | None = None,
-        competition: str | None = None,
-        page_size: int = 100,
-        cursor: str | None = None,
-    ) -> StructuredTargetsListResponse:
-        """
-        List structured targets (sports props discovery helper).
-
-        Args:
-            structured_target_type: Optional structured target type filter (sent as `type`).
-            competition: Optional competition filter (e.g., NFL, NBA).
-            page_size: Page size (1-2000, default 100).
-            cursor: Pagination cursor.
-        """
-        params: dict[str, Any] = {"page_size": max(1, min(page_size, 2000))}
-        if structured_target_type is not None:
-            params["type"] = structured_target_type
-        if competition is not None:
-            params["competition"] = competition
-        if cursor is not None:
-            params["cursor"] = cursor
-
-        data = await self._get("/structured_targets", params)
-        return StructuredTargetsListResponse.model_validate(data)
-
-    async def get_structured_target(self, structured_target_id: str) -> StructuredTarget:
-        """Fetch a single structured target by ID."""
-        data = await self._get(f"/structured_targets/{structured_target_id}")
-        return StructuredTargetResponse.model_validate(data).structured_target
-
     async def get_series_list(
         self,
         *,
@@ -802,11 +758,6 @@ class KalshiPublicClient:
         data = await self._get(f"/series/{series_ticker}", params or None)
         return SeriesResponse.model_validate(data).series
 
-    async def get_series_fee_changes(self) -> list[SeriesFeeChange]:
-        """Fetch scheduled series fee changes."""
-        data = await self._get("/series/fee_changes")
-        return SeriesFeeChangesResponse.model_validate(data).series_fee_change_arr
-
     # ==================== Exchange ====================
 
     async def get_exchange_status(self) -> dict[str, Any]:
@@ -822,106 +773,6 @@ class KalshiPublicClient:
         """Fetch exchange-wide announcements."""
         data = await self._get("/exchange/announcements")
         return ExchangeAnnouncementsResponse.model_validate(data)
-
-    async def get_user_data_timestamp(self) -> UserDataTimestampResponse:
-        """Fetch approximate timestamp of the last user-data update."""
-        data = await self._get("/exchange/user_data_timestamp")
-        return UserDataTimestampResponse.model_validate(data)
-
-    # ==================== Operational ====================
-
-    async def get_milestones(
-        self,
-        *,
-        limit: int = 100,
-        cursor: str | None = None,
-        minimum_start_date: str | None = None,
-        category: str | None = None,
-        competition: str | None = None,
-        source_id: str | None = None,
-        milestone_type: str | None = None,
-        related_event_ticker: str | None = None,
-    ) -> MilestonesResponse:
-        """
-        List milestones with optional filters.
-
-        Args:
-            limit: Page size (1-500).
-            cursor: Pagination cursor from a prior response.
-            minimum_start_date: RFC3339 timestamp filter (sent as `minimum_start_date`).
-            category: Optional milestone category filter.
-            competition: Optional competition filter.
-            source_id: Optional source ID filter.
-            milestone_type: Optional milestone type filter (sent as `type`).
-            related_event_ticker: Optional related event ticker filter.
-        """
-        params: dict[str, Any] = {"limit": max(1, min(limit, 500))}
-        if cursor is not None:
-            params["cursor"] = cursor
-        if minimum_start_date is not None:
-            params["minimum_start_date"] = minimum_start_date
-        if category is not None:
-            params["category"] = category
-        if competition is not None:
-            params["competition"] = competition
-        if source_id is not None:
-            params["source_id"] = source_id
-        if milestone_type is not None:
-            params["type"] = milestone_type
-        if related_event_ticker is not None:
-            params["related_event_ticker"] = related_event_ticker
-
-        data = await self._get("/milestones", params)
-        return MilestonesResponse.model_validate(data)
-
-    async def get_milestone(self, milestone_id: str) -> Milestone:
-        """Fetch a single milestone by ID."""
-        data = await self._get(f"/milestones/{milestone_id}")
-        return MilestoneResponse.model_validate(data).milestone
-
-    async def get_milestone_live_data(self, *, live_data_type: str, milestone_id: str) -> LiveData:
-        """Fetch live data for a milestone."""
-        data = await self._get(f"/live_data/{live_data_type}/milestone/{milestone_id}")
-        return LiveDataResponse.model_validate(data).live_data
-
-    async def get_live_data_batch(self, *, milestone_ids: list[str]) -> list[LiveData]:
-        """Fetch live data for 1-100 milestones."""
-        if not milestone_ids or len(milestone_ids) > 100:
-            raise ValueError("milestone_ids must contain 1-100 items")
-        data = await self._get(
-            "/live_data/batch", params={"milestone_ids": ",".join(milestone_ids)}
-        )
-        return LiveDataBatchResponse.model_validate(data).live_datas
-
-    async def get_incentive_programs(
-        self,
-        *,
-        status: str | None = None,
-        incentive_type: str | None = None,
-        limit: int | None = None,
-        cursor: str | None = None,
-    ) -> IncentiveProgramsResponse:
-        """
-        List incentive programs with optional filters.
-
-        Args:
-            status: Optional status filter (`all`, `active`, `upcoming`, `closed`, `paid_out`).
-            incentive_type: Optional type filter (sent as `type`, e.g. `liquidity`, `volume`).
-            limit: Optional page size (1-10000).
-            cursor: Optional pagination cursor.
-        """
-        params: dict[str, Any] = {}
-        if status is not None:
-            params["status"] = status
-        if incentive_type is not None:
-            params["type"] = incentive_type
-        if limit is not None:
-            params["limit"] = max(1, min(limit, 10000))
-        if cursor is not None:
-            params["cursor"] = cursor
-
-        data = await self._get("/incentive_programs", params or None)
-        return IncentiveProgramsResponse.model_validate(data)
 
 
 class KalshiClient(KalshiPublicClient):

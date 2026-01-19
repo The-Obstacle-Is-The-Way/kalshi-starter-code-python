@@ -166,12 +166,6 @@ async def test_orchestrator_verification_fails(
         def get_last_call_cost_usd(self) -> float:
             return 0.0
 
-        def get_total_cost_usd(self) -> float:
-            return 0.0
-
-        def get_total_tokens(self) -> int:
-            return 0
-
     synthesizer = BadSynthesizer()
 
     kernel = AgentKernel(
@@ -266,12 +260,6 @@ async def test_orchestrator_escalation_disabled_by_default(
 
         def get_last_call_cost_usd(self) -> float:
             return 0.0
-
-        def get_total_cost_usd(self) -> float:
-            return 0.0
-
-        def get_total_tokens(self) -> int:
-            return 0
 
     synthesizer = BadSynthesizer()
 

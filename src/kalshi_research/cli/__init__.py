@@ -15,12 +15,17 @@ from dotenv import find_dotenv, load_dotenv
 from kalshi_research.cli.agent import app as agent_app
 from kalshi_research.cli.alerts import app as alerts_app
 from kalshi_research.cli.analysis import app as analysis_app
+from kalshi_research.cli.browse import app as browse_app
 from kalshi_research.cli.data import app as data_app
+from kalshi_research.cli.event import app as event_app
 from kalshi_research.cli.market import app as market_app
+from kalshi_research.cli.mve import app as mve_app
 from kalshi_research.cli.news import app as news_app
 from kalshi_research.cli.portfolio import app as portfolio_app
 from kalshi_research.cli.research import app as research_app
 from kalshi_research.cli.scan import app as scan_app
+from kalshi_research.cli.series import app as series_app
+from kalshi_research.cli.status import app as status_app
 from kalshi_research.cli.utils import console
 from kalshi_research.logging import configure_structlog
 
@@ -34,6 +39,11 @@ app.add_typer(agent_app, name="agent")
 app.add_typer(data_app, name="data")
 app.add_typer(market_app, name="market")
 app.add_typer(scan_app, name="scan")
+app.add_typer(browse_app, name="browse")
+app.add_typer(series_app, name="series")
+app.add_typer(event_app, name="event")
+app.add_typer(mve_app, name="mve")
+app.add_typer(status_app, name="status")
 app.add_typer(alerts_app, name="alerts")
 app.add_typer(analysis_app, name="analysis")
 app.add_typer(research_app, name="research")
@@ -79,54 +89,3 @@ def version() -> None:
     from kalshi_research import __version__
 
     console.print(f"kalshi-research v{__version__}")
-
-
-@app.command()
-def status(
-    output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
-) -> None:
-    """Show Kalshi exchange operational status."""
-    import asyncio
-    import json
-
-    from rich.table import Table
-
-    from kalshi_research.api import KalshiPublicClient
-
-    async def _fetch() -> dict[str, object]:
-        from kalshi_research.api.exceptions import KalshiAPIError
-
-        async with KalshiPublicClient() as client:
-            try:
-                status = await client.get_exchange_status()
-            except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
-            except Exception as e:
-                console.print(f"[red]Error:[/red] {e}")
-                raise typer.Exit(1) from None
-        if not isinstance(status, dict):
-            console.print("[red]Error:[/red] Unexpected exchange status response type")
-            raise typer.Exit(1) from None
-        return status
-
-    status = asyncio.run(_fetch())
-
-    if output_json:
-        typer.echo(json.dumps(status, indent=2, default=str))
-        return
-
-    table = Table(title="Exchange Status")
-    table.add_column("Field", style="cyan")
-    table.add_column("Value", style="green")
-
-    exchange_active = status.get("exchange_active")
-    trading_active = status.get("trading_active")
-    table.add_row("exchange_active", str(exchange_active))
-    table.add_row("trading_active", str(trading_active))
-
-    extra_keys = [k for k in status if k not in {"exchange_active", "trading_active"}]
-    for key in sorted(extra_keys):
-        table.add_row(key, str(status[key]))
-
-    console.print(table)
