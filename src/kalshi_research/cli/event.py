@@ -202,12 +202,16 @@ def _render_event_candlesticks_table(
 
     for market, candles in zip(response.market_tickers, response.market_candlesticks, strict=False):
         last = candles[-1] if candles else None
+        # Defensive: volume is required in Pydantic model, but guard anyway
+        volume_str = "0"
+        if last is not None and last.volume is not None:
+            volume_str = f"{last.volume:,}"
         table.add_row(
             market,
             str(len(candles)),
             last.period_end.isoformat() if last else "",
             f"{last.price.close}¢" if last and last.price.close is not None else "N/A",
-            f"{last.volume:,}" if last else "0",
+            volume_str,
         )
 
     console.print(table)

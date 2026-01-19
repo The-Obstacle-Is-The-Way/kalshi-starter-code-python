@@ -19,7 +19,7 @@ The codebase has ~30 instances of `except Exception` or `except Exception as e` 
 ## Locations Found
 
 ### Research/Exa (External API resilience)
-```
+```text
 src/kalshi_research/research/invalidation.py:90
 src/kalshi_research/research/thesis_research.py:129, 175, 224
 src/kalshi_research/research/context.py:215
@@ -30,7 +30,7 @@ src/kalshi_research/agent/research_agent.py:253
 ```
 
 ### CLI (User-facing error handling)
-```
+```text
 src/kalshi_research/cli/alerts.py:142
 src/kalshi_research/cli/research.py:825, 1209
 src/kalshi_research/cli/market.py:68, 120, 178, 338, 542
@@ -40,12 +40,12 @@ src/kalshi_research/cli/data.py:142, 313
 ```
 
 ### Execution (Safety-critical)
-```
+```text
 src/kalshi_research/execution/executor.py:309, 331, 427
 ```
 
 ### Other
-```
+```text
 src/kalshi_research/news/collector.py:86
 src/kalshi_research/portfolio/syncer.py:473
 src/kalshi_research/api/websocket/client.py:212
