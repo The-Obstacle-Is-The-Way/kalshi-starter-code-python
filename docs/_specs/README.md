@@ -18,7 +18,7 @@ This directory contains **active** design specifications - work happening NOW.
 | SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 🟡 Phase 1 Complete (DEBT-041: Phase 2/3 incomplete) |
 | SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 🟡 Phase 1 implemented (Phase 2 wiring deferred) |
 | SPEC-042 | [LLM Synthesizer Implementation](SPEC-042-llm-synthesizer-implementation.md) | 🟡 Phase 1 Complete (OpenAI/Gemini backends not implemented) |
-| **SPEC-043** | [Discovery Endpoints CLI Wiring](SPEC-043-discovery-endpoints-cli-wiring.md) | 📝 Draft (Pending Senior Review) |
+| **SPEC-043** | [Discovery Endpoints CLI Wiring](SPEC-043-discovery-endpoints-cli-wiring.md) | 🟡 Ready for implementation (Senior Reviewed) |
 
 ### Remaining Work
 
@@ -26,7 +26,7 @@ This directory contains **active** design specifications - work happening NOW.
 🟡 SPEC-030 (Exa Policy)           ← Phase 1 done; Phase 2/3 require CLI budget flags
 🟡 SPEC-034 (TradeExecutor)        ← Phase 1 done; Phase 2 wiring deferred
 🟡 SPEC-042 (LLM Synthesizer)      ← Phase 1 done; OpenAI/Gemini backends not implemented
-📝 SPEC-043 (Discovery CLI)        ← Draft; wire 12 unused API methods into CLI
+🟡 SPEC-043 (Discovery CLI)        ← Ready; wire discovery endpoints into CLI
 ```
 
 ---

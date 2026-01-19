@@ -71,6 +71,6 @@ Currently: None of this happens. The code just sets `escalated = False` and cont
 
 ## References
 
-- [SPEC-032: Agent System Orchestration](../_specs/SPEC-032-agent-system-orchestration.md)
+- [SPEC-032: Agent System Orchestration](../_archive/specs/SPEC-032-agent-system-orchestration.md)
 - `src/kalshi_research/agent/orchestrator.py:122-127`
 - `src/kalshi_research/agent/verify.py` (sets `suggested_escalation`)
