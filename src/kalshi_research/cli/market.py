@@ -345,7 +345,7 @@ def market_history(
 
         if output_json:
             payload = [c.model_dump(mode="json") for c in candles]
-            console.print(json.dumps(payload, indent=2, default=str))
+            typer.echo(json.dumps(payload, indent=2, default=str))
             return
 
         table = Table(title=f"Candlestick History: {ticker}")
@@ -769,7 +769,7 @@ async def _market_search_async(
             }
             for r in results
         ]
-        console.print(json.dumps(json_results, indent=2))
+        typer.echo(json.dumps(json_results, indent=2))
     else:
         # Output as table
         table = Table(title=f"Search Results: '{query}' ({len(results)} found)")

@@ -116,6 +116,7 @@ class ResearchStepResult(BaseModel):
     status: ResearchStepStatus
     actual_cost_usd: float = Field(ge=0.0)
     sources_found: int = Field(ge=0, default=0)
+    factors: list[Factor] = Field(default_factory=list)
     error_message: str | None = None
 
 

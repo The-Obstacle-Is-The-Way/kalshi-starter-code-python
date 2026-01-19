@@ -4,7 +4,11 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-_No active bugs._
+| ID | Title | Priority | Component |
+|---|---|---|---|
+| **[BUG-085](BUG-085-agent-module-test-coverage-gaps.md)** | Agent Module Test Coverage Gaps | P3 | agent |
+| **[BUG-086](BUG-086-exa-websets-client-low-coverage.md)** | Exa Websets Client Low Coverage | P3 | exa.websets |
+| **[BUG-087](BUG-087-search-repository-fts5-coverage-gap.md)** | Search Repository FTS5 Coverage Gap | P4 | data.repositories.search |
 
 ### Verification Note (2026-01-12)
 
@@ -34,7 +38,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-085**
+**BUG-088**
 
 ---
 

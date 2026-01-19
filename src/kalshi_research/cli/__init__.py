@@ -113,7 +113,7 @@ def status(
     status = asyncio.run(_fetch())
 
     if output_json:
-        console.print(json.dumps(status, indent=2, default=str))
+        typer.echo(json.dumps(status, indent=2, default=str))
         return
 
     table = Table(title="Exchange Status")

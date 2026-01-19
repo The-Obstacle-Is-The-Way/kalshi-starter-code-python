@@ -257,6 +257,19 @@ async def test_search_markets_fts5_path(
         """
         )
     )
+    # `fts_tables_exist()` requires both market_fts and event_fts to be present.
+    await session.execute(
+        text(
+            """
+        CREATE VIRTUAL TABLE IF NOT EXISTS event_fts USING fts5(
+          ticker UNINDEXED,
+          title,
+          category,
+          status
+        )
+        """
+        )
+    )
 
     # Create triggers to maintain market_fts
     await session.execute(
@@ -314,9 +327,15 @@ async def test_search_markets_fts5_path(
     results = await repo.search_markets("Bitcoin", limit=10)
     assert len(results) >= 1
     assert any("Bitcoin" in r.title for r in results)
+    assert repo._has_fts5 is True
+    assert repo._fts_tables_exist is True
 
     # Test that FTS5 code path works with category filter
     results = await repo.search_markets("price", category="Crypto", limit=10)
     assert len(results) >= 1
     for result in results:
         assert result.event_category == "Crypto"
+
+    # Dedicated `max_spread` filter coverage (FTS5 path)
+    results = await repo.search_markets("Bitcoin", max_spread=4, limit=10)
+    assert results == []

@@ -115,7 +115,7 @@ def research(  # noqa: PLR0915
                 f.write(json_output)
             console.print(f"[green]✓[/green] Results written to {output_file}")
         else:
-            console.print(json_output)
+            typer.echo(json_output)
     else:
         # Human-readable output
         from typing import Any, cast
@@ -260,6 +260,11 @@ def analyze(  # noqa: PLR0915
                 research_agent = ResearchAgent(exa)
 
                 # Create synthesizer (mock for Phase 1)
+                if human or not output_json:
+                    console.print(
+                        "[yellow]Warning:[/yellow] Using MockSynthesizer (Phase 1). "
+                        "Results are placeholder."
+                    )
                 synthesizer = MockSynthesizer()
 
                 # Create kernel
@@ -367,4 +372,4 @@ def analyze(  # noqa: PLR0915
             if not output_json:
                 console.print(f"[green]✓[/green] Results written to {output_file}")
         else:
-            console.print(json_output)
+            typer.echo(json_output)

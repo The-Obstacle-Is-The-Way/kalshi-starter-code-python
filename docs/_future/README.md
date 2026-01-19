@@ -52,7 +52,13 @@ These are potential future integrations for information arbitrage. Prioritized b
 Completed backlog items are stored under `docs/_archive/future/` (excluded from the MkDocs site
 build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive structure.
 
-### Recently Promoted to Specs (2026-01-18)
+### Recently Promoted to Specs (2026-01-19)
+
+| ID | Title | Status |
+|---|---|---|
+| [FUTURE-007](FUTURE-007-llm-synthesizer-implementation.md) | LLM Synthesizer Implementation | ✅ Promoted → **SPEC-042** |
+
+### Previously Promoted to Specs (2026-01-18)
 
 | ID | Title | Status |
 |---|---|---|

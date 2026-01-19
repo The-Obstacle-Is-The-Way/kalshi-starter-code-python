@@ -240,6 +240,32 @@ Before running portfolio or authenticated commands:
 3. Run `uv run kalshi portfolio sync` to populate local DB
 4. Then run read commands like `portfolio positions`
 
+## LLM Synthesizer (Agent System)
+
+The agent analysis workflow (`kalshi agent analyze`) uses an LLM to synthesize probability estimates from research.
+
+### Frontier Models (2026)
+
+| Provider | Model | Model ID | Use Case |
+|----------|-------|----------|----------|
+| **Anthropic** | Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` | Primary synthesizer (SPEC-042) |
+| **Anthropic** | Claude Opus 4.5 | `claude-opus-4-5-20251101` | Complex reasoning (if needed) |
+
+**Do NOT use deprecated models** like `gpt-4o-mini`, `claude-3-sonnet`, etc. Always use the latest frontier models.
+
+### Configuration
+
+```bash
+# Set synthesizer backend (default: anthropic)
+export KALSHI_SYNTHESIZER_BACKEND=anthropic
+export ANTHROPIC_API_KEY=your_key_here
+
+# Run analysis with real LLM
+uv run kalshi agent analyze TICKER --mode standard
+```
+
+See [SPEC-042](docs/_specs/SPEC-042-llm-synthesizer-implementation.md) for implementation details.
+
 ## Documentation Tracking
 
 When you find drift, bugs, or technical debt, record them in the appropriate tracker:

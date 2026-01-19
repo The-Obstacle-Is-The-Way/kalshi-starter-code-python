@@ -6,7 +6,6 @@ No LLM planning in Phase 1 - plans are deterministic functions of mode + market 
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
@@ -22,6 +21,7 @@ from kalshi_research.agent.schemas import (
     ResearchSummary,
 )
 from kalshi_research.agent.state import ResearchTaskState
+from kalshi_research.exa.exceptions import ExaAPIError, ExaError
 from kalshi_research.exa.models import ResearchStatus
 from kalshi_research.exa.policy import ExaBudget, ExaMode, ExaPolicy, extract_exa_cost_total
 
@@ -52,6 +52,8 @@ class ResearchAgent:
         mode: ExaMode = ExaMode.STANDARD,
         budget_usd: float,
         recency_days: int = 30,
+        deep_research_timeout_seconds: float = 300.0,
+        deep_research_poll_interval_seconds: float = 5.0,
     ) -> ResearchPlan:
         """
         Build a deterministic research plan for a given market and mode.
@@ -61,10 +63,18 @@ class ResearchAgent:
             mode: Research mode (fast/standard/deep)
             budget_usd: Budget limit
             recency_days: Recency window for news searches
+            deep_research_timeout_seconds: Max seconds to wait for deep research
+                completion (deep mode)
+            deep_research_poll_interval_seconds: Seconds between deep research polls (deep mode)
 
         Returns:
             A serializable ResearchPlan with ordered steps and cost estimates.
         """
+        if deep_research_timeout_seconds <= 0:
+            raise ValueError("deep_research_timeout_seconds must be positive")
+        if deep_research_poll_interval_seconds <= 0:
+            raise ValueError("deep_research_poll_interval_seconds must be positive")
+
         policy = ExaPolicy.from_mode(mode=mode, budget_usd=budget_usd)
 
         # Generate search queries from market title
@@ -134,6 +144,8 @@ class ResearchAgent:
                     params={
                         "instructions": research_query,
                         "use_autoprompt": True,
+                        "timeout_seconds": deep_research_timeout_seconds,
+                        "poll_interval_seconds": deep_research_poll_interval_seconds,
                     },
                 )
             )
@@ -221,25 +233,30 @@ class ResearchAgent:
 
                 total_sources += result.sources_found
 
-                # Extract factors from step result (stored in result metadata)
-                if hasattr(result, "factors"):
-                    factors.extend(result.factors)
+                factors.extend(result.factors)
 
                 # Track queries
                 query = step.params.get("query")
                 if query and isinstance(query, str):
                     queries_used.append(query)
 
-            except Exception as e:
-                logger.error("step_execution_failed", step_id=step.step_id, error=str(e))
+            except (ExaError, TimeoutError) as exc:
+                logger.error("step_execution_failed", step_id=step.step_id, error=str(exc))
                 step_results.append(
                     {
                         "step_id": step.step_id,
                         "status": ResearchStepStatus.FAILED.value,
                         "actual_cost_usd": 0.0,
-                        "error": str(e),
+                        "error": str(exc),
                     }
                 )
+            except Exception:
+                logger.exception(
+                    "step_execution_crashed",
+                    step_id=step.step_id,
+                    endpoint=step.endpoint,
+                )
+                raise
 
         return ResearchSummary(
             ticker=market.ticker,
@@ -261,6 +278,8 @@ class ResearchAgent:
         mode: ExaMode = ExaMode.STANDARD,
         budget_usd: float | None = None,
         recency_days: int = 30,
+        deep_research_timeout_seconds: float = 300.0,
+        deep_research_poll_interval_seconds: float = 5.0,
     ) -> ResearchSummary:
         """
         Run a complete research workflow for a market.
@@ -270,6 +289,9 @@ class ResearchAgent:
             mode: Research mode (fast/standard/deep)
             budget_usd: Budget limit (uses mode default if None)
             recency_days: Recency window for news searches
+            deep_research_timeout_seconds: Max seconds to wait for deep research
+                completion (deep mode)
+            deep_research_poll_interval_seconds: Seconds between deep research polls (deep mode)
 
         Returns:
             ResearchSummary with all results and metadata.
@@ -278,12 +300,17 @@ class ResearchAgent:
         budget = ExaBudget(limit_usd=policy.budget_usd)
 
         plan = self.build_plan(
-            market, mode=mode, budget_usd=policy.budget_usd, recency_days=recency_days
+            market,
+            mode=mode,
+            budget_usd=policy.budget_usd,
+            recency_days=recency_days,
+            deep_research_timeout_seconds=deep_research_timeout_seconds,
+            deep_research_poll_interval_seconds=deep_research_poll_interval_seconds,
         )
 
         return await self.execute_plan(plan, market, budget=budget)
 
-    async def _execute_research_task(
+    async def _execute_research_task(  # noqa: PLR0912, PLR0915
         self, step: ResearchStep, market: Market
     ) -> tuple[list[Factor], float, int]:
         """
@@ -294,89 +321,140 @@ class ResearchAgent:
         """
         instructions = step.params["instructions"]
         ticker = market.ticker
+        poll_interval_seconds = float(step.params.get("poll_interval_seconds", 5.0))
+        timeout_seconds = float(step.params.get("timeout_seconds", 300.0))
+        if poll_interval_seconds <= 0:
+            raise ValueError("poll_interval_seconds must be positive")
+        if timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be positive")
 
         # Check for existing orphaned task first (crash recovery)
         task = None
+        research_id_to_wait_for: str | None = None
         saved_state = self._state.load_research_task(ticker)
 
         if saved_state:
+            saved_research_id = saved_state.get("research_id")
             logger.info(
                 "attempting_research_task_recovery",
                 ticker=ticker,
-                saved_research_id=saved_state.get("research_id"),
+                saved_research_id=saved_research_id,
             )
 
-            # Try to recover using saved ID first
-            try:
-                task = await self._exa.get_research_task(saved_state["research_id"])
-                logger.info(
-                    "recovered_research_task_by_id",
-                    research_id=task.research_id,
-                    status=task.status.value,
-                )
-            except Exception:
-                # Saved ID failed, try finding by instructions
-                logger.warning(
-                    "saved_id_recovery_failed_trying_list",
-                    saved_research_id=saved_state.get("research_id"),
-                )
-                task = await self._exa.find_recent_research_task(
-                    instructions_prefix=instructions[:50],
-                )
-                if task:
+            if isinstance(saved_research_id, str) and saved_research_id:
+                try:
+                    recovered_by_id = await self._exa.get_research_task(saved_research_id)
                     logger.info(
-                        "recovered_research_task_by_list",
-                        research_id=task.research_id,
-                        status=task.status.value,
+                        "recovered_research_task_by_id",
+                        research_id=recovered_by_id.research_id,
+                        status=recovered_by_id.status.value,
                     )
+                    if recovered_by_id.status in (
+                        ResearchStatus.COMPLETED,
+                        ResearchStatus.CANCELED,
+                        ResearchStatus.FAILED,
+                    ):
+                        task = recovered_by_id
+                    else:
+                        research_id_to_wait_for = recovered_by_id.research_id
+                except ExaError as exc:
+                    logger.warning(
+                        "saved_id_recovery_failed_trying_list",
+                        saved_research_id=saved_research_id,
+                        error=str(exc),
+                    )
+            else:
+                logger.warning("saved_state_missing_research_id", ticker=ticker)
+
+            if task is None and research_id_to_wait_for is None:
+                try:
+                    recovered = await self._exa.find_recent_research_task(
+                        instructions_prefix=instructions[:50],
+                    )
+                except ExaError as exc:
+                    logger.warning("list_recovery_failed", ticker=ticker, error=str(exc))
+                else:
+                    if recovered:
+                        # Update state with the recovered ID so future crashes can recover by ID.
+                        self._state.save_research_task(
+                            ticker=ticker,
+                            research_id=recovered.research_id,
+                            instructions=instructions,
+                        )
+                        logger.info(
+                            "recovered_research_task_by_list",
+                            research_id=recovered.research_id,
+                            status=recovered.status.value,
+                        )
+                        if recovered.status in (
+                            ResearchStatus.COMPLETED,
+                            ResearchStatus.CANCELED,
+                            ResearchStatus.FAILED,
+                        ):
+                            task = recovered
+                        else:
+                            research_id_to_wait_for = recovered.research_id
 
         # If no recoverable task found, create new one
-        if task is None:
-            task = await self._exa.create_research_task(instructions=instructions)
-            logger.info("research_task_created", research_id=task.research_id)
+        if task is None and research_id_to_wait_for is None:
+            created = await self._exa.create_research_task(instructions=instructions)
+            logger.info("research_task_created", research_id=created.research_id)
 
             # Persist task ID BEFORE polling starts (crash recovery point)
             self._state.save_research_task(
                 ticker=ticker,
-                research_id=task.research_id,
+                research_id=created.research_id,
                 instructions=instructions,
             )
+            if created.status in (
+                ResearchStatus.COMPLETED,
+                ResearchStatus.CANCELED,
+                ResearchStatus.FAILED,
+            ):
+                task = created
+            else:
+                research_id_to_wait_for = created.research_id
 
-        # Poll for completion (with timeout)
-        max_polls = 60
-        poll_count = 0
-        while task.status != ResearchStatus.COMPLETED and poll_count < max_polls:
-            await asyncio.sleep(5)  # Wait 5 seconds between polls
-            task = await self._exa.get_research_task(task.research_id)
-            poll_count += 1
+        # Wait for completion (with timeout)
+        if task is None:
+            if research_id_to_wait_for is None:
+                raise RuntimeError("Internal error: missing research_id for wait_for_research")
+            try:
+                task = await self._exa.wait_for_research(
+                    research_id_to_wait_for,
+                    poll_interval=poll_interval_seconds,
+                    timeout=timeout_seconds,
+                )
+            except TimeoutError:
+                logger.warning("research_task_timeout", research_id=research_id_to_wait_for)
+                # Keep state file for later recovery (task may complete server-side).
+                raise
 
         factors: list[Factor] = []
-        actual_cost = 0.0
-        sources_found = 0
-
-        if task.status == ResearchStatus.COMPLETED:
-            actual_cost = extract_exa_cost_total(task)
-            sources_found = len(task.citations) if task.citations else 0
-
-            # Extract factors from research citations
-            if task.citations:
-                for research_citation in task.citations[:10]:
-                    factors.append(
-                        Factor(
-                            factor_text=research_citation.title or "Research finding",
-                            source_url=research_citation.url,
-                            confidence="high",
-                        )
-                    )
-
-            # Clear state after successful completion
+        if task.status != ResearchStatus.COMPLETED:
+            # Terminal but not successful.
             self._state.clear_research_task(ticker)
-        else:
-            logger.warning(
-                "research_task_timeout",
-                research_id=task.research_id,
-                status=task.status.value,
+            raise ExaAPIError(
+                f"Research task ended with status={task.status.value}",
+                status_code=None,
             )
+
+        actual_cost = extract_exa_cost_total(task)
+        sources_found = len(task.citations) if task.citations else 0
+
+        # Extract factors from research citations
+        if task.citations:
+            for research_citation in task.citations[:10]:
+                factors.append(
+                    Factor(
+                        factor_text=research_citation.title or "Research finding",
+                        source_url=research_citation.url,
+                        confidence="high",
+                    )
+                )
+
+        # Clear state after successful completion
+        self._state.clear_research_task(ticker)
 
         return factors, actual_cost, sources_found
 
@@ -453,20 +531,16 @@ class ResearchAgent:
         elif step.endpoint == "research":
             # Execute deep research task (async) with crash recovery
             factors, actual_cost, sources_found = await self._execute_research_task(step, market)
+        else:
+            raise ValueError(f"Unknown research step endpoint: {step.endpoint!r}")
 
-        # Create result with factors attached
-        result = ResearchStepResult(
+        return ResearchStepResult(
             step_id=step.step_id,
             status=ResearchStepStatus.COMPLETED,
             actual_cost_usd=actual_cost,
             sources_found=sources_found,
+            factors=factors,
         )
-
-        # Attach factors to result (we'll use object attributes since Pydantic model is frozen)
-        # Store factors in a way the caller can access
-        object.__setattr__(result, "factors", factors)
-
-        return result
 
     def _generate_queries(self, title: str) -> list[str]:
         """Generate search queries from market title."""

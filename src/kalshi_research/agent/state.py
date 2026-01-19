@@ -67,7 +67,7 @@ class ResearchTaskState:
                 research_id=research_id,
                 state_file=str(state_file),
             )
-        except Exception as e:
+        except OSError as e:
             logger.warning("failed_to_save_research_task_state", error=str(e))
 
     def load_research_task(self, ticker: str) -> dict[str, str] | None:
@@ -86,16 +86,30 @@ class ResearchTaskState:
             return None
 
         try:
-            state: dict[str, str] = json.loads(state_file.read_text())
-            logger.debug(
-                "loaded_research_task_state",
-                ticker=ticker,
-                research_id=state.get("research_id"),
-            )
-            return state
-        except Exception as e:
+            raw = json.loads(state_file.read_text())
+        except (OSError, json.JSONDecodeError) as e:
             logger.warning("failed_to_load_research_task_state", error=str(e))
             return None
+
+        if not isinstance(raw, dict):
+            logger.warning("invalid_research_task_state_schema", ticker=ticker, reason="not_a_dict")
+            return None
+
+        state = {k: v for k, v in raw.items() if isinstance(k, str) and isinstance(v, str)}
+        if not state.get("research_id"):
+            logger.warning(
+                "invalid_research_task_state_schema",
+                ticker=ticker,
+                reason="missing_research_id",
+            )
+            return None
+
+        logger.debug(
+            "loaded_research_task_state",
+            ticker=ticker,
+            research_id=state.get("research_id"),
+        )
+        return state
 
     def clear_research_task(self, ticker: str) -> None:
         """
@@ -110,5 +124,5 @@ class ResearchTaskState:
             try:
                 state_file.unlink()
                 logger.debug("cleared_research_task_state", ticker=ticker)
-            except Exception as e:
+            except OSError as e:
                 logger.warning("failed_to_clear_research_task_state", error=str(e))

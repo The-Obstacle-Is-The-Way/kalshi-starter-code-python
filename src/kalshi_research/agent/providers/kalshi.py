@@ -57,11 +57,14 @@ async def fetch_price_snapshot(client: KalshiPublicClient, ticker: str) -> Marke
     """
     orderbook: Orderbook = await client.get_orderbook(ticker=ticker)
 
-    # Get top of book prices
-    yes_bid = orderbook.yes[0][0] if orderbook.yes else 0
-    yes_ask = orderbook.yes[0][1] if orderbook.yes else 100
-    no_bid = orderbook.no[0][0] if orderbook.no else 0
-    no_ask = orderbook.no[0][1] if orderbook.no else 100
+    best_yes_bid = orderbook.best_yes_bid
+    best_no_bid = orderbook.best_no_bid
+
+    # Get top of book prices. Kalshi's orderbook endpoint is bid-only, so asks are implied.
+    yes_bid = best_yes_bid if best_yes_bid is not None else 0
+    no_bid = best_no_bid if best_no_bid is not None else 0
+    yes_ask = 100 - no_bid if best_no_bid is not None else 100
+    no_ask = 100 - yes_bid if best_yes_bid is not None else 100
 
     # Calculate midpoint probability (yes side, 0..1)
     yes_mid_cents = (yes_bid + yes_ask) / 2
