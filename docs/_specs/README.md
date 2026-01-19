@@ -20,7 +20,7 @@ This directory contains **active** design specifications - work happening NOW.
 | SPEC-031 | [Scanner Quality Profiles (Slop Filtering + "Get In Early" Mode)](SPEC-031-scanner-quality-profiles.md) | ✅ Phase 1–2 Complete (Phase 3 deferred) |
 | SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | ✅ **Phase 1 Complete** (LLM synthesizer backend configurable) |
 | SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | ✅ **Phase 1 Complete** |
-| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 🟡 Phase 1 implemented (Phase 2 deferred) |
+| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 🟡 Phase 1 implemented (Phase 2 provider rails implemented; wiring deferred) |
 | SPEC-038 | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](SPEC-038-exa-websets-endpoint-coverage.md) | 📝 Draft |
 | **SPEC-042** | [LLM Synthesizer Implementation](SPEC-042-llm-synthesizer-implementation.md) | ✅ **Phase 1 Complete** (resolves DEBT-037, enables agent value) |
 

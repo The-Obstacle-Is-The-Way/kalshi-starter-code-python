@@ -4,11 +4,9 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**1 active debt item.**
+**0 active debt items.**
 
-| ID | Title | Priority | Component |
-|---|---|---|---|
-| **[DEBT-034](DEBT-034-broad-exception-catches.md)** | Broad Exception Catches in Agent/Execution Code | P3 | agent, execution |
+_None._
 
 ---
 
@@ -18,6 +16,7 @@ All resolved debt items live in `docs/_archive/debt/`.
 
 | ID | Title | Status |
 |---|---|---|
+| **[DEBT-034](../_archive/debt/DEBT-034-broad-exception-catches.md)** | Broad Exception Catches in Agent/Execution Code | ✅ Resolved |
 | **[DEBT-037](../_archive/debt/DEBT-037-mock-synthesizer-production-gap.md)** | MockSynthesizer in Production Path | ✅ Resolved (SPEC-042) |
 | **[DEBT-033](../_archive/debt/DEBT-033-frozen-model-setattr-hack.md)** | Frozen Pydantic Model `object.__setattr__` Hack | ✅ Closed (False Positive) |
 | **[DEBT-035](../_archive/debt/DEBT-035-missing-agent-integration-tests.md)** | Missing Agent Integration Tests | ✅ Resolved |

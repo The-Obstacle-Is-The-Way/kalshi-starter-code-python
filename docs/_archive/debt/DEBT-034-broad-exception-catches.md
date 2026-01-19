@@ -1,7 +1,7 @@
 # DEBT-034: Broad Exception Catches in Agent/Execution Code
 
-**Status:** Active
-**Priority:** P3 (Low - Reduces debuggability)
+**Status:** ✅ Archived (Resolved)
+**Priority:** P3 (Historical)
 **Created:** 2026-01-18
 **Component:** `agent`, `execution`
 
@@ -9,8 +9,11 @@
 
 ## Summary
 
-There are a few broad `except Exception` catches in the agent/execution code. Some are intentional (e.g., skipping optional
-safety checks when a provider fails), but the documentation and line references in this debt item drifted.
+There were a few broad `except Exception` catches in the agent/execution code. Some were intentional, but two of them
+resulted in **fail-open** behavior during live trading safety checks when provider calls failed.
+
+This item is resolved by making provider failures **fail-closed** in live mode, while keeping auditability and
+debuggability (stack traces via `logger.exception(...)`).
 
 ## Locations
 
@@ -24,11 +27,11 @@ except Exception:
 
 ### executor.py
 ```python
-# src/kalshi_research/execution/executor.py:307, 330
+# src/kalshi_research/execution/executor.py:_run_live_checks
 except Exception as exc:
-    # Provider failure: skip optional checks (fail-open by design)
-    logger.warning(...)
-    # continue
+    # Provider failure: record failure + log stack trace (fail-closed for live safety)
+    failures.append(...)
+    logger.exception(...)
 
 # src/kalshi_research/execution/executor.py:430
 except Exception as exc:
@@ -44,7 +47,17 @@ Broad exception catches:
 2. **Reduce debuggability** if logged without enough context (exception type/stack)
 3. **Can change safety posture** (fail-open vs fail-closed) when provider errors occur
 
-## Recommended Fix
+## Resolution
+
+Implemented the following:
+
+1. **TradeExecutor safety checks now fail closed** when a provider is configured but fails:
+   - orderbook provider failures now add a failure code and block live order placement
+   - liquidity grade check only runs when configured, and provider failures block live order placement
+2. **Provider failures now log stack traces** via `logger.exception(...)` for debuggability.
+3. **Removed the only `# type: ignore` in `TradeExecutor.cancel_order()`** by correcting the return type.
+
+## Recommended Fix (Implemented)
 
 1. **Prefer specific exceptions** when feasible (provider/network errors), especially in “continue” paths:
 ```python
@@ -75,6 +88,6 @@ except Exception:
 
 ## Acceptance Criteria
 
-- [ ] All `except Exception` catches either log or have documented justification
-- [ ] Catch specific exception types where possible
-- [ ] No silent failures for unexpected errors
+- [x] All `except Exception` catches either log or have documented justification
+- [x] Catch specific exception types where possible (provider protocols remain generic; failures are fail-closed + logged)
+- [x] No silent failures for unexpected errors

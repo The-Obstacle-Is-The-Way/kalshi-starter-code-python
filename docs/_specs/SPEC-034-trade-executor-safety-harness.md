@@ -1,6 +1,6 @@
 # SPEC-034: TradeExecutor Safety Harness (Budgeted, Safe-by-Default)
 
-**Status:** Partially Implemented (Phase 1)
+**Status:** 🟡 Phase 1 implemented; Phase 2 partially implemented (provider-wired rails)
 **Priority:** P2 (Blocked until agent trading is desired)
 **Created:** 2026-01-10
 **Owner:** Solo
@@ -36,13 +36,22 @@ hardening work.
 - `src/kalshi_research/execution/audit.py`: append-only JSONL audit logger
 - `tests/unit/execution/test_executor.py`: unit tests for dry-run default, confirmation, and price bounds
 
+### Implemented (Phase 2 - provider-based rails)
+
+These checks are implemented, but require wiring concrete providers (budget/positions) to be meaningful:
+
+- Fat-finger guard (midpoint deviation) when `orderbook_provider` is provided
+- Liquidity-aware sizing (slippage limit) when `orderbook_provider` is provided
+- Daily budget/loss tracking when a `budget_tracker` is provided
+- Position caps when a `position_provider` is provided
+- Safety-wrapped `cancel_order` and `amend_order` helpers
+
 ### Not Yet Implemented (Phase 2)
 
-- Fat-finger guard (midpoint deviation check)
-- Daily budgets / daily loss tracking
-- Position caps (requires portfolio state)
-- Liquidity-aware sizing gates (SPEC-026 integration)
-- TradeExecutor wrappers for `cancel_order` / `amend_order`
+- Concrete implementations for Phase 2 providers:
+  - daily budget/loss tracker backed by local DB or audit-log-derived counters
+  - position provider backed by local DB cache (or live API)
+- CLI plumbing for trading (intentionally deferred; no `kalshi trade ...` command yet)
 
 ---
 

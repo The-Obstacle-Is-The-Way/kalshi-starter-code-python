@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from kalshi_research.api.client import KalshiClient
     from kalshi_research.api.models.market import Market
     from kalshi_research.api.models.orderbook import Orderbook
+    from kalshi_research.api.models.portfolio import CancelOrderResponse
 
 logger = structlog.get_logger()
 
@@ -282,6 +283,7 @@ class TradeExecutor:
             if new_position_size > self._max_position_contracts:
                 failures.append("max_position_contracts_exceeded")
 
+        orderbook = None
         if self._orderbook_provider is not None:
             try:
                 orderbook = await self._orderbook_provider.get_orderbook(ticker)
@@ -305,35 +307,30 @@ class TradeExecutor:
                     except LiquidityError:
                         failures.append("slippage_limit_exceeded")
             except Exception as exc:
-                # If we can't fetch orderbook, don't block but we can't validate
-                logger.warning(
-                    "orderbook_provider_failed_skipping_checks",
-                    ticker=ticker,
-                    error=str(exc),
-                )
+                # Fail closed for live trading when safety checks cannot be evaluated.
+                failures.append("orderbook_provider_failed")
+                logger.exception("orderbook_provider_failed", ticker=ticker, error=str(exc))
 
-        if self._market_provider is not None and self._orderbook_provider is not None:
+        if (
+            self._min_liquidity_grade is not None
+            and self._market_provider is not None
+            and orderbook is not None
+        ):
             try:
                 market = await self._market_provider.get_market(ticker)
-                orderbook = await self._orderbook_provider.get_orderbook(ticker)
                 analysis = liquidity_score(market, orderbook)
 
-                if self._min_liquidity_grade is not None:
-                    grade_order = {
-                        LiquidityGrade.ILLIQUID: 0,
-                        LiquidityGrade.THIN: 1,
-                        LiquidityGrade.MODERATE: 2,
-                        LiquidityGrade.LIQUID: 3,
-                    }
-                    if grade_order[analysis.grade] < grade_order[self._min_liquidity_grade]:
-                        failures.append("liquidity_grade_too_low")
+                grade_order = {
+                    LiquidityGrade.ILLIQUID: 0,
+                    LiquidityGrade.THIN: 1,
+                    LiquidityGrade.MODERATE: 2,
+                    LiquidityGrade.LIQUID: 3,
+                }
+                if grade_order[analysis.grade] < grade_order[self._min_liquidity_grade]:
+                    failures.append("liquidity_grade_too_low")
             except Exception as exc:
-                # If we can't compute liquidity, don't block
-                logger.warning(
-                    "liquidity_check_failed_skipping",
-                    ticker=ticker,
-                    error=str(exc),
-                )
+                failures.append("liquidity_check_failed")
+                logger.exception("liquidity_check_failed", ticker=ticker, error=str(exc))
 
         # Confirmation (Phase 1, but runs last)
         if self._require_confirmation:
@@ -449,7 +446,7 @@ class TradeExecutor:
             )
             self._audit.write(event)
 
-    async def cancel_order(self, order_id: str, dry_run: bool | None = None) -> OrderResponse:
+    async def cancel_order(self, order_id: str, dry_run: bool | None = None) -> CancelOrderResponse:
         """Cancel an existing order through the safety harness.
 
         Phase 2 addition: This wrapper ensures kill switch and environment checks apply
@@ -478,10 +475,7 @@ class TradeExecutor:
             raise TradeSafetyError("; ".join(failures))
 
         resolved_dry_run = (not self._live) if dry_run is None else dry_run
-        response = await self._client.cancel_order(order_id, dry_run=resolved_dry_run)
-        # Type system doesn't know CancelOrderResponse is compatible with OrderResponse.
-        # For now, we return the actual cancel response.
-        return response  # type: ignore[return-value]
+        return await self._client.cancel_order(order_id, dry_run=resolved_dry_run)
 
     async def amend_order(
         self,
