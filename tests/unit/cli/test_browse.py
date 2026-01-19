@@ -86,6 +86,27 @@ def test_browse_series_json_round_trips() -> None:
     assert payload[0].get("ticker") == first_ticker
 
 
+def test_browse_series_include_volume_renders_volume_column() -> None:
+    fixture = load_series_list_fixture()
+    raw_series = fixture.get("series")
+    assert isinstance(raw_series, list)
+    assert raw_series
+
+    first = raw_series[0]
+    first_ticker = first.get("ticker")
+    assert isinstance(first_ticker, str)
+    first["volume"] = 12_345
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/series").mock(return_value=Response(200, json=fixture))
+        result = runner.invoke(app, ["browse", "series", "--include-volume"])
+
+    assert result.exit_code == 0
+    assert first_ticker in result.stdout
+    assert "Volume" in result.stdout
+    assert "12,345" in result.stdout
+
+
 def test_browse_sports_json_round_trips() -> None:
     fixture = load_filters_by_sport_fixture()
 
@@ -99,3 +120,66 @@ def test_browse_sports_json_round_trips() -> None:
     payload = json.loads(result.stdout)
     assert isinstance(payload, dict)
     assert payload.get("sport_ordering") == fixture.get("sport_ordering")
+
+
+def test_browse_sports_outputs_table() -> None:
+    fixture = load_filters_by_sport_fixture()
+    ordering = fixture.get("sport_ordering")
+    assert isinstance(ordering, list)
+    assert ordering
+    sport = ordering[0]
+    assert isinstance(sport, str)
+
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/search/filters_by_sport").mock(
+            return_value=Response(200, json=fixture)
+        )
+        result = runner.invoke(app, ["browse", "sports"])
+
+    assert result.exit_code == 0
+    assert "Sports Discovery Filters" in result.stdout
+    assert sport in result.stdout
+
+
+def test_browse_categories_api_error_exits_1() -> None:
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/search/tags_by_categories").mock(
+            return_value=Response(500, json={"error": "boom"})
+        )
+        result = runner.invoke(app, ["browse", "categories"])
+
+    assert result.exit_code == 1
+    assert "API Error 500" in result.stdout
+
+
+def test_browse_categories_invalid_json_exits_1() -> None:
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/search/tags_by_categories").mock(
+            return_value=Response(200, text="not-json")
+        )
+        result = runner.invoke(app, ["browse", "categories"])
+
+    assert result.exit_code == 1
+    assert "Error:" in result.stdout
+
+
+def test_browse_series_api_error_exits_1() -> None:
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/series").mock(
+            return_value=Response(500, json={"error": "boom"})
+        )
+        result = runner.invoke(app, ["browse", "series"])
+
+    assert result.exit_code == 1
+    assert "API Error 500" in result.stdout
+
+
+def test_browse_sports_api_error_exits_1() -> None:
+    with respx.mock:
+        respx.get(f"{KALSHI_PROD_BASE_URL}/search/filters_by_sport").mock(
+            return_value=Response(500, json={"error": "boom"})
+        )
+        result = runner.invoke(app, ["browse", "sports"])
+
+    assert result.exit_code == 1
+    assert "API Error 500" in result.stdout
