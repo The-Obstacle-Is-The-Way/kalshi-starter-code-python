@@ -30,6 +30,12 @@ These are potential future integrations for information arbitrage. Prioritized b
 | **FUTURE-005** | [Sportsbook Odds API](FUTURE-005-sportsbook-odds-api.md) | Medium | Free-$80/mo | Sports markets only, aggregator APIs available |
 | **FUTURE-006** | [Alternative News Sources](FUTURE-006-alternative-news-sources.md) | Low | Free | HN/Reddit/RSS - Exa already covers most |
 
+### Agent Evaluation & Optimization
+
+| ID | Title | Priority | Blocked By | Notes |
+|----|-------|----------|------------|-------|
+| **FUTURE-008** | [DSPy Evaluation & Optimization](FUTURE-008-dspy-evaluation-optimization.md) | Medium-High | Need 100+ resolved predictions | Auto-optimize synthesizer prompts, calibration metrics |
+
 **Strategy:** Complete vertical stack (SPEC-030 → 033 → 032) first. Design ResearchProvider interface to be pluggable, then add external sources as providers.
 
 ---
