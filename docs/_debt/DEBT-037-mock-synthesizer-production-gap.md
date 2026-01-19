@@ -78,8 +78,8 @@ predicted = min(100, max(0, market_pct + 5))
 
 ### Phase 2 Implementation
 
-See [FUTURE-007](../_future/FUTURE-007-llm-synthesizer-implementation.md) for full implementation plan:
-- Implement `InstructorSynthesizer` (OpenAI) or `ClaudeSynthesizer` (Anthropic)
+See [SPEC-042](../_specs/SPEC-042-llm-synthesizer-implementation.md) for the implementation plan:
+- Implement `ClaudeSynthesizer` (Anthropic) or another real backend
 - Add `KALSHI_SYNTHESIZER_BACKEND` env var
 - Factory function to select based on config
 
@@ -91,11 +91,12 @@ See [FUTURE-007](../_future/FUTURE-007-llm-synthesizer-implementation.md) for fu
 ## Acceptance Criteria
 
 - [ ] JSON mode includes warning field when mock is active
-- [ ] At least one real LLM synthesizer implemented (FUTURE-007)
+- [ ] At least one real LLM synthesizer implemented (SPEC-042)
 - [ ] Environment variable to select synthesizer backend
 - [ ] Documentation clearly states Phase 1 limitation
 
 ## Related
 
-- [FUTURE-007: LLM Synthesizer Implementation](../_future/FUTURE-007-llm-synthesizer-implementation.md)
+- [SPEC-042: LLM Synthesizer Implementation](../_specs/SPEC-042-llm-synthesizer-implementation.md)
+- [FUTURE-007: LLM Synthesizer Implementation (Archived)](../_archive/future/FUTURE-007-llm-synthesizer-implementation.md)
 - [SPEC-032: Agent System Orchestration](../_specs/SPEC-032-agent-system-orchestration.md)

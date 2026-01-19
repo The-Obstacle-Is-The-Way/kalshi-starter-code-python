@@ -15,7 +15,7 @@ Implement a real LLM-based synthesizer to replace `MockSynthesizer` in the agent
 
 This spec addresses [DEBT-037](../_debt/DEBT-037-mock-synthesizer-production-gap.md) which is blocking the entire agent system value proposition.
 
-**Model Choice:** Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`) - Anthropic's best model for complex agents, with native structured output support.
+**Model Choice:** Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`) - pinned model ID for reproducibility (confirmed in Anthropic model docs).
 
 ---
 
@@ -52,22 +52,9 @@ This spec addresses [DEBT-037](../_debt/DEBT-037-mock-synthesizer-production-gap
 
 ### Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`)
 
-From [Anthropic's announcement](https://www.anthropic.com/news/claude-sonnet-4-5):
-
-| Capability | Performance |
-|------------|-------------|
-| SWE-bench Verified | 77.2% (beats GPT-5) |
-| Terminal-Bench | 50.0% (leads) |
-| OSWorld (real-world tasks) | 61.4% |
-| Code editing error rate | 0% (down from 9%) |
-| Context window | 200K (1M beta) |
-| Agentic focus | 30+ hour task persistence |
-
-**Pricing:** $3/M input, $15/M output tokens
-
-**Structured Outputs:** Native support via `anthropic-beta: structured-outputs-2025-11-13` header.
-
-See [Anthropic structured output guide](https://towardsdatascience.com/hands-on-with-anthropics-new-structured-output-capabilities/).
+- **Pinned model ID:** Use a dated model ID for reproducibility (`claude-sonnet-4-5-20250929`) and optionally allow an alias via configuration.
+- **Structured output:** Use Anthropic tool use + schema validation (Pydantic) for deterministic machine-readable outputs.
+- **Cost tracking:** Track token usage and compute USD cost using pricing from Anthropic vendor docs at implementation time (do not hardcode numbers in the spec).
 
 ---
 
@@ -98,6 +85,10 @@ from anthropic import AsyncAnthropic
 # Frontier model - Claude Sonnet 4.5
 CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
 
+# Pricing constants (USD per 1M tokens). Fill from vendor docs at implementation time.
+INPUT_USD_PER_M: float = ...
+OUTPUT_USD_PER_M: float = ...
+
 class ClaudeSynthesizer:
     """LLM synthesizer using Claude Sonnet 4.5 with native structured outputs."""
 
@@ -112,9 +103,8 @@ class ClaudeSynthesizer:
         response = await self.client.messages.create(
             model=self.model,
             max_tokens=4096,
-            extra_headers={
-                "anthropic-beta": "structured-outputs-2025-11-13"
-            },
+            # If required for structured outputs, set the beta header per Anthropic docs.
+            # extra_headers={"anthropic-beta": "structured-outputs-YYYY-MM-DD"},
             tools=[{
                 "name": "submit_analysis",
                 "description": "Submit your probability analysis for this market",
@@ -142,6 +132,7 @@ class ClaudeSynthesizer:
 
     def _build_prompt(self, input: SynthesisInput) -> str:
         """Build prompt from market info, price snapshot, and research."""
+        research_factors = input.research.factors if input.research else []
         return ANALYSIS_PROMPT_TEMPLATE.format(
             ticker=input.market.ticker,
             title=input.market.title,
@@ -152,25 +143,24 @@ class ClaudeSynthesizer:
             yes_ask=input.snapshot.yes_ask_cents,
             spread=input.snapshot.spread_cents,
             volume_24h=input.snapshot.volume_24h,
-            research_summary=input.research.summary_text or "No research available",
-            factors=self._format_factors(input.research.factors),
+            factors=self._format_research_factors(research_factors),
         )
 
     def _track_usage(self, response) -> None:
         """Track token usage and costs."""
         self._total_tokens += response.usage.input_tokens + response.usage.output_tokens
-        # Sonnet 4.5: $3/M input, $15/M output
+        # Compute cost using pricing constants sourced from vendor docs at implementation time.
         self._total_cost_usd += (
-            response.usage.input_tokens * 3.0 / 1_000_000 +
-            response.usage.output_tokens * 15.0 / 1_000_000
+            response.usage.input_tokens * INPUT_USD_PER_M / 1_000_000 +
+            response.usage.output_tokens * OUTPUT_USD_PER_M / 1_000_000
         )
 
-    def _format_factors(self, factors: list) -> str:
-        """Format research factors for prompt."""
+    def _format_research_factors(self, factors: list[Factor]) -> str:
+        """Format ResearchSummary factors for prompt."""
         if not factors:
             return "No factors identified"
         return "\n".join(
-            f"- [{f.impact or 'unclear'}] {f.description} (source: {f.source_url})"
+            f"- {f.factor_text} (source: {f.source_url})"
             for f in factors
         )
 ```
@@ -202,9 +192,7 @@ ANALYSIS_PROMPT_TEMPLATE = """
 - 24h volume: {volume_24h} contracts
 
 ### Research Summary
-{research_summary}
-
-### Key Factors
+### Research Factors (structured)
 {factors}
 
 ---
@@ -355,7 +343,7 @@ async def test_real_claude_synthesis():
 ## Acceptance Criteria
 
 - [ ] `ClaudeSynthesizer` implemented using `claude-sonnet-4-5-20250929`
-- [ ] Native structured outputs via `anthropic-beta: structured-outputs-2025-11-13`
+- [ ] Native structured outputs enabled per Anthropic vendor docs (beta header if required)
 - [ ] `get_synthesizer()` factory function works
 - [ ] `KALSHI_SYNTHESIZER_BACKEND` env var controls backend (default: `anthropic`)
 - [ ] CLI uses factory, warns when mock is active
@@ -385,6 +373,6 @@ async def test_real_claude_synthesis():
 - [DEBT-037: MockSynthesizer in Production Path](../_debt/DEBT-037-mock-synthesizer-production-gap.md)
 - [SPEC-032: Agent System Orchestration](SPEC-032-agent-system-orchestration.md)
 - [SPEC-033: Exa Research Agent](SPEC-033-exa-research-agent.md)
-- [Claude Sonnet 4.5 Announcement](https://www.anthropic.com/news/claude-sonnet-4-5)
-- [Anthropic Structured Outputs Guide](https://towardsdatascience.com/hands-on-with-anthropics-new-structured-output-capabilities/)
-- [Claude API Docs](https://platform.claude.com/docs/en/about-claude/models/overview)
+- [Claude Models Overview (model IDs)](https://platform.claude.com/docs/en/about-claude/models/overview)
+- [Anthropic Docs: Structured Outputs](https://docs.anthropic.com/en/docs/build-with-claude/structured-outputs)
+- [Anthropic Docs: Pricing](https://docs.anthropic.com/en/docs/about-claude/pricing)

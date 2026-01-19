@@ -56,7 +56,7 @@ build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive s
 
 | ID | Title | Status |
 |---|---|---|
-| [FUTURE-007](FUTURE-007-llm-synthesizer-implementation.md) | LLM Synthesizer Implementation | ✅ Promoted → **SPEC-042** |
+| [FUTURE-007](../_archive/future/FUTURE-007-llm-synthesizer-implementation.md) | LLM Synthesizer Implementation | ✅ Promoted → **SPEC-042** |
 
 ### Previously Promoted to Specs (2026-01-18)
 

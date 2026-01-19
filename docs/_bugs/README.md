@@ -4,11 +4,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-| ID | Title | Priority | Component |
-|---|---|---|---|
-| **[BUG-085](BUG-085-agent-module-test-coverage-gaps.md)** | Agent Module Test Coverage Gaps | P3 | agent |
-| **[BUG-086](BUG-086-exa-websets-client-low-coverage.md)** | Exa Websets Client Low Coverage | P3 | exa.websets |
-| **[BUG-087](BUG-087-search-repository-fts5-coverage-gap.md)** | Search Repository FTS5 Coverage Gap | P4 | data.repositories.search |
+_None._
 
 ### Verification Note (2026-01-12)
 
@@ -47,6 +43,14 @@ All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
+### Recently Archived (2026-01-19)
+
+| ID | Title | Status |
+|---|---|---|
+| **[BUG-085](../_archive/bugs/BUG-085-agent-module-test-coverage-gaps.md)** | Agent Module Test Coverage Gaps | ✅ Closed (Outdated) |
+| **[BUG-086](../_archive/bugs/BUG-086-exa-websets-client-low-coverage.md)** | Exa Websets Client Low Coverage | ✅ Closed (Outdated) |
+| **[BUG-087](../_archive/bugs/BUG-087-search-repository-fts5-coverage-gap.md)** | Search Repository FTS5 Coverage Gap | ✅ Closed (Outdated) |
 
 ### Recently Archived (2026-01-16)
 

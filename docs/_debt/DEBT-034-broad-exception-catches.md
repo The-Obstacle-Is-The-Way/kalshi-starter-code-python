@@ -9,74 +9,68 @@
 
 ## Summary
 
-Multiple files use bare `except Exception:` catches that swallow all errors, reducing debuggability and potentially hiding bugs.
+There are a few broad `except Exception` catches in the agent/execution code. Some are intentional (e.g., skipping optional
+safety checks when a provider fails), but the documentation and line references in this debt item drifted.
 
 ## Locations
 
 ### research_agent.py
 ```python
-# Line 233, 317
+# src/kalshi_research/agent/research_agent.py:253
 except Exception:
-    # Error swallowed, partial result returned
-```
-
-### state.py
-```python
-# Lines 70, 96, 113
-except Exception:
-    # State recovery errors swallowed
+    logger.exception(...)
+    raise
 ```
 
 ### executor.py
 ```python
-# Lines 300, 302, 321
-except Exception:
-    # Execution errors may be swallowed
+# src/kalshi_research/execution/executor.py:307, 330
+except Exception as exc:
+    # Provider failure: skip optional checks (fail-open by design)
+    logger.warning(...)
+    # continue
+
+# src/kalshi_research/execution/executor.py:430
+except Exception as exc:
+    # Capture error for audit, then re-raise
+    raise
 ```
 
 ## Problem
 
 Broad exception catches:
 
-1. **Hide bugs** - Unexpected exceptions silently ignored
-2. **Reduce debuggability** - No stack trace, hard to diagnose
-3. **Catch too much** - Catches KeyboardInterrupt, SystemExit, etc. (when not using `BaseException`)
-4. **Silent failures** - User doesn't know something went wrong
+1. **Can hide programmer errors** when used in “continue” paths
+2. **Reduce debuggability** if logged without enough context (exception type/stack)
+3. **Can change safety posture** (fail-open vs fail-closed) when provider errors occur
 
 ## Recommended Fix
 
-1. **Catch specific exceptions**:
+1. **Prefer specific exceptions** when feasible (provider/network errors), especially in “continue” paths:
 ```python
 # Before
 except Exception:
-    return partial_result
+    logger.warning("provider_failed")
+    # continue
 
 # After
-except (httpx.TimeoutException, ExaAPIError) as e:
-    logger.warning("Research step failed: %s", e)
-    return partial_result
+except (OSError, httpx.HTTPError, ValueError) as exc:
+    logger.warning("provider_failed", error=str(exc))
+    # continue
 ```
 
-2. **Log exceptions**:
+2. **Use `logger.exception(...)`** (or equivalent) when swallowing errors and debugging would benefit from stack traces:
 ```python
-except SomeError as e:
-    logger.exception("Unexpected error in %s", context)
+except Exception:
+    logger.exception("unexpected_error")
     raise
 ```
 
-3. **Consider re-raising for unexpected errors**:
-```python
-except KnownError:
-    # Handle gracefully
-except Exception:
-    logger.exception("Unexpected error")
-    raise  # Don't swallow
-```
+3. **Document intentional fail-open behavior** where appropriate (e.g., optional safety checks).
 
 ## Files Affected
 
 - `src/kalshi_research/agent/research_agent.py`
-- `src/kalshi_research/agent/state.py`
 - `src/kalshi_research/execution/executor.py`
 
 ## Acceptance Criteria

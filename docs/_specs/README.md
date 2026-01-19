@@ -37,7 +37,7 @@ Execution order is tracked in `PROGRESS.md` (Ralph Wiggum queue). This section l
     ↓
 🟡 SPEC-032 (Agent Orchestration)  ← DONE (Phase 1): Uses MockSynthesizer
     ↓
-🔴 SPEC-042 (LLM Synthesizer)      ← NEXT: Implement OpenAI/Instructor synthesizer
+🔴 SPEC-042 (LLM Synthesizer)      ← NEXT: Implement real LLM synthesizer (Anthropic-first per spec)
 
 🟡 SPEC-034 (TradeExecutor)        ← Phase 1 done; Phase 2 deferred
 📝 SPEC-028 (Topic Search)         ← Independent, can implement anytime

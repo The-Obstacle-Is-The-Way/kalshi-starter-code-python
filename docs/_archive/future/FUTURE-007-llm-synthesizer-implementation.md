@@ -1,6 +1,6 @@
 # FUTURE-007: LLM Synthesizer Implementation (Phase 2)
 
-**Status:** Backlog
+**Status:** ✅ Promoted → SPEC-042 (Archived)
 **Priority:** P1 (High - Required for agent system value)
 **Created:** 2026-01-18
 **Depends On:** Agent analysis workflow (`kalshi agent analyze`) and structured schemas (`kalshi_research.agent.schemas`)
