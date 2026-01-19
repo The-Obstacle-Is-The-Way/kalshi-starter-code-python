@@ -19,6 +19,7 @@ from kalshi_research.cli.browse import app as browse_app
 from kalshi_research.cli.data import app as data_app
 from kalshi_research.cli.event import app as event_app
 from kalshi_research.cli.market import app as market_app
+from kalshi_research.cli.mve import app as mve_app
 from kalshi_research.cli.news import app as news_app
 from kalshi_research.cli.portfolio import app as portfolio_app
 from kalshi_research.cli.research import app as research_app
@@ -38,6 +39,7 @@ app.add_typer(market_app, name="market")
 app.add_typer(scan_app, name="scan")
 app.add_typer(browse_app, name="browse")
 app.add_typer(event_app, name="event")
+app.add_typer(mve_app, name="mve")
 app.add_typer(alerts_app, name="alerts")
 app.add_typer(analysis_app, name="analysis")
 app.add_typer(research_app, name="research")
