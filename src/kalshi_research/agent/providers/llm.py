@@ -8,6 +8,7 @@ Phase 1: Schema-validated, backend-selectable synthesizers.
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -52,6 +53,13 @@ def _dedupe_preserve_order(items: list[str]) -> list[str]:
         seen.add(item)
         deduped.append(item)
     return deduped
+
+
+def _estimate_tokens_conservative(text: str) -> int:
+    # Conservative heuristic: overestimate tokens to avoid exceeding cost caps.
+    # Empirically, many tokenizers average ~4 chars/token for English; use 3 for safety.
+    chars_per_token = 3
+    return max(1, (len(text) + chars_per_token - 1) // chars_per_token)
 
 
 @dataclass(frozen=True)
@@ -264,9 +272,20 @@ class ClaudeSynthesizer:
 
         max_tokens = self._max_tokens
         if self._max_cost_usd is not None:
-            # Conservative cap using output-token pricing only.
+            # Conservative cap using estimated input + output token pricing.
+            request_text = (
+                SYSTEM_PROMPT
+                + "\n"
+                + prompt
+                + "\n"
+                + json.dumps(tools, sort_keys=True, separators=(",", ":"), default=str)
+            )
+            estimated_input_tokens = _estimate_tokens_conservative(request_text)
+            input_usd_per_token = self._pricing.input_usd_per_mtok / 1_000_000
             output_usd_per_token = self._pricing.output_usd_per_mtok / 1_000_000
-            budget_cap = int(self._max_cost_usd / output_usd_per_token)
+            estimated_input_cost = estimated_input_tokens * input_usd_per_token
+            remaining_budget = max(0.0, self._max_cost_usd - estimated_input_cost)
+            budget_cap = int(remaining_budget / output_usd_per_token)
             max_tokens = max(1, min(max_tokens, budget_cap))
 
         response = await self._client.messages.create(

@@ -8,16 +8,17 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from kalshi_research.agent.orchestrator import AgentKernel
-from kalshi_research.agent.providers.llm import MockSynthesizer
+from kalshi_research.agent.providers.llm import MockSynthesizer, SynthesisInput
 from kalshi_research.agent.schemas import (
     AnalysisResult,
     Factor,
     ResearchSummary,
 )
+from kalshi_research.exa.policy import ExaMode
 
 
 @pytest.fixture
-def mock_kalshi_client():
+def mock_kalshi_client() -> MagicMock:
     """Create mock Kalshi client."""
     client = MagicMock()
 
@@ -43,6 +44,8 @@ def mock_kalshi_client():
     mock_orderbook = MagicMock()
     mock_orderbook.yes = [(50, 60)]
     mock_orderbook.no = [(40, 50)]
+    mock_orderbook.best_yes_bid = 50
+    mock_orderbook.best_no_bid = 40
 
     client.get_orderbook = AsyncMock(return_value=mock_orderbook)
 
@@ -50,12 +53,12 @@ def mock_kalshi_client():
 
 
 @pytest.fixture
-def mock_research_agent():
+def mock_research_agent() -> MagicMock:
     """Create mock research agent."""
     agent = MagicMock()
 
     # Mock research method
-    async def mock_research(market, mode, budget_usd):
+    async def mock_research(market: object, mode: ExaMode, budget_usd: float) -> ResearchSummary:
         return ResearchSummary(
             ticker="TEST-24DEC31",
             title="Test Market",
@@ -82,7 +85,9 @@ def mock_research_agent():
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_basic_workflow(mock_kalshi_client, mock_research_agent):
+async def test_orchestrator_basic_workflow(
+    mock_kalshi_client: MagicMock, mock_research_agent: MagicMock
+) -> None:
     """Test basic orchestrator workflow without escalation."""
     synthesizer = MockSynthesizer()
 
@@ -114,7 +119,7 @@ async def test_orchestrator_basic_workflow(mock_kalshi_client, mock_research_age
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_without_research_agent(mock_kalshi_client):
+async def test_orchestrator_without_research_agent(mock_kalshi_client: MagicMock) -> None:
     """Test orchestrator without research agent (skips research step)."""
     synthesizer = MockSynthesizer()
 
@@ -138,12 +143,14 @@ async def test_orchestrator_without_research_agent(mock_kalshi_client):
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_verification_fails(mock_kalshi_client, mock_research_agent):
+async def test_orchestrator_verification_fails(
+    mock_kalshi_client: MagicMock, mock_research_agent: MagicMock
+) -> None:
     """Test orchestrator when verification fails."""
 
     # Create synthesizer that returns invalid analysis
     class BadSynthesizer:
-        async def synthesize(self, *, input):
+        async def synthesize(self, *, input: SynthesisInput) -> AnalysisResult:
             return AnalysisResult(
                 ticker=input.market.ticker,
                 market_prob=input.snapshot.midpoint_prob,
@@ -188,7 +195,9 @@ async def test_orchestrator_verification_fails(mock_kalshi_client, mock_research
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_research_mode_propagation(mock_kalshi_client, mock_research_agent):
+async def test_orchestrator_research_mode_propagation(
+    mock_kalshi_client: MagicMock, mock_research_agent: MagicMock
+) -> None:
     """Test that research mode is correctly propagated to research agent."""
     synthesizer = MockSynthesizer()
 
@@ -206,12 +215,14 @@ async def test_orchestrator_research_mode_propagation(mock_kalshi_client, mock_r
     # Verify research agent was called with correct mode and budget
     call_args = mock_research_agent.research.call_args
     assert call_args is not None
-    assert call_args.kwargs["mode"] == "deep"
+    assert call_args.kwargs["mode"] == ExaMode.DEEP
     assert call_args.kwargs["budget_usd"] == 0.50
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_cost_tracking(mock_kalshi_client, mock_research_agent):
+async def test_orchestrator_cost_tracking(
+    mock_kalshi_client: MagicMock, mock_research_agent: MagicMock
+) -> None:
     """Test that total cost is correctly tracked."""
     synthesizer = MockSynthesizer()
 
@@ -233,12 +244,14 @@ async def test_orchestrator_cost_tracking(mock_kalshi_client, mock_research_agen
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_escalation_disabled_by_default(mock_kalshi_client, mock_research_agent):
+async def test_orchestrator_escalation_disabled_by_default(
+    mock_kalshi_client: MagicMock, mock_research_agent: MagicMock
+) -> None:
     """Test that escalation is disabled by default even when suggested."""
 
     # Create synthesizer that returns invalid analysis (triggers escalation suggestion)
     class BadSynthesizer:
-        async def synthesize(self, *, input):
+        async def synthesize(self, *, input: SynthesisInput) -> AnalysisResult:
             return AnalysisResult(
                 ticker=input.market.ticker,
                 market_prob=input.snapshot.midpoint_prob,
@@ -279,7 +292,9 @@ async def test_orchestrator_escalation_disabled_by_default(mock_kalshi_client, m
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_schema_validation(mock_kalshi_client, mock_research_agent):
+async def test_orchestrator_schema_validation(
+    mock_kalshi_client: MagicMock, mock_research_agent: MagicMock
+) -> None:
     """Test that all schemas are correctly validated."""
     synthesizer = MockSynthesizer()
 

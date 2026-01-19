@@ -214,4 +214,4 @@ async def test_claude_synthesizer_caps_max_tokens_from_budget() -> None:
     await synth.synthesize(input=_make_input(with_research=False))
 
     assert messages.last_create_kwargs is not None
-    assert messages.last_create_kwargs.get("max_tokens") == 2
+    assert messages.last_create_kwargs.get("max_tokens") == 1

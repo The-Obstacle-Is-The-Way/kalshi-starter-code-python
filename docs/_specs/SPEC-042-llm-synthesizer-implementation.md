@@ -191,8 +191,7 @@ ANALYSIS_PROMPT_TEMPLATE = """
 - Yes bid/ask: {yes_bid}¢ / {yes_ask}¢ (spread: {spread}¢)
 - 24h volume: {volume_24h} contracts
 
-### Research Summary
-### Research Factors (structured)
+### Research Factors
 {factors}
 
 ---

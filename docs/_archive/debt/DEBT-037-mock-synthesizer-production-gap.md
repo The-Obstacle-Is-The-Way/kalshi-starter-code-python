@@ -16,7 +16,7 @@ The `kalshi agent analyze` command originally used `MockSynthesizer` uncondition
 ## Root Cause: Spec Design Flaw
 
 SPEC-032 (lines 337-345) explicitly stated:
-```
+```text
 ### Phase 1 (single orchestrator + rules verifier)
 ...
 4. Add unit tests:
