@@ -10,7 +10,7 @@ from kalshi_research.agent.schemas import AnalysisFactor, AnalysisResult
 from kalshi_research.agent.verify import verify_analysis
 
 
-def test_verify_analysis_valid():
+def test_verify_analysis_valid() -> None:
     """Test verification passes for valid analysis."""
     analysis = AnalysisResult(
         ticker="TEST-24DEC31",
@@ -37,7 +37,7 @@ def test_verify_analysis_valid():
     assert len(report.checked_sources) == 2
 
 
-def test_verify_analysis_insufficient_citations():
+def test_verify_analysis_insufficient_citations() -> None:
     """Test verification fails when citations are insufficient for confidence level."""
     analysis = AnalysisResult(
         ticker="TEST-24DEC31",
@@ -59,7 +59,7 @@ def test_verify_analysis_insufficient_citations():
     assert report.suggested_escalation is True
 
 
-def test_verify_analysis_duplicate_sources():
+def test_verify_analysis_duplicate_sources() -> None:
     """Test verification fails when duplicate URLs found in sources."""
     analysis = AnalysisResult(
         ticker="TEST-24DEC31",
@@ -83,7 +83,7 @@ def test_verify_analysis_duplicate_sources():
     assert any("Duplicate URLs" in issue for issue in report.issues)
 
 
-def test_verify_analysis_source_not_in_factors():
+def test_verify_analysis_source_not_in_factors() -> None:
     """Test verification fails when source URL not found in any factor."""
     analysis = AnalysisResult(
         ticker="TEST-24DEC31",
@@ -107,7 +107,7 @@ def test_verify_analysis_source_not_in_factors():
     assert any("not found in any factor" in issue for issue in report.issues)
 
 
-def test_verify_analysis_reasoning_too_short():
+def test_verify_analysis_reasoning_too_short() -> None:
     """Test verification fails when reasoning is too short."""
     analysis = AnalysisResult(
         ticker="TEST-24DEC31",
@@ -126,7 +126,7 @@ def test_verify_analysis_reasoning_too_short():
     assert any("Reasoning too short" in issue for issue in report.issues)
 
 
-def test_verify_analysis_reasoning_too_long():
+def test_verify_analysis_reasoning_too_long() -> None:
     """Test verification fails when reasoning is too long."""
     analysis = AnalysisResult(
         ticker="TEST-24DEC31",
@@ -145,7 +145,7 @@ def test_verify_analysis_reasoning_too_long():
     assert any("Reasoning too long" in issue for issue in report.issues)
 
 
-def test_verify_analysis_invalid_confidence():
+def test_verify_analysis_invalid_confidence() -> None:
     """Test verification fails for invalid confidence level."""
     # This should be caught by Pydantic, but test the verifier logic
     analysis = AnalysisResult(
@@ -165,7 +165,7 @@ def test_verify_analysis_invalid_confidence():
     assert any("Invalid confidence level" in issue for issue in report.issues)
 
 
-def test_verify_analysis_predicted_equals_market_high_confidence():
+def test_verify_analysis_predicted_equals_market_high_confidence() -> None:
     """Test verification flags when predicted equals market with high confidence."""
     analysis = AnalysisResult(
         ticker="TEST-24DEC31",
@@ -192,7 +192,7 @@ def test_verify_analysis_predicted_equals_market_high_confidence():
     assert any("identical to market" in issue for issue in report.issues)
 
 
-def test_verify_analysis_invalid_impact():
+def test_verify_analysis_invalid_impact() -> None:
     """Test verification fails for invalid impact values."""
     analysis = AnalysisResult(
         ticker="TEST-24DEC31",
@@ -218,7 +218,7 @@ def test_verify_analysis_invalid_impact():
     assert any("invalid impact value" in issue for issue in report.issues)
 
 
-def test_verify_analysis_prob_out_of_range():
+def test_verify_analysis_prob_out_of_range() -> None:
     """Test that Pydantic catches out-of-range probabilities."""
     # predicted_prob out of range should be caught by Pydantic schema
     with pytest.raises(ValueError):
@@ -234,7 +234,7 @@ def test_verify_analysis_prob_out_of_range():
         )
 
 
-def test_verify_analysis_multiple_issues():
+def test_verify_analysis_multiple_issues() -> None:
     """Test verification collects multiple issues."""
     analysis = AnalysisResult(
         ticker="TEST-24DEC31",

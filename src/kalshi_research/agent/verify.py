@@ -77,8 +77,9 @@ def verify_analysis(analysis: AnalysisResult) -> VerificationReport:
         issues.append(f"Reasoning too long: {reasoning_len} chars (maximum 2000)")
 
     # Check 7: Consistency check - predicted_prob should differ meaningfully from market
-    # This prevents "always return market price" gaming
-    market_prob_pct = int(analysis.market_prob * 100)
+    # This prevents "always return market price" gaming.
+    # Use round() instead of int() to avoid false positives at boundaries (e.g., 99.9 → 99).
+    market_prob_pct = round(analysis.market_prob * 100)
     if analysis.predicted_prob == market_prob_pct and analysis.confidence == "high":
         issues.append(
             "Predicted probability identical to market with high confidence "

@@ -159,6 +159,8 @@ src/kalshi_research/
 
 **API Clients**: Use async context managers. `KalshiPublicClient` for research (no auth), `KalshiClient` for portfolio sync (requires API key).
 
+**Kalshi Price Fields (CRITICAL)**: Kalshi deprecated integer cent fields in favor of `*_dollars` string fields (subpenny pricing migration, Nov 2025). **Always use `*_dollars` fields** (e.g., `yes_bid_dollars`, `yes_ask_dollars`, `last_price_dollars`) - never rely on cent-based fields like `yes_bid`, `yes_ask`, `last_price`. See `docs/_vendor-docs/kalshi-api-reference.md` for details.
+
 **Exa deep research**: `/research/v1` runs asynchronously; use `ExaClient.list_research_tasks()` / `find_recent_research_task()` to recover results after crashes.
 
 **Repository Pattern**: Prefer repositories in `data/repositories/` for shared persistence logic. For

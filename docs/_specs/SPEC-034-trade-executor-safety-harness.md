@@ -203,7 +203,7 @@ Integration tests (optional, require Kalshi write keys):
 - [x] `TradeExecutor` cannot call `KalshiClient.create_order(..., dry_run=False)` without `live=True`.
 - [x] Every order attempt (dry-run or live) emits one audit log event.
 - [x] Violations of risk checks fail fast with actionable error messages and do not place orders.
-- [x] Phase 2 safety rails implemented (fat-finger, budgets, position caps, liquidity-aware sizing).
+- [x] Phase 2 safety rails implemented (fat-finger, budgets, position caps, liquidity-aware sizing) via optional protocol providers.
 
 ---
 

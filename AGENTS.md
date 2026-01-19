@@ -131,6 +131,10 @@ uv run pytest -m "not integration and not slow"  # fast local suite (CI-like)
 | `prod` (default)     | `api.elections.kalshi.com`   | **YES**     |
 | `demo`               | `demo-api.kalshi.co`         | No (paper)  |
 
+### Kalshi Price Fields (CRITICAL)
+
+Kalshi deprecated integer cent fields in favor of `*_dollars` string fields (subpenny pricing migration, Nov 2025). **Always use `*_dollars` fields** (e.g., `yes_bid_dollars`, `yes_ask_dollars`, `last_price_dollars`) - never rely on cent-based fields like `yes_bid`, `yes_ask`, `last_price`. See `docs/_vendor-docs/kalshi-api-reference.md` for details.
+
 ### Safe Operations (READ-ONLY)
 
 These commands are safe to run anytime - they only read data:
