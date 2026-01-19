@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -81,18 +80,6 @@ class Series(BaseModel):
         return value
 
 
-class SeriesFeeChange(BaseModel):
-    """Scheduled fee change entry (OpenAPI `SeriesFeeChange`)."""
-
-    model_config = ConfigDict(frozen=True)
-
-    id: str = Field(..., description="Unique identifier for this fee change.")
-    series_ticker: str = Field(..., description="Series ticker this fee change applies to.")
-    fee_type: FeeType = Field(..., description="New fee type for the series.")
-    fee_multiplier: float = Field(..., description="New fee multiplier for the series.")
-    scheduled_ts: datetime = Field(..., description="When this fee change takes effect.")
-
-
 class SeriesResponse(BaseModel):
     """Response schema for `GET /series/{series_ticker}`."""
 
@@ -107,11 +94,3 @@ class SeriesListResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     series: list[Series]
-
-
-class SeriesFeeChangesResponse(BaseModel):
-    """Response schema for `GET /series/fee_changes`."""
-
-    model_config = ConfigDict(frozen=True)
-
-    series_fee_change_arr: list[SeriesFeeChange]

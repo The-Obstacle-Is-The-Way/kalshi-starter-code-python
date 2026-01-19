@@ -3,7 +3,7 @@ from __future__ import annotations
 from kalshi_research.api.models.candlestick import Candlestick, CandlestickResponse
 from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.search import TagsByCategoriesResponse
-from kalshi_research.api.models.series import Series, SeriesFeeChangesResponse
+from kalshi_research.api.models.series import Series
 from kalshi_research.api.models.trade import Trade
 from tests.golden_fixtures import load_golden_response
 
@@ -39,11 +39,6 @@ def test_series_list_fixture_matches_model() -> None:
 def test_series_single_fixture_matches_model() -> None:
     response = load_golden_response("series_single_response.json")
     Series.model_validate(response["series"])
-
-
-def test_series_fee_changes_fixture_matches_model() -> None:
-    response = load_golden_response("series_fee_changes_response.json")
-    SeriesFeeChangesResponse.model_validate(response)
 
 
 def test_events_multivariate_fixture_matches_model() -> None:
