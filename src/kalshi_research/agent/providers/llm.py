@@ -284,12 +284,26 @@ class ClaudeSynthesizer:
 
         self._track_usage(response)
 
+        factor_urls = _dedupe_preserve_order([factor.source_url for factor in parsed.factors])
+        factor_url_set = set(factor_urls)
+
         sources = _dedupe_preserve_order(parsed.sources)
+        if sources:
+            sources = [url for url in sources if url in factor_url_set]
+        if not sources:
+            sources = factor_urls
+
+        confidence: ConfidenceLevel = parsed.confidence
+        if confidence == "high" and len(sources) < 3:
+            confidence = "medium" if len(sources) >= 2 else "low"
+        if confidence == "medium" and len(sources) < 2:
+            confidence = "low"
+
         return AnalysisResult(
             ticker=input.market.ticker,
             market_prob=input.snapshot.midpoint_prob,
             predicted_prob=parsed.predicted_prob,
-            confidence=parsed.confidence,
+            confidence=confidence,
             reasoning=parsed.reasoning,
             factors=parsed.factors,
             sources=sources,

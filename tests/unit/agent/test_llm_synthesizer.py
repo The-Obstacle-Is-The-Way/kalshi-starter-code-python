@@ -172,6 +172,32 @@ async def test_claude_synthesizer_synthesizes_valid_result_and_tracks_cost() -> 
 
 
 @pytest.mark.asyncio
+async def test_claude_synthesizer_derives_sources_from_factors_and_downgrades_confidence() -> None:
+    tool_input: dict[str, object] = {
+        "predicted_prob": 65,
+        "confidence": "high",
+        "reasoning": "This is a test reasoning string with enough length to pass verification.",
+        "factors": [
+            AnalysisFactor(
+                description="Evidence suggests upward drift.",
+                impact="up",
+                source_url="https://example.com/a",
+            )
+        ],
+        "sources": ["https://example.com/b"],
+    }
+    usage = _FakeUsage(input_tokens=100, output_tokens=200)
+    response = _FakeResponse(tool_input=tool_input, usage=usage)
+    messages = _FakeMessages(response)
+    synth = ClaudeSynthesizer(client=_FakeAnthropicClient(messages))
+
+    result = await synth.synthesize(input=_make_input())
+
+    assert result.sources == ["https://example.com/a"]
+    assert result.confidence == "low"
+
+
+@pytest.mark.asyncio
 async def test_claude_synthesizer_caps_max_tokens_from_budget() -> None:
     tool_input: dict[str, object] = {
         "predicted_prob": 55,
