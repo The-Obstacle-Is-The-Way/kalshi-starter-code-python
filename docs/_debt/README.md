@@ -4,9 +4,15 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**0 active debt items.**
+**5 active debt items.**
 
-_None._
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| **[DEBT-038](DEBT-038-orchestrator-escalation-not-implemented.md)** | Orchestrator Escalation Logic Not Implemented | P2 | Active |
+| **[DEBT-039](DEBT-039-broad-exception-catches.md)** | Broad Exception Catches Throughout Codebase | P3 | Active |
+| **[DEBT-040](DEBT-040-unused-synthesizer-methods.md)** | Unused Synthesizer Cost/Token Tracking Methods | P3 | Active |
+| **[DEBT-041](DEBT-041-spec-030-incomplete.md)** | SPEC-030 Has Unchecked Acceptance Criteria | P2 | Active |
+| **[DEBT-042](DEBT-042-unused-api-client-methods.md)** | ~30 Unused API Client Methods | P4 | Active |
 
 ---
 
@@ -55,7 +61,7 @@ All resolved debt items live in `docs/_archive/debt/`.
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-038**
+**DEBT-043**
 
 ---
 
