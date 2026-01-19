@@ -1,8 +1,9 @@
 # DEBT-042: ~30 Unused API Client Methods
 
-**Status:** Active
-**Priority:** P4 (Low - API completeness vs. YAGNI)
+**Status:** Active → Being Resolved by [SPEC-043](../_specs/SPEC-043-discovery-endpoints-cli-wiring.md)
+**Priority:** P2 (Research UX - methods exist but aren't accessible)
 **Created:** 2026-01-19
+**Updated:** 2026-01-19
 
 ---
 
@@ -116,8 +117,49 @@ Counter-argument: These ARE the Kalshi API. Having full coverage isn't speculati
 
 ---
 
+## Resolution Plan (2026-01-19 Audit)
+
+After thorough audit, methods fall into 3 categories:
+
+### Category A: Wire into CLI (12 methods) → [SPEC-043](../_specs/SPEC-043-discovery-endpoints-cli-wiring.md)
+
+| Method | Proposed CLI Command |
+|--------|---------------------|
+| `get_tags_by_categories` | `kalshi browse categories` |
+| `get_series_list` | `kalshi browse series` |
+| `get_filters_by_sport` | `kalshi browse sports` |
+| `get_events` | `kalshi event list` |
+| `get_event_metadata` | `kalshi event get TICKER` |
+| `get_event_candlesticks` | `kalshi event candlesticks TICKER` |
+| `get_series` | `kalshi series get TICKER` |
+| `get_multivariate_events` | `kalshi mve list` |
+| `get_multivariate_event_collections` | `kalshi mve collections` |
+| `get_multivariate_event_collection` | `kalshi mve collection TICKER` |
+| `get_exchange_schedule` | `kalshi status schedule` |
+| `get_exchange_announcements` | `kalshi status announcements` |
+
+### Category B: Keep for Execution (13 methods) → SPEC-034
+
+Trading/execution methods for TradeExecutor. Keep as-is:
+- `get_orders`, `batch_create_orders`, `batch_cancel_orders`, `decrease_order`
+- `get_order_queue_position`, `get_orders_queue_positions`, `get_total_resting_order_value`
+- `get_order_groups`, `create_order_group`, `get_order_group`, `reset_order_group`, `delete_order_group`
+- `lookup_multivariate_event_collection_tickers`
+
+### Category C: Remove (9 methods) → Cleanup PR
+
+Institutional/gamification garbage with no solo trader use case:
+- `get_structured_targets`, `get_structured_target` (internal prop taxonomy)
+- `get_series_fee_changes` (admin info)
+- `get_user_data_timestamp` (cache infrastructure)
+- `get_milestones`, `get_milestone`, `get_milestone_live_data`, `get_live_data_batch` (gamification)
+- `get_incentive_programs` (marketing/promos)
+
+---
+
 ## References
 
 - `src/kalshi_research/api/client.py`
 - Vulture audit output
+- [SPEC-043: Discovery Endpoints CLI Wiring](../_specs/SPEC-043-discovery-endpoints-cli-wiring.md)
 - [FUTURE-002: Kalshi Blocked Endpoints](../_future/FUTURE-002-kalshi-blocked-endpoints.md)
