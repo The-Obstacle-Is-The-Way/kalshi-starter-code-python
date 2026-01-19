@@ -34,7 +34,7 @@ def test_research_step_creation() -> None:
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        step.step_id = "modified"  # type: ignore
+        step.step_id = "modified"
 
 
 def test_research_plan_serialization() -> None:
