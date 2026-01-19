@@ -15,31 +15,16 @@ This directory contains **active** design specifications - work happening NOW.
 
 | ID | Title | Status |
 |---|---|---|
-| SPEC-028 | [Topic Search & Market Discovery (DB + CLI)](SPEC-028-topic-search-and-discovery.md) | 📝 Ready |
-| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | ✅ Phase 1 Complete |
-| SPEC-031 | [Scanner Quality Profiles (Slop Filtering + "Get In Early" Mode)](SPEC-031-scanner-quality-profiles.md) | ✅ Phase 1–2 Complete (Phase 3 deferred) |
-| SPEC-032 | [Agent System Orchestration (Single-Agent Default + Escalation)](SPEC-032-agent-system-orchestration.md) | ✅ **Phase 1 Complete** (LLM synthesizer backend configurable) |
-| SPEC-033 | [Exa Research Agent (Cost-Bounded, Reproducible)](SPEC-033-exa-research-agent.md) | ✅ **Phase 1 Complete** |
-| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 🟡 Phase 1 implemented (Phase 2 provider rails implemented; wiring deferred) |
-| SPEC-038 | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](SPEC-038-exa-websets-endpoint-coverage.md) | 📝 Draft |
-| **SPEC-042** | [LLM Synthesizer Implementation](SPEC-042-llm-synthesizer-implementation.md) | ✅ **Phase 1 Complete** (resolves DEBT-037, enables agent value) |
+| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 🟡 Phase 1 Complete (DEBT-041: Phase 2/3 incomplete) |
+| SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 🟡 Phase 1 implemented (Phase 2 wiring deferred) |
+| SPEC-042 | [LLM Synthesizer Implementation](SPEC-042-llm-synthesizer-implementation.md) | 🟡 Phase 1 Complete (OpenAI/Gemini backends not implemented) |
 
-### Implementation Order (Critical Path)
-
-Execution order is tracked in `PROGRESS.md` (Ralph Wiggum queue). This section lists the dependency order.
+### Remaining Work
 
 ```text
-✅ SPEC-030 (Exa Policy)           ← DONE: ExaMode, ExaPolicy, ExaBudget
-    ↓
-✅ SPEC-033 (Exa Research Agent)   ← DONE: ResearchAgent, crash recovery, CLI
-    ↓
-✅ SPEC-032 (Agent Orchestration)  ← DONE: Deterministic kernel + rules verifier
-    ↓
-✅ SPEC-042 (LLM Synthesizer)      ← DONE: Anthropic-first synthesizer backend + selection
-
-🟡 SPEC-034 (TradeExecutor)        ← Phase 1 done; Phase 2 deferred
-📝 SPEC-028 (Topic Search)         ← Independent, can implement anytime
-📝 SPEC-038 (Exa Websets)          ← P2, future automation
+🟡 SPEC-030 (Exa Policy)           ← Phase 1 done; Phase 2/3 require CLI budget flags
+🟡 SPEC-034 (TradeExecutor)        ← Phase 1 done; Phase 2 wiring deferred
+🟡 SPEC-042 (LLM Synthesizer)      ← Phase 1 done; OpenAI/Gemini backends not implemented
 ```
 
 ---
@@ -64,11 +49,23 @@ Use this ID for the next specification:
 Completed specifications are stored under `docs/_archive/specs/` (excluded from the MkDocs site
 build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive structure.
 
+### Recently Archived (2026-01-19)
+
 | ID | Title | Status |
 |---|---|---|
-| **SPEC-041** | [Phase 5: Remaining High-Value Endpoints](../_archive/specs/SPEC-041-phase5-remaining-endpoints.md) | ✅ Complete (2026-01-16) |
-| **SPEC-040** | [Complete Kalshi Endpoint Implementation (TDD)](../_archive/specs/SPEC-040-kalshi-endpoint-implementation-complete.md) | ✅ Complete (2026-01-15) |
-| **SPEC-039** | [New Market Alerts (Information Arbitrage)](../_archive/specs/SPEC-039-new-market-alerts.md) | ✅ Phase 1 Complete (2026-01-16) |
+| **SPEC-038** | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](../_archive/specs/SPEC-038-exa-websets-endpoint-coverage.md) | ✅ Phase 1 Complete |
+| **SPEC-033** | [Exa Research Agent (Cost-Bounded, Reproducible)](../_archive/specs/SPEC-033-exa-research-agent.md) | ✅ Implemented |
+| **SPEC-032** | [Agent System Orchestration (Single-Agent Default + Escalation)](../_archive/specs/SPEC-032-agent-system-orchestration.md) | ✅ Phase 1 Complete |
+| **SPEC-031** | [Scanner Quality Profiles (Slop Filtering + "Get In Early" Mode)](../_archive/specs/SPEC-031-scanner-quality-profiles.md) | ✅ Phase 1–2 Complete |
+| **SPEC-028** | [Topic Search & Market Discovery (DB + CLI)](../_archive/specs/SPEC-028-topic-search-and-discovery.md) | ✅ Implemented |
+
+### Previously Archived
+
+| ID | Title | Status |
+|---|---|---|
+| SPEC-041 | [Phase 5: Remaining High-Value Endpoints](../_archive/specs/SPEC-041-phase5-remaining-endpoints.md) | ✅ Complete (2026-01-16) |
+| SPEC-040 | [Complete Kalshi Endpoint Implementation (TDD)](../_archive/specs/SPEC-040-kalshi-endpoint-implementation-complete.md) | ✅ Complete (2026-01-15) |
+| SPEC-039 | [New Market Alerts (Information Arbitrage)](../_archive/specs/SPEC-039-new-market-alerts.md) | ✅ Phase 1 Complete (2026-01-16) |
 | SPEC-037 | [Kalshi Missing Endpoints Phase 1](../_archive/specs/SPEC-037-kalshi-missing-endpoints-phase1.md) | 🔀 Superseded by SPEC-040 |
 | SPEC-036 | [Category Filtering for Markets](../_archive/specs/SPEC-036-category-filtering.md) | ✅ Implemented |
 | SPEC-035 | [Ticker Display Enhancement](../_archive/specs/SPEC-035-ticker-display-enhancement.md) | ✅ Implemented |
