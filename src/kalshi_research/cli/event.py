@@ -86,6 +86,7 @@ async def _fetch_event_with_metadata(
     client: KalshiPublicClient,
     *,
     ticker: str,
+    warn: bool = True,
 ) -> tuple[Event, EventMetadataResponse | None]:
     from kalshi_research.api.exceptions import KalshiAPIError
 
@@ -94,13 +95,15 @@ async def _fetch_event_with_metadata(
     try:
         metadata = await client.get_event_metadata(ticker)
     except KalshiAPIError as e:
-        console.print(
-            f"[yellow]Warning:[/yellow] Event metadata unavailable "
-            f"(API Error {e.status_code}): {e.message}"
-        )
+        if warn:
+            console.print(
+                f"[yellow]Warning:[/yellow] Event metadata unavailable "
+                f"(API Error {e.status_code}): {e.message}"
+            )
         return event, None
     except Exception as e:
-        console.print(f"[yellow]Warning:[/yellow] Event metadata unavailable: {e}")
+        if warn:
+            console.print(f"[yellow]Warning:[/yellow] Event metadata unavailable: {e}")
         return event, None
 
     return event, metadata
@@ -307,7 +310,7 @@ def event_get(
 
         async with KalshiPublicClient() as client:
             try:
-                return await _fetch_event_with_metadata(client, ticker=ticker)
+                return await _fetch_event_with_metadata(client, ticker=ticker, warn=not output_json)
             except KalshiAPIError as e:
                 console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
                 raise typer.Exit(2 if e.status_code == 404 else 1) from None
