@@ -1,12 +1,15 @@
 # DEBT-040: Unused Synthesizer Cost/Token Tracking Methods
 
-**Status:** Active
+**Status:** ✅ Resolved (Removed dead cumulative tracking)
 **Priority:** P3 (Low - Implemented but not wired)
 **Created:** 2026-01-19
+**Resolved:** 2026-01-19
 
 ---
 
-## Problem
+> Archived: resolved by removing unused cumulative cost/token tracking methods.
+
+## Problem (Historical)
 
 The synthesizer classes implement cost and token tracking methods that are never called:
 
@@ -21,17 +24,15 @@ These are implemented but:
 2. Never exposed to user
 3. Never logged or tracked
 
-The `get_last_call_cost_usd()` IS used (in `orchestrator.py:117`), but cumulative tracking is dead.
+The `get_last_call_cost_usd()` IS used (in `orchestrator.py`), but cumulative tracking was dead.
 
 ---
 
-## Locations
+## Resolution
 
-```
-src/kalshi_research/agent/providers/llm.py:192-198  # MockSynthesizer
-src/kalshi_research/agent/providers/llm.py:336-342  # ClaudeSynthesizer
-src/kalshi_research/agent/providers/llm.py:467-473  # BudgetedClaudeSynthesizer
-```
+- Removed `get_total_cost_usd()` and `get_total_tokens()` from `SynthesisProvider` and implementations.
+- Removed unused cumulative tracking state and updated unit tests.
+- Kept `get_last_call_cost_usd()` (used by the orchestrator for per-call reporting).
 
 ---
 
@@ -60,9 +61,9 @@ Document that these are public API for programmatic use and not exposed via CLI 
 
 ## Acceptance Criteria
 
-- [ ] Methods either used OR removed
-- [ ] If kept, document why they exist
-- [ ] No vulture warnings for these methods
+- [x] Methods either used OR removed
+- [x] If kept, document why they exist
+- [x] No vulture warnings for these methods
 
 ---
 

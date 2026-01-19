@@ -1,13 +1,16 @@
 # SPEC-043: Discovery Endpoints CLI Wiring (Resolve DEBT-042)
 
-**Status:** 🟡 Ready for implementation (Senior Reviewed)
+**Status:** ✅ Implemented
 **Priority:** P2 (Research UX - unlocks proper market discovery)
 **Created:** 2026-01-19
+**Implemented:** 2026-01-19
 **Owner:** Solo
 **Effort:** ~2-3 days
-**Resolves:** DEBT-042 (partial - Category A methods)
+**Resolves:** DEBT-042 (Category A CLI wiring)
 
 ---
+
+> Archived: Implementation complete.
 
 ## Summary
 
@@ -448,16 +451,16 @@ Test files:
 
 ---
 
-## Related Cleanup (Separate PR)
+## Related Cleanup (Completed)
 
-DEBT-042 also identified 9 methods to **remove** (Category C - institutional garbage):
+DEBT-042 also identified 9 methods to **remove** (Category C - institutional/gamification methods):
 
 - `get_structured_targets`, `get_structured_target`
 - `get_series_fee_changes`, `get_user_data_timestamp`
 - `get_milestones`, `get_milestone`, `get_milestone_live_data`, `get_live_data_batch`
 - `get_incentive_programs`
 
-This cleanup should be a separate PR after SPEC-043 is complete, to keep changes focused.
+This cleanup was completed as part of resolving DEBT-042.
 
 ---
 

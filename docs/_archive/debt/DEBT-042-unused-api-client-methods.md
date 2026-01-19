@@ -1,15 +1,19 @@
 # DEBT-042: ~30 Unused API Client Methods
 
-**Status:** Active → Being Resolved by [SPEC-043](../_specs/SPEC-043-discovery-endpoints-cli-wiring.md)
+**Status:** ✅ Resolved (SPEC-043 implemented; Category C removed)
 **Priority:** P2 (Research UX - methods exist but aren't accessible)
 **Created:** 2026-01-19
 **Updated:** 2026-01-19
+**Resolved:** 2026-01-19
 
 ---
 
+> Archived: resolved by wiring Category A into CLI (SPEC-043) and removing Category C methods.
+
 ## Problem
 
-The Kalshi API client (`src/kalshi_research/api/client.py`) has ~30 methods that are implemented but never called:
+At the time of the 2026-01-19 audit, the Kalshi API client (`src/kalshi_research/api/client.py`) had
+~30 methods that were implemented but not referenced by the CLI:
 
 ```
 get_events (500)
@@ -50,7 +54,7 @@ delete_order_group (1514)
 
 ---
 
-## Analysis
+## Audit Notes (2026-01-19)
 
 ### Trading Methods (Keep - Safety Critical)
 These exist for future TradeExecutor integration:
@@ -63,15 +67,15 @@ These exist for future TradeExecutor integration:
 ### Discovery Methods (Evaluate)
 - `get_events`, `get_multivariate_events` - possibly useful for market discovery
 - `get_tags_by_categories`, `get_filters_by_sport` - discovery helpers
-- `get_structured_targets` - unclear use case
+- `get_structured_targets` - unclear use case (removed; Category C)
 
-**Decision:** Keep for now. Low cost, potential future use.
+**Decision:** Wire the useful subset into CLI (Category A).
 
 ### Informational Methods (Evaluate)
 - `get_exchange_schedule`, `get_exchange_announcements` - useful for status
 - `get_milestones`, `get_incentive_programs` - gamification, not core
 
-**Decision:** Keep schedule/announcements. Consider removing milestone/incentive if truly unused.
+**Decision:** Keep schedule/announcements; remove milestone/incentive (Category C).
 
 ---
 
@@ -109,11 +113,11 @@ Counter-argument: These ARE the Kalshi API. Having full coverage isn't speculati
 
 ## Acceptance Criteria
 
-- [ ] Each unused method either:
+- [x] Each unused method either:
   - Has a documented use case (spec, future item, or docstring), OR
   - Is removed
-- [ ] Trading methods are explicitly kept and documented
-- [ ] Vulture warnings addressed (either removal or whitelist)
+- [x] Trading methods are explicitly kept and documented
+- [x] Vulture warnings addressed (either removal or whitelist)
 
 ---
 
@@ -121,7 +125,7 @@ Counter-argument: These ARE the Kalshi API. Having full coverage isn't speculati
 
 After thorough audit, methods fall into 3 categories:
 
-### Category A: Wire into CLI (12 methods) → [SPEC-043](../_specs/SPEC-043-discovery-endpoints-cli-wiring.md)
+### Category A: Wire into CLI (12 methods) → [SPEC-043](../specs/SPEC-043-discovery-endpoints-cli-wiring.md)
 
 | Method | Proposed CLI Command |
 |--------|---------------------|
@@ -161,5 +165,5 @@ Institutional/gamification garbage with no solo trader use case:
 
 - `src/kalshi_research/api/client.py`
 - Vulture audit output
-- [SPEC-043: Discovery Endpoints CLI Wiring](../_specs/SPEC-043-discovery-endpoints-cli-wiring.md)
+- [SPEC-043: Discovery Endpoints CLI Wiring](../specs/SPEC-043-discovery-endpoints-cli-wiring.md)
 - [FUTURE-002: Kalshi Blocked Endpoints](../_future/FUTURE-002-kalshi-blocked-endpoints.md)

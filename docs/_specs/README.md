@@ -18,7 +18,6 @@ This directory contains **active** design specifications - work happening NOW.
 | SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 🟡 Phase 1 Complete (DEBT-041: Phase 2/3 incomplete) |
 | SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 🟡 Phase 1 implemented (Phase 2 wiring deferred) |
 | SPEC-042 | [LLM Synthesizer Implementation](SPEC-042-llm-synthesizer-implementation.md) | 🟡 Phase 1 Complete (OpenAI/Gemini backends not implemented) |
-| **SPEC-043** | [Discovery Endpoints CLI Wiring](SPEC-043-discovery-endpoints-cli-wiring.md) | 🟡 Ready for implementation (Senior Reviewed) |
 
 ### Remaining Work
 
@@ -26,7 +25,6 @@ This directory contains **active** design specifications - work happening NOW.
 🟡 SPEC-030 (Exa Policy)           ← Phase 1 done; Phase 2/3 require CLI budget flags
 🟡 SPEC-034 (TradeExecutor)        ← Phase 1 done; Phase 2 wiring deferred
 🟡 SPEC-042 (LLM Synthesizer)      ← Phase 1 done; OpenAI/Gemini backends not implemented
-🟡 SPEC-043 (Discovery CLI)        ← Ready; wire discovery endpoints into CLI
 ```
 
 ---
@@ -55,6 +53,7 @@ build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive s
 
 | ID | Title | Status |
 |---|---|---|
+| **SPEC-043** | [Discovery Endpoints CLI Wiring](../_archive/specs/SPEC-043-discovery-endpoints-cli-wiring.md) | ✅ Implemented |
 | **SPEC-038** | [Exa Websets API Coverage (Monitoring + Alerts Foundation)](../_archive/specs/SPEC-038-exa-websets-endpoint-coverage.md) | ✅ Phase 1 Complete |
 | **SPEC-033** | [Exa Research Agent (Cost-Bounded, Reproducible)](../_archive/specs/SPEC-033-exa-research-agent.md) | ✅ Implemented |
 | **SPEC-032** | [Agent System Orchestration (Single-Agent Default + Escalation)](../_archive/specs/SPEC-032-agent-system-orchestration.md) | ✅ Phase 1 Complete |
