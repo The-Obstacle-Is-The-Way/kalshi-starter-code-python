@@ -43,7 +43,7 @@ This spec addresses [DEBT-037](../_debt/DEBT-037-mock-synthesizer-production-gap
 1. **Protocol defined**: `StructuredSynthesizer` in `src/kalshi_research/agent/providers/llm.py`
 2. **Mock implementation**: `MockSynthesizer` returns `market_price + 5%`
 3. **CLI hardcoded**: `src/kalshi_research/cli/agent.py:262-268` always uses mock
-4. **Schemas exist**: `SynthesisInput`, `AnalysisResult` in `src/kalshi_research/agent/schemas.py`
+4. **Schemas exist**: `SynthesisInput` in `providers/llm.py`, `AnalysisResult` in `schemas.py`
 5. **Warning exists** (human mode only): Lines 263-267 print warning for `--human` output
 
 ---
