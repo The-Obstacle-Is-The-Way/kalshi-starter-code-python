@@ -4,13 +4,11 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**3 active debt items.**
+**1 active debt item.**
 
 | ID | Title | Priority | Status |
 |----|-------|----------|--------|
-| **[DEBT-038](DEBT-038-orchestrator-escalation-not-implemented.md)** | Orchestrator Escalation Logic Not Implemented | P2 | Active |
 | **[DEBT-039](DEBT-039-broad-exception-catches.md)** | Broad Exception Catches Throughout Codebase | P3 | Active |
-| **[DEBT-041](DEBT-041-spec-030-incomplete.md)** | SPEC-030 Has Unchecked Acceptance Criteria | P2 | Active |
 
 ---
 
@@ -20,6 +18,8 @@ All resolved debt items live in `docs/_archive/debt/`.
 
 | ID | Title | Status |
 |---|---|---|
+| **[DEBT-041](../_archive/debt/DEBT-041-spec-030-incomplete.md)** | SPEC-030 Has Unchecked Acceptance Criteria | ✅ Resolved |
+| **[DEBT-038](../_archive/debt/DEBT-038-orchestrator-escalation-not-implemented.md)** | Orchestrator Escalation Logic Not Implemented | ✅ Resolved |
 | **[DEBT-042](../_archive/debt/DEBT-042-unused-api-client-methods.md)** | Unused API Client Methods | ✅ Resolved (SPEC-043) |
 | **[DEBT-040](../_archive/debt/DEBT-040-unused-synthesizer-methods.md)** | Unused Synthesizer Cost/Token Tracking Methods | ✅ Resolved |
 | **[DEBT-034](../_archive/debt/DEBT-034-broad-exception-catches.md)** | Broad Exception Catches in Agent/Execution Code | ✅ Resolved |

@@ -4,12 +4,14 @@ This module implements the core orchestration logic per SPEC-032:
 - Deterministic step sequence (no LLM-driven planning)
 - Structured I/O via Pydantic schemas
 - Rule-based verification
-- Safe-by-default escalation (Phase 2)
+- Escalation is deferred; suggestions are informational only
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
+import structlog
 
 if TYPE_CHECKING:
     from kalshi_research.api.client import KalshiPublicClient
@@ -24,6 +26,8 @@ from .providers.kalshi import fetch_market_info, fetch_price_snapshot
 from .providers.llm import SynthesisInput
 from .schemas import AgentRunResult as ARR
 from .verify import verify_analysis
+
+logger = structlog.get_logger()
 
 
 class AgentKernel:
@@ -47,7 +51,6 @@ class AgentKernel:
         synthesizer: StructuredSynthesizer,
         max_exa_usd: float = 0.25,
         max_llm_usd: float = 0.25,
-        enable_escalation: bool = False,
     ):
         """Initialize agent kernel.
 
@@ -57,14 +60,12 @@ class AgentKernel:
             synthesizer: LLM synthesizer for probability estimates
             max_exa_usd: Maximum Exa budget per run
             max_llm_usd: Maximum LLM budget per run (Phase 2)
-            enable_escalation: Whether to enable escalation (Phase 2)
         """
         self.kalshi_client = kalshi_client
         self.research_agent = research_agent
         self.synthesizer = synthesizer
         self.max_exa_usd = max_exa_usd
         self.max_llm_usd = max_llm_usd
-        self.enable_escalation = enable_escalation
 
     async def analyze(
         self,
@@ -119,12 +120,13 @@ class AgentKernel:
         # Step 4: Verify output
         verification = verify_analysis(analysis)
 
-        # Step 5: Escalation (Phase 2 - not implemented yet)
         escalated = False
-        if self.enable_escalation and verification.suggested_escalation:
-            # TODO: Implement escalation logic in Phase 2
-            # For now, just mark that escalation was suggested but not executed
-            pass
+        if verification.suggested_escalation:
+            logger.info(
+                "Escalation suggested (deferred)",
+                ticker=ticker,
+                issues=verification.issues,
+            )
 
         # Return complete result
         return ARR(

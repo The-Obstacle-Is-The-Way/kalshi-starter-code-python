@@ -188,16 +188,20 @@ These commands should output JSON only (tooling-friendly).
    - include mode + all request params in the cache key
    - keep day-level bucketing for “news” queries (already used in context research)
 
-### Phase 2: Find Similar + Deep Research (gated)
+### Phase 2: Find Similar + Deep Research (gated) — BACKLOG
 
-1. Add optional “expand” step using `/findSimilar`:
+**Status:** Intentionally deferred. Will be implemented when there's demonstrated need.
+
+1. Add optional "expand" step using `/findSimilar`:
    - seed with top 1–3 URLs from Search
    - fetch similar URLs to diversify sources (avoid single-domain lock-in)
 2. Add `/research` support behind `--mode deep`:
    - create task, poll status, return structured report
    - always return citations/URLs
 
-### Phase 3: Optional citation verification
+### Phase 3: Optional citation verification — BACKLOG
+
+**Status:** Intentionally deferred. Low priority until trust issues arise.
 
 1. Implement `verify_citation(url, quote) -> bool` using `/contents`.
 2. Enable by default in deep mode.
@@ -206,12 +210,16 @@ These commands should output JSON only (tooling-friendly).
 
 ## Acceptance Criteria
 
+### Phase 1 (Complete)
 - [x] `kalshi research context` and `kalshi research topic` have explicit `--mode` and `--budget-usd` controls.
 - [x] `kalshi research context/topic` stop early when budget would be exceeded and set `budget_exhausted=true`.
-- [ ] Other Exa-powered commands have policy controls (Phase 2+; e.g. `news`, `research similar/deep`, thesis flows).
+- [x] Other Exa-powered commands have explicit `--budget-usd` controls (`news collect`, `research similar/deep`, thesis flows).
 - [x] Policy does not introduce `/research` calls implicitly; `/research` remains behind `kalshi research deep` (existing).
 - [x] Caching remains effective (no accidental cache busting from unstable params).
 - [x] Unit tests cover:
   - [x] budget enforcement logic (no network; use mocked responses)
   - [x] cache key stability
-  - [ ] citation verification logic (Phase 3)
+
+### Phase 2/3 (Backlog)
+
+- [ ] Citation verification logic

@@ -169,7 +169,7 @@ def test_research_similar_missing_exa_key_exits_with_error() -> None:
 
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
-    assert "Set EXA_API_KEY" in result.stdout
+    assert "--budget-usd" in result.stdout
 
 
 def test_research_deep_missing_exa_key_exits_with_error() -> None:
@@ -483,6 +483,9 @@ def test_research_thesis_create_with_research_accepts_suggestions() -> None:
         neutral_evidence=[],
         summary="Research summary",
         exa_cost_dollars=0.0123,
+        budget_usd=0.25,
+        budget_spent_usd=0.0123,
+        budget_exhausted=False,
     )
 
     with runner.isolated_filesystem():

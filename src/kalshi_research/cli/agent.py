@@ -194,10 +194,6 @@ def analyze(  # noqa: PLR0915
         float,
         typer.Option("--max-llm-usd", help="Maximum LLM budget per run (Phase 2)"),
     ] = 0.25,
-    no_escalation: Annotated[
-        bool,
-        typer.Option("--no-escalation", help="Disable escalation (default: disabled)"),
-    ] = True,
     output_json: Annotated[
         bool,
         typer.Option("--json", help="Output as JSON (default)"),
@@ -219,7 +215,6 @@ def analyze(  # noqa: PLR0915
     2. Gather evidence (Exa Research Agent)
     3. Synthesize probability estimate (LLM)
     4. Verify output (rule-based)
-    5. Optionally escalate (Phase 2 - not implemented)
 
     Examples:
         kalshi agent analyze INXD-25FEB28
@@ -242,9 +237,6 @@ def analyze(  # noqa: PLR0915
             f"[red]Error:[/red] Invalid mode '{mode}'. Expected: fast, standard, or deep."
         )
         raise typer.Exit(1) from None
-
-    # Convert --no-escalation to enable_escalation boolean
-    enable_escalation = not no_escalation
 
     async def _run() -> dict[str, object]:
         from kalshi_research.api.exceptions import KalshiAPIError
@@ -274,7 +266,6 @@ def analyze(  # noqa: PLR0915
                     synthesizer=synthesizer,
                     max_exa_usd=max_exa_usd,
                     max_llm_usd=max_llm_usd,
-                    enable_escalation=enable_escalation,
                 )
 
                 if not output_json and not human:

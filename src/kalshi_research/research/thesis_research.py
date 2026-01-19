@@ -9,11 +9,13 @@ from urllib.parse import urlparse
 
 import structlog
 
+from kalshi_research.exa.policy import ExaBudget, ExaPolicy, extract_exa_cost_total
 from kalshi_research.research.thesis import ThesisEvidence
 
 if TYPE_CHECKING:
     from kalshi_research.api.models.market import Market
     from kalshi_research.exa.client import ExaClient
+    from kalshi_research.exa.models.search import SearchResponse
 
 logger = structlog.get_logger()
 
@@ -29,6 +31,9 @@ class ResearchedThesisData:
     neutral_evidence: list[ThesisEvidence]
     summary: str
     exa_cost_dollars: float
+    budget_usd: float
+    budget_spent_usd: float
+    budget_exhausted: bool
 
 
 class ThesisResearcher:
@@ -40,10 +45,71 @@ class ThesisResearcher:
         *,
         max_sources: int = 15,
         recent_days: int = 30,
+        policy: ExaPolicy | None = None,
     ) -> None:
         self._exa = exa
         self._max_sources = max_sources
         self._recent_days = recent_days
+        self._policy = policy or ExaPolicy.from_mode()
+
+    async def _search_evidence(
+        self,
+        query: str,
+        *,
+        cutoff: datetime,
+        budget: ExaBudget,
+        num_results: int,
+    ) -> tuple[SearchResponse | None, bool]:
+        include_text = self._policy.include_full_text
+        include_highlights = True
+
+        estimated_cost = self._policy.estimate_search_cost_usd(
+            num_results=num_results,
+            include_text=include_text,
+            include_highlights=include_highlights,
+            search_type=self._policy.exa_search_type,
+        )
+        if not budget.can_spend(estimated_cost):
+            return (None, True)
+
+        try:
+            response = await self._exa.search(
+                query,
+                search_type=self._policy.exa_search_type,
+                num_results=num_results,
+                text=include_text,
+                highlights=include_highlights,
+                category="news",
+                start_published_date=cutoff,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Thesis evidence search failed",
+                query=query,
+                error=str(exc),
+                exc_info=True,
+            )
+            return (None, False)
+
+        budget.record_spend(extract_exa_cost_total(response))
+        return (response, False)
+
+    async def _get_summary(self, prompt: str, *, budget: ExaBudget) -> tuple[str | None, bool]:
+        if not self._policy.include_answer:
+            return (None, False)
+
+        estimated_cost = self._policy.estimate_answer_cost_usd(include_text=True)
+        if not budget.can_spend(estimated_cost):
+            return (None, True)
+
+        try:
+            answer = await self._exa.answer(prompt, text=True)
+        except Exception as exc:
+            logger.warning("Thesis summary generation failed", error=str(exc), exc_info=True)
+            return (None, False)
+
+        budget.record_spend(extract_exa_cost_total(answer))
+        return (answer.answer, False)
 
     def _extract_domain(self, url: str) -> str:
         return urlparse(url).netloc.replace("www.", "")
@@ -107,7 +173,8 @@ class ThesisResearcher:
     ) -> ResearchedThesisData:
         """Gather and classify Exa evidence to support thesis creation."""
         cutoff = datetime.now(UTC) - timedelta(days=self._recent_days)
-        total_cost = 0.0
+        budget = ExaBudget(limit_usd=self._policy.budget_usd)
+        budget_exhausted = False
 
         title = market.title.replace("Will ", "").replace("?", "").strip()
         queries = [title, f"{title} analysis", f"{title} prediction"]
@@ -116,18 +183,18 @@ class ThesisResearcher:
         bear_evidence: list[ThesisEvidence] = []
         neutral_evidence: list[ThesisEvidence] = []
 
+        num_results = max(1, self._max_sources // 2)
         for query in queries[:2]:
-            try:
-                response = await self._exa.search(
-                    query,
-                    num_results=max(1, self._max_sources // 2),
-                    text=True,
-                    highlights=True,
-                    category="news",
-                    start_published_date=cutoff,
-                )
-            except Exception as e:
-                logger.warning("Thesis evidence search failed", query=query, error=str(e))
+            response, exhausted = await self._search_evidence(
+                query,
+                cutoff=cutoff,
+                budget=budget,
+                num_results=num_results,
+            )
+            if exhausted:
+                budget_exhausted = True
+                break
+            if response is None:
                 continue
 
             for result in response.results:
@@ -159,21 +226,16 @@ class ThesisResearcher:
                 else:
                     neutral_evidence.append(evidence)
 
-            if response.cost_dollars:
-                total_cost += response.cost_dollars.total
-
         suggested_bull = self._generate_case_summary(bull_evidence, case_type="bull")
         suggested_bear = self._generate_case_summary(bear_evidence, case_type="bear")
 
         summary_prompt = f"What is the outlook for: {title}? Summarize the key factors."
         summary = "Research summary unavailable."
-        try:
-            answer = await self._exa.answer(summary_prompt, text=True)
-            summary = answer.answer
-            if answer.cost_dollars:
-                total_cost += answer.cost_dollars.total
-        except Exception as e:
-            logger.warning("Thesis summary generation failed", error=str(e))
+        summary_text, exhausted = await self._get_summary(summary_prompt, budget=budget)
+        if exhausted:
+            budget_exhausted = True
+        if summary_text is not None:
+            summary = summary_text
 
         return ResearchedThesisData(
             suggested_bull_case=suggested_bull,
@@ -182,7 +244,10 @@ class ThesisResearcher:
             bear_evidence=bear_evidence,
             neutral_evidence=neutral_evidence,
             summary=summary,
-            exa_cost_dollars=total_cost,
+            exa_cost_dollars=budget.spent_usd,
+            budget_usd=self._policy.budget_usd,
+            budget_spent_usd=budget.spent_usd,
+            budget_exhausted=budget_exhausted,
         )
 
 
@@ -200,8 +265,19 @@ class ThesisSuggestion:
 class ThesisSuggester:
     """Generate thesis ideas from recent research coverage."""
 
-    def __init__(self, exa: ExaClient) -> None:
+    def __init__(self, exa: ExaClient, *, policy: ExaPolicy | None = None) -> None:
         self._exa = exa
+        self._policy = policy or ExaPolicy.from_mode()
+        self._budget = ExaBudget(limit_usd=self._policy.budget_usd)
+        self._budget_exhausted = False
+
+    @property
+    def budget(self) -> ExaBudget:
+        return self._budget
+
+    @property
+    def budget_exhausted(self) -> bool:
+        return self._budget_exhausted
 
     def _extract_thesis_idea(self, title: str) -> str:
         title_clean = title.replace("Will ", "").replace("?", "").strip()
@@ -213,17 +289,31 @@ class ThesisSuggester:
         if category:
             search_query = f"{category} {search_query}"
 
+        include_text = self._policy.include_full_text
+        include_highlights = True
+        estimated_cost = self._policy.estimate_search_cost_usd(
+            num_results=10,
+            include_text=include_text,
+            include_highlights=include_highlights,
+            search_type=self._policy.exa_search_type,
+        )
+        if not self._budget.can_spend(estimated_cost):
+            self._budget_exhausted = True
+            return []
+
         try:
             response = await self._exa.search(
                 search_query,
                 num_results=10,
-                text=True,
-                highlights=True,
+                search_type=self._policy.exa_search_type,
+                text=include_text,
+                highlights=include_highlights,
                 category="news",
             )
         except Exception as e:
             logger.error("Thesis suggestion search failed", error=str(e))
             return []
+        self._budget.record_spend(extract_exa_cost_total(response))
 
         suggestions: list[ThesisSuggestion] = []
         for result in response.results[:5]:

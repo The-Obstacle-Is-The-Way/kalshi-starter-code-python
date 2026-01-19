@@ -15,14 +15,14 @@ This directory contains **active** design specifications - work happening NOW.
 
 | ID | Title | Status |
 |---|---|---|
-| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 🟡 Phase 1 Complete (DEBT-041: Phase 2/3 incomplete) |
+| SPEC-030 | [Exa Endpoint Strategy (Cost-Bounded, Verifiable Research)](SPEC-030-exa-endpoint-strategy.md) | 🟡 Phase 1 Complete (budget controls wired; citation verification backlog) |
 | SPEC-034 | [TradeExecutor Safety Harness (Budgeted, Safe-by-Default)](SPEC-034-trade-executor-safety-harness.md) | 🟡 Phase 1 implemented (Phase 2 wiring deferred) |
 | SPEC-042 | [LLM Synthesizer Implementation](SPEC-042-llm-synthesizer-implementation.md) | 🟡 Phase 1 Complete (OpenAI/Gemini backends not implemented) |
 
 ### Remaining Work
 
 ```text
-🟡 SPEC-030 (Exa Policy)           ← Phase 1 done; Phase 2/3 require CLI budget flags
+🟡 SPEC-030 (Exa Policy)           ← Phase 1 done; Phase 3 citation verification deferred
 🟡 SPEC-034 (TradeExecutor)        ← Phase 1 done; Phase 2 wiring deferred
 🟡 SPEC-042 (LLM Synthesizer)      ← Phase 1 done; OpenAI/Gemini backends not implemented
 ```
