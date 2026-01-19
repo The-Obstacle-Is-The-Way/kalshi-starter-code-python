@@ -159,6 +159,8 @@ src/kalshi_research/
 
 **API Clients**: Use async context managers. `KalshiPublicClient` for research (no auth), `KalshiClient` for portfolio sync (requires API key).
 
+**Kalshi Price Fields (CRITICAL)**: Kalshi deprecated integer cent fields in favor of `*_dollars` string fields (subpenny pricing migration, Nov 2025). **Always use `*_dollars` fields** (e.g., `yes_bid_dollars`, `yes_ask_dollars`, `last_price_dollars`) - never rely on cent-based fields like `yes_bid`, `yes_ask`, `last_price`. See `docs/_vendor-docs/kalshi-api-reference.md` for details.
+
 **Exa deep research**: `/research/v1` runs asynchronously; use `ExaClient.list_research_tasks()` / `find_recent_research_task()` to recover results after crashes.
 
 **Repository Pattern**: Prefer repositories in `data/repositories/` for shared persistence logic. For
@@ -239,6 +241,32 @@ Before running portfolio or authenticated commands:
 2. Verify creds for that environment are configured (prod: `KALSHI_KEY_ID` + `KALSHI_PRIVATE_KEY_*`; demo: `KALSHI_DEMO_KEY_ID` + `KALSHI_DEMO_PRIVATE_KEY_*` (falls back to prod vars))
 3. Run `uv run kalshi portfolio sync` to populate local DB
 4. Then run read commands like `portfolio positions`
+
+## LLM Synthesizer (Agent System)
+
+The agent analysis workflow (`kalshi agent analyze`) uses an LLM to synthesize probability estimates from research.
+
+### Frontier Models (2026)
+
+| Provider | Model | Model ID | Use Case |
+|----------|-------|----------|----------|
+| **Anthropic** | Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` | Primary synthesizer (SPEC-042) |
+
+Only `claude-sonnet-4-5-20250929` has been validated in this repo. If you change the model ID, verify it works and update
+[SPEC-042](docs/_specs/SPEC-042-llm-synthesizer-implementation.md).
+
+### Configuration
+
+```bash
+# Set synthesizer backend (default: anthropic)
+export KALSHI_SYNTHESIZER_BACKEND=anthropic
+export ANTHROPIC_API_KEY=your_key_here
+
+# Run analysis with real LLM
+uv run kalshi agent analyze TICKER --mode standard
+```
+
+See [SPEC-042](docs/_specs/SPEC-042-llm-synthesizer-implementation.md) for implementation details.
 
 ## Documentation Tracking
 

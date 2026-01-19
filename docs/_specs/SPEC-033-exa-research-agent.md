@@ -193,11 +193,13 @@ Integration tests (optional, require EXA_API_KEY):
 
 ## Acceptance Criteria
 
-- [ ] `kalshi agent research TICKER --json` returns valid JSON even when Exa fails (empty results, `total_cost_usd=0.0`).
-- [ ] Budget enforcement is deterministic and never exceeds the requested budget by more than a single step’s cost.
-- [ ] Outputs include URLs for all factors; no factor exists without a source URL.
-- [ ] Unit tests cover plan building per mode, budget enforcement, and JSON serialization stability (no network).
-- [ ] Deep mode `/research/v1` tasks are crash-recoverable after restart (persisted `research_id`, list/find reconciliation).
+- [x] `kalshi agent research TICKER --json` returns valid JSON even when Exa fails (empty results, `total_cost_usd=0.0`).
+- [x] Budget enforcement is deterministic and never exceeds the requested budget by more than a single step's cost.
+- [x] Outputs include URLs for all factors; no factor exists without a source URL.
+- [x] Unit tests cover plan building per mode, budget enforcement, and JSON serialization stability (no network).
+- [x] Deep mode `/research/v1` tasks are crash-recoverable after restart (persisted `research_id`, list/find reconciliation).
+
+**FIX COMPLETED (2026-01-18):** Criterion 5 is now implemented. Research task IDs are persisted to `data/agent_state/{ticker}_research.json` before polling starts. Recovery logic uses both direct ID lookup via `get_research_task()` and fallback to `find_recent_research_task()` with instructions prefix matching. State is cleaned up after successful completion. Covered by 4 new unit tests.
 
 ---
 

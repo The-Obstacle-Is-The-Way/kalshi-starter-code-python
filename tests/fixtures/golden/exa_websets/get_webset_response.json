@@ -1,0 +1,35 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-18T00:00:00+00:00",
+    "endpoint": "GET /v0/websets/{id}",
+    "environment": "test",
+    "sanitized": false,
+    "note": "Hand-crafted fixture based on OpenAPI spec for testing"
+  },
+  "response": {
+    "id": "webset_test123",
+    "object": "webset",
+    "status": "running",
+    "externalId": "test-external-id",
+    "title": "Test Webset",
+    "searches": [
+      {
+        "id": "search_test456",
+        "object": "webset.search",
+        "status": "completed",
+        "query": "AI startups in Europe",
+        "count": 10,
+        "found": 8,
+        "createdAt": "2026-01-18T00:00:00Z",
+        "updatedAt": "2026-01-18T00:05:00Z"
+      }
+    ],
+    "imports": [],
+    "enrichments": [],
+    "monitors": [],
+    "excludes": null,
+    "metadata": {},
+    "createdAt": "2026-01-18T00:00:00Z",
+    "updatedAt": "2026-01-18T00:05:00Z"
+  }
+}

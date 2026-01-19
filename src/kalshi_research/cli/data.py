@@ -319,7 +319,7 @@ def data_sync_trades(
     trade_rows = asyncio.run(_fetch())
 
     if output_json:
-        console.print(json.dumps(trade_rows, indent=2, default=str))
+        typer.echo(json.dumps(trade_rows, indent=2, default=str))
         return
 
     if output is None:

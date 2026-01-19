@@ -4,7 +4,7 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-_No active bugs._
+_None._
 
 ### Verification Note (2026-01-12)
 
@@ -34,7 +34,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-085**
+**BUG-088**
 
 ---
 
@@ -43,6 +43,14 @@ All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
+### Recently Archived (2026-01-19)
+
+| ID | Title | Status |
+|---|---|---|
+| **[BUG-085](../_archive/bugs/BUG-085-agent-module-test-coverage-gaps.md)** | Agent Module Test Coverage Gaps | ✅ Closed (Outdated) |
+| **[BUG-086](../_archive/bugs/BUG-086-exa-websets-client-low-coverage.md)** | Exa Websets Client Low Coverage | ✅ Closed (Outdated) |
+| **[BUG-087](../_archive/bugs/BUG-087-search-repository-fts5-coverage-gap.md)** | Search Repository FTS5 Coverage Gap | ✅ Closed (Outdated) |
 
 ### Recently Archived (2026-01-16)
 

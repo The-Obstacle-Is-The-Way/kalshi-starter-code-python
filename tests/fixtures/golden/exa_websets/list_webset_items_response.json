@@ -1,0 +1,33 @@
+{
+  "_metadata": {
+    "recorded_at": "2026-01-18T00:00:00+00:00",
+    "endpoint": "GET /v0/websets/{webset}/items",
+    "environment": "test",
+    "sanitized": false,
+    "note": "Hand-crafted fixture based on OpenAPI spec for testing"
+  },
+  "response": {
+    "object": "list",
+    "data": [
+      {
+        "id": "item_test789",
+        "object": "webset.item",
+        "websetId": "webset_test123",
+        "entityType": "company",
+        "url": "https://example.com/ai-startup-1",
+        "title": "AI Startup Example",
+        "properties": {
+          "name": "AI Startup Example",
+          "description": "An AI research lab in Europe"
+        },
+        "evaluations": [],
+        "enrichments": {},
+        "metadata": {},
+        "createdAt": "2026-01-18T00:01:00Z",
+        "updatedAt": "2026-01-18T00:01:00Z"
+      }
+    ],
+    "hasMore": false,
+    "nextCursor": null
+  }
+}

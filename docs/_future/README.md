@@ -30,6 +30,12 @@ These are potential future integrations for information arbitrage. Prioritized b
 | **FUTURE-005** | [Sportsbook Odds API](FUTURE-005-sportsbook-odds-api.md) | Medium | Free-$80/mo | Sports markets only, aggregator APIs available |
 | **FUTURE-006** | [Alternative News Sources](FUTURE-006-alternative-news-sources.md) | Low | Free | HN/Reddit/RSS - Exa already covers most |
 
+### Agent Evaluation & Optimization
+
+| ID | Title | Priority | Blocked By | Notes |
+|----|-------|----------|------------|-------|
+| **FUTURE-008** | [DSPy Evaluation & Optimization](FUTURE-008-dspy-evaluation-optimization.md) | Medium-High | Need 100+ resolved predictions | Auto-optimize synthesizer prompts, calibration metrics |
+
 **Strategy:** Complete vertical stack (SPEC-030 → 033 → 032) first. Design ResearchProvider interface to be pluggable, then add external sources as providers.
 
 ---
@@ -52,7 +58,13 @@ These are potential future integrations for information arbitrage. Prioritized b
 Completed backlog items are stored under `docs/_archive/future/` (excluded from the MkDocs site
 build). See [`docs/_archive/README.md`](../_archive/README.md) for the archive structure.
 
-### Recently Promoted to Specs (2026-01-18)
+### Recently Promoted to Specs (2026-01-19)
+
+| ID | Title | Status |
+|---|---|---|
+| [FUTURE-007](../_archive/future/FUTURE-007-llm-synthesizer-implementation.md) | LLM Synthesizer Implementation | ✅ Promoted → **SPEC-042** |
+
+### Previously Promoted to Specs (2026-01-18)
 
 | ID | Title | Status |
 |---|---|---|

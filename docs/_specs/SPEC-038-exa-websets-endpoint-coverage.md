@@ -134,8 +134,8 @@ Update `scripts/validate_models_against_golden.py` with a new mapping section:
 
 ## Acceptance Criteria
 
-- [ ] Websets client + models exist for Phase 1 endpoints.
-- [ ] Websets fixtures recorded and stored under `tests/fixtures/golden/exa_websets/`.
-- [ ] `scripts/validate_models_against_golden.py` validates Websets fixtures.
-- [ ] Unit tests use golden fixtures for all success-path mocks.
-- [ ] No Websets logic is required by default CLI flows (kept behind explicit commands/flags).
+- [x] Websets client + models exist for Phase 1 endpoints.
+- [x] Websets fixtures recorded and stored under `tests/fixtures/golden/exa_websets/`.
+- [x] `scripts/validate_models_against_golden.py` validates Websets fixtures.
+- [x] Unit tests use golden fixtures for all success-path mocks.
+- [x] No Websets logic is required by default CLI flows (kept behind explicit commands/flags).

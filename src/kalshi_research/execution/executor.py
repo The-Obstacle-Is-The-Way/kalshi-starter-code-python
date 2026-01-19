@@ -6,8 +6,16 @@ import json
 import os
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Protocol
 
+import structlog
+
+from kalshi_research.analysis.liquidity import (
+    LiquidityError,
+    LiquidityGrade,
+    enforce_max_slippage,
+    liquidity_score,
+)
 from kalshi_research.api.config import Environment, get_config
 from kalshi_research.api.models.order import OrderAction, OrderResponse, OrderSide
 from kalshi_research.execution.audit import TradeAuditLogger
@@ -19,6 +27,50 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from kalshi_research.api.client import KalshiClient
+    from kalshi_research.api.models.market import Market
+    from kalshi_research.api.models.orderbook import Orderbook
+    from kalshi_research.api.models.portfolio import CancelOrderResponse
+
+logger = structlog.get_logger()
+
+
+class PositionProvider(Protocol):
+    """Protocol for querying current position state."""
+
+    async def get_position_quantity(self, ticker: str, side: OrderSide) -> int:
+        """Return the current signed position quantity for a ticker+side.
+
+        Returns 0 if no position exists.
+        """
+        ...
+
+
+class DailyBudgetTracker(Protocol):
+    """Protocol for tracking daily spending and losses."""
+
+    async def get_daily_spend_usd(self) -> float:
+        """Return total USD spent today (live orders)."""
+        ...
+
+    async def get_daily_loss_usd(self) -> float:
+        """Return total realized loss today (positive = loss)."""
+        ...
+
+
+class OrderbookProvider(Protocol):
+    """Protocol for fetching orderbook snapshots."""
+
+    async def get_orderbook(self, ticker: str) -> Orderbook:
+        """Fetch current orderbook for a market."""
+        ...
+
+
+class MarketProvider(Protocol):
+    """Protocol for fetching market data."""
+
+    async def get_market(self, ticker: str) -> Market:
+        """Fetch market metadata."""
+        ...
 
 
 class TradeSafetyError(RuntimeError):
@@ -42,11 +94,18 @@ def _estimate_order_risk_usd(*, count: int, yes_price_cents: int) -> float:
 
 class TradeExecutor:
     """
-    Safety harness for trading operations.
+    Safety harness for trading operations (Phase 1 + Phase 2).
 
+    Phase 1 (Implemented):
     - Defaults to `live=False` (dry-run mode).
     - Writes an append-only JSONL audit event for every attempt.
     - Enforces basic guardrails (env gating, kill switch, limits, confirmation).
+
+    Phase 2 (Implemented):
+    - Fat-finger guard (midpoint deviation check).
+    - Daily budget/loss tracking.
+    - Position caps (max contracts per market).
+    - Liquidity-aware sizing (slippage limits).
     """
 
     KILL_SWITCH_ENV = "KALSHI_TRADE_KILL_SWITCH"
@@ -64,6 +123,17 @@ class TradeExecutor:
         confirm: Callable[[str], bool] | None = None,
         audit_log_path: Path = DEFAULT_TRADE_AUDIT_LOG,
         clock: Callable[[], datetime] = _utc_now,
+        # Phase 2 parameters
+        max_price_deviation_cents: int = 10,
+        max_daily_loss_usd: float = 50.0,
+        max_notional_usd: float = 200.0,
+        max_position_contracts: int = 100,
+        max_slippage_pct: float = 5.0,
+        min_liquidity_grade: LiquidityGrade | None = None,
+        position_provider: PositionProvider | None = None,
+        budget_tracker: DailyBudgetTracker | None = None,
+        orderbook_provider: OrderbookProvider | None = None,
+        market_provider: MarketProvider | None = None,
     ) -> None:
         self._client = client
         self._live = live
@@ -72,11 +142,26 @@ class TradeExecutor:
         self._environment = resolved_env
         self._allow_production = allow_production
 
+        # Phase 1 parameters
         self._max_order_risk_usd = max_order_risk_usd
         self._max_orders_per_day = max_orders_per_day
         self._require_confirmation = require_confirmation
         self._confirm = confirm
         self._clock = clock
+
+        # Phase 2 parameters
+        self._max_price_deviation_cents = max_price_deviation_cents
+        self._max_daily_loss_usd = max_daily_loss_usd
+        self._max_notional_usd = max_notional_usd
+        self._max_position_contracts = max_position_contracts
+        self._max_slippage_pct = max_slippage_pct
+        self._min_liquidity_grade = min_liquidity_grade
+
+        # Phase 2 providers (optional, for advanced safety checks)
+        self._position_provider = position_provider
+        self._budget_tracker = budget_tracker
+        self._orderbook_provider = orderbook_provider
+        self._market_provider = market_provider
 
         self._audit = TradeAuditLogger(audit_log_path)
 
@@ -143,7 +228,7 @@ class TradeExecutor:
 
         return estimated_risk_usd, failures
 
-    def _run_live_checks(
+    async def _run_live_checks(  # noqa: PLR0912, PLR0915
         self,
         *,
         ticker: str,
@@ -168,6 +253,7 @@ class TradeExecutor:
         """
         failures: list[str] = []
 
+        # Phase 1 checks
         if os.getenv(self.KILL_SWITCH_ENV) == "1":
             failures.append("kill_switch_enabled")
 
@@ -179,6 +265,74 @@ class TradeExecutor:
             if live_orders_today >= self._max_orders_per_day:
                 failures.append("max_orders_per_day_exceeded")
 
+        # Phase 2 checks
+        if self._budget_tracker is not None:
+            daily_loss = await self._budget_tracker.get_daily_loss_usd()
+            if daily_loss >= self._max_daily_loss_usd:
+                failures.append("max_daily_loss_exceeded")
+
+            daily_spend = await self._budget_tracker.get_daily_spend_usd()
+            if daily_spend + estimated_risk_usd > self._max_notional_usd:
+                failures.append("max_notional_exceeded")
+
+        if self._position_provider is not None:
+            current_position = await self._position_provider.get_position_quantity(ticker, side)
+            new_position_size = abs(
+                current_position + (count if action == OrderAction.BUY else -count)
+            )
+            if new_position_size > self._max_position_contracts:
+                failures.append("max_position_contracts_exceeded")
+
+        orderbook = None
+        if self._orderbook_provider is not None:
+            try:
+                orderbook = await self._orderbook_provider.get_orderbook(ticker)
+                midpoint = orderbook.midpoint
+                if midpoint is not None:
+                    midpoint_cents = float(midpoint)
+                    deviation = abs(yes_price_cents - midpoint_cents)
+                    if deviation > self._max_price_deviation_cents:
+                        failures.append("fat_finger_deviation_exceeded")
+
+                # Liquidity-aware sizing: check slippage
+                if action == OrderAction.BUY:
+                    try:
+                        enforce_max_slippage(
+                            orderbook,
+                            side.value,
+                            action.value,
+                            quantity=count,
+                            max_slippage_pct=self._max_slippage_pct,
+                        )
+                    except LiquidityError:
+                        failures.append("slippage_limit_exceeded")
+            except Exception as exc:
+                # Fail closed for live trading when safety checks cannot be evaluated.
+                failures.append("orderbook_provider_failed")
+                logger.exception("orderbook_provider_failed", ticker=ticker, error=str(exc))
+
+        if (
+            self._min_liquidity_grade is not None
+            and self._market_provider is not None
+            and orderbook is not None
+        ):
+            try:
+                market = await self._market_provider.get_market(ticker)
+                analysis = liquidity_score(market, orderbook)
+
+                grade_order = {
+                    LiquidityGrade.ILLIQUID: 0,
+                    LiquidityGrade.THIN: 1,
+                    LiquidityGrade.MODERATE: 2,
+                    LiquidityGrade.LIQUID: 3,
+                }
+                if grade_order[analysis.grade] < grade_order[self._min_liquidity_grade]:
+                    failures.append("liquidity_grade_too_low")
+            except Exception as exc:
+                failures.append("liquidity_check_failed")
+                logger.exception("liquidity_check_failed", ticker=ticker, error=str(exc))
+
+        # Confirmation (Phase 1, but runs last)
         if self._require_confirmation:
             if self._confirm is None:
                 failures.append("missing_confirmation_callback")
@@ -241,16 +395,15 @@ class TradeExecutor:
             yes_price_cents=yes_price_cents,
         )
         if self._live:
-            failures.extend(
-                self._run_live_checks(
-                    ticker=ticker,
-                    side=resolved_side,
-                    action=resolved_action,
-                    count=count,
-                    yes_price_cents=yes_price_cents,
-                    estimated_risk_usd=estimated_risk_usd,
-                )
+            live_failures = await self._run_live_checks(
+                ticker=ticker,
+                side=resolved_side,
+                action=resolved_action,
+                count=count,
+                yes_price_cents=yes_price_cents,
+                estimated_risk_usd=estimated_risk_usd,
             )
+            failures.extend(live_failures)
 
         checks = TradeChecks(passed=not failures, failures=failures)
         response: OrderResponse | None = None
@@ -292,3 +445,94 @@ class TradeExecutor:
                 error=error,
             )
             self._audit.write(event)
+
+    async def cancel_order(self, order_id: str, dry_run: bool | None = None) -> CancelOrderResponse:
+        """Cancel an existing order through the safety harness.
+
+        Phase 2 addition: This wrapper ensures kill switch and environment checks apply
+        to cancellation operations as well.
+
+        Args:
+            order_id: The order ID to cancel.
+            dry_run: If provided, overrides the executor's live mode for this operation.
+
+        Returns:
+            `CancelOrderResponse` from the Kalshi API client (covariant with OrderResponse).
+
+        Raises:
+            TradeSafetyError: If safety checks fail (kill switch, production gating).
+            Exception: Propagates API/client errors from the underlying `KalshiClient`.
+        """
+        failures: list[str] = []
+
+        if os.getenv(self.KILL_SWITCH_ENV) == "1":
+            failures.append("kill_switch_enabled")
+
+        if self._environment == Environment.PRODUCTION and not self._allow_production:
+            failures.append("production_trading_disabled")
+
+        if failures:
+            raise TradeSafetyError("; ".join(failures))
+
+        resolved_dry_run = (not self._live) if dry_run is None else dry_run
+        return await self._client.cancel_order(order_id, dry_run=resolved_dry_run)
+
+    async def amend_order(
+        self,
+        order_id: str,
+        ticker: str,
+        side: Literal["yes", "no"] | OrderSide,
+        action: Literal["buy", "sell"] | OrderAction,
+        client_order_id: str,
+        updated_client_order_id: str,
+        *,
+        count: int | None = None,
+        price: int | None = None,
+        dry_run: bool | None = None,
+    ) -> OrderResponse:
+        """Amend an existing order through the safety harness.
+
+        Phase 2 addition: This wrapper ensures kill switch and environment checks apply
+        to amendment operations.
+
+        Args:
+            order_id: The order ID to amend.
+            ticker: Market ticker.
+            side: Order side (yes/no).
+            action: Order action (buy/sell).
+            client_order_id: Original client_order_id from the order creation.
+            updated_client_order_id: New unique client_order_id for the amendment.
+            count: New quantity (optional).
+            price: New price in cents (optional).
+            dry_run: If provided, overrides the executor's live mode for this operation.
+
+        Returns:
+            `OrderResponse` from the Kalshi API client.
+
+        Raises:
+            TradeSafetyError: If safety checks fail (kill switch, production gating).
+            Exception: Propagates API/client errors from the underlying `KalshiClient`.
+        """
+        failures: list[str] = []
+
+        if os.getenv(self.KILL_SWITCH_ENV) == "1":
+            failures.append("kill_switch_enabled")
+
+        if self._environment == Environment.PRODUCTION and not self._allow_production:
+            failures.append("production_trading_disabled")
+
+        if failures:
+            raise TradeSafetyError("; ".join(failures))
+
+        resolved_dry_run = (not self._live) if dry_run is None else dry_run
+        return await self._client.amend_order(
+            order_id=order_id,
+            ticker=ticker,
+            side=side,
+            action=action,
+            client_order_id=client_order_id,
+            updated_client_order_id=updated_client_order_id,
+            count=count,
+            price=price,
+            dry_run=resolved_dry_run,
+        )

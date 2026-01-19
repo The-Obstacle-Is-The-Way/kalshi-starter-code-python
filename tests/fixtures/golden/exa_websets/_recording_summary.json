@@ -1,0 +1,11 @@
+{
+  "recorded_at": "2026-01-18T00:00:00+00:00",
+  "fixtures": [
+    "create_webset_response.json",
+    "get_webset_response.json",
+    "list_webset_items_response.json",
+    "preview_webset_response.json"
+  ],
+  "api_version": "v0",
+  "note": "Hand-crafted fixtures based on OpenAPI spec schemas for initial testing. Run scripts/record_exa_websets_responses.py --yes to record real API responses."
+}

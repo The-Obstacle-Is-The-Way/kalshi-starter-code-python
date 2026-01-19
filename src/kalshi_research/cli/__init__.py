@@ -12,6 +12,7 @@ from typing import Annotated
 import typer
 from dotenv import find_dotenv, load_dotenv
 
+from kalshi_research.cli.agent import app as agent_app
 from kalshi_research.cli.alerts import app as alerts_app
 from kalshi_research.cli.analysis import app as analysis_app
 from kalshi_research.cli.data import app as data_app
@@ -29,6 +30,7 @@ app = typer.Typer(
     add_completion=False,
 )
 
+app.add_typer(agent_app, name="agent")
 app.add_typer(data_app, name="data")
 app.add_typer(market_app, name="market")
 app.add_typer(scan_app, name="scan")
@@ -111,7 +113,7 @@ def status(
     status = asyncio.run(_fetch())
 
     if output_json:
-        console.print(json.dumps(status, indent=2, default=str))
+        typer.echo(json.dumps(status, indent=2, default=str))
         return
 
     table = Table(title="Exchange Status")

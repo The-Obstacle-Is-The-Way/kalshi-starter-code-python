@@ -925,7 +925,7 @@ def research_context(
     )
 
     if output_json:
-        console.print(json.dumps(asdict(research), indent=2, default=str))
+        typer.echo(json.dumps(asdict(research), indent=2, default=str))
         return
 
     _render_market_context(market, research)
@@ -1033,7 +1033,7 @@ def research_topic(
     )
 
     if output_json:
-        console.print(json.dumps(asdict(research), indent=2, default=str))
+        typer.echo(json.dumps(asdict(research), indent=2, default=str))
         return
 
     _render_topic_research(topic, research)
