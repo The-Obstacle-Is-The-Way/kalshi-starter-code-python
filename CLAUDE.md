@@ -251,9 +251,9 @@ The agent analysis workflow (`kalshi agent analyze`) uses an LLM to synthesize p
 | Provider | Model | Model ID | Use Case |
 |----------|-------|----------|----------|
 | **Anthropic** | Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` | Primary synthesizer (SPEC-042) |
-| **Anthropic** | Claude Opus 4.5 | `claude-opus-4-5-20251101` | Complex reasoning (if needed) |
 
-**Do NOT use deprecated models** like `gpt-4o-mini`, `claude-3-sonnet`, etc. Always use the latest frontier models.
+Only `claude-sonnet-4-5-20250929` has been validated in this repo. If you change the model ID, verify it works and update
+[SPEC-042](docs/_specs/SPEC-042-llm-synthesizer-implementation.md).
 
 ### Configuration
 
