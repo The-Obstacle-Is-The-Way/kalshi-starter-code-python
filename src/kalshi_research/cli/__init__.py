@@ -15,6 +15,7 @@ from dotenv import find_dotenv, load_dotenv
 from kalshi_research.cli.agent import app as agent_app
 from kalshi_research.cli.alerts import app as alerts_app
 from kalshi_research.cli.analysis import app as analysis_app
+from kalshi_research.cli.browse import app as browse_app
 from kalshi_research.cli.data import app as data_app
 from kalshi_research.cli.market import app as market_app
 from kalshi_research.cli.news import app as news_app
@@ -34,6 +35,7 @@ app.add_typer(agent_app, name="agent")
 app.add_typer(data_app, name="data")
 app.add_typer(market_app, name="market")
 app.add_typer(scan_app, name="scan")
+app.add_typer(browse_app, name="browse")
 app.add_typer(alerts_app, name="alerts")
 app.add_typer(analysis_app, name="analysis")
 app.add_typer(research_app, name="research")
