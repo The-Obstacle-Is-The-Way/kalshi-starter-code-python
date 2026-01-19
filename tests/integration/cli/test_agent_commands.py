@@ -132,6 +132,8 @@ def test_agent_analyze_invalid_ticker_exits_1(
 ) -> None:
     with runner.isolated_filesystem():
         monkeypatch.setenv("EXA_API_KEY", "test-key")
+        monkeypatch.setenv("KALSHI_SYNTHESIZER_BACKEND", "mock")
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         ticker = "BADTICKER"
 
         respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}").mock(
