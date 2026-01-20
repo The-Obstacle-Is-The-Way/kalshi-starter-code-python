@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, run_async
 
 app = typer.Typer(help="Discovery browsing commands (categories, series, sports).")
 
@@ -34,7 +33,7 @@ def browse_categories(
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    tags_by_category = asyncio.run(_fetch())
+    tags_by_category = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(tags_by_category, indent=2, default=str))
@@ -104,7 +103,7 @@ def browse_series(
 
         return [s.model_dump(mode="json") for s in series]
 
-    series_payload = asyncio.run(_fetch())
+    series_payload = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(series_payload, indent=2, default=str))
@@ -170,7 +169,7 @@ def browse_sports(
 
         return filters.model_dump(mode="json")
 
-    payload = asyncio.run(_fetch())
+    payload = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(payload, indent=2, default=str))

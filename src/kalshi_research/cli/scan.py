@@ -12,7 +12,7 @@ import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, run_async
 from kalshi_research.paths import DEFAULT_DB_PATH
 
 app = typer.Typer(help="Market scanning commands.")
@@ -778,7 +778,7 @@ def scan_opportunities(
     ] = False,
 ) -> None:
     """Scan markets for opportunities."""
-    asyncio.run(
+    run_async(
         _scan_opportunities_async(
             profile=profile,
             filter_type=filter_type,
@@ -939,7 +939,7 @@ def scan_new_markets(
     ] = False,
 ) -> None:
     """Show markets created in the last N hours (information arbitrage window)."""
-    asyncio.run(
+    run_async(
         _scan_new_markets_async(
             hours=hours,
             category=category,
@@ -983,7 +983,7 @@ def scan_arbitrage(
 ) -> None:
     """Find arbitrage opportunities from correlated markets."""
     db_path = Path(db_path)
-    asyncio.run(
+    run_async(
         _scan_arbitrage_async(
             db_path=db_path,
             divergence_threshold=divergence_threshold,
@@ -1301,4 +1301,4 @@ def scan_movers(  # noqa: PLR0915
         output_console.print(table)
         output_console.print(f"\n[dim]Showing top {len(movers)} movers[/dim]")
 
-    asyncio.run(_scan())
+    run_async(_scan())

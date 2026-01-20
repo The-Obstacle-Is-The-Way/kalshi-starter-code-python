@@ -17,6 +17,7 @@ from kalshi_research.cli.utils import (
     atomic_write_json,
     console,
     load_json_storage_file,
+    run_async,
 )
 from kalshi_research.paths import DEFAULT_ALERT_LOG, DEFAULT_ALERTS_PATH
 
@@ -424,7 +425,7 @@ def alerts_monitor(
         )
         console.print("[dim]Press Ctrl+C to stop[/dim]\n")
 
-    asyncio.run(
+    run_async(
         _run_alert_monitor_loop(
             interval=interval,
             once=once,

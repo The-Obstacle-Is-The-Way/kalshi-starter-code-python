@@ -31,7 +31,7 @@ rg -n "DatabaseManager\\(" src/kalshi_research/cli | wc -l
 
 Current counts (2026-01-20 audit, SSOT verified):
 
-- `asyncio.run`: **56**
+- `asyncio.run`: **56** → **1** (only in `run_async()` helper after Phase B)
 - `except KalshiAPIError`: **28**
 - `DatabaseManager(...)`: **11**
 
@@ -77,7 +77,7 @@ Refactor CLI modules to call these helpers. Migration should be mechanical and t
 ## Acceptance Criteria (Phased)
 
 - [x] Phase A: Add `run_async()` helper and migrate at least one CLI module as a template
-- [ ] Phase B: Migrate all CLI modules off direct `asyncio.run()`
+- [x] Phase B: Migrate all CLI modules off direct `asyncio.run()`
 - [ ] Phase C: Add `exit_kalshi_api_error()` helper and migrate at least one CLI module as a template
 - [ ] Phase D: Migrate all CLI modules off duplicated `except KalshiAPIError` blocks
 - [ ] Phase E: Add DB session helper and migrate all CLI DB session setup

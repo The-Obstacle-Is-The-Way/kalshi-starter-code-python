@@ -1,6 +1,5 @@
 """Typer CLI commands for portfolio tracking and P&L reporting."""
 
-import asyncio
 import os
 from pathlib import Path
 from typing import Annotated, Any
@@ -9,7 +8,7 @@ import typer
 from rich.table import Table
 from sqlalchemy import select
 
-from kalshi_research.cli.utils import console, load_json_storage_file
+from kalshi_research.cli.utils import console, load_json_storage_file, run_async
 from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
 
 app = typer.Typer(help="Portfolio tracking and P&L commands.")
@@ -196,7 +195,7 @@ def portfolio_sync(
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None
 
-    asyncio.run(_sync())
+    run_async(_sync())
 
 
 @app.command("positions")
@@ -285,7 +284,7 @@ def portfolio_positions(
                     "(missing cost basis or mark prices).[/yellow]"
                 )
 
-    asyncio.run(_positions())
+    run_async(_positions())
 
 
 @app.command("pnl")
@@ -377,7 +376,7 @@ def portfolio_pnl(
             # Display summary
             output_console.print(_build_summary_table(summary))
 
-    asyncio.run(_pnl())
+    run_async(_pnl())
 
 
 @app.command("balance")
@@ -444,7 +443,7 @@ def portfolio_balance(
             table.add_row(str(k), str(v))
         console.print(table)
 
-    asyncio.run(_balance())
+    run_async(_balance())
 
 
 @app.command("history")
@@ -508,7 +507,7 @@ def portfolio_history(
 
             console.print(table)
 
-    asyncio.run(_history())
+    run_async(_history())
 
 
 @app.command("link")
@@ -546,7 +545,7 @@ def portfolio_link(
 
             console.print(f"[green]✓[/green] Position {ticker} linked to thesis {thesis}")
 
-    asyncio.run(_link())
+    run_async(_link())
 
 
 @app.command("suggest-links")
@@ -617,4 +616,4 @@ def portfolio_suggest_links(
             console.print(table)
             console.print("\n[dim]To link: kalshi portfolio link TICKER --thesis THESIS_ID[/dim]")
 
-    asyncio.run(_suggest())
+    run_async(_suggest())

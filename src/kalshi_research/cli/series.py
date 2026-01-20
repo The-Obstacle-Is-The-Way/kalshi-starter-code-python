@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, run_async
 
 app = typer.Typer(help="Series discovery commands.")
 
@@ -69,7 +68,7 @@ def series_get(
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    series = asyncio.run(_fetch())
+    series = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(series.model_dump(mode="json"), indent=2, default=str))

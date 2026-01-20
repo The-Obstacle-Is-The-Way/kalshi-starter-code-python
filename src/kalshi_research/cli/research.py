@@ -1,6 +1,5 @@
 """Typer CLI commands for research workflows and thesis tracking."""
 
-import asyncio
 import json
 import uuid
 from dataclasses import asdict
@@ -17,6 +16,7 @@ from kalshi_research.cli.utils import (
     console,
     load_json_storage_file,
     print_budget_exhausted,
+    run_async,
 )
 from kalshi_research.exa.policy import ExaBudget, ExaMode, ExaPolicy
 from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
@@ -296,7 +296,7 @@ def research_thesis_create(
 
         try:
             direction = "yes" if your_prob > 0.5 else "no"
-            research_data = asyncio.run(
+            research_data = run_async(
                 _gather_thesis_research_data(
                     market_tickers[0],
                     thesis_direction=direction,
@@ -542,7 +542,7 @@ def research_thesis_show(  # noqa: PLR0915
             finally:
                 await db.close()
 
-        asyncio.run(_show_positions())
+        run_async(_show_positions())
 
 
 @thesis_app.command("edit")
@@ -624,7 +624,7 @@ def research_thesis_check_invalidation(
     from kalshi_research.research.invalidation import InvalidationSeverity
 
     try:
-        thesis, report, detector = asyncio.run(
+        thesis, report, detector = run_async(
             _check_thesis_invalidation(
                 thesis_id,
                 hours=hours,
@@ -704,7 +704,7 @@ def research_thesis_suggest(
                 console.print(f"[italic]> {s.key_insight[:200]}[/italic]")
         print_budget_exhausted(suggester)
 
-    asyncio.run(_suggest())
+    run_async(_suggest())
 
 
 @app.command("backtest")
@@ -819,7 +819,7 @@ def research_backtest(
 
             _display_backtest_results(results, start, end)
 
-    asyncio.run(_backtest())
+    run_async(_backtest())
 
 
 def _print_market_news(sources: list["ResearchSource"]) -> None:
@@ -998,7 +998,7 @@ def research_context(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
 ) -> None:
     """Research context for a specific market using Exa."""
-    market, research = asyncio.run(
+    market, research = run_async(
         _research_market_context(
             ticker,
             max_news=max_news,
@@ -1108,7 +1108,7 @@ def research_topic(
     if mode == ExaMode.FAST and not no_summary:
         console.print("[dim]Note: --mode fast disables LLM summary output (retrieve-only).[/dim]")
 
-    research = asyncio.run(
+    research = run_async(
         _run_topic_research(
             topic,
             include_answer=not no_summary,
@@ -1175,7 +1175,7 @@ def research_similar(
             console.print("[dim]Check EXA_API_KEY and --budget-usd (must be > 0).[/dim]")
             raise typer.Exit(1) from None
 
-    response = asyncio.run(_find())
+    response = run_async(_find())
 
     if output_json:
         console.print(
@@ -1322,7 +1322,7 @@ def research_deep(
         raise typer.Exit(1)
 
     try:
-        task = asyncio.run(
+        task = run_async(
             _run_deep_research(
                 topic,
                 model=model,

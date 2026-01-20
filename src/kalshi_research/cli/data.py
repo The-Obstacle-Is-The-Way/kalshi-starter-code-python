@@ -8,7 +8,7 @@ import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, run_async
 from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_EXPORTS_DIR
 
 app = typer.Typer(help="Data management commands.")
@@ -79,7 +79,7 @@ def data_init(
         async with open_db(db_path):
             console.print(f"[green]✓[/green] Database initialized at {db_path}")
 
-    asyncio.run(_init())
+    run_async(_init())
 
 
 @app.command("migrate")
@@ -218,7 +218,7 @@ def data_sync_markets(
 
         console.print(f"[green]✓[/green] Synced {events} events and {markets} markets")
 
-    asyncio.run(_sync())
+    run_async(_sync())
 
 
 @app.command("sync-settlements")
@@ -257,7 +257,7 @@ def data_sync_settlements(
 
         console.print(f"[green]✓[/green] Synced {settlements} settlements")
 
-    asyncio.run(_sync())
+    run_async(_sync())
 
 
 @app.command("sync-trades")
@@ -316,7 +316,7 @@ def data_sync_trades(
 
         return [t.model_dump(mode="json") for t in trades]
 
-    trade_rows = asyncio.run(_fetch())
+    trade_rows = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(trade_rows, indent=2, default=str))
@@ -404,7 +404,7 @@ def data_snapshot(
 
         console.print(f"[green]✓[/green] Took {count} price snapshots")
 
-    asyncio.run(_snapshot())
+    run_async(_snapshot())
 
 
 @app.command("collect")
@@ -501,7 +501,7 @@ def data_collect(
                     pass
 
     try:
-        asyncio.run(_collect())
+        run_async(_collect())
     except KeyboardInterrupt:
         console.print("\n[yellow]Stopped.[/yellow]")
 
@@ -599,7 +599,7 @@ def data_stats(
 
         console.print(table)
 
-    asyncio.run(_stats())
+    run_async(_stats())
 
 
 @app.command("prune")
@@ -687,7 +687,7 @@ def data_prune(
                 )
             return (now, counts)
 
-    pruned_at, counts = asyncio.run(_prune())
+    pruned_at, counts = run_async(_prune())
 
     table = Table(title="Prune Summary")
     table.add_column("Category", style="cyan")

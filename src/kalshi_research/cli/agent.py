@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, run_async
 from kalshi_research.exa.policy import ExaMode
 
 app = typer.Typer(help="Research agent commands")
@@ -105,7 +104,7 @@ def research(  # noqa: PLR0915
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None
 
-    result = asyncio.run(_run())
+    result = run_async(_run())
 
     # Output handling
     if output_json:
@@ -299,7 +298,7 @@ def analyze(  # noqa: PLR0915
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None
 
-    result = asyncio.run(_run())
+    result = run_async(_run())
 
     # Output handling
     if human:

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, run_async
 
 app = typer.Typer(help="Event discovery and analysis commands.")
 
@@ -260,7 +259,7 @@ def event_list(
 
         return [e.model_dump(mode="json") for e in events]
 
-    events_payload = asyncio.run(_fetch())
+    events_payload = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(events_payload, indent=2, default=str))
@@ -319,7 +318,7 @@ def event_get(
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    event, metadata = asyncio.run(_fetch())
+    event, metadata = run_async(_fetch())
 
     if output_json:
         payload: dict[str, object] = {"event": event.model_dump(mode="json")}
@@ -383,7 +382,7 @@ def event_candlesticks(
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    resolved_series, response = asyncio.run(_fetch())
+    resolved_series, response = run_async(_fetch())
 
     if output_json:
         payload = response.model_dump(mode="json")

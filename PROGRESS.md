@@ -11,7 +11,7 @@
 ### Phase 1: P1 Debt (Critical)
 
 - [x] **DEBT-044-A**: Add `run_async()` helper to `cli/utils.py` → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
-- [ ] **DEBT-044-B**: Migrate all CLI modules off direct `asyncio.run()` → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
+- [x] **DEBT-044-B**: Migrate all CLI modules off direct `asyncio.run()` → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
 - [ ] **DEBT-044-C**: Add `exit_kalshi_api_error()` helper → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
 - [ ] **DEBT-044-D**: Migrate all CLI modules off duplicated `except KalshiAPIError` → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
 - [ ] **DEBT-044-E**: Add DB session helper + migrate CLI DB plumbing → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
@@ -60,6 +60,7 @@
 - 2026-01-19: Reset PROGRESS.md for debt resolution queue (DEBT-039, 043, 044, 045, 046, 047). Debt docs verified against SSOT. client_factory.py salvaged from prior branch. Starting fresh on all migrations.
 - 2026-01-20: Implemented DEBT-044-A: added `kalshi_research.cli.utils.run_async()` (centralized `asyncio.run` + Ctrl+C exit 130), migrated `cli/status.py` as the template (3 call sites), added unit tests. Quality gates pass (`uv run pre-commit run --all-files`, `uv run pytest`).
 - 2026-01-20: Documentation cleanup: removed Gemini references (no longer used), added ANTHROPIC_API_KEY billing docs to Ralph Wiggum protocol (shell export = API credits, .env only = subscription).
+- 2026-01-20: Implemented DEBT-044-B: migrated all CLI modules (13 files, 55 call sites) from direct `asyncio.run()` to centralized `run_async()` helper. Only `utils.py:run_async()` now contains `asyncio.run`. Quality gates pass (pre-commit, mypy, pytest 1003 tests).
 
 ---
 

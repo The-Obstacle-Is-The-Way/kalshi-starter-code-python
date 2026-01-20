@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, run_async
 
 app = typer.Typer(help="Market lookup commands.")
 
@@ -97,7 +96,7 @@ def market_get(
 
         console.print(table)
 
-    asyncio.run(_get())
+    run_async(_get())
 
 
 @app.command("orderbook")
@@ -141,7 +140,7 @@ def market_orderbook(
         if orderbook.midpoint is not None:
             console.print(f"Midpoint: {orderbook.midpoint:.1f}¢")
 
-    asyncio.run(_orderbook())
+    run_async(_orderbook())
 
 
 @app.command("liquidity")
@@ -251,7 +250,7 @@ def market_liquidity(
             for w in analysis.warnings:
                 console.print(f"- {w}")
 
-    asyncio.run(_liquidity())
+    run_async(_liquidity())
 
 
 @app.command("history")
@@ -366,7 +365,7 @@ def market_history(
 
         console.print(table)
 
-    asyncio.run(_history())
+    run_async(_history())
 
 
 def _optional_lower(raw: str | None) -> str | None:
@@ -605,7 +604,7 @@ def market_list(
     ] = False,
 ) -> None:
     """List markets with optional filters."""
-    asyncio.run(
+    run_async(
         _market_list_async(
             status=status,
             event=event,
@@ -675,7 +674,7 @@ def market_search(
 
     Run 'kalshi data sync-markets' first to populate/update the database.
     """
-    asyncio.run(
+    run_async(
         _market_search_async(
             query=query,
             db=db,

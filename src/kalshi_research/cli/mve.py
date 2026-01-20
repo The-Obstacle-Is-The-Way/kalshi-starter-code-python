@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, run_async
 
 app = typer.Typer(help="Multivariate event (MVE) discovery commands.")
 
@@ -128,7 +127,7 @@ def mve_list(
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    events = asyncio.run(_fetch())
+    events = run_async(_fetch())
 
     if output_json:
         payload = [e.model_dump(mode="json") for e in events]
@@ -182,7 +181,7 @@ def mve_collections(
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    page = asyncio.run(_fetch())
+    page = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(page.model_dump(mode="json"), indent=2, default=str))
@@ -212,7 +211,7 @@ def mve_collection(
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    collection = asyncio.run(_fetch())
+    collection = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(collection.model_dump(mode="json"), indent=2, default=str))
