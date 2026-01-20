@@ -91,5 +91,5 @@ Adopt a strict size ceiling for `src/kalshi_research/**/*.py`:
 
 - [x] Phase A: `cli/research.py` becomes `cli/research/` package and all files ≤400 lines
 - [x] Phase B: `cli/scan.py` becomes `cli/scan/` package and all files ≤400 lines
-- [ ] Phase C: `api/client.py` split into endpoint modules; public import path preserved; all files ≤400 lines
+- [x] Phase C: `api/client.py` split into endpoint modules; public import path preserved; all files ≤400 lines
 - [ ] Phase D: Remaining >400-line modules reduced under the ceiling

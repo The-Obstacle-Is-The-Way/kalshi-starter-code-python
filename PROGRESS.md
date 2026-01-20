@@ -37,7 +37,7 @@
 
 - [x] **DEBT-043-A**: Split `cli/research.py` into `cli/research/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-B**: Split `cli/scan.py` into `cli/scan/` package → `docs/_debt/DEBT-043-srp-god-files.md`
-- [ ] **DEBT-043-C**: Split `api/client.py` into endpoint modules → `docs/_debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-C**: Split `api/client.py` into endpoint modules → `docs/_debt/DEBT-043-srp-god-files.md`
 
 ### Phase 5: Final Verification
 
@@ -77,6 +77,7 @@
 - 2026-01-20: Implemented DEBT-047-B: added 13 scanner/liquidity constants to `constants.py` (close_race_range, high_volume_threshold, wide_spread_threshold, depth_radius, max_slippage, grade thresholds, spread score bounds, warning thresholds). Migrated `analysis/scanner.py` (3 defaults) and `analysis/liquidity.py` (10+ references). Grep confirms `(0.40, 0.60)` only in constants.py. Quality gates pass (pre-commit, mypy, pytest 1014 tests).
 - 2026-01-20: Implemented DEBT-043-A: split `cli/research.py` (1367 lines) into `cli/research/` package (12 files, all ≤400 lines). Structure: `__init__.py` (111 lines), `_shared.py` (92), `context.py` (186), `topic.py` (123), `similar.py` (84), `deep.py` (181), `backtest.py` (202), `cache.py` (37), `thesis/__init__.py` (60), `thesis/_commands.py` (395), `thesis/_helpers.py` (154), `thesis/_suggest.py` (58). Updated test patch paths. Quality gates pass (pre-commit, mypy, pytest 42 research tests).
 - 2026-01-20: Implemented DEBT-043-B: split `cli/scan.py` (1304 lines) into `cli/scan/` package (7 files, all ≤400 lines). Structure: `__init__.py` (113 lines), `_helpers.py` (152), `_opportunities_helpers.py` (198), `opportunities.py` (341), `new_markets.py` (329), `arbitrage.py` (221), `movers.py` (215). Backward-compatible re-exports via `__init__.py` preserve existing test imports. Quality gates pass (pre-commit, mypy, pytest 1014 tests, 45 scan tests).
+- 2026-01-20: Implemented DEBT-043-C: split `api/client.py` (1724 lines) into `api/_mixins/` package (11 files, all ≤300 lines). Structure: `_base.py` (134 lines - client infrastructure), `_mixins/__init__.py` (23 - re-exports), `_mixins/markets.py` (297), `_mixins/events.py` (223), `_mixins/series.py` (73), `_mixins/exchange.py` (32), `_mixins/multivariate.py` (58), `_mixins/portfolio.py` (122), `_mixins/trading.py` (286), `_mixins/orders.py` (273), `_mixins/order_groups.py` (195), `client.py` (144 - thin composition). `KalshiClient` inherits from `KalshiPublicClient` (backward-compatible). Quality gates pass (pre-commit, mypy, pytest 200+ API tests).
 
 ---
 
