@@ -8,6 +8,7 @@ import typer
 from rich.table import Table
 
 from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
+from kalshi_research.constants import DEFAULT_PAGINATION_LIMIT
 
 app = typer.Typer(help="Market lookup commands.")
 
@@ -396,7 +397,7 @@ async def _fetch_markets_for_market_list_from_events(
     markets: list[Market] = []
     async for api_event in client.get_all_events(
         status=status_filter,
-        limit=200,
+        limit=DEFAULT_PAGINATION_LIMIT,
         with_nested_markets=True,
     ):
         if prefix_upper and not api_event.event_ticker.upper().startswith(prefix_upper):

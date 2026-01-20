@@ -75,6 +75,7 @@ from kalshi_research.api.models.series import (
 )
 from kalshi_research.api.models.trade import Trade
 from kalshi_research.api.rate_limiter import RateLimiter, RateTier
+from kalshi_research.constants import DEFAULT_ORDERBOOK_DEPTH
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -370,7 +371,7 @@ class KalshiPublicClient:
         data = await self._get(f"/markets/{ticker}")
         return Market.model_validate(data["market"])
 
-    async def get_orderbook(self, ticker: str, depth: int = 10) -> Orderbook:
+    async def get_orderbook(self, ticker: str, depth: int = DEFAULT_ORDERBOOK_DEPTH) -> Orderbook:
         """
         Fetch current orderbook for a market.
 

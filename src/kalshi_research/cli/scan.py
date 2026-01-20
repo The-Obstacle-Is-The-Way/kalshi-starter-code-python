@@ -13,6 +13,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
+from kalshi_research.constants import DEFAULT_PAGINATION_LIMIT
 from kalshi_research.paths import DEFAULT_DB_PATH
 
 app = typer.Typer(help="Market scanning commands.")
@@ -220,7 +221,7 @@ async def _fetch_opportunities_markets(
     markets: list[Market] = []
     async for api_event in client.get_all_events(
         status="open",
-        limit=200,
+        limit=DEFAULT_PAGINATION_LIMIT,
         max_pages=max_pages,
         with_nested_markets=True,
     ):
