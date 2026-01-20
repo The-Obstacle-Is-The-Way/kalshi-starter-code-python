@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Annotated
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, print_budget_exhausted
 from kalshi_research.exa.policy import ExaMode
 from kalshi_research.paths import DEFAULT_DB_PATH
 
@@ -17,23 +17,6 @@ if TYPE_CHECKING:
     from kalshi_research.api.models.event import Event as KalshiEvent
     from kalshi_research.api.models.market import Market as KalshiMarket
     from kalshi_research.data import DatabaseManager
-
-
-def _maybe_print_budget_exhausted(obj: object) -> None:
-    from kalshi_research.exa.policy import ExaBudget
-
-    if getattr(obj, "budget_exhausted", False) is not True:
-        return
-
-    budget = getattr(obj, "budget", None)
-    if not isinstance(budget, ExaBudget):
-        return
-
-    console.print(
-        f"[yellow]Budget exhausted[/yellow] "
-        f"(${budget.spent_usd:.4f} / ${budget.limit_usd:.2f}); "
-        "results may be partial."
-    )
 
 
 def _default_search_queries(title: str) -> list[str]:
@@ -313,7 +296,7 @@ def news_collect(
 
                 count = await collector.collect_for_tracked_item(tracked)
                 console.print(f"[green]✓[/green] {ticker}: {count} new article(s)")
-                _maybe_print_budget_exhausted(collector)
+                print_budget_exhausted(collector)
                 return
 
             results = await collector.collect_all()
@@ -322,7 +305,7 @@ def news_collect(
                 return
             for key, count in results.items():
                 console.print(f"[green]✓[/green] {key}: {count} new article(s)")
-            _maybe_print_budget_exhausted(collector)
+            print_budget_exhausted(collector)
 
     asyncio.run(_collect())
 

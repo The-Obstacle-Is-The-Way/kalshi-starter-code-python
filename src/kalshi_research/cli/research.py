@@ -16,6 +16,7 @@ from kalshi_research.cli.utils import (
     atomic_write_json,
     console,
     load_json_storage_file,
+    print_budget_exhausted,
 )
 from kalshi_research.exa.policy import ExaBudget, ExaMode, ExaPolicy
 from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
@@ -56,21 +57,6 @@ def _save_theses(data: dict[str, Any]) -> None:
     """Save theses to storage."""
     thesis_file = _get_thesis_file()
     atomic_write_json(thesis_file, data)
-
-
-def _maybe_print_budget_exhausted(obj: object) -> None:
-    if getattr(obj, "budget_exhausted", False) is not True:
-        return
-
-    budget = getattr(obj, "budget", None)
-    if not isinstance(budget, ExaBudget):
-        return
-
-    console.print(
-        f"[yellow]Budget exhausted[/yellow] "
-        f"(${budget.spent_usd:.4f} / ${budget.limit_usd:.2f}); "
-        "results may be partial."
-    )
 
 
 def _resolve_thesis(tracker: "ThesisTracker", thesis_id: str) -> "ThesisModel | None":
@@ -661,13 +647,13 @@ def research_thesis_check_invalidation(
     if not report.signals:
         console.print("[green]✓ No invalidation signals found[/green]")
         console.print(f"[dim]{report.recommendation}[/dim]")
-        _maybe_print_budget_exhausted(detector)
+        print_budget_exhausted(detector)
         return
 
     _print_invalidation_signals(report.signals, severity_enum=InvalidationSeverity)
     if report.recommendation:
         console.print(f"[bold]Recommendation:[/bold] {report.recommendation}")
-    _maybe_print_budget_exhausted(detector)
+    print_budget_exhausted(detector)
 
 
 @thesis_app.command("suggest")
@@ -706,7 +692,7 @@ def research_thesis_suggest(
 
         if not suggestions:
             console.print("[yellow]No suggestions found.[/yellow]")
-            _maybe_print_budget_exhausted(suggester)
+            print_budget_exhausted(suggester)
             return
 
         console.print("\n[bold]🎯 Thesis Suggestions Based on Research[/bold]")
@@ -716,7 +702,7 @@ def research_thesis_suggest(
             console.print(f"[dim]Source:[/dim] {s.source_title} ({s.source_url})")
             if s.key_insight:
                 console.print(f"[italic]> {s.key_insight[:200]}[/italic]")
-        _maybe_print_budget_exhausted(suggester)
+        print_budget_exhausted(suggester)
 
     asyncio.run(_suggest())
 
@@ -1161,7 +1147,7 @@ def research_similar(
     """Find pages similar to a URL using Exa's /findSimilar endpoint."""
     from kalshi_research.exa import ExaClient
     from kalshi_research.exa.models.similar import FindSimilarResponse
-    from kalshi_research.exa.policy import ExaBudget, ExaPolicy, extract_exa_cost_total
+    from kalshi_research.exa.policy import ExaPolicy, extract_exa_cost_total
 
     async def _find() -> FindSimilarResponse:
         try:

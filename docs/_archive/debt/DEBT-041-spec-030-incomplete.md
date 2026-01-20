@@ -80,5 +80,5 @@ the CLI surface with SPEC-030’s cost-bounded design.
 
 ## References
 
-- [SPEC-030: Exa Endpoint Strategy](../_specs/SPEC-030-exa-endpoint-strategy.md)
+- [SPEC-030: Exa Endpoint Strategy](../../_specs/SPEC-030-exa-endpoint-strategy.md)
 - Lines 211, 217 (unchecked items)

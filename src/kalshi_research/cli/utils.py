@@ -54,3 +54,24 @@ def load_json_storage_file(*, path: Path, kind: str, required_list_key: str) -> 
         raise typer.Exit(1) from None
 
     return cast("dict[str, Any]", raw)
+
+
+def print_budget_exhausted(obj: object) -> None:
+    """Print a standardized budget-exhausted warning if applicable.
+
+    Checks for `budget_exhausted` and `budget` attributes on the object.
+    """
+    from kalshi_research.exa.policy import ExaBudget
+
+    if getattr(obj, "budget_exhausted", False) is not True:
+        return
+
+    budget = getattr(obj, "budget", None)
+    if not isinstance(budget, ExaBudget):
+        return
+
+    console.print(
+        f"[yellow]Budget exhausted[/yellow] "
+        f"(${budget.spent_usd:.4f} / ${budget.limit_usd:.2f}); "
+        "results may be partial."
+    )

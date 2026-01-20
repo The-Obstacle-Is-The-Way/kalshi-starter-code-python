@@ -169,6 +169,7 @@ def test_research_similar_missing_exa_key_exits_with_error() -> None:
 
     assert result.exit_code == 1
     assert "EXA_API_KEY" in result.stdout
+    assert "Check EXA_API_KEY" in result.stdout
     assert "--budget-usd" in result.stdout
 
 
