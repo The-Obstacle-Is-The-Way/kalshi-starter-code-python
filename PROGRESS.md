@@ -29,7 +29,7 @@
 
 - [x] **DEBT-046-B**: Migrate CLI modules to use `client_factory` (factory already exists) → `docs/_debt/DEBT-046-dependency-inversion-client-factory.md`
 - [x] **DEBT-039-A**: Audit `executor.py` broad catches for safety → `docs/_debt/DEBT-039-broad-exception-catches.md`
-- [ ] **DEBT-039-B**: Add exception type logging to all broad catches → `docs/_debt/DEBT-039-broad-exception-catches.md`
+- [x] **DEBT-039-B**: Add exception type logging to all broad catches → `docs/_debt/DEBT-039-broad-exception-catches.md`
 - [ ] **DEBT-047-A**: Introduce constants module + migrate pagination/depth defaults → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
 - [ ] **DEBT-047-B**: Migrate scanner/liquidity threshold literals → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
 
@@ -72,6 +72,7 @@
 - 2026-01-20: Implemented DEBT-045-F: refactored `cli/scan.py:scan_movers` (149 lines → 47 lines main + 4 helper functions). Extracted `_parse_movers_period()`, `_fetch_movers_market_lookup()`, `_compute_movers()`, `_render_movers_table()`. Removed noqa comment. DEBT-045 now complete (all noqa: PLR091 removed from src/). Quality gates pass (pre-commit, mypy, pytest 1009 tests).
 - 2026-01-20: Implemented DEBT-046-B: migrated CLI modules to `client_factory.public_client()` / `authed_client()`, updated CLI unit/integration tests to patch factory functions. Fixed order-dependent CLI tests caused by constructor patch leakage. Quality gates pass (pre-commit, mypy, pytest).
 - 2026-01-20: Implemented DEBT-039-A: audited `executor.py` broad exception catches for safety. Narrowed `_check_orderbook_safety` and `_check_liquidity_grade` to `(KalshiAPIError, httpx.HTTPError, httpx.TimeoutException)` with exception type logging. Documented `create_order` audit catch as intentionally broad (re-raises, audit-only). Added 5 new tests for narrowed exception handling. Quality gates pass (pre-commit, mypy, pytest 1014 tests).
+- 2026-01-20: Implemented DEBT-039-B: added `exc_info=True` to broad exception catches (`research/invalidation.py:128`, `research/thesis_research.py:313`, `api/websocket/client.py:275`, `exa/cache.py:141`). Narrowed cache exception catches from `Exception` to `(json.JSONDecodeError, KeyError, ValueError, TypeError, OSError)`. DEBT-039 now complete. Quality gates pass (pre-commit, mypy, pytest).
 
 ---
 

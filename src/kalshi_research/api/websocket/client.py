@@ -273,7 +273,12 @@ class KalshiWebSocket:
                 await self._resubscribe()
                 return
             except Exception as e:
-                logger.error(f"Reconnect attempt {attempt + 1} failed: {e}")
+                logger.error(
+                    "Reconnect attempt failed",
+                    attempt=attempt + 1,
+                    error=str(e),
+                    exc_info=True,
+                )
 
         self._running = False
         raise ConnectionError("Max reconnect attempts exceeded")

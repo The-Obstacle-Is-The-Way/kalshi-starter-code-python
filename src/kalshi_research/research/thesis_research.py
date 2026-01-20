@@ -311,7 +311,7 @@ class ThesisSuggester:
                 category="news",
             )
         except Exception as e:
-            logger.error("Thesis suggestion search failed", error=str(e))
+            logger.error("Thesis suggestion search failed", error=str(e), exc_info=True)
             return []
         self._budget.record_spend(extract_exa_cost_total(response))
 
