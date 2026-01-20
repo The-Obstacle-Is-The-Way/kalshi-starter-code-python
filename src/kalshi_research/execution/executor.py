@@ -8,6 +8,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal, Protocol
 
+import httpx
 import structlog
 
 from kalshi_research.analysis.liquidity import (
@@ -17,6 +18,7 @@ from kalshi_research.analysis.liquidity import (
     liquidity_score,
 )
 from kalshi_research.api.config import Environment, get_config
+from kalshi_research.api.exceptions import KalshiAPIError
 from kalshi_research.api.models.order import OrderAction, OrderResponse, OrderSide
 from kalshi_research.execution.audit import TradeAuditLogger
 from kalshi_research.execution.models import TradeAuditEvent, TradeChecks
@@ -314,12 +316,16 @@ class TradeExecutor:
                     )
                 except LiquidityError:
                     failures.append("slippage_limit_exceeded")
-        except Exception as exc:
-            # TODO(DEBT-039): Narrow to expected provider failures.
-            # (e.g., KalshiAPIError, httpx.HTTPError)
-            # Fail closed for live trading when safety checks cannot be evaluated.
+        except (KalshiAPIError, httpx.HTTPError, httpx.TimeoutException) as exc:
+            # Fail closed: when safety checks cannot be evaluated, block the trade.
+            # Expected failures: API errors (4xx/5xx), network issues, timeouts.
             failures.append("orderbook_provider_failed")
-            logger.exception("orderbook_provider_failed", ticker=ticker, error=str(exc))
+            logger.warning(
+                "orderbook_provider_failed",
+                ticker=ticker,
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
 
         return failures, orderbook
 
@@ -340,10 +346,15 @@ class TradeExecutor:
             }
             if grade_order[analysis.grade] < grade_order[self._min_liquidity_grade]:
                 return "liquidity_grade_too_low"
-        except Exception as exc:
-            # TODO(DEBT-039): Narrow to expected API/provider failures.
-            # (Enumerate failure modes first.)
-            logger.exception("liquidity_check_failed", ticker=ticker, error=str(exc))
+        except (KalshiAPIError, httpx.HTTPError, httpx.TimeoutException) as exc:
+            # Fail closed: when safety checks cannot be evaluated, block the trade.
+            # Expected failures: API errors (4xx/5xx), network issues, timeouts.
+            logger.warning(
+                "liquidity_check_failed",
+                ticker=ticker,
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
             return "liquidity_check_failed"
 
         return None
@@ -509,8 +520,10 @@ class TradeExecutor:
             )
             return response
         except Exception as exc:
-            # TODO(DEBT-039): Consider narrowing to expected API/client exceptions.
-            # Keep broad catch so audit capture includes unexpected failures.
+            # INTENTIONALLY BROAD: This catch exists solely for audit logging, not handling.
+            # The exception is ALWAYS re-raised - we just capture the error message first.
+            # Narrowing would miss unexpected failures in the audit trail.
+            # Safety: No silent failure risk because the exception propagates.
             error = str(exc)
             raise
         finally:

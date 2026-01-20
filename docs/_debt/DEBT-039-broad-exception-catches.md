@@ -42,10 +42,15 @@ src/kalshi_research/cli/event.py:104, 257, 318, 382 (SPEC-043)
 src/kalshi_research/cli/mve.py (multiple) (SPEC-043)
 ```
 
-### Execution (Safety-critical)
+### Execution (Safety-critical) ✅ AUDITED 2026-01-20
 ```text
-src/kalshi_research/execution/executor.py:309, 333, 431
+src/kalshi_research/execution/executor.py:319, 349, 522 (line numbers updated after refactoring)
 ```
+
+**Audit Results:**
+1. `_check_orderbook_safety` (line 319): Narrowed to `(KalshiAPIError, httpx.HTTPError, httpx.TimeoutException)`. Fails closed (blocks trade). Logs exception type. ✅
+2. `_check_liquidity_grade` (line 349): Narrowed to same exceptions. Fails closed. Logs exception type. ✅
+3. `create_order` audit logging (line 522): **INTENTIONALLY BROAD** - This catch exists solely for audit logging; the exception is ALWAYS re-raised. Narrowing would miss unexpected failures in the audit trail. Safety analysis: No silent failure risk because the exception propagates.
 
 ### Other
 ```text
@@ -94,10 +99,10 @@ Replace `except Exception` with specific exception types where the failure modes
 
 ## Acceptance Criteria
 
-- [ ] `executor.py` broad catches reviewed for safety
-- [ ] All broad catches log the exception type (not just message)
-- [ ] Obvious narrowing opportunities addressed (e.g., `httpx.HTTPError`)
-- [ ] Document any broad catches that are intentionally kept
+- [x] `executor.py` broad catches reviewed for safety (DEBT-039-A, 2026-01-20)
+- [ ] All broad catches log the exception type (not just message) (DEBT-039-B)
+- [ ] Obvious narrowing opportunities addressed (e.g., `httpx.HTTPError`) (DEBT-039-B)
+- [x] Document any broad catches that are intentionally kept (see "Audit Results" above)
 
 ---
 
