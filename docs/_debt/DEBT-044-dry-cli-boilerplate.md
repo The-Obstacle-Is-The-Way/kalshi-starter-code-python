@@ -75,7 +75,7 @@ Refactor CLI modules to call these helpers. Migration should be mechanical and t
 
 - [x] `rg -n \"asyncio\\.run\\(\" src/kalshi_research/cli` returns **1** (only in `run_async()` helper)
 - [x] All standard exit-on-error patterns use `exit_kalshi_api_error()` (3 intentional special cases remain)
-- [ ] `rg -n \"DatabaseManager\\(\" src/kalshi_research/cli` returns **≤ 1** (single helper location)
+- [x] `rg -n \"DatabaseManager\\(\" src/kalshi_research/cli` returns **≤ 1** (single helper location)
 - [x] No behavior regressions: `uv run pytest`
 - [x] All quality gates: `uv run pre-commit run --all-files`
 
@@ -85,6 +85,6 @@ Refactor CLI modules to call these helpers. Migration should be mechanical and t
 - [x] Phase B: Migrate all CLI modules off direct `asyncio.run()`
 - [x] Phase C: Add `exit_kalshi_api_error()` helper and migrate at least one CLI module as a template
 - [x] Phase D: Migrate all CLI modules off duplicated `except KalshiAPIError` blocks
-- [ ] Phase E: Add DB session helper and migrate all CLI DB session setup
+- [x] Phase E: Add DB session helper and migrate all CLI DB session setup
 
-**Note (2026-01-20):** Phases A–D complete. Phase E remains pending.
+**Note (2026-01-20):** All phases complete. `DatabaseManager` now only appears in `cli/db.py` helper.

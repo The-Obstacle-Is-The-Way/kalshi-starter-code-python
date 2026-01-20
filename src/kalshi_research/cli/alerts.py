@@ -129,12 +129,12 @@ async def _compute_sentiment_shifts(
     *,
     db_path: Path,
 ) -> dict[str, float]:
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.news import SentimentAggregator
 
     shifts: dict[str, float] = {}
     try:
-        async with DatabaseManager(db_path) as db:
+        async with open_db(db_path) as db:
             aggregator = SentimentAggregator(db)
             for ticker in tickers:
                 summary = await aggregator.get_market_summary(ticker, days=7, compare_previous=True)

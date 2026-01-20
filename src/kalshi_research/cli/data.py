@@ -553,7 +553,7 @@ def data_stats(
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """Show database statistics."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db_session
     from kalshi_research.data.repositories import (
         EventRepository,
         MarketRepository,
@@ -565,7 +565,7 @@ def data_stats(
         raise typer.Exit(1)
 
     async def _stats() -> None:
-        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+        async with open_db_session(db_path) as session:
             event_repo = EventRepository(session)
             market_repo = MarketRepository(session)
             price_repo = PriceRepository(session)

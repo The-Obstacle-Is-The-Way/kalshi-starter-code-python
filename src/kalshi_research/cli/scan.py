@@ -1004,10 +1004,10 @@ async def _load_correlated_pairs(
         return []
 
     from kalshi_research.analysis.correlation import CorrelationAnalyzer
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db_session
     from kalshi_research.data.repositories import PriceRepository
 
-    async with DatabaseManager(db_path) as db, db.session_factory() as session:
+    async with open_db_session(db_path) as session:
         price_repo = PriceRepository(session)
 
         tickers = [m.ticker for m in markets]
@@ -1174,7 +1174,7 @@ def scan_movers(  # noqa: PLR0915
     """Show biggest price movers over a time period."""
 
     from kalshi_research.api import KalshiPublicClient
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db_session
 
     if not db_path.exists():
         console.print(f"[red]Error:[/red] Database not found at {db_path}")
@@ -1215,7 +1215,7 @@ def scan_movers(  # noqa: PLR0915
 
         # Get historical prices
         movers: list[MoverRow] = []
-        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+        async with open_db_session(db_path) as session:
             price_repo = PriceRepository(session)
 
             cutoff_time = datetime.now(UTC) - timedelta(hours=hours_back)

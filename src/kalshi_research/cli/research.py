@@ -497,51 +497,47 @@ def research_thesis_show(  # noqa: PLR0915
     if with_positions:
         from sqlalchemy import select
 
-        from kalshi_research.data import DatabaseManager
+        from kalshi_research.cli.db import open_db_session
         from kalshi_research.portfolio import Position
 
         async def _show_positions() -> None:
-            db = DatabaseManager(db_path)
-            try:
-                async with db.session_factory() as session:
-                    query = select(Position).where(Position.thesis_id == thesis["id"])
-                    result = await session.execute(query)
-                    positions = result.scalars().all()
+            async with open_db_session(db_path) as session:
+                query = select(Position).where(Position.thesis_id == thesis["id"])
+                result = await session.execute(query)
+                positions = result.scalars().all()
 
-                    if not positions:
-                        console.print("\n[dim]No positions linked to this thesis.[/dim]")
-                        return
+                if not positions:
+                    console.print("\n[dim]No positions linked to this thesis.[/dim]")
+                    return
 
-                    # Display positions
-                    console.print("\n[cyan]Linked Positions:[/cyan]")
-                    pos_table = Table()
-                    pos_table.add_column("Ticker", style="cyan")
-                    pos_table.add_column("Side", style="magenta")
-                    pos_table.add_column("Qty", justify="right")
-                    pos_table.add_column("Avg Price", justify="right")
-                    pos_table.add_column("P&L", justify="right")
+                # Display positions
+                console.print("\n[cyan]Linked Positions:[/cyan]")
+                pos_table = Table()
+                pos_table.add_column("Ticker", style="cyan")
+                pos_table.add_column("Side", style="magenta")
+                pos_table.add_column("Qty", justify="right")
+                pos_table.add_column("Avg Price", justify="right")
+                pos_table.add_column("P&L", justify="right")
 
-                    for pos in positions:
-                        pnl_str = "-"
-                        if pos.unrealized_pnl_cents is not None:
-                            pnl = pos.unrealized_pnl_cents
-                            pnl_str = f"${pnl / 100:.2f}"
-                            if pnl > 0:
-                                pnl_str = f"[green]+{pnl_str}[/green]"
-                            elif pnl < 0:
-                                pnl_str = f"[red]{pnl_str}[/red]"
+                for pos in positions:
+                    pnl_str = "-"
+                    if pos.unrealized_pnl_cents is not None:
+                        pnl = pos.unrealized_pnl_cents
+                        pnl_str = f"${pnl / 100:.2f}"
+                        if pnl > 0:
+                            pnl_str = f"[green]+{pnl_str}[/green]"
+                        elif pnl < 0:
+                            pnl_str = f"[red]{pnl_str}[/red]"
 
-                        pos_table.add_row(
-                            pos.ticker,
-                            pos.side.upper(),
-                            str(pos.quantity),
-                            "-" if pos.avg_price_cents == 0 else f"{pos.avg_price_cents}¢",
-                            pnl_str,
-                        )
+                    pos_table.add_row(
+                        pos.ticker,
+                        pos.side.upper(),
+                        str(pos.quantity),
+                        "-" if pos.avg_price_cents == 0 else f"{pos.avg_price_cents}¢",
+                        pnl_str,
+                    )
 
-                    console.print(pos_table)
-            finally:
-                await db.close()
+                console.print(pos_table)
 
         run_async(_show_positions())
 
@@ -736,7 +732,7 @@ def research_backtest(
     """
     from sqlalchemy import select
 
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.data.models import Settlement
     from kalshi_research.research.backtest import ThesisBacktester
     from kalshi_research.research.thesis import ThesisManager, ThesisStatus
@@ -747,7 +743,7 @@ def research_backtest(
         raise typer.Exit(1)
 
     async def _backtest() -> None:
-        async with DatabaseManager(db_path) as db:
+        async with open_db(db_path) as db:
             try:
                 thesis_mgr = ThesisManager()
             except ValueError as e:

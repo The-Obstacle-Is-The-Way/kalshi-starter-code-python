@@ -702,7 +702,7 @@ async def _market_search_async(
     import json
     from pathlib import Path
 
-    from kalshi_research.data.database import DatabaseManager
+    from kalshi_research.cli.db import open_db_session
     from kalshi_research.data.repositories.search import SearchRepository
     from kalshi_research.data.search_utils import has_fts5_support
 
@@ -715,10 +715,7 @@ async def _market_search_async(
         )
         raise typer.Exit(1)
 
-    db_manager = DatabaseManager(str(db_path))
-    session = await db_manager.get_session()
-
-    try:
+    async with open_db_session(db_path) as session:
         # Check FTS5 support and warn if unavailable
         has_fts5 = await has_fts5_support(session)
         if not has_fts5:
@@ -737,9 +734,6 @@ async def _market_search_async(
             max_spread=max_spread,
             limit=top,
         )
-    finally:
-        await session.close()
-        await db_manager.close()
 
     if not results:
         console.print("[yellow]No markets found.[/yellow]")

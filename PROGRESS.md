@@ -14,7 +14,7 @@
 - [x] **DEBT-044-B**: Migrate all CLI modules off direct `asyncio.run()` → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
 - [x] **DEBT-044-C**: Add `exit_kalshi_api_error()` helper → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
 - [x] **DEBT-044-D**: Migrate all CLI modules off duplicated `except KalshiAPIError` → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
-- [ ] **DEBT-044-E**: Add DB session helper + migrate CLI DB plumbing → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
+- [x] **DEBT-044-E**: Add DB session helper + migrate CLI DB plumbing → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
 
 ### Phase 2: P2 Debt (High)
 
@@ -63,6 +63,7 @@
 - 2026-01-20: Implemented DEBT-044-B: migrated all CLI modules (13 files, 55 call sites) from direct `asyncio.run()` to centralized `run_async()` helper. Only `utils.py:run_async()` now contains `asyncio.run`. Quality gates pass (pre-commit, mypy, pytest 1003 tests).
 - 2026-01-20: Implemented DEBT-044-C: added `exit_kalshi_api_error()` helper to `cli/utils.py` (centralized error formatting + exit codes: 404→2, others→1). Migrated `cli/status.py` as template (3 call sites). Added 6 unit tests. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
 - 2026-01-20: Implemented DEBT-044-D: migrated all CLI modules (12 files, 25 call sites) to use `exit_kalshi_api_error()` helper. 3 special cases intentionally preserved (news.py ValueError re-raise, scan.py and event.py warning+continue patterns). Quality gates pass (pre-commit, mypy, pytest 1009 tests).
+- 2026-01-20: Implemented DEBT-044-E: migrated all CLI modules (6 files, 11 call sites) off direct `DatabaseManager()` to use `open_db()`/`open_db_session()` helpers from `cli/db.py`. Helpers already existed; migration was mechanical. Now only `cli/db.py` contains `DatabaseManager`. Quality gates pass (pre-commit, mypy, pytest 1009 tests). DEBT-044 complete.
 
 ---
 
