@@ -35,7 +35,7 @@
 
 ### Phase 4: P1 Debt (Large - After Phases 1-3)
 
-- [ ] **DEBT-043-A**: Split `cli/research.py` into `cli/research/` package → `docs/_debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-A**: Split `cli/research.py` into `cli/research/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-B**: Split `cli/scan.py` into `cli/scan/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-C**: Split `api/client.py` into endpoint modules → `docs/_debt/DEBT-043-srp-god-files.md`
 
@@ -75,6 +75,7 @@
 - 2026-01-20: Implemented DEBT-039-B: added `exc_info=True` to broad exception catches (`research/invalidation.py:128`, `research/thesis_research.py:313`, `api/websocket/client.py:275`, `exa/cache.py:141`). Narrowed cache exception catches from `Exception` to `(json.JSONDecodeError, KeyError, ValueError, TypeError, OSError)`. DEBT-039 now complete. Quality gates pass (pre-commit, mypy, pytest).
 - 2026-01-20: Implemented DEBT-047-A: created `src/kalshi_research/constants.py` with `DEFAULT_PAGINATION_LIMIT=200` and `DEFAULT_ORDERBOOK_DEPTH=10`. Migrated 4 files (data/fetcher.py, cli/scan.py, cli/market.py, api/client.py) to use constants. Grep checks confirm no `limit=200` or `depth: int = 10` literals remain. Quality gates pass (pre-commit, mypy, pytest 1014 tests).
 - 2026-01-20: Implemented DEBT-047-B: added 13 scanner/liquidity constants to `constants.py` (close_race_range, high_volume_threshold, wide_spread_threshold, depth_radius, max_slippage, grade thresholds, spread score bounds, warning thresholds). Migrated `analysis/scanner.py` (3 defaults) and `analysis/liquidity.py` (10+ references). Grep confirms `(0.40, 0.60)` only in constants.py. Quality gates pass (pre-commit, mypy, pytest 1014 tests).
+- 2026-01-20: Implemented DEBT-043-A: split `cli/research.py` (1367 lines) into `cli/research/` package (12 files, all ≤400 lines). Structure: `__init__.py` (111 lines), `_shared.py` (92), `context.py` (186), `topic.py` (123), `similar.py` (84), `deep.py` (181), `backtest.py` (202), `cache.py` (37), `thesis/__init__.py` (60), `thesis/_commands.py` (395), `thesis/_helpers.py` (154), `thesis/_suggest.py` (58). Updated test patch paths. Quality gates pass (pre-commit, mypy, pytest 42 research tests).
 
 ---
 

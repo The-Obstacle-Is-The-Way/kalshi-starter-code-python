@@ -99,7 +99,7 @@ def test_research_context_renders_market_context(make_market) -> None:
     )
 
     with patch(
-        "kalshi_research.cli.research._research_market_context",
+        "kalshi_research.cli.research.context._research_market_context",
         AsyncMock(return_value=(market, research)),
     ):
         result = runner.invoke(app, ["research", "context", market.ticker])
@@ -128,7 +128,7 @@ def test_research_context_renders_na_when_market_missing_prices(make_market) -> 
     )
 
     with patch(
-        "kalshi_research.cli.research._research_market_context",
+        "kalshi_research.cli.research.context._research_market_context",
         AsyncMock(return_value=(market, research)),
     ):
         result = runner.invoke(app, ["research", "context", market.ticker])
@@ -412,7 +412,7 @@ def test_research_deep_table_output_renders_task_data() -> None:
 
 def test_research_deep_unexpected_exception_exits_with_error() -> None:
     with patch(
-        "kalshi_research.cli.research._run_deep_research",
+        "kalshi_research.cli.research.deep._run_deep_research",
         new=AsyncMock(side_effect=RuntimeError("boom")),
     ):
         result = runner.invoke(app, ["research", "deep", "Test topic"])
@@ -425,7 +425,7 @@ def test_thesis_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
     thesis_file = tmp_path / "theses.json"
     thesis_file.write_text("{not json", encoding="utf-8")
 
-    with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+    with patch("kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file):
         result = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result.exit_code == 1
@@ -435,7 +435,9 @@ def test_thesis_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
 def test_research_thesis_create() -> None:
     with runner.isolated_filesystem():
         thesis_file = Path("theses.json")
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(
                 app,
                 [
@@ -492,9 +494,11 @@ def test_research_thesis_create_with_research_accepts_suggestions() -> None:
     with runner.isolated_filesystem():
         thesis_file = Path("theses.json")
         with (
-            patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file),
             patch(
-                "kalshi_research.cli.research._gather_thesis_research_data",
+                "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+            ),
+            patch(
+                "kalshi_research.cli.research.thesis._commands._gather_thesis_research_data",
                 new=AsyncMock(return_value=research_data),
             ),
         ):
@@ -531,7 +535,9 @@ def test_research_thesis_create_with_research_accepts_suggestions() -> None:
 def test_research_thesis_list_empty() -> None:
     with runner.isolated_filesystem():
         thesis_file = Path("theses.json")
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result.exit_code == 0
@@ -557,7 +563,9 @@ def test_research_thesis_list_with_theses() -> None:
             ),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result.exit_code == 0
@@ -590,7 +598,9 @@ def test_research_thesis_show() -> None:
             ),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(app, ["research", "thesis", "show", "thesis-1"])
 
     assert result.exit_code == 0
@@ -603,7 +613,9 @@ def test_research_thesis_show_missing_thesis_exits_with_not_found() -> None:
         thesis_file.write_text(
             json.dumps({"theses": [{"id": "thesis-12345678"}]}), encoding="utf-8"
         )
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(app, ["research", "thesis", "show", "missing"])
 
     assert result.exit_code == 2
@@ -627,7 +639,9 @@ def test_research_thesis_edit_updates_title() -> None:
             ),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(
                 app,
                 ["research", "thesis", "edit", "thesis-1", "--title", "New Title"],
@@ -657,7 +671,9 @@ def test_research_thesis_edit_updates_bull_and_bear() -> None:
             ),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(
                 app,
                 [
@@ -685,7 +701,9 @@ def test_research_thesis_edit_missing_thesis_exits_with_not_found() -> None:
             json.dumps({"theses": [{"id": "thesis-12345678", "title": "Test Thesis"}]}),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(
                 app,
                 ["research", "thesis", "edit", "missing", "--title", "New Title"],
@@ -702,7 +720,9 @@ def test_research_thesis_edit_no_changes_exits_with_error() -> None:
             json.dumps({"theses": [{"id": "thesis-12345678", "title": "Test Thesis"}]}),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(app, ["research", "thesis", "edit", "thesis-1"])
 
     assert result.exit_code == 1
@@ -726,7 +746,9 @@ def test_research_thesis_resolve() -> None:
             ),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(
                 app, ["research", "thesis", "resolve", "thesis-1", "--outcome", "yes"]
             )
@@ -741,7 +763,9 @@ def test_research_thesis_resolve_missing_thesis_exits_with_not_found() -> None:
         thesis_file.write_text(
             json.dumps({"theses": [{"id": "thesis-12345678"}]}), encoding="utf-8"
         )
-        with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
             result = runner.invoke(
                 app,
                 [
@@ -789,7 +813,7 @@ def test_research_thesis_check_invalidation_missing_thesis_exits_with_not_found(
         encoding="utf-8",
     )
 
-    with patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file):
+    with patch("kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file):
         result = runner.invoke(app, ["research", "thesis", "check-invalidation", "missing"])
 
     assert result.exit_code == 2
@@ -844,7 +868,10 @@ def test_research_thesis_check_invalidation_no_signals(tmp_path: Path) -> None:
     detector_instance.check_thesis = AsyncMock(return_value=report)
 
     with (
-        patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file),
+        patch(
+            "kalshi_research.cli.research.thesis._commands._get_thesis_file",
+            return_value=thesis_file,
+        ),
         patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa),
         patch(
             "kalshi_research.research.invalidation.InvalidationDetector",
@@ -919,7 +946,10 @@ def test_research_thesis_check_invalidation_with_signals(tmp_path: Path) -> None
     detector_instance.check_thesis = AsyncMock(return_value=report)
 
     with (
-        patch("kalshi_research.cli.research._get_thesis_file", return_value=thesis_file),
+        patch(
+            "kalshi_research.cli.research.thesis._commands._get_thesis_file",
+            return_value=thesis_file,
+        ),
         patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa),
         patch(
             "kalshi_research.research.invalidation.InvalidationDetector",
@@ -1000,7 +1030,7 @@ def test_research_backtest(mock_db_cls: MagicMock) -> None:
 
 
 def test_parse_backtest_dates_includes_end_date() -> None:
-    from kalshi_research.cli.research import _parse_backtest_dates
+    from kalshi_research.cli.research.backtest import _parse_backtest_dates
 
     start_dt, end_dt_exclusive = _parse_backtest_dates("2024-06-30", "2024-06-30")
 
@@ -1008,8 +1038,9 @@ def test_parse_backtest_dates_includes_end_date() -> None:
     assert end_dt_exclusive == datetime(2024, 7, 1, 0, 0, tzinfo=UTC)
 
 
-@patch("kalshi_research.data.DatabaseManager")
-def test_research_thesis_show_with_positions(mock_db_cls: MagicMock) -> None:
+def test_research_thesis_show_with_positions() -> None:
+    from contextlib import asynccontextmanager
+
     mock_position = MagicMock()
     mock_position.ticker = "TEST-TICKER"
     mock_position.side = "yes"
@@ -1021,18 +1052,11 @@ def test_research_thesis_show_with_positions(mock_db_cls: MagicMock) -> None:
     mock_result.scalars.return_value.all.return_value = [mock_position]
 
     mock_session = AsyncMock()
-    mock_session.__aenter__.return_value = mock_session
-    mock_session.__aexit__.return_value = AsyncMock()
     mock_session.execute = AsyncMock(return_value=mock_result)
 
-    mock_session_factory = MagicMock()
-    mock_session_factory.return_value = mock_session
-
-    mock_db = AsyncMock()
-    mock_db.__aenter__.return_value = mock_db
-    mock_db.__aexit__.return_value = AsyncMock()
-    mock_db.session_factory = mock_session_factory
-    mock_db_cls.return_value = mock_db
+    @asynccontextmanager
+    async def mock_open_db_session(_db_path):
+        yield mock_session
 
     thesis_data = {
         "theses": [
@@ -1057,6 +1081,7 @@ def test_research_thesis_show_with_positions(mock_db_cls: MagicMock) -> None:
     with (
         patch("pathlib.Path.exists", return_value=True),
         patch("pathlib.Path.open", mock_file),
+        patch("kalshi_research.cli.db.open_db_session", mock_open_db_session),
     ):
         result = runner.invoke(app, ["research", "thesis", "show", "thesis-1", "--with-positions"])
 
@@ -1083,14 +1108,14 @@ def test_research_thesis_list_full_flag_disables_truncation() -> None:
         ]
     }
 
-    with patch("kalshi_research.cli.research._load_theses", return_value=theses):
+    with patch("kalshi_research.cli.research.thesis._commands._load_theses", return_value=theses):
         result_default = runner.invoke(app, ["research", "thesis", "list"])
 
     assert result_default.exit_code == 0
     assert title_suffix not in result_default.stdout
     assert id_suffix not in result_default.stdout
 
-    with patch("kalshi_research.cli.research._load_theses", return_value=theses):
+    with patch("kalshi_research.cli.research.thesis._commands._load_theses", return_value=theses):
         result_full = runner.invoke(app, ["research", "thesis", "list", "--full"])
 
     assert result_full.exit_code == 0
