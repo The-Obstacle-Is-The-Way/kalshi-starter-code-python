@@ -405,6 +405,29 @@ To cancel: `/cancel-ralph`
 **⚠️ Warning:** The plugin supports `--completion-promise` flags, but we recommend
 against using them. Rely on state-file verification instead to prevent reward hacking.
 
+#### Option D: Convenience Script (Recommended for This Repo)
+
+This repo includes a ready-to-use script at `scripts/ralph-loop.sh`:
+
+```bash
+# Start in tmux (recommended)
+tmux new -s ralph
+./scripts/ralph-loop.sh
+```
+
+Or start it directly in a background tmux session:
+
+```bash
+# Kill any existing session and start fresh
+tmux kill-session -t ralph 2>/dev/null
+tmux new-session -d -s ralph "./scripts/ralph-loop.sh"
+
+# Attach to watch
+tmux attach -t ralph
+```
+
+**Script location:** `scripts/ralph-loop.sh`
+
 ---
 
 ### Claude Code CLI Reference

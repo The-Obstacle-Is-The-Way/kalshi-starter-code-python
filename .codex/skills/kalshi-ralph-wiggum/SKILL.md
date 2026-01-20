@@ -61,7 +61,24 @@ MAX=50; for i in $(seq 1 $MAX); do
 done
 ```
 
-### Quick Start Checklist
+### Quick Start: Use the Script (Recommended)
+
+This repo includes a ready-to-use script:
+
+```bash
+# Option 1: Run directly in tmux
+tmux new -s ralph
+./scripts/ralph-loop.sh
+
+# Option 2: Start in background tmux session
+tmux kill-session -t ralph 2>/dev/null
+tmux new-session -d -s ralph "./scripts/ralph-loop.sh"
+tmux attach -t ralph  # Attach to watch
+```
+
+**Script location:** `scripts/ralph-loop.sh`
+
+### Quick Start Checklist (Manual)
 
 ```bash
 # 1. Create sandbox branch (if not already)
@@ -73,7 +90,7 @@ ls PROGRESS.md PROMPT.md
 # 3. Start tmux
 tmux new -s ralph
 
-# 4. Run the loop (command above)
+# 4. Run the loop (or use ./scripts/ralph-loop.sh)
 
 # 5. Monitor in another pane
 watch -n 5 'git log --oneline -10'
