@@ -20,6 +20,9 @@ def _anthropic_available() -> bool:
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_real_claude_synthesis_returns_valid_result() -> None:
+    if os.getenv("KALSHI_RUN_LIVE_LLM") != "1":
+        pytest.skip("Set KALSHI_RUN_LIVE_LLM=1 to run live Anthropic integration tests")
+
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         pytest.skip("ANTHROPIC_API_KEY not set")
