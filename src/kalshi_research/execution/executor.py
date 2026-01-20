@@ -228,7 +228,152 @@ class TradeExecutor:
 
         return estimated_risk_usd, failures
 
-    async def _run_live_checks(  # noqa: PLR0912, PLR0915
+    def _check_kill_switch(self) -> str | None:
+        """Check if trading kill switch is enabled."""
+        if os.getenv(self.KILL_SWITCH_ENV) == "1":
+            return "kill_switch_enabled"
+        return None
+
+    def _check_production_gating(self) -> str | None:
+        """Check if production trading is allowed."""
+        if self._environment == Environment.PRODUCTION and not self._allow_production:
+            return "production_trading_disabled"
+        return None
+
+    def _check_daily_order_limit(self) -> str | None:
+        """Check if daily order limit has been reached."""
+        if self._max_orders_per_day > 0:
+            live_orders_today = self._count_live_orders_today()
+            if live_orders_today >= self._max_orders_per_day:
+                return "max_orders_per_day_exceeded"
+        return None
+
+    async def _check_budget_limits(self, estimated_risk_usd: float) -> list[str]:
+        """Check daily loss and notional limits."""
+        failures: list[str] = []
+        if self._budget_tracker is None:
+            return failures
+
+        daily_loss = await self._budget_tracker.get_daily_loss_usd()
+        if daily_loss >= self._max_daily_loss_usd:
+            failures.append("max_daily_loss_exceeded")
+
+        daily_spend = await self._budget_tracker.get_daily_spend_usd()
+        if daily_spend + estimated_risk_usd > self._max_notional_usd:
+            failures.append("max_notional_exceeded")
+
+        return failures
+
+    async def _check_position_cap(
+        self, ticker: str, side: OrderSide, action: OrderAction, count: int
+    ) -> str | None:
+        """Check if order would exceed position cap."""
+        if self._position_provider is None:
+            return None
+
+        current_position = await self._position_provider.get_position_quantity(ticker, side)
+        new_position_size = abs(current_position + (count if action == OrderAction.BUY else -count))
+        if new_position_size > self._max_position_contracts:
+            return "max_position_contracts_exceeded"
+        return None
+
+    async def _check_orderbook_safety(
+        self, ticker: str, side: OrderSide, action: OrderAction, count: int, yes_price_cents: int
+    ) -> tuple[list[str], Orderbook | None]:
+        """Check fat-finger deviation and slippage limits.
+
+        Returns:
+            Tuple of (failures, orderbook) where orderbook may be None if provider unavailable.
+        """
+        failures: list[str] = []
+        orderbook: Orderbook | None = None
+
+        if self._orderbook_provider is None:
+            return failures, orderbook
+
+        try:
+            orderbook = await self._orderbook_provider.get_orderbook(ticker)
+
+            # Fat-finger deviation check
+            midpoint = orderbook.midpoint
+            if midpoint is not None:
+                midpoint_cents = float(midpoint)
+                deviation = abs(yes_price_cents - midpoint_cents)
+                if deviation > self._max_price_deviation_cents:
+                    failures.append("fat_finger_deviation_exceeded")
+
+            # Slippage check (only for buys)
+            if action == OrderAction.BUY:
+                try:
+                    enforce_max_slippage(
+                        orderbook,
+                        side.value,
+                        action.value,
+                        quantity=count,
+                        max_slippage_pct=self._max_slippage_pct,
+                    )
+                except LiquidityError:
+                    failures.append("slippage_limit_exceeded")
+        except Exception as exc:
+            # TODO(DEBT-039): Narrow to expected provider failures.
+            # (e.g., KalshiAPIError, httpx.HTTPError)
+            # Fail closed for live trading when safety checks cannot be evaluated.
+            failures.append("orderbook_provider_failed")
+            logger.exception("orderbook_provider_failed", ticker=ticker, error=str(exc))
+
+        return failures, orderbook
+
+    async def _check_liquidity_grade(self, ticker: str, orderbook: Orderbook | None) -> str | None:
+        """Check if market meets minimum liquidity grade."""
+        if self._min_liquidity_grade is None or self._market_provider is None or orderbook is None:
+            return None
+
+        try:
+            market = await self._market_provider.get_market(ticker)
+            analysis = liquidity_score(market, orderbook)
+
+            grade_order = {
+                LiquidityGrade.ILLIQUID: 0,
+                LiquidityGrade.THIN: 1,
+                LiquidityGrade.MODERATE: 2,
+                LiquidityGrade.LIQUID: 3,
+            }
+            if grade_order[analysis.grade] < grade_order[self._min_liquidity_grade]:
+                return "liquidity_grade_too_low"
+        except Exception as exc:
+            # TODO(DEBT-039): Narrow to expected API/provider failures.
+            # (Enumerate failure modes first.)
+            logger.exception("liquidity_check_failed", ticker=ticker, error=str(exc))
+            return "liquidity_check_failed"
+
+        return None
+
+    def _check_confirmation(
+        self,
+        ticker: str,
+        side: OrderSide,
+        action: OrderAction,
+        count: int,
+        yes_price_cents: int,
+        estimated_risk_usd: float,
+    ) -> str | None:
+        """Check user confirmation for the trade."""
+        if not self._require_confirmation:
+            return None
+
+        if self._confirm is None:
+            return "missing_confirmation_callback"
+
+        summary = (
+            f"{action.value.upper()} {count} {side.value.upper()} "
+            f"{ticker} @ {yes_price_cents}¢ (risk≈${estimated_risk_usd:.2f})"
+        )
+        if not bool(self._confirm(summary)):
+            return "confirmation_declined"
+
+        return None
+
+    async def _run_live_checks(
         self,
         *,
         ticker: str,
@@ -253,100 +398,35 @@ class TradeExecutor:
         """
         failures: list[str] = []
 
-        # Phase 1 checks
-        if os.getenv(self.KILL_SWITCH_ENV) == "1":
-            failures.append("kill_switch_enabled")
+        # Phase 1 checks (sync)
+        if failure := self._check_kill_switch():
+            failures.append(failure)
 
-        if self._environment == Environment.PRODUCTION and not self._allow_production:
-            failures.append("production_trading_disabled")
+        if failure := self._check_production_gating():
+            failures.append(failure)
 
-        if self._max_orders_per_day > 0:
-            live_orders_today = self._count_live_orders_today()
-            if live_orders_today >= self._max_orders_per_day:
-                failures.append("max_orders_per_day_exceeded")
+        if failure := self._check_daily_order_limit():
+            failures.append(failure)
 
-        # Phase 2 checks
-        if self._budget_tracker is not None:
-            daily_loss = await self._budget_tracker.get_daily_loss_usd()
-            if daily_loss >= self._max_daily_loss_usd:
-                failures.append("max_daily_loss_exceeded")
+        # Phase 2 checks (async)
+        failures.extend(await self._check_budget_limits(estimated_risk_usd))
 
-            daily_spend = await self._budget_tracker.get_daily_spend_usd()
-            if daily_spend + estimated_risk_usd > self._max_notional_usd:
-                failures.append("max_notional_exceeded")
+        if failure := await self._check_position_cap(ticker, side, action, count):
+            failures.append(failure)
 
-        if self._position_provider is not None:
-            current_position = await self._position_provider.get_position_quantity(ticker, side)
-            new_position_size = abs(
-                current_position + (count if action == OrderAction.BUY else -count)
-            )
-            if new_position_size > self._max_position_contracts:
-                failures.append("max_position_contracts_exceeded")
+        orderbook_failures, orderbook = await self._check_orderbook_safety(
+            ticker, side, action, count, yes_price_cents
+        )
+        failures.extend(orderbook_failures)
 
-        orderbook = None
-        if self._orderbook_provider is not None:
-            try:
-                orderbook = await self._orderbook_provider.get_orderbook(ticker)
-                midpoint = orderbook.midpoint
-                if midpoint is not None:
-                    midpoint_cents = float(midpoint)
-                    deviation = abs(yes_price_cents - midpoint_cents)
-                    if deviation > self._max_price_deviation_cents:
-                        failures.append("fat_finger_deviation_exceeded")
+        if failure := await self._check_liquidity_grade(ticker, orderbook):
+            failures.append(failure)
 
-                # Liquidity-aware sizing: check slippage
-                if action == OrderAction.BUY:
-                    try:
-                        enforce_max_slippage(
-                            orderbook,
-                            side.value,
-                            action.value,
-                            quantity=count,
-                            max_slippage_pct=self._max_slippage_pct,
-                        )
-                    except LiquidityError:
-                        failures.append("slippage_limit_exceeded")
-            except Exception as exc:
-                # TODO(DEBT-039): Narrow to expected provider failures.
-                # (e.g., KalshiAPIError, httpx.HTTPError)
-                # Fail closed for live trading when safety checks cannot be evaluated.
-                failures.append("orderbook_provider_failed")
-                logger.exception("orderbook_provider_failed", ticker=ticker, error=str(exc))
-
-        if (
-            self._min_liquidity_grade is not None
-            and self._market_provider is not None
-            and orderbook is not None
+        # Confirmation check (runs last)
+        if failure := self._check_confirmation(
+            ticker, side, action, count, yes_price_cents, estimated_risk_usd
         ):
-            try:
-                market = await self._market_provider.get_market(ticker)
-                analysis = liquidity_score(market, orderbook)
-
-                grade_order = {
-                    LiquidityGrade.ILLIQUID: 0,
-                    LiquidityGrade.THIN: 1,
-                    LiquidityGrade.MODERATE: 2,
-                    LiquidityGrade.LIQUID: 3,
-                }
-                if grade_order[analysis.grade] < grade_order[self._min_liquidity_grade]:
-                    failures.append("liquidity_grade_too_low")
-            except Exception as exc:
-                # TODO(DEBT-039): Narrow to expected API/provider failures.
-                # (Enumerate failure modes first.)
-                failures.append("liquidity_check_failed")
-                logger.exception("liquidity_check_failed", ticker=ticker, error=str(exc))
-
-        # Confirmation (Phase 1, but runs last)
-        if self._require_confirmation:
-            if self._confirm is None:
-                failures.append("missing_confirmation_callback")
-            else:
-                summary = (
-                    f"{action.value.upper()} {count} {side.value.upper()} "
-                    f"{ticker} @ {yes_price_cents}¢ (risk≈${estimated_risk_usd:.2f})"
-                )
-                if not bool(self._confirm(summary)):
-                    failures.append("confirmation_declined")
+            failures.append(failure)
 
         return failures
 
