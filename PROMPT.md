@@ -189,7 +189,7 @@ If you made no changes (because there were no active tasks), exit without commit
 - Specs: `docs/_specs/SPEC-*.md`
 - Source: `src/kalshi_research/`
 - Tests: `tests/unit/`, `tests/integration/`
-- Skills: `.claude/skills/`, `.codex/skills/`, `.gemini/skills/` (keep in sync)
+- Skills: `.claude/skills/`, `.codex/skills/` (keep in sync)
 
 ## Completion
 

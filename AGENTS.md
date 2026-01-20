@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-This file provides guidance to AI coding agents (Claude Code, OpenAI Codex, Gemini CLI, etc.) when working with this repository.
+This file provides guidance to AI coding agents (Claude Code, OpenAI Codex, etc.) when working with this repository.
 
 ## Project Intent (Avoid Over-Engineering)
 
@@ -26,7 +26,6 @@ This repository includes Agent Skills for enhanced CLI navigation and documentat
 Skills are located in agent-specific directories (all identical content):
 - `.claude/skills/` - Claude Code
 - `.codex/skills/` - OpenAI Codex CLI
-- `.gemini/skills/` - Gemini CLI
 
 ## CRITICAL: Commit Safety Protocol
 

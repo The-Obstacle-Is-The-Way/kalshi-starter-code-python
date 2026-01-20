@@ -23,6 +23,23 @@ Key insight: "Deterministically bad in an undeterministic world" - failures are 
 | `PROMPT.md` | Loop prompt - instructions for each iteration |
 | `docs/_ralph-wiggum/protocol.md` | Full reference protocol |
 
+## CRITICAL: Use Subscription, Not API Credits
+
+**Before running Ralph loops, ensure `ANTHROPIC_API_KEY` is NOT in your shell environment:**
+
+```bash
+# Check if it's set
+env | grep ANTHROPIC_API_KEY
+
+# If found, remove from ~/.zshrc or ~/.sparc.config
+# Keep it ONLY in project .env files for Python apps
+```
+
+| `ANTHROPIC_API_KEY` in shell? | Claude Code uses... | Cost |
+|-------------------------------|---------------------|------|
+| **YES** | API credits | ~$6/day (pay-per-use) |
+| **NO** | Subscription | **FREE with Pro/Max** |
+
 ## Loop Execution (Operator Commands)
 
 ### Standard Loop (with state-based completion)
@@ -158,5 +175,5 @@ fi
 
 ## Maintenance Note
 
-This repository keeps `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/` in sync.
-If you update this skill, apply the same change to all three copies.
+This repository keeps `.claude/skills/` and `.codex/skills/` in sync.
+If you update this skill, apply the same change to both copies.

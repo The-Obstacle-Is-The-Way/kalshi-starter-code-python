@@ -23,7 +23,7 @@ This repository includes Agent Skills for enhanced CLI navigation and documentat
 | `kalshi-ralph-wiggum` | `.claude/skills/kalshi-ralph-wiggum/` | Ralph Wiggum autonomous loop operation |
 | `kalshi-doc-audit` | `.claude/skills/kalshi-doc-audit/` | Documentation auditing against SSOT |
 
-Skills are also mirrored to `.codex/skills/` and `.gemini/skills/` for other agents.
+Skills are also mirrored to `.codex/skills/` for other agents.
 
 ## CRITICAL: Commit Safety Protocol
 

@@ -151,5 +151,5 @@ uv run kalshi market --help
 
 ## Maintenance Note
 
-This repository keeps `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/` in sync.
-If you update this skill, apply the same change to all three copies.
+This repository keeps `.claude/skills/` and `.codex/skills/` in sync.
+If you update this skill, apply the same change to both copies.

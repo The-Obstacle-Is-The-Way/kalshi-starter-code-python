@@ -49,6 +49,37 @@ apt install jq     # Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
+### CRITICAL: ANTHROPIC_API_KEY and Billing
+
+**Claude Code billing depends on authentication, NOT on whether you use `-p` (headless) or interactive mode.**
+
+| `ANTHROPIC_API_KEY` in shell? | Claude Code uses... | Cost |
+|-------------------------------|---------------------|------|
+| **YES** (exported in ~/.zshrc) | API credits | **Pay-per-use** (~$6/day) |
+| **NO** (only in .env for Python) | Subscription | **Included in Pro/Max** |
+
+**To use your Pro/Max subscription for Ralph loops:**
+
+```bash
+# 1. Check if ANTHROPIC_API_KEY is in your shell environment
+env | grep ANTHROPIC_API_KEY
+
+# 2. If found, remove it from ~/.zshrc (or ~/.bashrc)
+#    Keep it ONLY in your project's .env file for Python apps
+
+# 3. Verify it's gone (start a new terminal first)
+env | grep ANTHROPIC_API_KEY  # Should return nothing
+
+# 4. Now Claude Code will use your subscription!
+claude -p "Hello"  # Uses Pro/Max, not API credits
+```
+
+**Why this matters:**
+- The `.env` file is loaded by Python apps (via `python-dotenv`), NOT by your shell
+- Claude Code CLI reads from your **shell environment**
+- If you need `ANTHROPIC_API_KEY` for Python apps (like `kalshi agent analyze`), keep it in `.env` only
+- This gives you the best of both worlds: free Claude Code + working Python integrations
+
 ### Project Requirements
 
 1. **State file** (e.g., `PROGRESS.md`) - Tracks what's done/pending
