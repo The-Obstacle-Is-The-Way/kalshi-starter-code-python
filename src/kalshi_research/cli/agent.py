@@ -112,14 +112,14 @@ async def _execute_analysis(
     from kalshi_research.agent import ResearchAgent
     from kalshi_research.agent.orchestrator import AgentKernel
     from kalshi_research.agent.providers.llm import MockSynthesizer, get_synthesizer
-    from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import public_client
     from kalshi_research.exa.client import ExaClient
     from kalshi_research.exa.exceptions import ExaAPIError, ExaAuthError
 
     try:
         async with (
-            KalshiPublicClient() as kalshi,
+            public_client() as kalshi,
             ExaClient.from_env() as exa,
         ):
             research_agent = ResearchAgent(exa)
@@ -250,12 +250,12 @@ async def _execute_research(
 ) -> dict[str, object]:
     """Execute research workflow: fetch market from Kalshi, run research via Exa."""
     from kalshi_research.agent import ResearchAgent
-    from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import public_client
     from kalshi_research.exa.client import ExaClient
     from kalshi_research.exa.exceptions import ExaAPIError, ExaAuthError
 
-    async with KalshiPublicClient() as kalshi:
+    async with public_client() as kalshi:
         try:
             market: Market = await kalshi.get_market(ticker)
         except KalshiAPIError as e:

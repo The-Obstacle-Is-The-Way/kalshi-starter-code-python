@@ -53,12 +53,12 @@ def market_get(
     ticker: Annotated[str, typer.Argument(help="Market ticker to fetch.")],
 ) -> None:
     """Fetch a single market by ticker."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _get() -> None:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 market = await client.get_market(ticker)
             except KalshiAPIError as e:
@@ -104,12 +104,12 @@ def market_orderbook(
     depth: Annotated[int, typer.Option("--depth", "-d", help="Orderbook depth.")] = 5,
 ) -> None:
     """Fetch orderbook for a market."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _orderbook() -> None:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 orderbook = await client.get_orderbook(ticker, depth=depth)
             except KalshiAPIError as e:
@@ -154,7 +154,7 @@ def market_liquidity(
     ] = 3,
 ) -> None:
     """Analyze market liquidity using orderbook depth and slippage estimates."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _liquidity() -> None:
         from kalshi_research.analysis.liquidity import (
@@ -165,7 +165,7 @@ def market_liquidity(
         )
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 market = await client.get_market(ticker)
                 orderbook = await client.get_orderbook(ticker, depth=depth)
@@ -285,7 +285,7 @@ def market_history(
     import json
     from datetime import UTC, datetime
 
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     interval_map = {"1m": 1, "1h": 60, "1d": 1440}
     if interval not in interval_map:
@@ -310,7 +310,7 @@ def market_history(
     async def _history() -> None:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 if series_ticker is not None:
                     candles = await client.get_series_candlesticks(
@@ -489,8 +489,8 @@ async def _market_list_async(
     full: bool,
 ) -> None:
     from kalshi_research.analysis.categories import normalize_category
-    from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import public_client
 
     status_filter = _normalize_market_list_status(status)
 
@@ -504,7 +504,7 @@ async def _market_list_async(
     use_events = can_use_events and event is None and (category or exclude_category or event_prefix)
 
     try:
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             if use_events:
                 markets = await _fetch_markets_for_market_list_from_events(
                     client,

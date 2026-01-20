@@ -53,12 +53,12 @@ def series_get(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """Get series details by ticker."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _fetch() -> Series:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await client.get_series(ticker, include_volume=include_volume)
             except KalshiAPIError as e:

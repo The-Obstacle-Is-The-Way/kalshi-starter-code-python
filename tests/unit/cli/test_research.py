@@ -36,7 +36,7 @@ def test_research_context_missing_exa_key_exits_with_error(make_market) -> None:
     mock_kalshi.get_market = AsyncMock(return_value=market)
 
     with (
-        patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi),
+        patch("kalshi_research.cli.client_factory.public_client", return_value=mock_kalshi),
         patch("kalshi_research.exa.ExaClient.from_env", side_effect=exa_error),
     ):
         result = runner.invoke(app, ["research", "context", "TEST-MARKET"])
@@ -62,7 +62,7 @@ def test_research_context_invalid_budget_exits_with_error(make_market) -> None:
     mock_exa_cm.__aexit__.return_value = None
 
     with (
-        patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi),
+        patch("kalshi_research.cli.client_factory.public_client", return_value=mock_kalshi),
         patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa_cm),
     ):
         result = runner.invoke(app, ["research", "context", "TEST-MARKET", "--budget-usd", "0"])
@@ -80,7 +80,7 @@ def test_research_context_ticker_not_found_exits() -> None:
     mock_kalshi.__aexit__.return_value = None
     mock_kalshi.get_market = AsyncMock(side_effect=KalshiAPIError(404, "nope"))
 
-    with patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi):
+    with patch("kalshi_research.cli.client_factory.public_client", return_value=mock_kalshi):
         result = runner.invoke(app, ["research", "context", "MISSING"])
 
     assert result.exit_code == 2

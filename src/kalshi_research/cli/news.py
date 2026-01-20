@@ -48,10 +48,10 @@ async def _fetch_tracking_targets(
     Raises:
         ValueError: If the ticker cannot be resolved via the Kalshi public API.
     """
-    from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import public_client
 
-    async with KalshiPublicClient() as kalshi:
+    async with public_client() as kalshi:
         try:
             if event:
                 event_obj = await kalshi.get_event(ticker)

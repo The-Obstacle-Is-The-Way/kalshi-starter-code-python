@@ -917,10 +917,10 @@ async def _fetch_market(ticker: str) -> "Market":
     Raises:
         typer.Exit: If the market cannot be fetched.
     """
-    from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import public_client
 
-    async with KalshiPublicClient() as kalshi:
+    async with public_client() as kalshi:
         try:
             return await kalshi.get_market(ticker)
         except KalshiAPIError as e:

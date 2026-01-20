@@ -148,8 +148,8 @@ def test_data_stats(
     assert "3" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_data_sync_trades_exports_csv(mock_client_cls: MagicMock) -> None:
+@patch("kalshi_research.cli.client_factory.public_client")
+def test_data_sync_trades_exports_csv(mock_public_client_fn: MagicMock) -> None:
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client
     mock_client.__aexit__.return_value = None
@@ -166,7 +166,7 @@ def test_data_sync_trades_exports_csv(mock_client_cls: MagicMock) -> None:
             )
         ]
     )
-    mock_client_cls.return_value = mock_client
+    mock_public_client_fn.return_value = mock_client
 
     with runner.isolated_filesystem():
         result = runner.invoke(
@@ -206,8 +206,8 @@ def test_data_sync_trades_rejects_output_and_json_together() -> None:
     assert "Choose one of --output or --json" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_data_sync_trades_json_output(mock_client_cls: MagicMock) -> None:
+@patch("kalshi_research.cli.client_factory.public_client")
+def test_data_sync_trades_json_output(mock_public_client_fn: MagicMock) -> None:
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client
     mock_client.__aexit__.return_value = None
@@ -224,7 +224,7 @@ def test_data_sync_trades_json_output(mock_client_cls: MagicMock) -> None:
             )
         ]
     )
-    mock_client_cls.return_value = mock_client
+    mock_public_client_fn.return_value = mock_client
 
     result = runner.invoke(app, ["data", "sync-trades", "--ticker", "TEST-TICKER", "--json"])
 
@@ -234,13 +234,13 @@ def test_data_sync_trades_json_output(mock_client_cls: MagicMock) -> None:
     assert payload[0]["ticker"] == "TEST-TICKER"
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_data_sync_trades_no_trades_prints_message(mock_client_cls: MagicMock) -> None:
+@patch("kalshi_research.cli.client_factory.public_client")
+def test_data_sync_trades_no_trades_prints_message(mock_public_client_fn: MagicMock) -> None:
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client
     mock_client.__aexit__.return_value = None
     mock_client.get_trades = AsyncMock(return_value=[])
-    mock_client_cls.return_value = mock_client
+    mock_public_client_fn.return_value = mock_client
 
     result = runner.invoke(app, ["data", "sync-trades", "--ticker", "TEST-TICKER"])
 
@@ -248,15 +248,15 @@ def test_data_sync_trades_no_trades_prints_message(mock_client_cls: MagicMock) -
     assert "No trades returned" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_data_sync_trades_api_error_exits_with_error(mock_client_cls: MagicMock) -> None:
+@patch("kalshi_research.cli.client_factory.public_client")
+def test_data_sync_trades_api_error_exits_with_error(mock_public_client_fn: MagicMock) -> None:
     from kalshi_research.api.exceptions import KalshiAPIError
 
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client
     mock_client.__aexit__.return_value = None
     mock_client.get_trades = AsyncMock(side_effect=KalshiAPIError(400, "Bad request"))
-    mock_client_cls.return_value = mock_client
+    mock_public_client_fn.return_value = mock_client
 
     result = runner.invoke(app, ["data", "sync-trades", "--ticker", "TEST-TICKER"])
 
@@ -264,13 +264,13 @@ def test_data_sync_trades_api_error_exits_with_error(mock_client_cls: MagicMock)
     assert "API Error 400" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_data_sync_trades_generic_error_exits_with_error(mock_client_cls: MagicMock) -> None:
+@patch("kalshi_research.cli.client_factory.public_client")
+def test_data_sync_trades_generic_error_exits_with_error(mock_public_client_fn: MagicMock) -> None:
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client
     mock_client.__aexit__.return_value = None
     mock_client.get_trades = AsyncMock(side_effect=RuntimeError("Boom"))
-    mock_client_cls.return_value = mock_client
+    mock_public_client_fn.return_value = mock_client
 
     result = runner.invoke(app, ["data", "sync-trades", "--ticker", "TEST-TICKER"])
 
@@ -279,8 +279,10 @@ def test_data_sync_trades_generic_error_exits_with_error(mock_client_cls: MagicM
     assert "Boom" in result.stdout
 
 
-@patch("kalshi_research.api.KalshiPublicClient")
-def test_data_sync_trades_table_output_shows_25_limit_message(mock_client_cls: MagicMock) -> None:
+@patch("kalshi_research.cli.client_factory.public_client")
+def test_data_sync_trades_table_output_shows_25_limit_message(
+    mock_public_client_fn: MagicMock,
+) -> None:
     now = datetime.now(UTC)
     trades = [
         Trade(
@@ -299,7 +301,7 @@ def test_data_sync_trades_table_output_shows_25_limit_message(mock_client_cls: M
     mock_client.__aenter__.return_value = mock_client
     mock_client.__aexit__.return_value = None
     mock_client.get_trades = AsyncMock(return_value=trades)
-    mock_client_cls.return_value = mock_client
+    mock_public_client_fn.return_value = mock_client
 
     result = runner.invoke(app, ["data", "sync-trades", "--ticker", "TEST-TICKER", "--limit", "30"])
 

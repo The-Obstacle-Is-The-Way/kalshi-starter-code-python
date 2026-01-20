@@ -155,9 +155,9 @@ def test_alerts_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
 
 
 @patch("kalshi_research.cli.alerts._load_alerts")
-@patch("kalshi_research.api.KalshiPublicClient")
+@patch("kalshi_research.cli.client_factory.public_client")
 def test_alerts_monitor_once_exits(
-    mock_client_cls: MagicMock,
+    mock_public_client_fn: MagicMock,
     mock_load_alerts: MagicMock,
 ) -> None:
     mock_load_alerts.return_value = {
@@ -175,7 +175,7 @@ def test_alerts_monitor_once_exits(
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client
     mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
+    mock_public_client_fn.return_value = mock_client
 
     mock_market = MagicMock()
     mock_market.ticker = "TEST-TICKER"
@@ -201,8 +201,8 @@ def test_alerts_monitor_once_exits(
 @pytest.mark.asyncio
 async def test_alert_monitor_loop_prints_utc_timestamp_when_alerts_trigger(monkeypatch) -> None:
     """Triggered alerts should display a timezone-aware UTC timestamp."""
-    import kalshi_research.api as api_module
     from kalshi_research.cli import alerts as alerts_cli
+    from kalshi_research.cli import client_factory
 
     printed: list[str] = []
 
@@ -228,7 +228,7 @@ async def test_alert_monitor_loop_prints_utc_timestamp_when_alerts_trigger(monke
             if False:  # pragma: no cover
                 yield None
 
-    monkeypatch.setattr(api_module, "KalshiPublicClient", DummyClient)
+    monkeypatch.setattr(client_factory, "public_client", lambda **_: DummyClient())
 
     class DummyMonitor:
         def list_conditions(self) -> list[object]:
@@ -251,9 +251,9 @@ async def test_alert_monitor_loop_prints_utc_timestamp_when_alerts_trigger(monke
 
 
 @patch("kalshi_research.cli.alerts._load_alerts")
-@patch("kalshi_research.api.KalshiPublicClient")
+@patch("kalshi_research.cli.client_factory.public_client")
 def test_alerts_monitor_continuous_shows_ctrl_c(
-    mock_client_cls: MagicMock,
+    mock_public_client_fn: MagicMock,
     mock_load_alerts: MagicMock,
 ) -> None:
     mock_load_alerts.return_value = {
@@ -271,7 +271,7 @@ def test_alerts_monitor_continuous_shows_ctrl_c(
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client
     mock_client.__aexit__.return_value = None
-    mock_client_cls.return_value = mock_client
+    mock_public_client_fn.return_value = mock_client
 
     mock_market = MagicMock()
     mock_market.ticker = "TEST-TICKER"

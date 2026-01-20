@@ -53,9 +53,9 @@ async def _fetch_movers_market_lookup(
     max_pages: int | None,
 ) -> dict[str, Market]:
     """Fetch current open markets and return a ticker -> Market lookup."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
-    async with KalshiPublicClient() as client:
+    async with public_client() as client:
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -712,7 +712,7 @@ async def _scan_opportunities_async(
     liquidity_depth: int,
 ) -> None:
     from kalshi_research.analysis.scanner import MarketScanner
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     profile_min_volume, profile_max_spread, profile_min_liquidity = _scan_profile_defaults(profile)
     effective_min_volume = min_volume if min_volume is not None else profile_min_volume
@@ -721,7 +721,7 @@ async def _scan_opportunities_async(
 
     scan_top_n = top_n if effective_min_liquidity is None else min(top_n * 5, 50)
 
-    async with KalshiPublicClient() as client:
+    async with public_client() as client:
         exchange_status = await _fetch_exchange_status(client)
 
         with Progress(
@@ -939,8 +939,8 @@ async def _scan_new_markets_async(
     import json
     from datetime import UTC
 
-    from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import public_client
 
     _validate_new_markets_args(hours=hours, limit=limit)
     now = datetime.now(UTC)
@@ -952,7 +952,7 @@ async def _scan_new_markets_async(
     unpriced_included = 0
     results: list[NewMarketRow] = []
 
-    async with KalshiPublicClient() as client:
+    async with public_client() as client:
         try:
             (
                 candidates,
@@ -1220,14 +1220,14 @@ async def _scan_arbitrage_async(
     full: bool,
 ) -> None:
     from kalshi_research.analysis.correlation import ArbitrageOpportunity, CorrelationAnalyzer
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     if not db_path.exists():
         console.print(
             "[yellow]Warning:[/yellow] Database not found, analyzing current markets only"
         )
 
-    async with KalshiPublicClient() as client:
+    async with public_client() as client:
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),

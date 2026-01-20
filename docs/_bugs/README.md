@@ -34,7 +34,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-088**
+**BUG-089**
 
 ---
 
@@ -43,6 +43,12 @@ All resolved bug reports are stored in
 [`docs/_archive/bugs/`](https://github.com/The-Obstacle-Is-The-Way/kalshi-starter-code-python/tree/main/docs/_archive/bugs/).
 
 Note: `docs/_archive/**` is intentionally excluded from the MkDocs site build (historical provenance only).
+
+### Recently Archived (2026-01-20)
+
+| ID | Title | Status |
+|---|---|---|
+| **[BUG-088](../_archive/bugs/BUG-088-cli-tests-order-dependent-client-factory-patching.md)** | CLI Tests Order-Dependent After `client_factory` Migration | ✅ Fixed |
 
 ### Recently Archived (2026-01-19)
 

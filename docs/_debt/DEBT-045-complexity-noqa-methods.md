@@ -67,4 +67,5 @@ src/kalshi_research/cli/scan.py:scan_movers 1156-1304 (149 lines)
 - [x] Refactor `src/kalshi_research/cli/research.py:research_thesis_show` (remove noqa, keep CLI UX)
 - [x] Refactor `src/kalshi_research/cli/scan.py:scan_movers` (remove noqa, keep CLI UX)
 
-**Note (2026-01-19):** This work was implemented on `ralph-wiggum-loop` branch but LOST when that branch was deleted due to conflicts with SPEC-043. Must be redone from scratch.
+**Note (2026-01-20):** Implemented on `ralph-wiggum-loop`. All `# noqa: PLR0912/PLR0915` suppressions were removed from
+`src/kalshi_research/`, with behavior preserved via unit tests.

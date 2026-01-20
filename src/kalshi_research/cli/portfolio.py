@@ -135,8 +135,8 @@ def portfolio_sync(
 
     Syncs positions, fills, settlements, cost basis (FIFO), mark prices, and unrealized P&L.
     """
-    from kalshi_research.api import KalshiClient, KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import authed_client, public_client
     from kalshi_research.cli.db import open_db
     from kalshi_research.portfolio.syncer import PortfolioSyncer
 
@@ -149,7 +149,7 @@ def portfolio_sync(
     async def _sync() -> None:
         try:
             async with (
-                KalshiClient(
+                authed_client(
                     key_id=key_id,
                     private_key_path=private_key_path,
                     private_key_b64=private_key_b64,
@@ -179,10 +179,8 @@ def portfolio_sync(
                 if not skip_mark_prices and positions_count > 0:
                     console.print("[dim]Fetching mark prices...[/dim]")
                     # Use same environment override for public client
-                    async with KalshiPublicClient(
-                        environment=environment_override
-                    ) as public_client:
-                        updated = await syncer.update_mark_prices(public_client)
+                    async with public_client(environment=environment_override) as pub_client:
+                        updated = await syncer.update_mark_prices(pub_client)
                         console.print(
                             f"[green]✓[/green] Updated mark prices for {updated} positions"
                         )
@@ -402,8 +400,8 @@ def portfolio_balance(
     ] = None,
 ) -> None:
     """View account balance."""
-    from kalshi_research.api import KalshiClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import authed_client
 
     environment_override = _validate_environment_override(environment)
     key_id, private_key_path, private_key_b64 = _require_auth_env(
@@ -418,7 +416,7 @@ def portfolio_balance(
 
         balance: PortfolioBalance | None = None
         try:
-            async with KalshiClient(
+            async with authed_client(
                 key_id=key_id,
                 private_key_path=private_key_path,
                 private_key_b64=private_key_b64,

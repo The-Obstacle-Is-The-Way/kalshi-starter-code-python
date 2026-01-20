@@ -27,7 +27,7 @@
 
 ### Phase 3: P3 Debt (Medium)
 
-- [ ] **DEBT-046-B**: Migrate CLI modules to use `client_factory` (factory already exists) → `docs/_debt/DEBT-046-dependency-inversion-client-factory.md`
+- [x] **DEBT-046-B**: Migrate CLI modules to use `client_factory` (factory already exists) → `docs/_debt/DEBT-046-dependency-inversion-client-factory.md`
 - [ ] **DEBT-039-A**: Audit `executor.py` broad catches for safety → `docs/_debt/DEBT-039-broad-exception-catches.md`
 - [ ] **DEBT-039-B**: Add exception type logging to all broad catches → `docs/_debt/DEBT-039-broad-exception-catches.md`
 - [ ] **DEBT-047-A**: Introduce constants module + migrate pagination/depth defaults → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
@@ -70,6 +70,7 @@
 - 2026-01-20: Implemented DEBT-045-D: refactored `cli/agent.py:analyze` (192 lines → 60 lines main + 4 helper functions). Extracted `_execute_analysis()`, `_render_analysis_human()`, `_render_analysis_factors_table()`, `_output_analysis_json()`. Removed noqa comment. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
 - 2026-01-20: Implemented DEBT-045-E: refactored `cli/research.py:research_thesis_show` (124 lines → 24 lines main + 6 helper functions). Extracted `_find_thesis_by_id()`, `_render_thesis_header()`, `_render_thesis_fields_table()`, `_render_thesis_cases_and_updates()`, `_render_thesis_evidence()`, `_fetch_and_render_linked_positions()`. Removed noqa comment. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
 - 2026-01-20: Implemented DEBT-045-F: refactored `cli/scan.py:scan_movers` (149 lines → 47 lines main + 4 helper functions). Extracted `_parse_movers_period()`, `_fetch_movers_market_lookup()`, `_compute_movers()`, `_render_movers_table()`. Removed noqa comment. DEBT-045 now complete (all noqa: PLR091 removed from src/). Quality gates pass (pre-commit, mypy, pytest 1009 tests).
+- 2026-01-20: Implemented DEBT-046-B: migrated CLI modules to `client_factory.public_client()` / `authed_client()`, updated CLI unit/integration tests to patch factory functions. Fixed order-dependent CLI tests caused by constructor patch leakage. Quality gates pass (pre-commit, mypy, pytest).
 
 ---
 

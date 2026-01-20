@@ -231,7 +231,7 @@ def event_list(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """List events (single page) with optional filters."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     status_filter = _normalize_event_status(status)
 
@@ -242,7 +242,7 @@ def event_list(
     async def _fetch() -> list[dict[str, object]]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 events = await client.get_events(
                     status=status_filter,
@@ -302,12 +302,12 @@ def event_get(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """Get event fundamentals plus best-effort metadata enrichment."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _fetch() -> tuple[Event, EventMetadataResponse | None]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await _fetch_event_with_metadata(client, ticker=ticker, warn=not output_json)
             except KalshiAPIError as e:
@@ -353,7 +353,7 @@ def event_candlesticks(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """Fetch event-level candlesticks (OHLC aligned across markets)."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     period_interval = _interval_minutes(interval)
     resolved_start_ts, resolved_end_ts = _resolve_time_window(
@@ -363,7 +363,7 @@ def event_candlesticks(
     async def _fetch() -> tuple[str, EventCandlesticksResponse]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await _fetch_event_candlesticks(
                     client,

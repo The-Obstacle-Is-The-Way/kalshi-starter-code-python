@@ -166,10 +166,10 @@ async def _run_alert_monitor_loop(
         monitor: Alert monitor containing configured conditions.
     """
     from kalshi_research.alerts.conditions import ConditionType
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
     from kalshi_research.paths import DEFAULT_DB_PATH
 
-    async with KalshiPublicClient() as client:
+    async with public_client() as client:
         try:
             while True:
                 console.print("[dim]Fetching markets...[/dim]", end="")

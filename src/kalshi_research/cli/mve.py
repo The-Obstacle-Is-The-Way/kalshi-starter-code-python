@@ -108,7 +108,7 @@ def mve_list(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """List multivariate events (MVEs)."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     if limit <= 0:
         console.print("[red]Error:[/red] --limit must be positive.")
@@ -117,7 +117,7 @@ def mve_list(
     async def _fetch() -> list[Event]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await client.get_multivariate_events(limit=limit)
             except KalshiAPIError as e:
@@ -156,7 +156,7 @@ def mve_collections(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """List multivariate event collections (single page)."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     if limit <= 0:
         console.print("[red]Error:[/red] --limit must be positive.")
@@ -165,7 +165,7 @@ def mve_collections(
     async def _fetch() -> GetMultivariateEventCollectionsResponse:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await client.get_multivariate_event_collections(
                     status=status,
@@ -194,12 +194,12 @@ def mve_collection(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """Get a single MVE collection by ticker."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _fetch() -> MultivariateEventCollection:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await client.get_multivariate_event_collection(ticker)
             except KalshiAPIError as e:

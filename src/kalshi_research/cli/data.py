@@ -291,15 +291,15 @@ def data_sync_trades(
     import csv
     import json
 
-    from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import public_client
 
     if output is not None and output_json:
         console.print("[red]Error:[/red] Choose one of --output or --json (not both).")
         raise typer.Exit(2)
 
     async def _fetch() -> list[dict[str, object]]:
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 trades = await client.get_trades(
                     ticker=ticker,

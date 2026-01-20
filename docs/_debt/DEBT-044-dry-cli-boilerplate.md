@@ -14,7 +14,7 @@ The CLI repeats the same patterns dozens of times:
 
 1. **Async wrapper boilerplate** (`asyncio.run(...)`) — 56 copies
 2. **Kalshi API error handling** (`except KalshiAPIError ... Exit(1)`) — 28 copies
-3. **DB session plumbing** (`DatabaseManager(...)` + session creation) — 11 copies
+3. **DB session plumbing** (`DatabaseManager(...)` + session creation) — 11 copies (baseline)
 
 This violates DRY and creates real risk:
 if any behavior (exit codes, logging, messaging) needs to change, we must update it in dozens of places.
@@ -33,7 +33,7 @@ Current counts (2026-01-20 audit, SSOT verified):
 
 - `asyncio.run`: **56** → **1** (only in `run_async()` helper after Phase B)
 - `except KalshiAPIError`: **28** → **25** use `exit_kalshi_api_error()` + 3 special cases (Phase D)
-- `DatabaseManager(...)`: **11**
+- `DatabaseManager(...)`: **1** (only in `cli/db.py` helper after Phase E)
 
 **Phase D special cases (intentionally not migrated):**
 - `news.py:63` - internal helper that re-raises as `ValueError` (not exiting)

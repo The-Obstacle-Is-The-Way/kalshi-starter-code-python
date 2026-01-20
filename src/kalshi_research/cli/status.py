@@ -102,7 +102,7 @@ def status(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """Show Kalshi exchange operational status."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     if ctx.invoked_subcommand is not None:
         return
@@ -110,7 +110,7 @@ def status(
     async def _fetch() -> dict[str, object]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 raw = await client.get_exchange_status()
             except KalshiAPIError as e:
@@ -138,12 +138,12 @@ def status_schedule(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """Show exchange schedule and maintenance windows."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _fetch() -> dict[str, object]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 schedule = await client.get_exchange_schedule()
             except KalshiAPIError as e:
@@ -168,12 +168,12 @@ def status_announcements(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """Show exchange announcements."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _fetch() -> dict[str, object]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 announcements = await client.get_exchange_announcements()
             except KalshiAPIError as e:
