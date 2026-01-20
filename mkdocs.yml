@@ -18,6 +18,8 @@ not_in_nav: |
   _future/FUTURE-*.md
   _future/TODO-*.md
   _debt/DEBT-*.md
+  _debt/RESOLUTION-PLAN-*.md
+  _debt/SENIOR-REVIEW-PROMPT-*.md
 
 theme:
   name: material

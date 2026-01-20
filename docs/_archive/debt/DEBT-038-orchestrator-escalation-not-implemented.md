@@ -1,26 +1,26 @@
 # DEBT-038: Orchestrator Escalation Logic Not Implemented
 
-**Status:** Active
+**Status:** ✅ Resolved (2026-01-19)
 **Priority:** P2 (Medium - Feature gap in agent system)
 **Created:** 2026-01-19
-**Location:** `src/kalshi_research/agent/orchestrator.py:122-127`
+**Resolution:** Option B - Remove escalation plumbing (YAGNI)
 
 ---
 
 ## Problem
 
-The `AgentKernel.run()` method has a TODO comment for escalation logic that was never implemented:
+The agent orchestrator carried an **escalation API surface** (`enable_escalation`, CLI flags) but escalation was
+never implemented. This created a misleading “Phase 2” hook that did nothing.
+
+Previous behavior (removed):
 
 ```python
-# Step 5: Escalation (Phase 2 - not implemented yet)
 escalated = False
 if self.enable_escalation and verification.suggested_escalation:
-    # TODO: Implement escalation logic in Phase 2
-    # For now, just mark that escalation was suggested but not executed
     pass
 ```
 
-The `enable_escalation` parameter exists, `verification.suggested_escalation` is computed, but the actual escalation behavior is a no-op.
+The verifier can still set `VerificationReport.suggested_escalation`, but it is informational only.
 
 ---
 
@@ -46,26 +46,31 @@ Currently: None of this happens. The code just sets `escalated = False` and cont
 4. Track escalation in `AgentRunResult`
 
 ### Option B: Remove Escalation Feature
+**CHOSEN.**
 
 1. Remove `enable_escalation` parameter from `AgentKernel`
-2. Remove `suggested_escalation` from `VerificationReport`
-3. Remove dead code path
-4. Update SPEC-032 to remove escalation references
+2. Remove escalation CLI plumbing (`--no-escalation`)
+3. Remove dead escalation code path
+4. Keep `suggested_escalation` as informational only (logged, not acted on)
+5. Update SPEC-032 to reflect escalation is deferred
 
-### Option C: Keep as Explicit "Not Yet Implemented"
+---
 
-1. Raise `NotImplementedError` when `enable_escalation=True` and escalation is triggered
-2. Document clearly that escalation is not available
-3. Add to FUTURE backlog
+## Implementation Notes
+
+Changes implemented:
+- `src/kalshi_research/agent/orchestrator.py`: removed escalation parameter/path; logs `suggested_escalation`.
+- `src/kalshi_research/cli/agent.py`: removed `--no-escalation` flag.
+- `docs/_archive/specs/SPEC-032-agent-system-orchestration.md`: escalation explicitly deferred.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Escalation logic either implemented OR explicitly removed/blocked
-- [ ] No silent `pass` statements in production code paths
-- [ ] SPEC-032 updated to reflect actual behavior
-- [ ] Tests cover the chosen behavior
+- [x] Escalation plumbing removed (YAGNI)
+- [x] No dead-code escalation paths in production
+- [x] `suggested_escalation` remains informational only
+- [x] Unit tests updated for new API surface
 
 ---
 

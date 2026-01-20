@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Annotated
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, print_budget_exhausted
+from kalshi_research.exa.policy import ExaMode
 from kalshi_research.paths import DEFAULT_DB_PATH
 
 app = typer.Typer(help="News monitoring and sentiment analysis.")
@@ -228,6 +229,17 @@ def news_collect(
         str | None,
         typer.Option("--ticker", help="Collect only for this tracked ticker"),
     ] = None,
+    mode: Annotated[
+        ExaMode,
+        typer.Option("--mode", help="Exa policy mode: fast (cheap), standard, deep (expensive)."),
+    ] = ExaMode.STANDARD,
+    budget_usd: Annotated[
+        float | None,
+        typer.Option(
+            "--budget-usd",
+            help="Max Exa spend (USD) for this command. Default depends on mode.",
+        ),
+    ] = None,
     lookback_days: Annotated[int, typer.Option("--lookback-days", help="Days to look back")] = 7,
     max_per_query: Annotated[
         int,
@@ -244,6 +256,7 @@ def news_collect(
     from kalshi_research.cli.db import open_db
     from kalshi_research.data.models import TrackedItem
     from kalshi_research.exa import ExaClient, ExaConfig
+    from kalshi_research.exa.policy import ExaPolicy
     from kalshi_research.news import NewsCollector, SentimentAnalyzer
 
     async def _collect() -> None:
@@ -254,12 +267,20 @@ def news_collect(
             raise typer.Exit(1) from None
 
         async with open_db(db_path) as db, ExaClient(config) as exa:
+            try:
+                policy = ExaPolicy.from_mode(mode=mode, budget_usd=budget_usd)
+            except ValueError as exc:
+                console.print(f"[red]Error:[/red] {exc}")
+                console.print("[dim]Check EXA_API_KEY and --budget-usd (must be > 0).[/dim]")
+                raise typer.Exit(1) from None
+
             collector = NewsCollector(
                 exa=exa,
                 db=db,
                 sentiment_analyzer=SentimentAnalyzer(),
                 lookback_days=lookback_days,
                 max_articles_per_query=max_per_query,
+                policy=policy,
             )
 
             if ticker:
@@ -275,6 +296,7 @@ def news_collect(
 
                 count = await collector.collect_for_tracked_item(tracked)
                 console.print(f"[green]✓[/green] {ticker}: {count} new article(s)")
+                print_budget_exhausted(collector)
                 return
 
             results = await collector.collect_all()
@@ -283,6 +305,7 @@ def news_collect(
                 return
             for key, count in results.items():
                 console.print(f"[green]✓[/green] {key}: {count} new article(s)")
+            print_budget_exhausted(collector)
 
     asyncio.run(_collect())
 

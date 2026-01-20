@@ -88,7 +88,7 @@ def mock_research_agent() -> MagicMock:
 async def test_orchestrator_basic_workflow(
     mock_kalshi_client: MagicMock, mock_research_agent: MagicMock
 ) -> None:
-    """Test basic orchestrator workflow without escalation."""
+    """Test basic orchestrator workflow."""
     synthesizer = MockSynthesizer()
 
     kernel = AgentKernel(
@@ -97,7 +97,6 @@ async def test_orchestrator_basic_workflow(
         synthesizer=synthesizer,
         max_exa_usd=0.25,
         max_llm_usd=0.25,
-        enable_escalation=False,
     )
 
     result = await kernel.analyze(ticker="TEST-24DEC31", research_mode="standard")
@@ -129,7 +128,6 @@ async def test_orchestrator_without_research_agent(mock_kalshi_client: MagicMock
         synthesizer=synthesizer,
         max_exa_usd=0.25,
         max_llm_usd=0.25,
-        enable_escalation=False,
     )
 
     result = await kernel.analyze(ticker="TEST-24DEC31", research_mode="fast")
@@ -174,7 +172,6 @@ async def test_orchestrator_verification_fails(
         synthesizer=synthesizer,
         max_exa_usd=0.25,
         max_llm_usd=0.25,
-        enable_escalation=False,
     )
 
     result = await kernel.analyze(ticker="TEST-24DEC31", research_mode="standard")
@@ -184,7 +181,7 @@ async def test_orchestrator_verification_fails(
     assert len(result.verification.issues) > 0
     assert result.verification.suggested_escalation is True
 
-    # Escalation should NOT run (disabled)
+    # Escalation is not implemented; the suggestion is informational only.
     assert result.escalated is False
 
 
@@ -201,7 +198,6 @@ async def test_orchestrator_research_mode_propagation(
         synthesizer=synthesizer,
         max_exa_usd=0.50,
         max_llm_usd=0.25,
-        enable_escalation=False,
     )
 
     await kernel.analyze(ticker="TEST-24DEC31", research_mode="deep")
@@ -226,7 +222,6 @@ async def test_orchestrator_cost_tracking(
         synthesizer=synthesizer,
         max_exa_usd=0.25,
         max_llm_usd=0.25,
-        enable_escalation=False,
     )
 
     result = await kernel.analyze(ticker="TEST-24DEC31", research_mode="standard")
@@ -241,7 +236,7 @@ async def test_orchestrator_cost_tracking(
 async def test_orchestrator_escalation_disabled_by_default(
     mock_kalshi_client: MagicMock, mock_research_agent: MagicMock
 ) -> None:
-    """Test that escalation is disabled by default even when suggested."""
+    """Test that escalation suggestions do not change behavior."""
 
     # Create synthesizer that returns invalid analysis (triggers escalation suggestion)
     class BadSynthesizer:
@@ -269,12 +264,11 @@ async def test_orchestrator_escalation_disabled_by_default(
         synthesizer=synthesizer,
         max_exa_usd=0.25,
         max_llm_usd=0.25,
-        enable_escalation=False,  # Explicitly disabled
     )
 
     result = await kernel.analyze(ticker="TEST-24DEC31", research_mode="standard")
 
-    # Escalation should be suggested but not executed
+    # Escalation can be suggested but is not executed in this repo today.
     assert result.verification.suggested_escalation is True
     assert result.escalated is False
 
@@ -292,7 +286,6 @@ async def test_orchestrator_schema_validation(
         synthesizer=synthesizer,
         max_exa_usd=0.25,
         max_llm_usd=0.25,
-        enable_escalation=False,
     )
 
     result = await kernel.analyze(ticker="TEST-24DEC31", research_mode="standard")

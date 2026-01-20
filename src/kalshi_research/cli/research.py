@@ -16,15 +16,22 @@ from kalshi_research.cli.utils import (
     atomic_write_json,
     console,
     load_json_storage_file,
+    print_budget_exhausted,
 )
-from kalshi_research.exa.policy import ExaMode, ExaPolicy
+from kalshi_research.exa.policy import ExaBudget, ExaMode, ExaPolicy
 from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
 
 if TYPE_CHECKING:
     from kalshi_research.api.models.market import Market
     from kalshi_research.exa.models.research import ResearchTask
     from kalshi_research.research.context import MarketResearch, ResearchSource
-    from kalshi_research.research.thesis import ThesisEvidence
+    from kalshi_research.research.invalidation import (
+        InvalidationReport,
+        InvalidationSeverity,
+        InvalidationSignal,
+    )
+    from kalshi_research.research.thesis import Thesis as ThesisModel
+    from kalshi_research.research.thesis import ThesisEvidence, ThesisTracker
     from kalshi_research.research.thesis_research import ResearchedThesisData
     from kalshi_research.research.topic import TopicResearch
 
@@ -50,6 +57,61 @@ def _save_theses(data: dict[str, Any]) -> None:
     """Save theses to storage."""
     thesis_file = _get_thesis_file()
     atomic_write_json(thesis_file, data)
+
+
+def _resolve_thesis(tracker: "ThesisTracker", thesis_id: str) -> "ThesisModel | None":
+    thesis = tracker.get(thesis_id)
+    if thesis is not None:
+        return thesis
+    return next((t for t in tracker.list_all() if t.id.startswith(thesis_id)), None)
+
+
+def _print_invalidation_signals(
+    signals: "list[InvalidationSignal]", *, severity_enum: "type[InvalidationSeverity]"
+) -> None:
+    console.print("[yellow]⚠️ Potential Invalidation Signals[/yellow]")
+    console.print("─" * 50)
+
+    for signal in signals:
+        severity = signal.severity
+        label = severity.value.upper()
+        color = (
+            "red"
+            if severity == severity_enum.HIGH
+            else "yellow"
+            if severity == severity_enum.MEDIUM
+            else "white"
+        )
+        console.print(f"[{color}][{label}][/{color}] {signal.title}")
+        console.print(f"  [dim]{signal.source_domain} | {signal.url}[/dim]")
+        if signal.reason:
+            console.print(f"  [dim]{signal.reason}[/dim]")
+        if signal.snippet:
+            console.print(f"  [italic]> {signal.snippet[:200]}[/italic]")
+        console.print()
+
+
+async def _check_thesis_invalidation(
+    thesis_id: str,
+    *,
+    hours: int,
+    mode: ExaMode,
+    budget_usd: float | None,
+) -> tuple["ThesisModel", "InvalidationReport", object]:
+    from kalshi_research.exa import ExaClient
+    from kalshi_research.research.invalidation import InvalidationDetector
+    from kalshi_research.research.thesis import ThesisTracker
+
+    tracker = ThesisTracker(_get_thesis_file())
+    thesis = _resolve_thesis(tracker, thesis_id)
+    if thesis is None:
+        raise KeyError(thesis_id)
+
+    policy = ExaPolicy.from_mode(mode=mode, budget_usd=budget_usd)
+    async with ExaClient.from_env() as exa:
+        detector = InvalidationDetector(exa, lookback_hours=hours, policy=policy)
+        report = await detector.check_thesis(thesis)
+    return thesis, report, detector
 
 
 @cache_app.command("clear")
@@ -170,13 +232,17 @@ async def _gather_thesis_research_data(
     market_ticker: str,
     *,
     thesis_direction: str,
+    mode: ExaMode,
+    budget_usd: float | None,
 ) -> "ResearchedThesisData":
     from kalshi_research.exa import ExaClient
+    from kalshi_research.exa.policy import ExaPolicy
     from kalshi_research.research.thesis_research import ThesisResearcher
 
     market = await _fetch_market(market_ticker)
     async with ExaClient.from_env() as exa:
-        researcher = ThesisResearcher(exa)
+        policy = ExaPolicy.from_mode(mode=mode, budget_usd=budget_usd)
+        researcher = ThesisResearcher(exa, policy=policy)
         return await researcher.research_for_thesis(market, thesis_direction=thesis_direction)
 
 
@@ -192,6 +258,17 @@ def research_thesis_create(
     with_research: Annotated[
         bool, typer.Option("--with-research", help="Attach Exa research evidence to this thesis")
     ] = False,
+    mode: Annotated[
+        ExaMode,
+        typer.Option("--mode", help="Exa policy mode: fast (cheap), standard, deep (expensive)."),
+    ] = ExaMode.STANDARD,
+    budget_usd: Annotated[
+        float | None,
+        typer.Option(
+            "--budget-usd",
+            help="Max Exa spend (USD) for this command. Default depends on mode.",
+        ),
+    ] = None,
     yes: Annotated[
         bool,
         typer.Option(
@@ -220,7 +297,12 @@ def research_thesis_create(
         try:
             direction = "yes" if your_prob > 0.5 else "no"
             research_data = asyncio.run(
-                _gather_thesis_research_data(market_tickers[0], thesis_direction=direction)
+                _gather_thesis_research_data(
+                    market_tickers[0],
+                    thesis_direction=direction,
+                    mode=mode,
+                    budget_usd=budget_usd,
+                )
             )
         except ValueError as e:
             console.print(f"[yellow]Research skipped:[/yellow] {e}")
@@ -252,7 +334,16 @@ def research_thesis_create(
             )
             research_summary = research_data.summary
             last_research_at = datetime.now(UTC).isoformat() if evidence else None
-            console.print(f"[dim]Research cost: ${research_data.exa_cost_dollars:.4f}[/dim]")
+            console.print(
+                f"[dim]Research cost: ${research_data.budget_spent_usd:.4f}[/dim]"
+                f" ([dim]budget: ${research_data.budget_usd:.2f}[/dim])"
+            )
+            if research_data.budget_exhausted:
+                console.print(
+                    f"[yellow]Budget exhausted[/yellow] "
+                    f"(${research_data.budget_spent_usd:.4f} / ${research_data.budget_usd:.2f}); "
+                    "results may be partial."
+                )
 
     thesis = {
         "id": thesis_id,
@@ -517,73 +608,52 @@ def research_thesis_resolve(
 def research_thesis_check_invalidation(
     thesis_id: Annotated[str, typer.Argument(help="Thesis ID to check")],
     hours: Annotated[int, typer.Option("--hours", "-h", help="Lookback hours")] = 48,
+    mode: Annotated[
+        ExaMode,
+        typer.Option("--mode", help="Exa policy mode: fast (cheap), standard, deep (expensive)."),
+    ] = ExaMode.STANDARD,
+    budget_usd: Annotated[
+        float | None,
+        typer.Option(
+            "--budget-usd",
+            help="Max Exa spend (USD) for this command. Default depends on mode.",
+        ),
+    ] = None,
 ) -> None:
     """Check for signals that might invalidate your thesis."""
-    from kalshi_research.exa import ExaClient
-    from kalshi_research.research.invalidation import InvalidationDetector, InvalidationSeverity
-    from kalshi_research.research.thesis import ThesisTracker
+    from kalshi_research.research.invalidation import InvalidationSeverity
 
-    async def _check() -> None:
-        try:
-            tracker = ThesisTracker(_get_thesis_file())
-        except ValueError as e:
-            console.print(f"[red]Error:[/red] {e}")
-            raise typer.Exit(1) from None
-
-        thesis = tracker.get(thesis_id)
-        if not thesis:
-            for t in tracker.list_all():
-                if t.id.startswith(thesis_id):
-                    thesis = t
-                    break
-
-        if not thesis:
-            console.print(f"[red]Error:[/red] Thesis not found: {thesis_id}")
-            raise typer.Exit(2)
-
-        console.print(f"\n[bold]Thesis:[/bold] {thesis.title}")
-        console.print(f"Your probability: {thesis.your_probability:.0%} YES")
-        console.print(f"[dim]Checking last {hours} hours...[/dim]\n")
-
-        try:
-            async with ExaClient.from_env() as exa:
-                detector = InvalidationDetector(exa, lookback_hours=hours)
-                report = await detector.check_thesis(thesis)
-        except ValueError as e:
-            console.print(f"[red]Error:[/red] {e}")
-            console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
-            raise typer.Exit(1) from None
-
-        if not report.signals:
-            console.print("[green]✓ No invalidation signals found[/green]")
-            console.print(f"[dim]{report.recommendation}[/dim]")
-            return
-
-        console.print("[yellow]⚠️ Potential Invalidation Signals[/yellow]")
-        console.print("─" * 50)
-
-        for signal in report.signals:
-            severity = signal.severity
-            label = severity.value.upper()
-            color = (
-                "red"
-                if severity == InvalidationSeverity.HIGH
-                else "yellow"
-                if severity == InvalidationSeverity.MEDIUM
-                else "white"
+    try:
+        thesis, report, detector = asyncio.run(
+            _check_thesis_invalidation(
+                thesis_id,
+                hours=hours,
+                mode=mode,
+                budget_usd=budget_usd,
             )
-            console.print(f"[{color}][{label}][/{color}] {signal.title}")
-            console.print(f"  [dim]{signal.source_domain} | {signal.url}[/dim]")
-            if signal.reason:
-                console.print(f"  [dim]{signal.reason}[/dim]")
-            if signal.snippet:
-                console.print(f"  [italic]> {signal.snippet[:200]}[/italic]")
-            console.print()
+        )
+    except KeyError:
+        console.print(f"[red]Error:[/red] Thesis not found: {thesis_id}")
+        raise typer.Exit(2) from None
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        console.print("[dim]Check EXA_API_KEY and --budget-usd (must be > 0).[/dim]")
+        raise typer.Exit(1) from None
 
-        if report.recommendation:
-            console.print(f"[bold]Recommendation:[/bold] {report.recommendation}")
+    console.print(f"\n[bold]Thesis:[/bold] {thesis.title}")
+    console.print(f"Your probability: {thesis.your_probability:.0%} YES")
+    console.print(f"[dim]Checking last {hours} hours...[/dim]\n")
 
-    asyncio.run(_check())
+    if not report.signals:
+        console.print("[green]✓ No invalidation signals found[/green]")
+        console.print(f"[dim]{report.recommendation}[/dim]")
+        print_budget_exhausted(detector)
+        return
+
+    _print_invalidation_signals(report.signals, severity_enum=InvalidationSeverity)
+    if report.recommendation:
+        console.print(f"[bold]Recommendation:[/bold] {report.recommendation}")
+    print_budget_exhausted(detector)
 
 
 @thesis_app.command("suggest")
@@ -592,23 +662,37 @@ def research_thesis_suggest(
         str | None,
         typer.Option("--category", "-c", help="Optional category filter (crypto, politics, etc.)"),
     ] = None,
+    mode: Annotated[
+        ExaMode,
+        typer.Option("--mode", help="Exa policy mode: fast (cheap), standard, deep (expensive)."),
+    ] = ExaMode.STANDARD,
+    budget_usd: Annotated[
+        float | None,
+        typer.Option(
+            "--budget-usd",
+            help="Max Exa spend (USD) for this command. Default depends on mode.",
+        ),
+    ] = None,
 ) -> None:
     """Generate thesis ideas from Exa research."""
     from kalshi_research.exa import ExaClient
+    from kalshi_research.exa.policy import ExaPolicy
     from kalshi_research.research.thesis_research import ThesisSuggester
 
     async def _suggest() -> None:
         try:
             async with ExaClient.from_env() as exa:
-                suggester = ThesisSuggester(exa)
+                policy = ExaPolicy.from_mode(mode=mode, budget_usd=budget_usd)
+                suggester = ThesisSuggester(exa, policy=policy)
                 suggestions = await suggester.suggest_theses(category=category)
         except ValueError as e:
             console.print(f"[red]Error:[/red] {e}")
-            console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+            console.print("[dim]Check EXA_API_KEY and --budget-usd (must be > 0).[/dim]")
             raise typer.Exit(1) from None
 
         if not suggestions:
             console.print("[yellow]No suggestions found.[/yellow]")
+            print_budget_exhausted(suggester)
             return
 
         console.print("\n[bold]🎯 Thesis Suggestions Based on Research[/bold]")
@@ -618,6 +702,7 @@ def research_thesis_suggest(
             console.print(f"[dim]Source:[/dim] {s.source_title} ({s.source_url})")
             if s.key_insight:
                 console.print(f"[italic]> {s.key_insight[:200]}[/italic]")
+        print_budget_exhausted(suggester)
 
     asyncio.run(_suggest())
 
@@ -1046,19 +1131,48 @@ def research_similar(
         int,
         typer.Option("--num-results", "-n", help="Number of results."),
     ] = 10,
+    mode: Annotated[
+        ExaMode,
+        typer.Option("--mode", help="Exa policy mode: fast (cheap), standard, deep (expensive)."),
+    ] = ExaMode.STANDARD,
+    budget_usd: Annotated[
+        float | None,
+        typer.Option(
+            "--budget-usd",
+            help="Max Exa spend (USD) for this command. Default depends on mode.",
+        ),
+    ] = None,
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
 ) -> None:
     """Find pages similar to a URL using Exa's /findSimilar endpoint."""
     from kalshi_research.exa import ExaClient
     from kalshi_research.exa.models.similar import FindSimilarResponse
+    from kalshi_research.exa.policy import ExaPolicy, extract_exa_cost_total
 
     async def _find() -> FindSimilarResponse:
         try:
+            policy = ExaPolicy.from_mode(mode=mode, budget_usd=budget_usd)
+            budget = ExaBudget(limit_usd=policy.budget_usd)
+            estimated_cost = policy.estimate_find_similar_cost_usd(
+                num_results=num_results,
+                include_text=False,
+                include_highlights=False,
+            )
+            if not budget.can_spend(estimated_cost):
+                console.print(
+                    "[yellow]Budget exhausted[/yellow] "
+                    f"(estimated ${estimated_cost:.4f} > "
+                    f"remaining ${budget.remaining_usd:.4f} of ${budget.limit_usd:.2f})."
+                )
+                raise typer.Exit(1)
+
             async with ExaClient.from_env() as exa:
-                return await exa.find_similar(url, num_results=num_results)
+                response = await exa.find_similar(url, num_results=num_results)
+                budget.record_spend(extract_exa_cost_total(response))
+                return response
         except ValueError as e:
             console.print(f"[red]Error:[/red] {e}")
-            console.print("[dim]Set EXA_API_KEY in your environment or .env file.[/dim]")
+            console.print("[dim]Check EXA_API_KEY and --budget-usd (must be > 0).[/dim]")
             raise typer.Exit(1) from None
 
     response = asyncio.run(_find())
@@ -1171,6 +1285,16 @@ def research_deep(
             help=("Exa research model tier (exa-research-fast, exa-research, exa-research-pro)."),
         ),
     ] = "exa-research",
+    budget_usd: Annotated[
+        float | None,
+        typer.Option(
+            "--budget-usd",
+            help=(
+                "Optional cost ceiling (USD). Exa /research tasks do not support server-side "
+                "budget limits; this is used to warn if the completed task exceeds your budget."
+            ),
+        ),
+    ] = None,
     wait: Annotated[
         bool,
         typer.Option(
@@ -1193,6 +1317,10 @@ def research_deep(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
 ) -> None:
     """Run Exa async deep research via /research/v1 (paid API)."""
+    if budget_usd is not None and budget_usd <= 0:
+        console.print("[red]Error:[/red] budget_usd must be positive")
+        raise typer.Exit(1)
+
     try:
         task = asyncio.run(
             _run_deep_research(
@@ -1232,3 +1360,8 @@ def research_deep(
 
     if task.cost_dollars is not None:
         console.print(f"\n[dim]Cost: ${task.cost_dollars.total:.4f}[/dim]")
+        if budget_usd is not None and task.cost_dollars.total > budget_usd:
+            console.print(
+                f"[yellow]Warning:[/yellow] Cost exceeded budget "
+                f"(${task.cost_dollars.total:.4f} > ${budget_usd:.2f})."
+            )

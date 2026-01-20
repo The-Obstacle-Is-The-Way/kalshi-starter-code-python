@@ -19,6 +19,7 @@ from kalshi_research.data.models import (
     NewsSentiment,
     TrackedItem,
 )
+from kalshi_research.exa.policy import ExaBudget, ExaPolicy, extract_exa_cost_total
 
 if TYPE_CHECKING:
     from kalshi_research.data.database import DatabaseManager
@@ -34,6 +35,7 @@ class ExaNewsClient(Protocol):
         query: str,
         *,
         num_results: int = 10,
+        search_type: str = "auto",
         start_published_date: datetime | None = None,
         text: bool = True,
         highlights: bool = True,
@@ -54,12 +56,24 @@ class NewsCollector:
         sentiment_analyzer: SentimentAnalyzer | None = None,
         lookback_days: int = 7,
         max_articles_per_query: int = 25,
+        policy: ExaPolicy | None = None,
     ) -> None:
         self._exa = exa
         self._db = db
         self._sentiment = sentiment_analyzer
         self._lookback_days = lookback_days
         self._max_articles_per_query = max_articles_per_query
+        self._policy = policy or ExaPolicy.from_mode()
+        self._budget = ExaBudget(limit_usd=self._policy.budget_usd)
+        self._budget_exhausted = False
+
+    @property
+    def budget(self) -> ExaBudget:
+        return self._budget
+
+    @property
+    def budget_exhausted(self) -> bool:
+        return self._budget_exhausted
 
     def _url_hash(self, url: str) -> str:
         return hashlib.sha256(url.encode("utf-8")).hexdigest()
@@ -69,20 +83,42 @@ class NewsCollector:
 
     async def collect_for_tracked_item(self, tracked: TrackedItem) -> int:
         """Collect news for a single tracked market/event and persist new articles."""
+        if self._budget_exhausted:
+            return 0
+
         queries = json.loads(tracked.search_queries)
         cutoff = datetime.now(UTC) - timedelta(days=self._lookback_days)
 
         new_articles = 0
         for query in queries:
+            include_text = self._policy.include_full_text
+            include_highlights = True
+            estimated_cost = self._policy.estimate_search_cost_usd(
+                num_results=self._max_articles_per_query,
+                include_text=include_text,
+                include_highlights=include_highlights,
+                search_type=self._policy.exa_search_type,
+            )
+            if not self._budget.can_spend(estimated_cost):
+                self._budget_exhausted = True
+                logger.info(
+                    "News collection budget exhausted",
+                    budget_spent_usd=self._budget.spent_usd,
+                    budget_limit_usd=self._budget.limit_usd,
+                )
+                break
+
             try:
                 response = await self._exa.search_and_contents(
                     query,
                     num_results=self._max_articles_per_query,
-                    text=True,
-                    highlights=True,
+                    search_type=self._policy.exa_search_type,
+                    text=include_text,
+                    highlights=include_highlights,
                     category="news",
                     start_published_date=cutoff,
                 )
+                self._budget.record_spend(extract_exa_cost_total(response))
             except Exception as exc:
                 logger.warning(
                     "Failed to collect news for query",
@@ -174,4 +210,6 @@ class NewsCollector:
 
         for tracked in tracked_items:
             results[tracked.ticker] = await self.collect_for_tracked_item(tracked)
+            if self._budget_exhausted:
+                break
         return results

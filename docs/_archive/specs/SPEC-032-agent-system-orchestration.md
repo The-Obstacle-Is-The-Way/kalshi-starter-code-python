@@ -6,6 +6,9 @@
 **Owner:** Solo
 **Effort:** ~3–7 days (Phase 1), ~1–2 weeks (Phase 2–3)
 
+> **Note (2026-01-19):** Escalation is deferred as YAGNI. The current `AgentKernel` does not implement escalation or
+> expose an `enable_escalation` flag. `VerificationReport.suggested_escalation` remains informational only.
+
 ---
 
 ## Summary
@@ -276,7 +279,7 @@ Defaults are conservative and configurable via CLI flags.
 Escalation has a hard USD ceiling, e.g.:
 
 - `--escalation-budget-usd 0.50`
-- `--no-escalation` to disable entirely
+- (Phase 2) explicit escalation controls
 
 ---
 
@@ -291,8 +294,7 @@ uv run kalshi agent analyze TICKER \
   --mode fast|standard|deep \
   --json \
   --max-exa-usd 0.25 \
-  --max-llm-usd 0.25 \
-  --no-escalation
+  --max-llm-usd 0.25
 ```
 
 Behavior:
@@ -301,7 +303,7 @@ Behavior:
 2. Fetch `ResearchSummary` (SPEC-033 implementation).
 3. Call synthesis model to produce `AnalysisResult` (Pydantic-validated).
 4. Run verification to produce `VerificationReport`.
-5. Optionally escalate and re-synthesize.
+5. (Phase 2) Optionally escalate and re-synthesize (not implemented; `suggested_escalation` is informational only).
 6. Print `AgentRunResult` as JSON (default) or Rich (optional `--human`).
 
 ### Output contract

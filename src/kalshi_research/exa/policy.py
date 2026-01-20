@@ -118,6 +118,34 @@ class ExaPolicy:
         # Text answers with citations are the common case in this repo.
         return 0.05 if include_text else 0.03
 
+    def estimate_find_similar_cost_usd(
+        self,
+        *,
+        num_results: int,
+        include_text: bool,
+        include_highlights: bool,
+    ) -> float:
+        """Estimate an upper-bound cost for a `/findSimilar` request.
+
+        Exa's `/findSimilar` pricing is not documented as granularly as `/search`, but examples in
+        `docs/_vendor-docs/exa-api-reference.md` show the same order-of-magnitude costs. We use a
+        conservative estimate similar to the neural `/search` tier to keep budgets meaningful.
+        """
+        if num_results <= 0:
+            return 0.0
+
+        results_tier = 25 if num_results <= 25 else 100
+        base_cost = 0.005 if results_tier == 25 else 0.025
+
+        per_page_cost = 0.0
+        if include_text:
+            per_page_cost += 0.001
+        if include_highlights:
+            per_page_cost += 0.001
+
+        safety_factor = 1.2
+        return (base_cost + (float(num_results) * per_page_cost)) * safety_factor
+
     def normalize_cache_params(self, params: dict[str, object]) -> dict[str, object]:
         """Return a stable cache params mapping for ExaCache keys.
 

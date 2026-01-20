@@ -1,8 +1,9 @@
 # DEBT-041: SPEC-030 Has Unchecked Acceptance Criteria
 
-**Status:** Active
+**Status:** ✅ Resolved (2026-01-19)
 **Priority:** P2 (Medium - Spec marked "implemented" but items remain)
 **Created:** 2026-01-19
+**Resolution:** Option A - Add `--budget-usd` controls everywhere
 
 ---
 
@@ -16,11 +17,8 @@ SPEC-030 (Exa Endpoint Strategy) is marked as "🟡 Phase 1 implemented" but has
 ```
 
 This means:
-1. `kalshi news collect` has no budget controls
-2. `kalshi research similar` has no budget controls
-3. `kalshi research deep` has no budget controls (or does it?)
-4. Thesis flows (`--with-research`) have no explicit budget controls
-5. Citation verification is not implemented
+1. Several Exa-powered commands lacked `--budget-usd` controls
+2. Citation verification is not implemented
 
 ---
 
@@ -30,13 +28,13 @@ This means:
 - `kalshi research context` - has `--mode` and `--budget-usd`
 - `kalshi research topic` - has `--mode` and `--budget-usd`
 
-### Commands WITHOUT policy controls:
-- `kalshi news collect` - no `--budget-usd`
-- `kalshi research similar` - no `--budget-usd`
-- `kalshi research deep` - unclear
-- `kalshi research thesis create --with-research` - no `--budget-usd`
-- `kalshi research thesis check-invalidation` - no `--budget-usd`
-- `kalshi research thesis suggest` - no `--budget-usd`
+### Commands updated to include budget controls (this resolution):
+- `kalshi news collect`
+- `kalshi research similar`
+- `kalshi research deep`
+- `kalshi research thesis create --with-research`
+- `kalshi research thesis check-invalidation`
+- `kalshi research thesis suggest`
 
 ---
 
@@ -63,15 +61,24 @@ Keep SPEC-030 active until all items are checked. Don't pretend it's implemented
 
 ---
 
+## Resolution: Option A - Implement budget controls across all Exa commands
+
+**Reasoning:** Exa calls cost real money. Consistent, explicit `--budget-usd` controls reduce surprise costs and align
+the CLI surface with SPEC-030’s cost-bounded design.
+
+**Implementation:** Added budget flags and enforcement (stop-before-spend where possible) across all Exa-powered commands.
+
+---
+
 ## Acceptance Criteria
 
-- [ ] All Exa-powered commands have consistent policy controls OR
-- [ ] SPEC-030 explicitly documents what's deferred and why
-- [ ] No unchecked items in "implemented" specs
+- [x] All Exa-powered commands have consistent policy controls
+- [x] SPEC-030 acceptance criteria updated to reflect current implementation
+- [ ] Citation verification remains deferred (Phase 3)
 
 ---
 
 ## References
 
-- [SPEC-030: Exa Endpoint Strategy](../_specs/SPEC-030-exa-endpoint-strategy.md)
+- [SPEC-030: Exa Endpoint Strategy](../../_specs/SPEC-030-exa-endpoint-strategy.md)
 - Lines 211, 217 (unchecked items)

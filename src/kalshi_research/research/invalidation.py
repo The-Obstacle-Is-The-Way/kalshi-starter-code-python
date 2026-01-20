@@ -10,6 +10,8 @@ from urllib.parse import urlparse
 
 import structlog
 
+from kalshi_research.exa.policy import ExaBudget, ExaPolicy, extract_exa_cost_total
+
 if TYPE_CHECKING:
     from kalshi_research.exa.client import ExaClient
     from kalshi_research.research.thesis import Thesis
@@ -57,9 +59,26 @@ class InvalidationReport:
 class InvalidationDetector:
     """Search for recent news that may contradict a thesis."""
 
-    def __init__(self, exa: ExaClient, *, lookback_hours: int = 48) -> None:
+    def __init__(
+        self,
+        exa: ExaClient,
+        *,
+        lookback_hours: int = 48,
+        policy: ExaPolicy | None = None,
+    ) -> None:
         self._exa = exa
         self._lookback_hours = lookback_hours
+        self._policy = policy or ExaPolicy.from_mode()
+        self._budget = ExaBudget(limit_usd=self._policy.budget_usd)
+        self._budget_exhausted = False
+
+    @property
+    def budget(self) -> ExaBudget:
+        return self._budget
+
+    @property
+    def budget_exhausted(self) -> bool:
+        return self._budget_exhausted
 
     async def check_thesis(self, thesis: Thesis) -> InvalidationReport:
         """Search recent news for signals that might invalidate a thesis."""
@@ -78,15 +97,34 @@ class InvalidationDetector:
             queries.append(f"{assumption} news")
 
         for query in queries[:3]:
+            include_text = self._policy.include_full_text
+            include_highlights = True
+            estimated_cost = self._policy.estimate_search_cost_usd(
+                num_results=5,
+                include_text=include_text,
+                include_highlights=include_highlights,
+                search_type=self._policy.exa_search_type,
+            )
+            if not self._budget.can_spend(estimated_cost):
+                self._budget_exhausted = True
+                logger.info(
+                    "Thesis invalidation check budget exhausted",
+                    budget_spent_usd=self._budget.spent_usd,
+                    budget_limit_usd=self._budget.limit_usd,
+                )
+                break
+
             try:
                 response = await self._exa.search(
                     query,
                     num_results=5,
-                    text=True,
-                    highlights=True,
+                    search_type=self._policy.exa_search_type,
+                    text=include_text,
+                    highlights=include_highlights,
                     category="news",
                     start_published_date=cutoff,
                 )
+                self._budget.record_spend(extract_exa_cost_total(response))
             except Exception as e:
                 logger.warning("Invalidation search failed", query=query, error=str(e))
                 continue
