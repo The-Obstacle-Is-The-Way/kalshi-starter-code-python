@@ -416,36 +416,23 @@ def research_thesis_list(
     output_console.print(f"\n[dim]Total: {len(theses)} theses[/dim]")
 
 
-@thesis_app.command("show")
-def research_thesis_show(  # noqa: PLR0915
-    thesis_id: Annotated[str, typer.Argument(help="Thesis ID to show")],
-    with_positions: Annotated[
-        bool, typer.Option("--with-positions", help="Show linked positions")
-    ] = False,
-    db_path: Annotated[
-        Path, typer.Option("--db", "-d", help="Path to SQLite database file.")
-    ] = DEFAULT_DB_PATH,
-) -> None:
-    """Show details of a thesis."""
-    data = _load_theses()
-    theses = data.get("theses", [])
-
-    # Find thesis
-    thesis = None
+def _find_thesis_by_id(theses: list[dict[str, Any]], thesis_id: str) -> dict[str, Any] | None:
+    """Find a thesis by ID prefix match."""
     for t in theses:
         if t["id"].startswith(thesis_id):
-            thesis = t
-            break
+            return t
+    return None
 
-    if not thesis:
-        console.print(f"[red]Error:[/red] Thesis not found: {thesis_id}")
-        raise typer.Exit(2)
 
-    # Display
+def _render_thesis_header(thesis: dict[str, Any]) -> None:
+    """Render thesis header (title, ID, status)."""
     console.print(f"\n[bold]{thesis['title']}[/bold]")
     console.print(f"[dim]ID: {thesis['id']}[/dim]")
     console.print(f"[dim]Status: {thesis['status']}[/dim]\n")
 
+
+def _render_thesis_fields_table(thesis: dict[str, Any]) -> None:
+    """Render thesis fields as a table."""
     table = Table()
     table.add_column("Field", style="cyan")
     table.add_column("Value", style="green")
@@ -459,6 +446,9 @@ def research_thesis_show(  # noqa: PLR0915
 
     console.print(table)
 
+
+def _render_thesis_cases_and_updates(thesis: dict[str, Any]) -> None:
+    """Render bull/bear cases, updates, and research summary."""
     console.print(f"\n[cyan]Bull Case:[/cyan] {thesis['bull_case']}")
     console.print(f"[cyan]Bear Case:[/cyan] {thesis['bear_case']}")
 
@@ -471,75 +461,107 @@ def research_thesis_show(  # noqa: PLR0915
         console.print("\n[cyan]Research Summary:[/cyan]")
         console.print(thesis["research_summary"])
 
+
+def _render_thesis_evidence(evidence: list[dict[str, Any]]) -> None:
+    """Render evidence groups (bull, bear, neutral)."""
+    if not evidence:
+        return
+
+    console.print("\n[cyan]Evidence:[/cyan]")
+
+    def _print_evidence_group(label: str, title: str) -> None:
+        items = [e for e in evidence if isinstance(e, dict) and e.get("supports") == label]
+        if not items:
+            return
+        console.print(f"[bold]{title}[/bold]")
+        for item in items[:3]:
+            item_title = str(item.get("title", "")).strip()
+            domain = str(item.get("source_domain", "")).strip()
+            console.print(f"  • {item_title} [dim]({domain})[/dim]")
+            snippet = str(item.get("snippet", "")).strip()
+            if snippet:
+                snippet_preview = snippet[:180] + ("..." if len(snippet) > 180 else "")
+                console.print(f"    [dim]{snippet_preview}[/dim]")
+
+    _print_evidence_group("bull", "🟢 Bull Evidence")
+    _print_evidence_group("bear", "🔴 Bear Evidence")
+    _print_evidence_group("neutral", "⚪ Neutral Evidence")
+
+
+async def _fetch_and_render_linked_positions(thesis_id: str, db_path: Path) -> None:
+    """Fetch and render positions linked to a thesis."""
+    from sqlalchemy import select
+
+    from kalshi_research.cli.db import open_db_session
+    from kalshi_research.portfolio import Position
+
+    async with open_db_session(db_path) as session:
+        query = select(Position).where(Position.thesis_id == thesis_id)
+        result = await session.execute(query)
+        positions = result.scalars().all()
+
+        if not positions:
+            console.print("\n[dim]No positions linked to this thesis.[/dim]")
+            return
+
+        console.print("\n[cyan]Linked Positions:[/cyan]")
+        pos_table = Table()
+        pos_table.add_column("Ticker", style="cyan")
+        pos_table.add_column("Side", style="magenta")
+        pos_table.add_column("Qty", justify="right")
+        pos_table.add_column("Avg Price", justify="right")
+        pos_table.add_column("P&L", justify="right")
+
+        for pos in positions:
+            pnl_str = "-"
+            if pos.unrealized_pnl_cents is not None:
+                pnl = pos.unrealized_pnl_cents
+                pnl_str = f"${pnl / 100:.2f}"
+                if pnl > 0:
+                    pnl_str = f"[green]+{pnl_str}[/green]"
+                elif pnl < 0:
+                    pnl_str = f"[red]{pnl_str}[/red]"
+
+            pos_table.add_row(
+                pos.ticker,
+                pos.side.upper(),
+                str(pos.quantity),
+                "-" if pos.avg_price_cents == 0 else f"{pos.avg_price_cents}¢",
+                pnl_str,
+            )
+
+        console.print(pos_table)
+
+
+@thesis_app.command("show")
+def research_thesis_show(
+    thesis_id: Annotated[str, typer.Argument(help="Thesis ID to show")],
+    with_positions: Annotated[
+        bool, typer.Option("--with-positions", help="Show linked positions")
+    ] = False,
+    db_path: Annotated[
+        Path, typer.Option("--db", "-d", help="Path to SQLite database file.")
+    ] = DEFAULT_DB_PATH,
+) -> None:
+    """Show details of a thesis."""
+    data = _load_theses()
+    theses = data.get("theses", [])
+
+    thesis = _find_thesis_by_id(theses, thesis_id)
+    if not thesis:
+        console.print(f"[red]Error:[/red] Thesis not found: {thesis_id}")
+        raise typer.Exit(2)
+
+    _render_thesis_header(thesis)
+    _render_thesis_fields_table(thesis)
+    _render_thesis_cases_and_updates(thesis)
+
     evidence = thesis.get("evidence") or []
-    if isinstance(evidence, list) and evidence:
-        console.print("\n[cyan]Evidence:[/cyan]")
+    if isinstance(evidence, list):
+        _render_thesis_evidence(evidence)
 
-        def _print_evidence_group(label: str, title: str) -> None:
-            items = [e for e in evidence if isinstance(e, dict) and e.get("supports") == label]
-            if not items:
-                return
-            console.print(f"[bold]{title}[/bold]")
-            for item in items[:3]:
-                item_title = str(item.get("title", "")).strip()
-                domain = str(item.get("source_domain", "")).strip()
-                console.print(f"  • {item_title} [dim]({domain})[/dim]")
-                snippet = str(item.get("snippet", "")).strip()
-                if snippet:
-                    snippet_preview = snippet[:180] + ("..." if len(snippet) > 180 else "")
-                    console.print(f"    [dim]{snippet_preview}[/dim]")
-
-        _print_evidence_group("bull", "🟢 Bull Evidence")
-        _print_evidence_group("bear", "🔴 Bear Evidence")
-        _print_evidence_group("neutral", "⚪ Neutral Evidence")
-
-    # Show linked positions if requested
     if with_positions:
-        from sqlalchemy import select
-
-        from kalshi_research.cli.db import open_db_session
-        from kalshi_research.portfolio import Position
-
-        async def _show_positions() -> None:
-            async with open_db_session(db_path) as session:
-                query = select(Position).where(Position.thesis_id == thesis["id"])
-                result = await session.execute(query)
-                positions = result.scalars().all()
-
-                if not positions:
-                    console.print("\n[dim]No positions linked to this thesis.[/dim]")
-                    return
-
-                # Display positions
-                console.print("\n[cyan]Linked Positions:[/cyan]")
-                pos_table = Table()
-                pos_table.add_column("Ticker", style="cyan")
-                pos_table.add_column("Side", style="magenta")
-                pos_table.add_column("Qty", justify="right")
-                pos_table.add_column("Avg Price", justify="right")
-                pos_table.add_column("P&L", justify="right")
-
-                for pos in positions:
-                    pnl_str = "-"
-                    if pos.unrealized_pnl_cents is not None:
-                        pnl = pos.unrealized_pnl_cents
-                        pnl_str = f"${pnl / 100:.2f}"
-                        if pnl > 0:
-                            pnl_str = f"[green]+{pnl_str}[/green]"
-                        elif pnl < 0:
-                            pnl_str = f"[red]{pnl_str}[/red]"
-
-                    pos_table.add_row(
-                        pos.ticker,
-                        pos.side.upper(),
-                        str(pos.quantity),
-                        "-" if pos.avg_price_cents == 0 else f"{pos.avg_price_cents}¢",
-                        pnl_str,
-                    )
-
-                console.print(pos_table)
-
-        run_async(_show_positions())
+        run_async(_fetch_and_render_linked_positions(thesis["id"], db_path))
 
 
 @thesis_app.command("edit")
