@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, run_async
 
 app = typer.Typer(help="Exchange status and operational information.")
 
@@ -126,7 +125,7 @@ def status(
             raise typer.Exit(1) from None
         return raw
 
-    payload = asyncio.run(_fetch())
+    payload = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(payload, indent=2, default=str))
@@ -157,7 +156,7 @@ def status_schedule(
 
         return schedule.model_dump(mode="json")
 
-    payload = asyncio.run(_fetch())
+    payload = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(payload, indent=2, default=str))
@@ -188,7 +187,7 @@ def status_announcements(
 
         return announcements.model_dump(mode="json")
 
-    payload = asyncio.run(_fetch())
+    payload = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(payload, indent=2, default=str))
