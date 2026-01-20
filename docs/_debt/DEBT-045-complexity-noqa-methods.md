@@ -63,7 +63,7 @@ src/kalshi_research/cli/scan.py:scan_movers 1156-1304 (149 lines)
 - [x] Refactor `src/kalshi_research/agent/research_agent.py:_execute_research_task` (remove noqa, keep behavior)
 - [x] Refactor `src/kalshi_research/execution/executor.py:_run_live_checks` (remove noqa, keep behavior)
 - [x] Refactor `src/kalshi_research/cli/agent.py:research` (remove noqa, keep CLI UX)
-- [ ] Refactor `src/kalshi_research/cli/agent.py:analyze` (remove noqa, keep CLI UX)
+- [x] Refactor `src/kalshi_research/cli/agent.py:analyze` (remove noqa, keep CLI UX)
 - [ ] Refactor `src/kalshi_research/cli/research.py:research_thesis_show` (remove noqa, keep CLI UX)
 - [ ] Refactor `src/kalshi_research/cli/scan.py:scan_movers` (remove noqa, keep CLI UX)
 

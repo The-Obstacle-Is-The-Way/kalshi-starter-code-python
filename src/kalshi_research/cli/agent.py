@@ -97,6 +97,151 @@ def _render_factors_table(factors: list[dict[str, Any]]) -> None:
     console.print(table)
 
 
+async def _execute_analysis(
+    ticker: str,
+    research_mode: ExaMode,
+    max_exa_usd: float,
+    max_llm_usd: float,
+    quiet: bool,
+) -> tuple[dict[str, object], bool]:
+    """Execute analysis workflow: fetch market, research, synthesize, verify.
+
+    Returns:
+        Tuple of (result dict, is_mock_synthesizer flag)
+    """
+    from kalshi_research.agent import ResearchAgent
+    from kalshi_research.agent.orchestrator import AgentKernel
+    from kalshi_research.agent.providers.llm import MockSynthesizer, get_synthesizer
+    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.exa.client import ExaClient
+    from kalshi_research.exa.exceptions import ExaAPIError, ExaAuthError
+
+    try:
+        async with (
+            KalshiPublicClient() as kalshi,
+            ExaClient.from_env() as exa,
+        ):
+            research_agent = ResearchAgent(exa)
+            synthesizer = get_synthesizer(max_cost_usd=max_llm_usd)
+            is_mock = isinstance(synthesizer, MockSynthesizer)
+
+            if is_mock and not quiet:
+                console.print(
+                    "[yellow]Warning:[/yellow] Using MockSynthesizer. "
+                    "Set KALSHI_SYNTHESIZER_BACKEND=anthropic for real analysis."
+                )
+
+            kernel = AgentKernel(
+                kalshi_client=kalshi,
+                research_agent=research_agent,
+                synthesizer=synthesizer,
+                max_exa_usd=max_exa_usd,
+                max_llm_usd=max_llm_usd,
+            )
+
+            if not quiet:
+                console.print(f"[cyan]Analyzing {ticker}[/cyan] (mode: {research_mode.value})")
+
+            result = await kernel.analyze(
+                ticker=ticker,
+                research_mode=research_mode.value,
+            )
+
+            output = result.model_dump(mode="json")
+            if is_mock:
+                output["warning"] = (
+                    "MockSynthesizer active. "
+                    "Set KALSHI_SYNTHESIZER_BACKEND=anthropic for real analysis."
+                )
+            return output, is_mock
+
+    except KalshiAPIError as e:
+        exit_kalshi_api_error(e)
+    except ExaAuthError as e:
+        console.print(f"[red]Exa Auth Error:[/red] {e}")
+        console.print("[yellow]Hint:[/yellow] Check your EXA_API_KEY environment variable")
+        raise typer.Exit(1) from None
+    except ExaAPIError as e:
+        console.print(f"[red]Exa API Error:[/red] {e}")
+        raise typer.Exit(1) from None
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from None
+
+
+def _render_analysis_human(result: dict[str, object]) -> None:
+    """Render analysis result in human-readable format."""
+    analysis = cast("dict[str, Any]", result.get("analysis", {}))
+    verification = cast("dict[str, Any]", result.get("verification", {}))
+    research = cast("dict[str, Any] | None", result.get("research"))
+
+    ticker_val = analysis.get("ticker", "unknown")
+    predicted_prob = analysis.get("predicted_prob", 0)
+    market_prob = analysis.get("market_prob", 0.0)
+    confidence = analysis.get("confidence", "unknown")
+    reasoning = analysis.get("reasoning", "")
+    total_cost = result.get("total_cost_usd", 0.0)
+
+    passed = verification.get("passed", False)
+    issues = verification.get("issues", [])
+
+    console.print(
+        Panel(
+            f"[bold]Market:[/bold] {ticker_val}\n"
+            f"[bold]Predicted:[/bold] {predicted_prob}% (Confidence: {confidence})\n"
+            f"[bold]Market Price:[/bold] {market_prob * 100:.1f}%\n"
+            f"[bold]Verification:[/bold] {'✓ PASSED' if passed else '✗ FAILED'}\n"
+            f"[bold]Total Cost:[/bold] ${total_cost:.3f}",
+            title="Analysis Result",
+        )
+    )
+
+    if reasoning:
+        console.print(f"\n[bold]Reasoning:[/bold]\n{reasoning}\n")
+
+    _render_analysis_factors_table(analysis.get("factors", []))
+
+    if not passed:
+        console.print("\n[red]Verification Issues:[/red]")
+        for issue in issues:
+            console.print(f"  • {issue}")
+
+    if research:
+        research_cost = research.get("total_cost_usd", 0.0)
+        console.print(f"\n[dim]Research cost: ${research_cost:.3f}[/dim]")
+
+
+def _render_analysis_factors_table(factors: list[dict[str, Any]]) -> None:
+    """Render analysis factors as a Rich table."""
+    if not factors:
+        return
+
+    table = Table(title="Factors", show_lines=True)
+    table.add_column("#", style="cyan", width=3)
+    table.add_column("Description", style="white")
+    table.add_column("Impact", style="yellow", width=10)
+
+    for i, factor in enumerate(factors[:10], 1):
+        desc = factor.get("description", "")
+        impact = factor.get("impact", "unclear")
+        table.add_row(str(i), desc, impact or "unclear")
+
+    console.print(table)
+
+
+def _output_analysis_json(result: dict[str, object], output_file: str | None, quiet: bool) -> None:
+    """Output analysis result as JSON to stdout or file."""
+    json_output = json.dumps(result, indent=2, default=str)
+    if output_file:
+        with Path(output_file).open("w") as f:
+            f.write(json_output)
+        if not quiet:
+            console.print(f"[green]✓[/green] Results written to {output_file}")
+    else:
+        typer.echo(json_output)
+
+
 async def _execute_research(
     ticker: str,
     research_mode: ExaMode,
@@ -178,7 +323,7 @@ def research(
 
 
 @app.command()
-def analyze(  # noqa: PLR0915
+def analyze(
     ticker: Annotated[str, typer.Argument(help="Market ticker to analyze")],
     mode: Annotated[
         str,
@@ -224,147 +369,14 @@ def analyze(  # noqa: PLR0915
         kalshi agent analyze INXD-25FEB28 --human
         kalshi agent analyze INXD-25FEB28 --output result.json
     """
-    from kalshi_research.agent import ResearchAgent
-    from kalshi_research.agent.orchestrator import AgentKernel
-    from kalshi_research.agent.providers.llm import MockSynthesizer, get_synthesizer
-    from kalshi_research.api import KalshiPublicClient
-    from kalshi_research.exa.client import ExaClient
-    from kalshi_research.exa.policy import ExaMode
+    research_mode = _parse_exa_mode(mode)
 
-    # Parse mode
-    try:
-        research_mode = ExaMode(mode.lower())
-    except ValueError:
-        console.print(
-            f"[red]Error:[/red] Invalid mode '{mode}'. Expected: fast, standard, or deep."
-        )
-        raise typer.Exit(1) from None
+    # Determine quiet mode: suppress progress output for JSON-only output
+    quiet = output_json and not human
 
-    async def _run() -> dict[str, object]:
-        from kalshi_research.api.exceptions import KalshiAPIError
-        from kalshi_research.exa.exceptions import ExaAPIError, ExaAuthError
+    result, _ = run_async(_execute_analysis(ticker, research_mode, max_exa_usd, max_llm_usd, quiet))
 
-        # Initialize clients and agents
-        try:
-            async with (
-                KalshiPublicClient() as kalshi,
-                ExaClient.from_env() as exa,
-            ):
-                # Create research agent
-                research_agent = ResearchAgent(exa)
-
-                synthesizer = get_synthesizer(max_cost_usd=max_llm_usd)
-                is_mock = isinstance(synthesizer, MockSynthesizer)
-                if is_mock and (human or not output_json):
-                    console.print(
-                        "[yellow]Warning:[/yellow] Using MockSynthesizer. "
-                        "Set KALSHI_SYNTHESIZER_BACKEND=anthropic for real analysis."
-                    )
-
-                # Create kernel
-                kernel = AgentKernel(
-                    kalshi_client=kalshi,
-                    research_agent=research_agent,
-                    synthesizer=synthesizer,
-                    max_exa_usd=max_exa_usd,
-                    max_llm_usd=max_llm_usd,
-                )
-
-                if not output_json and not human:
-                    console.print(f"[cyan]Analyzing {ticker}[/cyan] (mode: {research_mode.value})")
-
-                # Run analysis
-                result = await kernel.analyze(
-                    ticker=ticker,
-                    research_mode=research_mode.value,
-                )
-
-                output = result.model_dump(mode="json")
-                if is_mock:
-                    output["warning"] = (
-                        "MockSynthesizer active. "
-                        "Set KALSHI_SYNTHESIZER_BACKEND=anthropic for real analysis."
-                    )
-                return output
-
-        except KalshiAPIError as e:
-            exit_kalshi_api_error(e)
-        except ExaAuthError as e:
-            console.print(f"[red]Exa Auth Error:[/red] {e}")
-            console.print("[yellow]Hint:[/yellow] Check your EXA_API_KEY environment variable")
-            raise typer.Exit(1) from None
-        except ExaAPIError as e:
-            console.print(f"[red]Exa API Error:[/red] {e}")
-            raise typer.Exit(1) from None
-        except ValueError as e:
-            console.print(f"[red]Error:[/red] {e}")
-            raise typer.Exit(1) from None
-
-    result = run_async(_run())
-
-    # Output handling
     if human:
-        # Human-readable Rich output
-        from typing import cast
-
-        analysis = cast("dict[str, Any]", result.get("analysis", {}))
-        verification = cast("dict[str, Any]", result.get("verification", {}))
-        research = cast("dict[str, Any] | None", result.get("research"))
-
-        ticker_val = analysis.get("ticker", "unknown")
-        predicted_prob = analysis.get("predicted_prob", 0)
-        market_prob = analysis.get("market_prob", 0.0)
-        confidence = analysis.get("confidence", "unknown")
-        reasoning = analysis.get("reasoning", "")
-        total_cost = result.get("total_cost_usd", 0.0)
-
-        passed = verification.get("passed", False)
-        issues = verification.get("issues", [])
-
-        console.print(
-            Panel(
-                f"[bold]Market:[/bold] {ticker_val}\n"
-                f"[bold]Predicted:[/bold] {predicted_prob}% (Confidence: {confidence})\n"
-                f"[bold]Market Price:[/bold] {market_prob * 100:.1f}%\n"
-                f"[bold]Verification:[/bold] {'✓ PASSED' if passed else '✗ FAILED'}\n"
-                f"[bold]Total Cost:[/bold] ${total_cost:.3f}",
-                title="Analysis Result",
-            )
-        )
-
-        if reasoning:
-            console.print(f"\n[bold]Reasoning:[/bold]\n{reasoning}\n")
-
-        factors = analysis.get("factors", [])
-        if factors:
-            table = Table(title="Factors", show_lines=True)
-            table.add_column("#", style="cyan", width=3)
-            table.add_column("Description", style="white")
-            table.add_column("Impact", style="yellow", width=10)
-
-            for i, factor in enumerate(factors[:10], 1):
-                desc = factor.get("description", "")
-                impact = factor.get("impact", "unclear")
-                table.add_row(str(i), desc, impact or "unclear")
-
-            console.print(table)
-
-        if not passed:
-            console.print("\n[red]Verification Issues:[/red]")
-            for issue in issues:
-                console.print(f"  • {issue}")
-
-        if research:
-            research_cost = research.get("total_cost_usd", 0.0)
-            console.print(f"\n[dim]Research cost: ${research_cost:.3f}[/dim]")
-
+        _render_analysis_human(result)
     else:
-        # JSON output (default)
-        json_output = json.dumps(result, indent=2, default=str)
-        if output_file:
-            with Path(output_file).open("w") as f:
-                f.write(json_output)
-            if not output_json:
-                console.print(f"[green]✓[/green] Results written to {output_file}")
-        else:
-            typer.echo(json_output)
+        _output_analysis_json(result, output_file, quiet)
