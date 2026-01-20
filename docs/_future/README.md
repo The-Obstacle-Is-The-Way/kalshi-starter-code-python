@@ -35,6 +35,7 @@ These are potential future integrations for information arbitrage. Prioritized b
 | ID | Title | Priority | Blocked By | Notes |
 |----|-------|----------|------------|-------|
 | **FUTURE-008** | [DSPy Evaluation & Optimization](FUTURE-008-dspy-evaluation-optimization.md) | Medium-High | Need 100+ resolved predictions | Auto-optimize synthesizer prompts, calibration metrics |
+| **FUTURE-009** | [Escalation Pathway](FUTURE-009-escalation-pathway.md) | Medium | Nothing (ready when needed) | Multi-agent critique, deeper research on low-confidence results |
 
 **Strategy:** Complete vertical stack (SPEC-030 → 033 → 032) first. Design ResearchProvider interface to be pluggable, then add external sources as providers.
 
