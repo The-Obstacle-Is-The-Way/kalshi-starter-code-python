@@ -3,13 +3,13 @@
 **Status:** Active
 **Priority:** P3 (Low - Resilience vs. specificity tradeoff)
 **Created:** 2026-01-19
-**Audit Date:** 2026-01-19
+**Audit Date:** 2026-01-19 (updated post-ralph-wiggum-loop cleanup)
 
 ---
 
 ## Problem
 
-The codebase has ~30 instances of `except Exception` or `except Exception as e` that catch all exceptions broadly. This can:
+The codebase has **48 instances** of `except Exception` or `except Exception as e` that catch all exceptions broadly. This can:
 1. Hide bugs by catching unexpected errors
 2. Make debugging harder
 3. Violate the principle of catching only what you can handle
@@ -32,16 +32,19 @@ src/kalshi_research/agent/research_agent.py:253
 ### CLI (User-facing error handling)
 ```text
 src/kalshi_research/cli/alerts.py:142
-src/kalshi_research/cli/research.py:825, 1209
+src/kalshi_research/cli/research.py:910 (and others)
 src/kalshi_research/cli/market.py:68, 120, 178, 338, 542
 src/kalshi_research/cli/__init__.py:105
 src/kalshi_research/cli/scan.py:543, 843
 src/kalshi_research/cli/data.py:142, 313
+src/kalshi_research/cli/browse.py:33, 101, 167 (SPEC-043)
+src/kalshi_research/cli/event.py:104, 257, 318, 382 (SPEC-043)
+src/kalshi_research/cli/mve.py (multiple) (SPEC-043)
 ```
 
 ### Execution (Safety-critical)
 ```text
-src/kalshi_research/execution/executor.py:309, 331, 427
+src/kalshi_research/execution/executor.py:309, 333, 431
 ```
 
 ### Other
