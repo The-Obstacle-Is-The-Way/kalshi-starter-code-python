@@ -12,7 +12,7 @@
 
 The CLI repeats the same patterns dozens of times:
 
-1. **Async wrapper boilerplate** (`asyncio.run(...)`) — 58 copies
+1. **Async wrapper boilerplate** (`asyncio.run(...)`) — 56 copies
 2. **Kalshi API error handling** (`except KalshiAPIError ... Exit(1)`) — 28 copies
 3. **DB session plumbing** (`DatabaseManager(...)` + session creation) — 11 copies
 
@@ -29,9 +29,9 @@ rg -n "except KalshiAPIError" src/kalshi_research/cli | wc -l
 rg -n "DatabaseManager\\(" src/kalshi_research/cli | wc -l
 ```
 
-Current counts (2026-01-19 audit, SSOT verified):
+Current counts (2026-01-20 audit, SSOT verified):
 
-- `asyncio.run`: **58**
+- `asyncio.run`: **56**
 - `except KalshiAPIError`: **28**
 - `DatabaseManager(...)`: **11**
 
@@ -41,7 +41,7 @@ Current counts (2026-01-19 audit, SSOT verified):
 
 Add a single helper (location: `src/kalshi_research/cli/utils.py`):
 
-- `run_async(fn: Callable[[], Awaitable[T]]) -> T`
+- `run_async(coro: Coroutine[object, object, T]) -> T`
 - Enforce consistent cancellation/KeyboardInterrupt handling
 - Avoid per-command nested `_run()` functions
 
@@ -76,10 +76,10 @@ Refactor CLI modules to call these helpers. Migration should be mechanical and t
 
 ## Acceptance Criteria (Phased)
 
-- [ ] Phase A: Add `run_async()` helper and migrate at least one CLI module as a template
+- [x] Phase A: Add `run_async()` helper and migrate at least one CLI module as a template
 - [ ] Phase B: Migrate all CLI modules off direct `asyncio.run()`
 - [ ] Phase C: Add `exit_kalshi_api_error()` helper and migrate at least one CLI module as a template
 - [ ] Phase D: Migrate all CLI modules off duplicated `except KalshiAPIError` blocks
 - [ ] Phase E: Add DB session helper and migrate all CLI DB session setup
 
-**Note (2026-01-19):** This work was implemented on `ralph-wiggum-loop` branch but LOST when that branch was deleted due to conflicts with SPEC-043. Must be redone from scratch.
+**Note (2026-01-20):** Phase A was re-implemented in PR #35 on `ralph-wiggum-loop` after the earlier branch deletion. Phases B–E remain pending.

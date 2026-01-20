@@ -22,7 +22,7 @@ T = TypeVar("T")
 def run_async(coro: Coroutine[object, object, T]) -> T:
     """Run a coroutine from a sync CLI command.
 
-    Centralizes asyncio.run() usage across CLI modules to ensure consistent
+    Centralizes `asyncio.run` usage across CLI modules to ensure consistent
     handling of KeyboardInterrupt (Ctrl+C).
 
     Raises:
