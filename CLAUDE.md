@@ -276,3 +276,9 @@ When you find drift, bugs, or technical debt, record them in the appropriate tra
 - Active specs: `docs/_specs/README.md`
 - Backlog (blocked/deferred): `docs/_future/README.md`
 - Technical debt: `docs/_debt/README.md`
+
+## Ralph Wiggum Loop (Optional)
+
+- State files: `PROGRESS.md`, `PROMPT.md`
+- Operator script: `./scripts/ralph-loop.sh start` (default tmux session: `kalshi-ralph`; override via `RALPH_TMUX_SESSION=...`)
+- Reference: `docs/_ralph-wiggum/protocol.md`

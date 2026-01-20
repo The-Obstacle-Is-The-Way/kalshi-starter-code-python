@@ -215,3 +215,8 @@ This repo supports the Ralph Wiggum autonomous loop via the root state files:
 - `PROGRESS.md` — loop state (task queue + work log)
 - `PROMPT.md` — iteration prompt
 - Reference: `docs/_ralph-wiggum/protocol.md`
+
+Operator script (recommended):
+
+- Start/attach: `./scripts/ralph-loop.sh start` (default tmux session: `kalshi-ralph`)
+- Avoid collisions with other repos: `RALPH_TMUX_SESSION=kalshi-ralph ./scripts/ralph-loop.sh start`

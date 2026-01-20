@@ -311,14 +311,14 @@ docs/
 ### Step 5: Start tmux Session
 
 ```bash
-# Create named session
-tmux new-session -s ralph
+# Create named session (recommended: repo-scoped name to avoid collisions)
+tmux new-session -s kalshi-ralph
 
 # Or attach to existing
-tmux attach -t ralph
+tmux attach -t kalshi-ralph
 
 # Detach without killing: Ctrl+B, then D
-# Kill session: tmux kill-session -t ralph
+# Kill session: tmux kill-session -t kalshi-ralph
 ```
 
 ### Step 6: Run the Loop
@@ -410,23 +410,22 @@ against using them. Rely on state-file verification instead to prevent reward ha
 This repo includes a ready-to-use script at `scripts/ralph-loop.sh`:
 
 ```bash
-# Start in tmux (recommended)
-tmux new -s ralph
-./scripts/ralph-loop.sh
-```
+# Start (creates or re-attaches) in tmux session "kalshi-ralph"
+./scripts/ralph-loop.sh start
 
-Or start it directly in a background tmux session:
+# Optional: show last output
+./scripts/ralph-loop.sh status
 
-```bash
-# Kill any existing session and start fresh
-tmux kill-session -t ralph 2>/dev/null
-tmux new-session -d -s ralph "./scripts/ralph-loop.sh"
-
-# Attach to watch
-tmux attach -t ralph
+# Stop
+./scripts/ralph-loop.sh stop
 ```
 
 **Script location:** `scripts/ralph-loop.sh`
+
+**Tip:** If you have multiple repos using Ralph, override the session name:
+```bash
+RALPH_TMUX_SESSION=some-other-session ./scripts/ralph-loop.sh start
+```
 
 ---
 
@@ -668,7 +667,7 @@ ps aux | grep claude
 tmux list-sessions
 
 # Restart loop
-tmux attach -t ralph
+tmux attach -t kalshi-ralph
 # Then re-run the while loop
 ```
 
@@ -735,29 +734,17 @@ ls PROGRESS.md PROMPT.md
 
 # 3. Ensure spec docs exist for each task (docs/_bugs/, docs/_debt/, docs/_specs/, docs/_future/)
 
-# 4. Start tmux
-tmux new -s ralph
+# 4. Start the loop (creates/attaches tmux session: kalshi-ralph)
+./scripts/ralph-loop.sh start
 
-# 5. Run the loop (state-based completion check):
-MAX=50; for i in $(seq 1 $MAX); do
-  echo "=== Iteration $i/$MAX ==="
-  claude --dangerously-skip-permissions -p "$(cat PROMPT.md)"
-  # Check if all tasks complete (no unchecked boxes)
-  if ! grep -q "^\- \[ \]" PROGRESS.md; then
-    echo "✅ All tasks complete"
-    break
-  fi
-  sleep 2
-done
-
-# 6. Monitor in another pane (optional)
+# 5. Monitor in another pane (optional)
 watch -n 5 'git log --oneline -10'
 
-# 7. Audit when done
+# 6. Audit when done
 git log dev..ralph-wiggum-cleanup --oneline
 git diff dev..ralph-wiggum-cleanup --stat
 
-# 8. Merge if good (after review)
+# 7. Merge if good (after review)
 git checkout dev && git merge ralph-wiggum-cleanup
 # Or open PR for review
 ```

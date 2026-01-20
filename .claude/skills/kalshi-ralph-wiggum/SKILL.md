@@ -66,14 +66,11 @@ done
 This repo includes a ready-to-use script:
 
 ```bash
-# Option 1: Run directly in tmux
-tmux new -s ralph
-./scripts/ralph-loop.sh
+# Starts (or re-attaches) a repo-scoped tmux session named "kalshi-ralph"
+./scripts/ralph-loop.sh start
 
-# Option 2: Start in background tmux session
-tmux kill-session -t ralph 2>/dev/null
-tmux new-session -d -s ralph "./scripts/ralph-loop.sh"
-tmux attach -t ralph  # Attach to watch
+# If you have another repo running Ralph, override the session name:
+RALPH_TMUX_SESSION=some-other-session ./scripts/ralph-loop.sh start
 ```
 
 **Script location:** `scripts/ralph-loop.sh`
@@ -87,10 +84,8 @@ git checkout dev && git checkout -b ralph-wiggum-specs
 # 2. Verify state files exist
 ls PROGRESS.md PROMPT.md
 
-# 3. Start tmux
-tmux new -s ralph
-
-# 4. Run the loop (or use ./scripts/ralph-loop.sh)
+# 3. Start the loop (creates/attaches tmux session: kalshi-ralph)
+./scripts/ralph-loop.sh start
 
 # 5. Monitor in another pane
 watch -n 5 'git log --oneline -10'
