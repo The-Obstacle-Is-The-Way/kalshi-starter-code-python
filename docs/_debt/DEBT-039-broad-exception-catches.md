@@ -76,7 +76,7 @@ External API calls can fail in many ways. Broad catches may be appropriate, but 
 ## Recommended Actions
 
 ### Phase 1: Audit execution code (P1)
-Review `executor.py:309, 331, 427` and determine if broad catches are appropriate for financial operations.
+Review `executor.py:309, 333, 431` and determine if broad catches are appropriate for financial operations.
 
 ### Phase 2: Add exception logging (P3)
 For each broad catch, ensure the exception type and message are logged, not just swallowed.

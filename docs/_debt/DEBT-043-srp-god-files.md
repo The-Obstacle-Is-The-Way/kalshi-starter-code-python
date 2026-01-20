@@ -25,22 +25,22 @@ find src/kalshi_research -name '*.py' -print0 | xargs -0 wc -l | sort -nr | head
 find src/kalshi_research -name '*.py' -print0 | xargs -0 wc -l | sort -nr | awk '$1>400 {print}'
 ```
 
-Current files > 400 lines (2026-01-19 audit):
+Current files > 400 lines (2026-01-19 audit, SSOT verified):
 
 ```text
-1871 src/kalshi_research/api/client.py
+1722 src/kalshi_research/api/client.py
+1367 src/kalshi_research/cli/research.py
 1304 src/kalshi_research/cli/scan.py
-1234 src/kalshi_research/cli/research.py
  799 src/kalshi_research/cli/market.py
  740 src/kalshi_research/cli/data.py
  694 src/kalshi_research/exa/client.py
  620 src/kalshi_research/cli/portfolio.py
  559 src/kalshi_research/agent/research_agent.py
  554 src/kalshi_research/portfolio/pnl.py
- 538 src/kalshi_research/execution/executor.py
+ 544 src/kalshi_research/execution/executor.py
  520 src/kalshi_research/cli/alerts.py
- 499 src/kalshi_research/agent/providers/llm.py
  483 src/kalshi_research/portfolio/syncer.py
+ 471 src/kalshi_research/agent/providers/llm.py
  448 src/kalshi_research/analysis/correlation.py
  442 src/kalshi_research/exa/websets/client.py
  442 src/kalshi_research/analysis/liquidity.py

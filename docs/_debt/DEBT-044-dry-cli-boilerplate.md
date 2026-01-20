@@ -29,10 +29,10 @@ rg -n "except KalshiAPIError" src/kalshi_research/cli | wc -l
 rg -n "DatabaseManager\\(" src/kalshi_research/cli | wc -l
 ```
 
-Current counts (2026-01-19 audit):
+Current counts (2026-01-19 audit, SSOT verified):
 
-- `asyncio.run`: **46**
-- `except KalshiAPIError`: **15**
+- `asyncio.run`: **58**
+- `except KalshiAPIError`: **28**
 - `DatabaseManager(...)`: **11**
 
 ## Solution (Minimal Abstractions, Maximum Removal)
@@ -76,8 +76,10 @@ Refactor CLI modules to call these helpers. Migration should be mechanical and t
 
 ## Acceptance Criteria (Phased)
 
-- [x] Phase A: Add `run_async()` helper and migrate at least one CLI module as a template
-- [x] Phase B: Migrate all CLI modules off direct `asyncio.run()`
-- [x] Phase C: Add `exit_kalshi_api_error()` helper and migrate at least one CLI module as a template
-- [x] Phase D: Migrate all CLI modules off duplicated `except KalshiAPIError` blocks
-- [x] Phase E: Add DB session helper and migrate all CLI DB session setup
+- [ ] Phase A: Add `run_async()` helper and migrate at least one CLI module as a template
+- [ ] Phase B: Migrate all CLI modules off direct `asyncio.run()`
+- [ ] Phase C: Add `exit_kalshi_api_error()` helper and migrate at least one CLI module as a template
+- [ ] Phase D: Migrate all CLI modules off duplicated `except KalshiAPIError` blocks
+- [ ] Phase E: Add DB session helper and migrate all CLI DB session setup
+
+**Note (2026-01-19):** This work was implemented on `ralph-wiggum-loop` branch but LOST when that branch was deleted due to conflicts with SPEC-043. Must be redone from scratch.
