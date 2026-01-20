@@ -59,6 +59,7 @@
 
 - 2026-01-19: Reset PROGRESS.md for debt resolution queue (DEBT-039, 043, 044, 045, 046, 047). Debt docs verified against SSOT. client_factory.py salvaged from prior branch. Starting fresh on all migrations.
 - 2026-01-20: Implemented DEBT-044-A: added `kalshi_research.cli.utils.run_async()` (centralized `asyncio.run` + Ctrl+C exit 130), migrated `cli/status.py` as the template (3 call sites), added unit tests. Quality gates pass (`uv run pre-commit run --all-files`, `uv run pytest`).
+- 2026-01-20: Documentation cleanup: removed Gemini references (no longer used), added ANTHROPIC_API_KEY billing docs to Ralph Wiggum protocol (shell export = API credits, .env only = subscription).
 
 ---
 
