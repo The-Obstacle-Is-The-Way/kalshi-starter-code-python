@@ -1,14 +1,38 @@
-"""Shared utilities for CLI commands (console output, JSON storage)."""
+"""Shared utilities for CLI commands (console output, JSON storage, async helpers)."""
 
+from __future__ import annotations
+
+import asyncio
 import json
 import uuid
-from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import typer
 from rich.console import Console
 
+if TYPE_CHECKING:
+    from collections.abc import Coroutine
+    from pathlib import Path
+
 console = Console()
+
+T = TypeVar("T")
+
+
+def run_async(coro: Coroutine[object, object, T]) -> T:
+    """Run a coroutine from a sync CLI command.
+
+    Centralizes `asyncio.run` usage across CLI modules to ensure consistent
+    handling of KeyboardInterrupt (Ctrl+C).
+
+    Raises:
+        typer.Exit: With code 130 on KeyboardInterrupt (standard SIGINT exit code).
+    """
+    try:
+        return asyncio.run(coro)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Interrupted.[/yellow]")
+        raise typer.Exit(130) from None
 
 
 def atomic_write_json(path: Path, data: dict[str, Any]) -> None:
