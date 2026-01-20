@@ -31,7 +31,7 @@
 - [x] **DEBT-039-A**: Audit `executor.py` broad catches for safety → `docs/_debt/DEBT-039-broad-exception-catches.md`
 - [x] **DEBT-039-B**: Add exception type logging to all broad catches → `docs/_debt/DEBT-039-broad-exception-catches.md`
 - [x] **DEBT-047-A**: Introduce constants module + migrate pagination/depth defaults → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
-- [ ] **DEBT-047-B**: Migrate scanner/liquidity threshold literals → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
+- [x] **DEBT-047-B**: Migrate scanner/liquidity threshold literals → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
 
 ### Phase 4: P1 Debt (Large - After Phases 1-3)
 
@@ -74,6 +74,7 @@
 - 2026-01-20: Implemented DEBT-039-A: audited `executor.py` broad exception catches for safety. Narrowed `_check_orderbook_safety` and `_check_liquidity_grade` to `(KalshiAPIError, httpx.HTTPError, httpx.TimeoutException)` with exception type logging. Documented `create_order` audit catch as intentionally broad (re-raises, audit-only). Added 5 new tests for narrowed exception handling. Quality gates pass (pre-commit, mypy, pytest 1014 tests).
 - 2026-01-20: Implemented DEBT-039-B: added `exc_info=True` to broad exception catches (`research/invalidation.py:128`, `research/thesis_research.py:313`, `api/websocket/client.py:275`, `exa/cache.py:141`). Narrowed cache exception catches from `Exception` to `(json.JSONDecodeError, KeyError, ValueError, TypeError, OSError)`. DEBT-039 now complete. Quality gates pass (pre-commit, mypy, pytest).
 - 2026-01-20: Implemented DEBT-047-A: created `src/kalshi_research/constants.py` with `DEFAULT_PAGINATION_LIMIT=200` and `DEFAULT_ORDERBOOK_DEPTH=10`. Migrated 4 files (data/fetcher.py, cli/scan.py, cli/market.py, api/client.py) to use constants. Grep checks confirm no `limit=200` or `depth: int = 10` literals remain. Quality gates pass (pre-commit, mypy, pytest 1014 tests).
+- 2026-01-20: Implemented DEBT-047-B: added 13 scanner/liquidity constants to `constants.py` (close_race_range, high_volume_threshold, wide_spread_threshold, depth_radius, max_slippage, grade thresholds, spread score bounds, warning thresholds). Migrated `analysis/scanner.py` (3 defaults) and `analysis/liquidity.py` (10+ references). Grep confirms `(0.40, 0.60)` only in constants.py. Quality gates pass (pre-commit, mypy, pytest 1014 tests).
 
 ---
 

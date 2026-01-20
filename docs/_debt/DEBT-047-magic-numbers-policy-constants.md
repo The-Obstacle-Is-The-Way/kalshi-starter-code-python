@@ -65,5 +65,5 @@ rg -n \"\\(0\\.40, 0\\.60\\)\" src/kalshi_research
 ## Acceptance Criteria (Phased)
 
 - [x] Phase A: Introduce constants module and migrate pagination/depth defaults
-- [ ] Phase B: Migrate scanner/liquidity threshold literals
+- [x] Phase B: Migrate scanner/liquidity threshold literals
 - [ ] Phase C: Migrate Exa budget defaults and any other cost policy literals
