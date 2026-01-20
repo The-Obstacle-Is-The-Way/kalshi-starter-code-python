@@ -20,7 +20,7 @@
 
 - [x] **DEBT-045-A**: Refactor `agent/research_agent.py:_execute_research_task` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
 - [x] **DEBT-045-B**: Refactor `execution/executor.py:_run_live_checks` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
-- [ ] **DEBT-045-C**: Refactor `cli/agent.py:research` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
+- [x] **DEBT-045-C**: Refactor `cli/agent.py:research` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
 - [ ] **DEBT-045-D**: Refactor `cli/agent.py:analyze` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
 - [ ] **DEBT-045-E**: Refactor `cli/research.py:research_thesis_show` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
 - [ ] **DEBT-045-F**: Refactor `cli/scan.py:scan_movers` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
@@ -66,6 +66,7 @@
 - 2026-01-20: Implemented DEBT-044-E: migrated all CLI modules (6 files, 11 call sites) off direct `DatabaseManager()` to use `open_db()`/`open_db_session()` helpers from `cli/db.py`. Helpers already existed; migration was mechanical. Now only `cli/db.py` contains `DatabaseManager`. Quality gates pass (pre-commit, mypy, pytest 1009 tests). DEBT-044 complete.
 - 2026-01-20: Implemented DEBT-045-A: refactored `_execute_research_task` (147 lines → 32 lines main + 6 helper methods). Extracted `_recover_or_create_research_task()`, `_try_recover_from_saved_state()`, `_try_recover_by_id()`, `_try_recover_by_list()`, `_create_new_research_task()`, `_is_terminal_status()`, `_wait_for_research_task()`, `_finalize_research_task()`. Removed noqa comment. All 27 research_agent tests pass. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
 - 2026-01-20: Implemented DEBT-045-B: refactored `_run_live_checks` (121 lines → 32 lines main + 8 helper methods). Extracted `_check_kill_switch()`, `_check_production_gating()`, `_check_daily_order_limit()`, `_check_budget_limits()`, `_check_position_cap()`, `_check_orderbook_safety()`, `_check_liquidity_grade()`, `_check_confirmation()`. Removed noqa comment. All 18 executor tests pass. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
+- 2026-01-20: Implemented DEBT-045-C: refactored `cli/agent.py:research` (157 lines → 28 lines main + 5 helper functions). Extracted `_parse_exa_mode()`, `_write_json_output()`, `_render_research_summary()`, `_render_factors_table()`, `_execute_research()`. Removed noqa comment. Updated integration tests to expect exit code 2 for 404 errors (per CLI convention). Quality gates pass (pre-commit, mypy, pytest).
 
 ---
 
