@@ -8,7 +8,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console, run_async
+from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
 
 app = typer.Typer(help="Exchange status and operational information.")
 
@@ -114,8 +114,7 @@ def status(
             try:
                 raw = await client.get_exchange_status()
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -148,8 +147,7 @@ def status_schedule(
             try:
                 schedule = await client.get_exchange_schedule()
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -179,8 +177,7 @@ def status_announcements(
             try:
                 announcements = await client.get_exchange_announcements()
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None

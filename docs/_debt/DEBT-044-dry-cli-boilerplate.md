@@ -78,7 +78,7 @@ Refactor CLI modules to call these helpers. Migration should be mechanical and t
 
 - [x] Phase A: Add `run_async()` helper and migrate at least one CLI module as a template
 - [x] Phase B: Migrate all CLI modules off direct `asyncio.run()`
-- [ ] Phase C: Add `exit_kalshi_api_error()` helper and migrate at least one CLI module as a template
+- [x] Phase C: Add `exit_kalshi_api_error()` helper and migrate at least one CLI module as a template
 - [ ] Phase D: Migrate all CLI modules off duplicated `except KalshiAPIError` blocks
 - [ ] Phase E: Add DB session helper and migrate all CLI DB session setup
 

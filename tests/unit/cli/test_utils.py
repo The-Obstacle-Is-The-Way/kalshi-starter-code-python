@@ -8,7 +8,8 @@ from unittest.mock import patch
 import pytest
 import typer
 
-from kalshi_research.cli.utils import run_async
+from kalshi_research.api.exceptions import KalshiAPIError
+from kalshi_research.cli.utils import exit_kalshi_api_error, run_async
 
 
 class TestRunAsync:
@@ -68,3 +69,74 @@ class TestRunAsync:
 
         result = run_async(async_op())
         assert result == 42
+
+
+class TestExitKalshiApiError:
+    """Tests for exit_kalshi_api_error helper."""
+
+    def test_exits_with_code_1_for_non_404_error(self) -> None:
+        """exit_kalshi_api_error should exit with code 1 for non-404 errors."""
+        error = KalshiAPIError(500, "Internal Server Error")
+
+        with pytest.raises(typer.Exit) as exc_info:
+            exit_kalshi_api_error(error)
+
+        assert exc_info.value.exit_code == 1
+
+    def test_exits_with_code_2_for_404_error(self) -> None:
+        """exit_kalshi_api_error should exit with code 2 for 404 (not found)."""
+        error = KalshiAPIError(404, "Market not found")
+
+        with pytest.raises(typer.Exit) as exc_info:
+            exit_kalshi_api_error(error)
+
+        assert exc_info.value.exit_code == 2
+
+    def test_prints_error_message_without_context(self) -> None:
+        """exit_kalshi_api_error should print status code and message."""
+        error = KalshiAPIError(400, "Bad Request")
+
+        with (
+            patch("kalshi_research.cli.utils.console.print") as mock_print,
+            pytest.raises(typer.Exit),
+        ):
+            exit_kalshi_api_error(error)
+
+        mock_print.assert_called_once()
+        call_args = mock_print.call_args[0][0]
+        assert "400" in call_args
+        assert "Bad Request" in call_args
+
+    def test_prints_error_message_with_context(self) -> None:
+        """exit_kalshi_api_error should include context in the message."""
+        error = KalshiAPIError(404, "Market not found")
+
+        with (
+            patch("kalshi_research.cli.utils.console.print") as mock_print,
+            pytest.raises(typer.Exit),
+        ):
+            exit_kalshi_api_error(error, context="fetching market data")
+
+        mock_print.assert_called_once()
+        call_args = mock_print.call_args[0][0]
+        assert "404" in call_args
+        assert "Market not found" in call_args
+        assert "while fetching market data" in call_args
+
+    def test_exits_with_code_1_for_401_unauthorized(self) -> None:
+        """exit_kalshi_api_error should exit with code 1 for 401 (unauthorized)."""
+        error = KalshiAPIError(401, "Unauthorized")
+
+        with pytest.raises(typer.Exit) as exc_info:
+            exit_kalshi_api_error(error)
+
+        assert exc_info.value.exit_code == 1
+
+    def test_exits_with_code_1_for_429_rate_limit(self) -> None:
+        """exit_kalshi_api_error should exit with code 1 for 429 (rate limit)."""
+        error = KalshiAPIError(429, "Rate limit exceeded")
+
+        with pytest.raises(typer.Exit) as exc_info:
+            exit_kalshi_api_error(error)
+
+        assert exc_info.value.exit_code == 1
