@@ -8,7 +8,12 @@ import typer
 from rich.table import Table
 from sqlalchemy import select
 
-from kalshi_research.cli.utils import console, load_json_storage_file, run_async
+from kalshi_research.cli.utils import (
+    console,
+    exit_kalshi_api_error,
+    load_json_storage_file,
+    run_async,
+)
 from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
 
 app = typer.Typer(help="Portfolio tracking and P&L commands.")
@@ -189,8 +194,7 @@ def portfolio_sync(
                 )
 
         except KalshiAPIError as e:
-            console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-            raise typer.Exit(1) from None
+            exit_kalshi_api_error(e)
         except (OSError, ValueError) as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None
@@ -424,8 +428,7 @@ def portfolio_balance(
                 try:
                     balance = await client.get_balance()
                 except KalshiAPIError as e:
-                    console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                    raise typer.Exit(1) from None
+                    exit_kalshi_api_error(e)
         except (OSError, ValueError) as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None

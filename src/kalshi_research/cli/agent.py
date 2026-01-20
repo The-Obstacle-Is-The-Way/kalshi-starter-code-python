@@ -8,7 +8,7 @@ from typing import Annotated
 
 import typer
 
-from kalshi_research.cli.utils import console, run_async
+from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
 from kalshi_research.exa.policy import ExaMode
 
 app = typer.Typer(help="Research agent commands")
@@ -72,8 +72,7 @@ def research(  # noqa: PLR0915
             try:
                 market = await kalshi.get_market(ticker)
             except KalshiAPIError as e:
-                console.print(f"[red]Kalshi API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                exit_kalshi_api_error(e)
 
         # Run research
         try:
@@ -285,8 +284,7 @@ def analyze(  # noqa: PLR0915
                 return output
 
         except KalshiAPIError as e:
-            console.print(f"[red]Kalshi API Error {e.status_code}:[/red] {e.message}")
-            raise typer.Exit(1) from None
+            exit_kalshi_api_error(e)
         except ExaAuthError as e:
             console.print(f"[red]Exa Auth Error:[/red] {e}")
             console.print("[yellow]Hint:[/yellow] Check your EXA_API_KEY environment variable")

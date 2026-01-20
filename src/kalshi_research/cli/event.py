@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Annotated
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console, run_async
+from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
 
 app = typer.Typer(help="Event discovery and analysis commands.")
 
@@ -251,8 +251,7 @@ def event_list(
                     with_nested_markets=with_markets,
                 )
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -312,8 +311,7 @@ def event_get(
             try:
                 return await _fetch_event_with_metadata(client, ticker=ticker, warn=not output_json)
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -376,8 +374,7 @@ def event_candlesticks(
                     period_interval=period_interval,
                 )
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None

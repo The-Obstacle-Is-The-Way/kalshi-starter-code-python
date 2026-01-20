@@ -12,7 +12,7 @@ import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from kalshi_research.cli.utils import console, run_async
+from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
 from kalshi_research.paths import DEFAULT_DB_PATH
 
 app = typer.Typer(help="Market scanning commands.")
@@ -838,8 +838,7 @@ async def _scan_new_markets_async(
                 show_progress=not output_json,
             )
         except KalshiAPIError as exc:
-            console.print(f"[red]API Error {exc.status_code}:[/red] {exc.message}")
-            raise typer.Exit(1) from None
+            exit_kalshi_api_error(exc)
         except Exception as exc:
             console.print(f"[red]Error:[/red] {exc}")
             raise typer.Exit(1) from None

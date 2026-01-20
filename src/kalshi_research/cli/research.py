@@ -14,6 +14,7 @@ from rich.table import Table
 from kalshi_research.cli.utils import (
     atomic_write_json,
     console,
+    exit_kalshi_api_error,
     load_json_storage_file,
     print_budget_exhausted,
     run_async,
@@ -905,8 +906,7 @@ async def _fetch_market(ticker: str) -> "Market":
         try:
             return await kalshi.get_market(ticker)
         except KalshiAPIError as e:
-            console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-            raise typer.Exit(2 if e.status_code == 404 else 1) from None
+            exit_kalshi_api_error(e)
         except Exception as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None

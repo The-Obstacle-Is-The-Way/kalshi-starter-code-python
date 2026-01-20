@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Annotated
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console, run_async
+from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
 
 app = typer.Typer(help="Market lookup commands.")
 
@@ -62,8 +62,7 @@ def market_get(
             try:
                 market = await client.get_market(ticker)
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -114,8 +113,7 @@ def market_orderbook(
             try:
                 orderbook = await client.get_orderbook(ticker, depth=depth)
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -172,8 +170,7 @@ def market_liquidity(
                 market = await client.get_market(ticker)
                 orderbook = await client.get_orderbook(ticker, depth=depth)
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -332,8 +329,7 @@ def market_history(
                     )
                     candles = responses[0].candlesticks if responses else []
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -536,8 +532,7 @@ async def _market_list_async(
                         prefix_upper=prefix_upper,
                     )
     except KalshiAPIError as exc:
-        console.print(f"[red]API Error {exc.status_code}:[/red] {exc.message}")
-        raise typer.Exit(1) from None
+        exit_kalshi_api_error(exc)
     except Exception as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(1) from None
