@@ -12,8 +12,8 @@
 
 The CLI repeats the same patterns dozens of times:
 
-1. **Async wrapper boilerplate** (`asyncio.run(...)`) — 46 copies
-2. **Kalshi API error handling** (`except KalshiAPIError ... Exit(1)`) — 15 copies
+1. **Async wrapper boilerplate** (`asyncio.run(...)`) — 58 copies
+2. **Kalshi API error handling** (`except KalshiAPIError ... Exit(1)`) — 28 copies
 3. **DB session plumbing** (`DatabaseManager(...)` + session creation) — 11 copies
 
 This violates DRY and creates real risk:
