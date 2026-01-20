@@ -18,7 +18,7 @@
 
 ### Phase 2: P2 Debt (High)
 
-- [ ] **DEBT-045-A**: Refactor `agent/research_agent.py:_execute_research_task` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
+- [x] **DEBT-045-A**: Refactor `agent/research_agent.py:_execute_research_task` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
 - [ ] **DEBT-045-B**: Refactor `execution/executor.py:_run_live_checks` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
 - [ ] **DEBT-045-C**: Refactor `cli/agent.py:research` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
 - [ ] **DEBT-045-D**: Refactor `cli/agent.py:analyze` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
@@ -64,6 +64,7 @@
 - 2026-01-20: Implemented DEBT-044-C: added `exit_kalshi_api_error()` helper to `cli/utils.py` (centralized error formatting + exit codes: 404→2, others→1). Migrated `cli/status.py` as template (3 call sites). Added 6 unit tests. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
 - 2026-01-20: Implemented DEBT-044-D: migrated all CLI modules (12 files, 25 call sites) to use `exit_kalshi_api_error()` helper. 3 special cases intentionally preserved (news.py ValueError re-raise, scan.py and event.py warning+continue patterns). Quality gates pass (pre-commit, mypy, pytest 1009 tests).
 - 2026-01-20: Implemented DEBT-044-E: migrated all CLI modules (6 files, 11 call sites) off direct `DatabaseManager()` to use `open_db()`/`open_db_session()` helpers from `cli/db.py`. Helpers already existed; migration was mechanical. Now only `cli/db.py` contains `DatabaseManager`. Quality gates pass (pre-commit, mypy, pytest 1009 tests). DEBT-044 complete.
+- 2026-01-20: Implemented DEBT-045-A: refactored `_execute_research_task` (147 lines → 32 lines main + 6 helper methods). Extracted `_recover_or_create_research_task()`, `_try_recover_from_saved_state()`, `_try_recover_by_id()`, `_try_recover_by_list()`, `_create_new_research_task()`, `_is_terminal_status()`, `_wait_for_research_task()`, `_finalize_research_task()`. Removed noqa comment. All 27 research_agent tests pass. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
 
 ---
 
