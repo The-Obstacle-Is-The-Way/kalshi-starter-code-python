@@ -14,6 +14,7 @@ The core package lives under `src/kalshi_research/`:
 - `alerts/` — alert conditions, monitor loop, notifiers
 - `portfolio/` — authenticated sync into DB + FIFO P&L
 - `research/` — thesis tracking (local JSON) + backtesting (DB + settlements)
+- `agent/` — agent orchestration (Kalshi + Exa + LLM synthesis + verification)
 - `exa/` — typed async Exa client + cache (optional, enables AI-powered research/news)
 - `news/` — news tracking + sentiment pipeline (Exa-powered, DB-backed)
 
@@ -41,13 +42,19 @@ The CLI is a **multi-file Typer app**. Subcommands live in separate modules:
 
 ```text
 kalshi (src/kalshi_research/cli/__init__.py)
-├─ data       (src/kalshi_research/cli/data.py)
-├─ market     (src/kalshi_research/cli/market.py)
-├─ scan       (src/kalshi_research/cli/scan.py)
-├─ alerts     (src/kalshi_research/cli/alerts.py)
+├─ agent      (src/kalshi_research/cli/agent.py)
+├─ data       (src/kalshi_research/cli/data/)
+├─ market     (src/kalshi_research/cli/market/)
+├─ scan       (src/kalshi_research/cli/scan/)
+├─ browse     (src/kalshi_research/cli/browse.py)
+├─ series     (src/kalshi_research/cli/series.py)
+├─ event      (src/kalshi_research/cli/event.py)
+├─ mve        (src/kalshi_research/cli/mve.py)
+├─ status     (src/kalshi_research/cli/status.py)
+├─ alerts     (src/kalshi_research/cli/alerts/)
 ├─ analysis   (src/kalshi_research/cli/analysis.py)
-├─ research   (src/kalshi_research/cli/research.py)
-├─ portfolio  (src/kalshi_research/cli/portfolio.py)
+├─ research   (src/kalshi_research/cli/research/)
+├─ portfolio  (src/kalshi_research/cli/portfolio/)
 └─ news       (src/kalshi_research/cli/news.py)
 ```
 

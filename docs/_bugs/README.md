@@ -6,8 +6,8 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 | ID | Title | Priority | Status |
 |---|---|---|---|
-| **[BUG-090](BUG-090-fts5-search-not-working.md)** | FTS5 Market Search Returns No Results | P2 | Open |
-| **[BUG-089](BUG-089-negative-liquidity-spam.md)** | Negative Liquidity Value Warnings Spam Console | P4 | Open |
+| **[BUG-090](BUG-090-fts5-search-not-working.md)** | `market search` Defaults to Invalid Status Filter (`open`) | P2 | Open |
+| **[BUG-089](BUG-089-negative-liquidity-spam.md)** | Negative Liquidity Warnings Spam Logs/Console Output | P4 | Open |
 
 ### Verification Note (2026-01-12)
 

@@ -5,7 +5,7 @@
 ## Summary
 When commands fetch many markets (e.g., `kalshi scan opportunities`, `kalshi scan arbitrage`), parsing markets can emit **hundreds of warnings** like:
 
-```
+```text
 Received negative liquidity value: -39765. Treating as None. Field deprecated Jan 15, 2026.
 Received negative liquidity value: -16116. Treating as None. Field deprecated Jan 15, 2026.
 ... (100+ more lines)
