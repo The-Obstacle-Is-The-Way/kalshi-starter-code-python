@@ -28,10 +28,10 @@ find src/kalshi_research -name '*.py' -print0 | xargs -0 wc -l | sort -nr | awk 
 Current files > 400 lines (2026-01-21 audit, SSOT verified):
 
 ```text
-421 src/kalshi_research/research/thesis.py
 418 src/kalshi_research/data/fetcher.py
 ```
 
+Note: `research/thesis.py` (421 LoC) was split into `_thesis_models.py` (253), `thesis.py` (177) (D17, 2026-01-21).
 Note: `api/models/portfolio.py` (428 LoC) was split into `_balance.py` (20), `_position.py` (47), `_fill.py` (81), `_settlement.py` (66), `_order.py` (234), `portfolio.py` (55) (D16, 2026-01-21).
 
 Note: `cli/portfolio.py` (620 LoC) was split into `cli/portfolio/` package (D3, 2026-01-21).
@@ -109,7 +109,7 @@ Phase D sub-phases (one file-family per iteration):
 - [x] Phase D14: `analysis/scanner.py` split into focused modules and all files ≤400 lines
 - [x] Phase D15: `analysis/correlation.py` split into focused modules and all files ≤400 lines
 - [x] Phase D16: `api/models/portfolio.py` split into focused modules and all files ≤400 lines
-- [ ] Phase D17: `research/thesis.py` split into focused modules and all files ≤400 lines
+- [x] Phase D17: `research/thesis.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D18: `data/fetcher.py` split into focused modules and all files ≤400 lines
 
-**Note (2026-01-21):** Phases A–C complete. Phase D in progress — 2 files still exceed 400 lines (see Evidence section for the current list). D1–D16 completed (cli/market.py, cli/data.py, cli/portfolio.py, cli/alerts.py, cli/research/thesis/_commands.py, agent/research_agent.py, agent/providers/llm.py, execution/executor.py, exa/client.py, exa/websets/client.py, portfolio/pnl.py, portfolio/syncer.py, analysis/liquidity.py, analysis/scanner.py, analysis/correlation.py, api/models/portfolio.py → split modules).
+**Note (2026-01-21):** Phases A–C complete. Phase D in progress — 1 file still exceeds 400 lines (see Evidence section for the current list). D1–D17 completed (cli/market.py, cli/data.py, cli/portfolio.py, cli/alerts.py, cli/research/thesis/_commands.py, agent/research_agent.py, agent/providers/llm.py, execution/executor.py, exa/client.py, exa/websets/client.py, portfolio/pnl.py, portfolio/syncer.py, analysis/liquidity.py, analysis/scanner.py, analysis/correlation.py, api/models/portfolio.py, research/thesis.py → split modules).
