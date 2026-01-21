@@ -32,7 +32,6 @@ Current files > 400 lines (2026-01-21 audit, SSOT verified):
 637 src/kalshi_research/execution/executor.py
 554 src/kalshi_research/portfolio/pnl.py
 483 src/kalshi_research/portfolio/syncer.py
-471 src/kalshi_research/agent/providers/llm.py
 461 src/kalshi_research/analysis/liquidity.py
 448 src/kalshi_research/analysis/correlation.py
 442 src/kalshi_research/exa/websets/client.py
@@ -45,6 +44,7 @@ Current files > 400 lines (2026-01-21 audit, SSOT verified):
 Note: `cli/portfolio.py` (620 LoC) was split into `cli/portfolio/` package (D3, 2026-01-21).
 Note: `cli/alerts.py` (521 LoC) was split into `cli/alerts/` package (D4, 2026-01-21).
 Note: `agent/research_agent.py` (648 LoC) was split into `agent/research_agent/` package (D6, 2026-01-21).
+Note: `agent/providers/llm.py` (471 LoC) was split into `agent/providers/llm/` package (D7, 2026-01-21).
 
 ## Solution (Concrete, No Hand-Waving)
 
@@ -98,7 +98,7 @@ Phase D sub-phases (one file-family per iteration):
 - [x] Phase D4: `cli/alerts.py` becomes `cli/alerts/` package and all files ≤400 lines
 - [x] Phase D5: `cli/research/thesis/_commands.py` reduced to ≤400 lines (split/move helpers as needed)
 - [x] Phase D6: `agent/research_agent.py` split into focused modules and all files ≤400 lines
-- [ ] Phase D7: `agent/providers/llm.py` split into focused modules and all files ≤400 lines
+- [x] Phase D7: `agent/providers/llm.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D8: `execution/executor.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D9: `exa/client.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D10: `exa/websets/client.py` split into focused modules and all files ≤400 lines

@@ -109,6 +109,7 @@ ignore = [
 "src/kalshi_research/api/models/*.py" = ["TC003"]  # Pydantic models need datetime at runtime
 "src/kalshi_research/exa/models/*.py" = ["TC001", "TC003"]  # Pydantic models need runtime imports
 "src/kalshi_research/execution/models.py" = ["TC001", "TC003"]  # Pydantic models need runtime imports
+"src/kalshi_research/agent/providers/llm/_schemas.py" = ["TC001"]  # Pydantic model needs runtime AnalysisFactor import
 "src/kalshi_research/data/export.py" = ["PLC0415"]  # DuckDB is optional, lazy import
 "src/kalshi_research/data/repositories/*.py" = ["PLC0415", "TC003"]  # Lazy sqlalchemy imports and datetime
 "src/kalshi_research/research/notebook_utils.py" = ["TC001", "PLC0415", "E501"]  # Notebook utils need runtime imports, HTML strings
