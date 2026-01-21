@@ -249,7 +249,7 @@ def test_data_collect_daemon_schedules_tasks_and_exits_cleanly(runner: CliRunner
         with (
             patch("kalshi_research.data.DataFetcher", _FakeFetcher),
             patch("kalshi_research.data.DataScheduler", _FakeScheduler),
-            patch("kalshi_research.cli.data.asyncio.sleep", new=_cancel_sleep),
+            patch("kalshi_research.cli.data.collect.asyncio.sleep", new=_cancel_sleep),
         ):
             result = runner.invoke(
                 app,
