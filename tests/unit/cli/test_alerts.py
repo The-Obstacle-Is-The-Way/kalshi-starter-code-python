@@ -143,6 +143,29 @@ def test_alerts_remove_not_found() -> None:
     assert "not found" in result.stdout.lower()
 
 
+def test_alerts_remove_ambiguous_prefix_exits_1_and_does_not_modify_file() -> None:
+    with runner.isolated_filesystem():
+        alerts_file = Path("alerts.json")
+        alerts_file.write_text(
+            json.dumps(
+                {
+                    "conditions": [
+                        {"id": "alert-12345678", "label": "a"},
+                        {"id": "alert-12399999", "label": "b"},
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
+            result = runner.invoke(app, ["alerts", "remove", "alert-123"])
+
+        assert result.exit_code == 1
+        assert "ambiguous" in result.stdout.lower()
+        stored = json.loads(alerts_file.read_text(encoding="utf-8"))
+        assert len(stored["conditions"]) == 2
+
+
 def test_alerts_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
     alerts_file = tmp_path / "alerts.json"
     alerts_file.write_text("{not json", encoding="utf-8")

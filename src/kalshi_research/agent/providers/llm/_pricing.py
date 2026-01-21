@@ -55,8 +55,12 @@ def _read_positive_float_env(name: str) -> float | None:
     return value
 
 
-def default_pricing_for_model(_model: str) -> AnthropicPricing:
-    """Get pricing for a model, preferring environment overrides."""
+def default_pricing_for_model(model: str) -> AnthropicPricing:
+    """Get pricing for a model, preferring environment overrides.
+
+    This repo only ships built-in defaults for the Claude Sonnet family. For other models,
+    set explicit pricing via `ANTHROPIC_INPUT_USD_PER_MTOK` and `ANTHROPIC_OUTPUT_USD_PER_MTOK`.
+    """
     # Prefer explicit env overrides (works across model changes without code edits).
     input_override = _read_positive_float_env("ANTHROPIC_INPUT_USD_PER_MTOK")
     output_override = _read_positive_float_env("ANTHROPIC_OUTPUT_USD_PER_MTOK")
@@ -65,5 +69,11 @@ def default_pricing_for_model(_model: str) -> AnthropicPricing:
             input_usd_per_mtok=input_override, output_usd_per_mtok=output_override
         )
 
-    # Defaults are for the Sonnet family (override via env if you use different pricing).
-    return AnthropicPricing(input_usd_per_mtok=3.0, output_usd_per_mtok=15.0)
+    model_lower = model.lower()
+    if "sonnet" in model_lower:
+        return AnthropicPricing(input_usd_per_mtok=3.0, output_usd_per_mtok=15.0)
+
+    raise ValueError(
+        f"No built-in pricing configured for model '{model}'. "
+        "Set ANTHROPIC_INPUT_USD_PER_MTOK and ANTHROPIC_OUTPUT_USD_PER_MTOK."
+    )

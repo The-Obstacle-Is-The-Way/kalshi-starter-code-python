@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
@@ -325,11 +324,11 @@ class TradeExecutor:
         """
         failures: list[str] = []
 
-        if os.getenv(self.KILL_SWITCH_ENV) == "1":
-            failures.append("kill_switch_enabled")
+        if failure := check_kill_switch():
+            failures.append(failure)
 
-        if self._environment == Environment.PRODUCTION and not self._allow_production:
-            failures.append("production_trading_disabled")
+        if failure := check_production_gating(self._environment, self._allow_production):
+            failures.append(failure)
 
         if failures:
             raise TradeSafetyError("; ".join(failures))

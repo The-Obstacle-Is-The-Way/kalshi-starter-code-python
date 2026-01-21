@@ -36,17 +36,23 @@ def portfolio_link(
                     Position.quantity > 0,
                 )
                 result = await session.execute(query)
-                position = result.scalar_one_or_none()
+                positions = list(result.scalars().all())
 
-                if not position:
+                if not positions:
                     console.print(f"[yellow]No open position found for {ticker}[/yellow]")
                     console.print(PORTFOLIO_SYNC_TIP)
                     raise typer.Exit(2) from None
 
-                # Update thesis_id
-                position.thesis_id = thesis
+                # Update thesis_id (all open positions for ticker).
+                for position in positions:
+                    position.thesis_id = thesis
 
-            console.print(f"[green]✓[/green] Position {ticker} linked to thesis {thesis}")
+            if len(positions) > 1:
+                console.print(
+                    f"[yellow]Warning:[/yellow] Multiple open positions found for {ticker}; "
+                    f"updated {len(positions)} rows."
+                )
+            console.print(f"[green]✓[/green] Position(s) {ticker} linked to thesis {thesis}")
 
     run_async(_link())
 

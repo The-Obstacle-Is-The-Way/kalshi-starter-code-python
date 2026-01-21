@@ -89,20 +89,27 @@ def spawn_alert_monitor_daemon(
                     ) from None
                 raise
 
-        popen_kwargs: dict[str, Any] = {
-            "stdin": subprocess.DEVNULL,
-            "stdout": log_file,
-            "stderr": log_file,
-            "env": daemon_env,
-        }
         if sys.platform == "win32":
-            popen_kwargs["creationflags"] = int(getattr(subprocess, "DETACHED_PROCESS", 0)) | int(
+            creationflags = int(getattr(subprocess, "DETACHED_PROCESS", 0)) | int(
                 getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
             )
+            proc = subprocess.Popen(
+                args,
+                stdin=subprocess.DEVNULL,
+                stdout=log_file,
+                stderr=log_file,
+                env=daemon_env,
+                creationflags=creationflags,
+            )
         else:
-            popen_kwargs["start_new_session"] = True
-
-        proc = subprocess.Popen(args, **popen_kwargs)
+            proc = subprocess.Popen(
+                args,
+                stdin=subprocess.DEVNULL,
+                stdout=log_file,
+                stderr=log_file,
+                env=daemon_env,
+                start_new_session=True,
+            )
 
     # Quick sanity check: if the child dies immediately (import error, bad args),
     # don't claim the daemon started successfully.

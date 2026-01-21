@@ -24,7 +24,7 @@ Examples (2026-01-21 audit):
   - Orderbook depth: `DEFAULT_ORDERBOOK_DEPTH = 10` in `src/kalshi_research/constants.py`
   - Scanner thresholds: `DEFAULT_CLOSE_RACE_RANGE = (0.40, 0.60)` and related constants
 
-Remaining policy literals worth consolidating (Phase C):
+- Remaining policy literals worth consolidating (Phase C):
   - Agent per-run defaults:
     - `src/kalshi_research/agent/orchestrator.py` (`max_exa_usd=0.25`, `max_llm_usd=0.25`)
     - `src/kalshi_research/cli/agent.py` (`--max-exa-usd=0.25`, `--max-llm-usd=0.25`)

@@ -38,6 +38,9 @@ async def fetch_markets_from_events(
     Returns:
         A list of markets collected from events, truncated to `limit`.
     """
+    if limit <= 0:
+        return []
+
     markets: list[Market] = []
     async for api_event in client.get_all_events(
         status=status_filter,

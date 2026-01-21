@@ -66,6 +66,9 @@ def market_search(
 
     Run 'kalshi data sync-markets' first to populate/update the database.
     """
+    if format_output not in {"table", "json"}:
+        raise typer.BadParameter("format must be 'table' or 'json'")
+
     run_async(
         _market_search_async(
             query=query,
@@ -149,8 +152,10 @@ async def _market_search_async(
                 "midpoint": r.midpoint,
                 "spread": r.spread,
                 "volume_24h": r.volume_24h,
-                "close_time": r.close_time.isoformat(),
-                "expiration_time": r.expiration_time.isoformat(),
+                "close_time": r.close_time.isoformat() if r.close_time is not None else None,
+                "expiration_time": (
+                    r.expiration_time.isoformat() if r.expiration_time is not None else None
+                ),
             }
             for r in results
         ]

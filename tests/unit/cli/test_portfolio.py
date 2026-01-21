@@ -99,7 +99,7 @@ def test_portfolio_link_success(mock_db_cls: MagicMock) -> None:
     mock_position.thesis_id = None
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = mock_position
+    mock_result.scalars.return_value.all.return_value = [mock_position]
 
     mock_session = AsyncMock()
     mock_session.__aenter__.return_value = mock_session
@@ -131,7 +131,7 @@ def test_portfolio_link_success(mock_db_cls: MagicMock) -> None:
 @patch("kalshi_research.cli.db.DatabaseManager")
 def test_portfolio_link_position_not_found(mock_db_cls: MagicMock) -> None:
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = None
+    mock_result.scalars.return_value.all.return_value = []
 
     mock_session = AsyncMock()
     mock_session.__aenter__.return_value = mock_session

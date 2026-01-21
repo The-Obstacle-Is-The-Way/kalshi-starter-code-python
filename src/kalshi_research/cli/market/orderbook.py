@@ -17,6 +17,9 @@ def market_orderbook(
     """Fetch orderbook for a market."""
     from kalshi_research.cli.client_factory import public_client
 
+    if depth <= 0:
+        raise typer.BadParameter("depth must be a positive integer")
+
     async def _orderbook() -> None:
         from kalshi_research.api.exceptions import KalshiAPIError
 

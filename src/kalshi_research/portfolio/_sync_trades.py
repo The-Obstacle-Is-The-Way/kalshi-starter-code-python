@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import structlog
 from sqlalchemy import select
@@ -12,9 +12,17 @@ from kalshi_research.portfolio.models import Trade
 
 if TYPE_CHECKING:
     from kalshi_research.api.client import KalshiClient
+    from kalshi_research.api.models.portfolio import Fill
     from kalshi_research.data.database import DatabaseManager
 
 logger = structlog.get_logger()
+
+
+def _normalize_utc(dt: datetime) -> datetime:
+    """Normalize datetime to UTC timezone."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 
 async def sync_trades(
@@ -34,10 +42,10 @@ async def sync_trades(
         Number of trades synced.
     """
     logger.info("Syncing trades")
-    min_ts = int(since.timestamp()) if since else None
+    min_ts = int(_normalize_utc(since).timestamp()) if since else None
 
     # Paginate through fills
-    fills: list[Any] = []
+    fills: list[Fill] = []
     cursor = None
 
     while True:

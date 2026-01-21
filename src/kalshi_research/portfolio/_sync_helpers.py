@@ -6,8 +6,12 @@ from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import structlog
+
 if TYPE_CHECKING:
     from kalshi_research.portfolio.models import Trade
+
+logger = structlog.get_logger()
 
 
 def compute_fifo_cost_basis(trades: list[Trade], side: str) -> int:
@@ -53,6 +57,22 @@ def compute_fifo_cost_basis(trades: list[Trade], side: str) -> int:
                     # Partial lot consumption
                     lots[0] = (lot_qty - remaining, _lot_price)
                     remaining = 0
+            if remaining > 0:
+                logger.warning(
+                    "sell_exceeds_available_lots_ignoring_unmatched_qty",
+                    ticker=trade.ticker,
+                    side=side,
+                    trade_id=trade.kalshi_trade_id,
+                    unmatched_qty=remaining,
+                )
+        else:
+            logger.warning(
+                "unknown_trade_action_skipping_for_cost_basis",
+                ticker=trade.ticker,
+                side=side,
+                trade_id=trade.kalshi_trade_id,
+                action=trade.action,
+            )
 
     # Compute weighted average of remaining lots
     if not lots:

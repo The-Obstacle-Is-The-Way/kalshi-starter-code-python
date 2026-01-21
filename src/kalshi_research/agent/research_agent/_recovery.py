@@ -66,6 +66,20 @@ class DeepResearchRecovery:
         task: ResearchTask | None = None
         research_id_to_wait_for: str | None = None
 
+        saved_instructions = saved_state.get("instructions")
+        if (
+            isinstance(saved_instructions, str)
+            and saved_instructions
+            and saved_instructions != instructions
+        ):
+            logger.warning(
+                "saved_state_instructions_mismatch_ignoring",
+                ticker=ticker,
+                saved_instructions_prefix=saved_instructions[:50],
+                current_instructions_prefix=instructions[:50],
+            )
+            return task, research_id_to_wait_for
+
         saved_research_id = saved_state.get("research_id")
         logger.info(
             "attempting_research_task_recovery",

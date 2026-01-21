@@ -76,7 +76,7 @@ def portfolio_pnl(
             positions = list(pos_result.scalars().all())
 
             # Get trades
-            trade_query = select(Trade)
+            trade_query = select(Trade).order_by(Trade.executed_at)
             if ticker:
                 trade_query = trade_query.where(Trade.ticker == ticker)
 

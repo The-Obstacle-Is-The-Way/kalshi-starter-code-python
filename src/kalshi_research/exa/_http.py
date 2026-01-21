@@ -86,8 +86,10 @@ class ExaHTTPBase:
             RuntimeError: If `open()` has not been called yet.
         """
         if self._client is None:
+            cls_name = self.__class__.__name__
             raise RuntimeError(
-                "ExaClient not initialized. Use 'async with ExaClient(...)' or call open()."
+                f"{cls_name} not initialized. "
+                f"Use 'async with {cls_name}.from_env()' or call open()."
             )
         return self._client
 

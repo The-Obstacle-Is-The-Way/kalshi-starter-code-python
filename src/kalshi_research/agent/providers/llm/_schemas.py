@@ -29,12 +29,16 @@ class AnalysisToolInput(BaseModel):
 class SynthesisInput:
     """Input bundle for synthesis model."""
 
+    market: MarketInfo
+    snapshot: MarketPriceSnapshot
+    research: ResearchSummary | None
+
     def __init__(
         self,
         market: MarketInfo,
         snapshot: MarketPriceSnapshot,
         research: ResearchSummary | None = None,
-    ):
+    ) -> None:
         """Initialize synthesis input.
 
         Args:

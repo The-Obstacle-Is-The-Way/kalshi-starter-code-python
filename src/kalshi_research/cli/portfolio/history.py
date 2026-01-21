@@ -35,9 +35,8 @@ def portfolio_history(
     async def _history() -> None:
         async with open_db(db_path) as db, db.session_factory() as session:
             # Build query
-            query = select(Trade).order_by(Trade.executed_at.desc()).limit(limit)
-            if ticker:
-                query = query.where(Trade.ticker == ticker)
+            query = select(Trade).where(Trade.ticker == ticker) if ticker else select(Trade)
+            query = query.order_by(Trade.executed_at.desc()).limit(limit)
 
             result = await session.execute(query)
             trades = result.scalars().all()
