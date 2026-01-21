@@ -25,29 +25,27 @@ find src/kalshi_research -name '*.py' -print0 | xargs -0 wc -l | sort -nr | head
 find src/kalshi_research -name '*.py' -print0 | xargs -0 wc -l | sort -nr | awk '$1>400 {print}'
 ```
 
-Current files > 400 lines (2026-01-19 audit, SSOT verified):
+Current files > 400 lines (2026-01-21 audit, SSOT verified):
 
 ```text
-1722 src/kalshi_research/api/client.py
-1367 src/kalshi_research/cli/research.py
-1304 src/kalshi_research/cli/scan.py
- 799 src/kalshi_research/cli/market.py
- 740 src/kalshi_research/cli/data.py
- 694 src/kalshi_research/exa/client.py
- 620 src/kalshi_research/cli/portfolio.py
- 559 src/kalshi_research/agent/research_agent.py
- 554 src/kalshi_research/portfolio/pnl.py
- 544 src/kalshi_research/execution/executor.py
- 520 src/kalshi_research/cli/alerts.py
- 483 src/kalshi_research/portfolio/syncer.py
- 471 src/kalshi_research/agent/providers/llm.py
- 448 src/kalshi_research/analysis/correlation.py
- 442 src/kalshi_research/exa/websets/client.py
- 442 src/kalshi_research/analysis/liquidity.py
- 434 src/kalshi_research/analysis/scanner.py
- 421 src/kalshi_research/research/thesis.py
- 415 src/kalshi_research/api/models/portfolio.py
- 413 src/kalshi_research/data/fetcher.py
+788 src/kalshi_research/cli/market.py
+736 src/kalshi_research/cli/data.py
+694 src/kalshi_research/exa/client.py
+648 src/kalshi_research/agent/research_agent.py
+637 src/kalshi_research/execution/executor.py
+620 src/kalshi_research/cli/portfolio.py
+554 src/kalshi_research/portfolio/pnl.py
+521 src/kalshi_research/cli/alerts.py
+483 src/kalshi_research/portfolio/syncer.py
+471 src/kalshi_research/agent/providers/llm.py
+461 src/kalshi_research/analysis/liquidity.py
+448 src/kalshi_research/analysis/correlation.py
+442 src/kalshi_research/exa/websets/client.py
+439 src/kalshi_research/analysis/scanner.py
+428 src/kalshi_research/api/models/portfolio.py
+421 src/kalshi_research/research/thesis.py
+418 src/kalshi_research/data/fetcher.py
+404 src/kalshi_research/cli/research/thesis/_commands.py
 ```
 
 ## Solution (Concrete, No Hand-Waving)
@@ -61,19 +59,19 @@ Adopt a strict size ceiling for `src/kalshi_research/**/*.py`:
 ### Refactor Strategy (by module family)
 
 1. **CLI modules → packages by command group**
-   - `src/kalshi_research/cli/research.py` → `src/kalshi_research/cli/research/` package:
+   - `src/kalshi_research/cli/research.py` → `src/kalshi_research/cli/research/` package (✅ done):
      - `__init__.py` registers Typer app
-     - `context.py`, `topic.py`, `similar.py`, `deep.py`, `thesis.py`, `cache.py`
-   - `src/kalshi_research/cli/scan.py` → `src/kalshi_research/cli/scan/` package:
+     - `context.py`, `topic.py`, `similar.py`, `deep.py`, `backtest.py`, `cache.py`
+     - thesis commands live under `cli/research/thesis/`
+   - `src/kalshi_research/cli/scan.py` → `src/kalshi_research/cli/scan/` package (✅ done):
      - `opportunities.py`, `arbitrage.py`, `movers.py`
-     - shared formatting helpers in `formatting.py`
+     - shared helpers in `cli/scan/_helpers.py` and `cli/scan/_opportunities_helpers.py`
 
 2. **API client → endpoint mixins (no surface-area break)**
-   - Convert `src/kalshi_research/api/client.py` into:
-     - `client_base.py` (request plumbing + retries)
-     - endpoint mixins: `endpoints/markets.py`, `endpoints/events.py`, `endpoints/series.py`, `endpoints/mve.py`, `endpoints/exchange.py`, `endpoints/orders.py`, `endpoints/portfolio.py`
-   - Compose via multiple inheritance in a small `client_public.py` / `client_auth.py`.
-   - Keep `api/client.py` as a thin re-export to preserve import paths.
+   - Split `src/kalshi_research/api/client.py` into:
+     - `src/kalshi_research/api/_base.py` (request plumbing + retries)
+     - `src/kalshi_research/api/_mixins/*.py` (markets/events/series/exchange/multivariate/orders/order_groups/portfolio/trading)
+   - Compose via multiple inheritance in `src/kalshi_research/api/client.py` (✅ done).
 
 3. **Domain modules**
    - `execution/executor.py`, `portfolio/pnl.py`, `agent/research_agent.py` get split by responsibility:
@@ -92,6 +90,6 @@ Adopt a strict size ceiling for `src/kalshi_research/**/*.py`:
 - [x] Phase A: `cli/research.py` becomes `cli/research/` package and all files ≤400 lines
 - [x] Phase B: `cli/scan.py` becomes `cli/scan/` package and all files ≤400 lines
 - [x] Phase C: `api/client.py` split into endpoint modules; public import path preserved; all files ≤400 lines
-- [ ] Phase D: Remaining >400-line modules reduced under the ceiling (17 files remain)
+- [ ] Phase D: Remaining >400-line modules reduced under the ceiling (18 files remain as of 2026-01-21)
 
-**Note (2026-01-20):** Phases A–C complete. Phase D deferred — 17 files still exceed 400 lines (see Evidence section for the original list; some were reduced via DEBT-045 refactors).
+**Note (2026-01-21):** Phases A–C complete. Phase D remains — 18 files still exceed 400 lines (see Evidence section for the current list).
