@@ -24,7 +24,7 @@
 - [x] **DEBT-043-D7**: Split `agent/providers/llm.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-D8**: Split `execution/executor.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-D9**: Split `exa/client.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [ ] **DEBT-043-D10**: Split `exa/websets/client.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D10**: Split `exa/websets/client.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D11**: Split `portfolio/pnl.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D12**: Split `portfolio/syncer.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D13**: Split `analysis/liquidity.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
@@ -42,6 +42,7 @@
 
 ## Work Log
 
+- 2026-01-21: **DEBT-043-D10** complete — split `exa/websets/client.py` (442 LoC) into mixins: `_http.py` (219), `_websets.py` (117), `_items.py` (80), `_searches.py` (100), `client.py` (54). Used mixin composition via multiple inheritance. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D9** complete — split `exa/client.py` (694 LoC) into mixins: `_http.py` (228), `_normalization.py` (50), `_search.py` (262), `_contents.py` (100), `_answer.py` (52), `_research.py` (178), `client.py` (54). Updated test patches to use new module paths. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D8** complete — split `execution/executor.py` (637 LoC) into `execution/` package with 4 new files: `_protocols.py` (49), `_checks.py` (307), `_orchestration.py` (189), `_executor.py` (340). Updated `__init__.py` to re-export from new modules. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D7** complete — split `agent/providers/llm.py` (471 LoC) into `agent/providers/llm/` package with 6 files: `__init__.py` (22), `_pricing.py` (69), `_prompts.py` (43), `_schemas.py` (74), `_claude.py` (244), `_mock.py` (68), `_factory.py` (40). Added TC001 exemption for Pydantic model. Quality gates: `pre-commit`, `pytest` (1052 passed).
