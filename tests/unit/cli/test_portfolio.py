@@ -20,11 +20,11 @@ runner = CliRunner()
 
 
 def test_format_signed_currency_formats_positive_negative_and_zero() -> None:
-    from kalshi_research.cli.portfolio import _format_signed_currency
+    from kalshi_research.cli.portfolio import format_signed_currency
 
-    assert _format_signed_currency(0) == "$0.00"
-    assert _format_signed_currency(100) == "[green]+$1.00[/green]"
-    assert _format_signed_currency(-100) == "[red]$-1.00[/red]"
+    assert format_signed_currency(0) == "$0.00"
+    assert format_signed_currency(100) == "[green]+$1.00[/green]"
+    assert format_signed_currency(-100) == "[red]$-1.00[/red]"
 
 
 def test_portfolio_balance_requires_auth() -> None:

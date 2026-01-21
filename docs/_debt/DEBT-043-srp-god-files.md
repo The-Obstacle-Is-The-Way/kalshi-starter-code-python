@@ -31,7 +31,6 @@ Current files > 400 lines (2026-01-21 audit, SSOT verified):
 694 src/kalshi_research/exa/client.py
 648 src/kalshi_research/agent/research_agent.py
 637 src/kalshi_research/execution/executor.py
-620 src/kalshi_research/cli/portfolio.py
 554 src/kalshi_research/portfolio/pnl.py
 521 src/kalshi_research/cli/alerts.py
 483 src/kalshi_research/portfolio/syncer.py
@@ -45,6 +44,8 @@ Current files > 400 lines (2026-01-21 audit, SSOT verified):
 418 src/kalshi_research/data/fetcher.py
 404 src/kalshi_research/cli/research/thesis/_commands.py
 ```
+
+Note: `cli/portfolio.py` (620 LoC) was split into `cli/portfolio/` package (D3, 2026-01-21).
 
 ## Solution (Concrete, No Hand-Waving)
 
@@ -94,7 +95,7 @@ Phase D sub-phases (one file-family per iteration):
 
 - [x] Phase D1: `cli/market.py` becomes `cli/market/` package and all files ≤400 lines
 - [x] Phase D2: `cli/data.py` becomes `cli/data/` package and all files ≤400 lines
-- [ ] Phase D3: `cli/portfolio.py` becomes `cli/portfolio/` package and all files ≤400 lines
+- [x] Phase D3: `cli/portfolio.py` becomes `cli/portfolio/` package and all files ≤400 lines
 - [ ] Phase D4: `cli/alerts.py` becomes `cli/alerts/` package and all files ≤400 lines
 - [ ] Phase D5: `cli/research/thesis/_commands.py` reduced to ≤400 lines (split/move helpers as needed)
 - [ ] Phase D6: `agent/research_agent.py` split into focused modules and all files ≤400 lines
@@ -111,4 +112,4 @@ Phase D sub-phases (one file-family per iteration):
 - [ ] Phase D17: `research/thesis.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D18: `data/fetcher.py` split into focused modules and all files ≤400 lines
 
-**Note (2026-01-21):** Phases A–C complete. Phase D remains — 16 files still exceed 400 lines (see Evidence section for the current list). D1 and D2 completed (cli/market.py → cli/market/ package, cli/data.py → cli/data/ package).
+**Note (2026-01-21):** Phases A–C complete. Phase D remains — 15 files still exceed 400 lines (see Evidence section for the current list). D1, D2, D3 completed (cli/market.py, cli/data.py, cli/portfolio.py → packages).
