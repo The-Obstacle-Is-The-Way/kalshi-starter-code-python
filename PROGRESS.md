@@ -10,29 +10,29 @@
 
 ### Phase 1: P3 Debt (Small, mechanical)
 
-- [x] **DEBT-047-C1**: Centralize agent default budgets (`max_exa_usd` / `max_llm_usd`) → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
-- [x] **DEBT-047-C2**: Centralize Exa cost-estimate literals (tiers/per-page/safety factors) → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
+- [x] **DEBT-047-C1**: Centralize agent default budgets (`max_exa_usd` / `max_llm_usd`) → `docs/_archive/debt/DEBT-047-magic-numbers-policy-constants.md`
+- [x] **DEBT-047-C2**: Centralize Exa cost-estimate literals (tiers/per-page/safety factors) → `docs/_archive/debt/DEBT-047-magic-numbers-policy-constants.md`
 
 ### Phase 2: P1 Debt (Large, refactors to ≤400 LoC)
 
-- [x] **DEBT-043-D1**: Split `cli/market.py` → `cli/market/` package → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D2**: Split `cli/data.py` → `cli/data/` package → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D3**: Split `cli/portfolio.py` → `cli/portfolio/` package → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D4**: Split `cli/alerts.py` → `cli/alerts/` package → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D5**: Reduce `cli/research/thesis/_commands.py` to ≤400 LoC → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D6**: Split `agent/research_agent.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D7**: Split `agent/providers/llm.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D8**: Split `execution/executor.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D9**: Split `exa/client.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D10**: Split `exa/websets/client.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D11**: Split `portfolio/pnl.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D12**: Split `portfolio/syncer.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D13**: Split `analysis/liquidity.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D14**: Split `analysis/scanner.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D15**: Split `analysis/correlation.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D16**: Split `api/models/portfolio.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D17**: Split `research/thesis.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-D18**: Split `data/fetcher.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D1**: Split `cli/market.py` → `cli/market/` package → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D2**: Split `cli/data.py` → `cli/data/` package → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D3**: Split `cli/portfolio.py` → `cli/portfolio/` package → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D4**: Split `cli/alerts.py` → `cli/alerts/` package → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D5**: Reduce `cli/research/thesis/_commands.py` to ≤400 LoC → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D6**: Split `agent/research_agent.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D7**: Split `agent/providers/llm.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D8**: Split `execution/executor.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D9**: Split `exa/client.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D10**: Split `exa/websets/client.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D11**: Split `portfolio/pnl.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D12**: Split `portfolio/syncer.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D13**: Split `analysis/liquidity.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D14**: Split `analysis/scanner.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D15**: Split `analysis/correlation.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D16**: Split `api/models/portfolio.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D17**: Split `research/thesis.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D18**: Split `data/fetcher.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
 
 ### Phase 3: Final Verification
 

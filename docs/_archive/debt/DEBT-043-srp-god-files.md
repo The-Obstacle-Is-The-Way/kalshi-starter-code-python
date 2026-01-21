@@ -6,7 +6,7 @@
 - **Effort:** L (multi-day, cross-cutting refactor)
 - **Blocking:** Yes (future work keeps getting harder until this is addressed)
 - **Target Date:** 2026-02-09
-- **Status:** Active
+- **Status:** ✅ Resolved (Archived 2026-01-21)
 
 ## Problem
 

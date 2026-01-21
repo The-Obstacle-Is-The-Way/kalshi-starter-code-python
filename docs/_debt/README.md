@@ -4,12 +4,7 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**2 active debt items.**
-
-| ID | Title | Priority | Status |
-|----|-------|----------|--------|
-| **[DEBT-043](DEBT-043-srp-god-files.md)** | SRP — Reduce "God Files" (≤400 LoC ceiling) | P1 | Active |
-| **[DEBT-047](DEBT-047-magic-numbers-policy-constants.md)** | Magic Numbers — Extract Policy-Encoding Literals to Constants | P3 | Active |
+**0 active debt items.**
 
 ---
 
@@ -19,6 +14,8 @@ All resolved debt items live in `docs/_archive/debt/`.
 
 | ID | Title | Status |
 |---|---|---|
+| **[DEBT-043](../_archive/debt/DEBT-043-srp-god-files.md)** | SRP — Reduce "God Files" (≤400 LoC ceiling) | ✅ Resolved |
+| **[DEBT-047](../_archive/debt/DEBT-047-magic-numbers-policy-constants.md)** | Magic Numbers — Extract Policy-Encoding Literals to Constants | ✅ Resolved |
 | **[DEBT-039](../_archive/debt/DEBT-039-broad-exception-catches.md)** | Broad Exception Catches Throughout Codebase | ✅ Resolved |
 | **[DEBT-044](../_archive/debt/DEBT-044-dry-cli-boilerplate.md)** | DRY — Remove Duplicated CLI Boilerplate | ✅ Resolved |
 | **[DEBT-045](../_archive/debt/DEBT-045-complexity-noqa-methods.md)** | Complexity — Remove `# noqa: PLR0912/PLR0915` Methods | ✅ Resolved |
