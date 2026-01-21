@@ -97,7 +97,7 @@ Phase D sub-phases (one file-family per iteration):
 - [x] Phase D2: `cli/data.py` becomes `cli/data/` package and all files ≤400 lines
 - [x] Phase D3: `cli/portfolio.py` becomes `cli/portfolio/` package and all files ≤400 lines
 - [x] Phase D4: `cli/alerts.py` becomes `cli/alerts/` package and all files ≤400 lines
-- [ ] Phase D5: `cli/research/thesis/_commands.py` reduced to ≤400 lines (split/move helpers as needed)
+- [x] Phase D5: `cli/research/thesis/_commands.py` reduced to ≤400 lines (split/move helpers as needed)
 - [ ] Phase D6: `agent/research_agent.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D7: `agent/providers/llm.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D8: `execution/executor.py` split into focused modules and all files ≤400 lines
