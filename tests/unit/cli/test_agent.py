@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import typer
+from typer.testing import CliRunner
 
 from kalshi_research.cli import agent as agent_module
+from kalshi_research.cli import app as root_app
 from kalshi_research.cli.agent import (
     _output_analysis_json,
     _parse_exa_mode,
@@ -22,6 +27,8 @@ from kalshi_research.exa.policy import ExaMode
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+runner = CliRunner()
 
 
 def test_parse_exa_mode_is_case_insensitive() -> None:
@@ -123,3 +130,152 @@ def test_render_analysis_human_renders_sections() -> None:
     assert any(isinstance(arg, Panel) and arg.title == "Analysis Result" for arg in printed_args)
     assert any(isinstance(arg, str) and "Reasoning" in arg for arg in printed_args)
     assert any(isinstance(arg, str) and "Verification Issues" in arg for arg in printed_args)
+
+
+def test_agent_analyze_command_outputs_json_by_default() -> None:
+    mock_execute = AsyncMock(return_value=({"analysis": {}}, False))
+
+    with (
+        patch("kalshi_research.cli.agent._execute_analysis", mock_execute),
+        patch("kalshi_research.cli.agent.run_async", side_effect=lambda coro: asyncio.run(coro)),
+        patch("kalshi_research.cli.agent._output_analysis_json") as mock_output,
+        patch("kalshi_research.cli.agent._render_analysis_human") as mock_human,
+    ):
+        result = runner.invoke(root_app, ["agent", "analyze", "TEST"])
+
+    assert result.exit_code == 0
+    assert mock_output.call_count == 1
+    assert mock_human.call_count == 0
+    assert mock_output.call_args.args[2] is True  # quiet=True for JSON-only output
+
+
+def test_agent_analyze_command_outputs_human_when_flag_set() -> None:
+    mock_execute = AsyncMock(return_value=({"analysis": {}}, False))
+
+    with (
+        patch("kalshi_research.cli.agent._execute_analysis", mock_execute),
+        patch("kalshi_research.cli.agent.run_async", side_effect=lambda coro: asyncio.run(coro)),
+        patch("kalshi_research.cli.agent._output_analysis_json") as mock_output,
+        patch("kalshi_research.cli.agent._render_analysis_human") as mock_human,
+    ):
+        result = runner.invoke(root_app, ["agent", "analyze", "TEST", "--human"])
+
+    assert result.exit_code == 0
+    assert mock_human.call_count == 1
+    assert mock_output.call_count == 0
+
+
+def test_agent_research_command_outputs_human_by_default() -> None:
+    mock_execute = AsyncMock(return_value={"ticker": "TEST"})
+
+    with (
+        patch("kalshi_research.cli.agent._execute_research", mock_execute),
+        patch("kalshi_research.cli.agent.run_async", side_effect=lambda coro: asyncio.run(coro)),
+        patch("kalshi_research.cli.agent._write_json_output") as mock_json,
+        patch("kalshi_research.cli.agent._render_research_summary") as mock_human,
+    ):
+        result = runner.invoke(root_app, ["agent", "research", "TEST"])
+
+    assert result.exit_code == 0
+    assert mock_human.call_count == 1
+    assert mock_json.call_count == 0
+
+
+def test_agent_research_command_outputs_json_when_flag_set() -> None:
+    mock_execute = AsyncMock(return_value={"ticker": "TEST"})
+
+    with (
+        patch("kalshi_research.cli.agent._execute_research", mock_execute),
+        patch("kalshi_research.cli.agent.run_async", side_effect=lambda coro: asyncio.run(coro)),
+        patch("kalshi_research.cli.agent._write_json_output") as mock_json,
+        patch("kalshi_research.cli.agent._render_research_summary") as mock_human,
+    ):
+        result = runner.invoke(root_app, ["agent", "research", "TEST", "--json"])
+
+    assert result.exit_code == 0
+    assert mock_json.call_count == 1
+    assert mock_human.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_execute_analysis_adds_warning_for_mock_synthesizer_when_not_quiet() -> None:
+    from kalshi_research.agent.schemas import (
+        AgentRunResult,
+        AnalysisFactor,
+        AnalysisResult,
+        VerificationReport,
+    )
+    from kalshi_research.exa.policy import ExaMode
+
+    agent_run_result = AgentRunResult(
+        analysis=AnalysisResult(
+            ticker="TEST",
+            market_prob=0.5,
+            predicted_prob=55,
+            confidence="medium",
+            reasoning="Because reasons.",
+            factors=[
+                AnalysisFactor(
+                    description="Factor A",
+                    impact="up",
+                    source_url="https://example.com",
+                )
+            ],
+            sources=["https://example.com"],
+            generated_at=datetime(2026, 1, 1, tzinfo=UTC),
+            model_id="mock-v1",
+        ),
+        verification=VerificationReport(passed=True),
+        research=None,
+        total_cost_usd=0.01,
+    )
+
+    class FakeKernel:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        async def analyze(self, *, ticker: str, research_mode: str) -> AgentRunResult:
+            assert ticker == "TEST"
+            assert research_mode == "fast"
+            return agent_run_result
+
+    mock_kalshi = AsyncMock()
+    mock_kalshi.__aenter__.return_value = mock_kalshi
+    mock_kalshi.__aexit__.return_value = None
+
+    mock_exa = AsyncMock()
+    mock_exa.__aenter__.return_value = mock_exa
+    mock_exa.__aexit__.return_value = None
+
+    @asynccontextmanager
+    async def mock_public_client():
+        yield mock_kalshi
+
+    @asynccontextmanager
+    async def mock_exa_from_env(*_args: object, **_kwargs: object):
+        yield mock_exa
+
+    from kalshi_research.agent.providers.llm import MockSynthesizer
+
+    with (
+        patch("kalshi_research.cli.client_factory.public_client", mock_public_client),
+        patch("kalshi_research.exa.client.ExaClient.from_env", mock_exa_from_env),
+        patch("kalshi_research.agent.orchestrator.AgentKernel", FakeKernel),
+        patch(
+            "kalshi_research.agent.providers.llm.get_synthesizer", return_value=MockSynthesizer()
+        ),
+        patch("kalshi_research.agent.ResearchAgent"),
+        patch.object(agent_module.console, "print") as mock_print,
+    ):
+        result, is_mock = await agent_module._execute_analysis(
+            "TEST",
+            ExaMode.FAST,
+            max_exa_usd=0.25,
+            max_llm_usd=0.25,
+            quiet=False,
+        )
+
+    assert is_mock is True
+    assert "warning" in result
+    printed = "\n".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
+    assert "MockSynthesizer" in printed

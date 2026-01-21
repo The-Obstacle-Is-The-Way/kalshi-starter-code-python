@@ -88,17 +88,38 @@ class TestKalshiClientAuthenticated:
     async def test_get_orders(self, mock_auth):
         """Test getting orders."""
         response_json = _load_golden_fixture("portfolio_orders_response.json")
-        respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/orders").mock(
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/orders").mock(
             return_value=Response(200, json=response_json)
         )
 
         async with KalshiClient(key_id="test", private_key_path="test.pem") as client:
             result = await client.get_orders()
 
+        assert route.called
+        params = dict(route.calls[0].request.url.params)
+        assert params["limit"] == "100"
+
         orders = response_json["orders"]
         assert isinstance(orders, list)
         assert len(result.orders) == len(orders)
         assert result.orders[0].order_id == orders[0]["order_id"]
+        assert result.cursor == response_json["cursor"]
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_orders_clamps_limit_and_sends_cursor(self, mock_auth):
+        """Limit is clamped to max 200; cursor is sent when provided."""
+        route = respx.get("https://api.elections.kalshi.com/trade-api/v2/portfolio/orders").mock(
+            return_value=Response(200, json={"orders": [], "cursor": None})
+        )
+
+        async with KalshiClient(key_id="test", private_key_path="test.pem") as client:
+            await client.get_orders(limit=500, cursor="abc")
+
+        assert route.called
+        params = dict(route.calls[0].request.url.params)
+        assert params["limit"] == "200"
+        assert params["cursor"] == "abc"
 
     @pytest.mark.asyncio
     @respx.mock

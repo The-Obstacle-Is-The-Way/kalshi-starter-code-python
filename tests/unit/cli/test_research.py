@@ -140,6 +140,111 @@ def test_research_context_renders_na_when_market_missing_prices(make_market) -> 
     assert "Spread: N/A" in result.stdout
 
 
+def test_research_context_json_output(make_market) -> None:
+    from kalshi_research.api.models.market import Market
+    from kalshi_research.research.context import MarketResearch
+
+    market = Market.model_validate(make_market(ticker="TEST-MARKET"))
+    research = MarketResearch(market_ticker=market.ticker, market_title=market.title)
+
+    with patch(
+        "kalshi_research.cli.research.context._research_market_context",
+        AsyncMock(return_value=(market, research)),
+    ):
+        result = runner.invoke(app, ["research", "context", market.ticker, "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["market_ticker"] == market.ticker
+
+
+def test_research_context_renders_budget_exhausted_warning(make_market) -> None:
+    from kalshi_research.api.models.market import Market
+    from kalshi_research.research.context import MarketResearch
+
+    market = Market.model_validate(make_market(ticker="TEST-MARKET"))
+    research = MarketResearch(
+        market_ticker=market.ticker,
+        market_title=market.title,
+        exa_cost_dollars=0.0123,
+        budget_usd=0.01,
+        budget_spent_usd=0.01,
+        budget_exhausted=True,
+    )
+
+    with patch(
+        "kalshi_research.cli.research.context._research_market_context",
+        AsyncMock(return_value=(market, research)),
+    ):
+        result = runner.invoke(app, ["research", "context", market.ticker])
+
+    assert result.exit_code == 0
+    assert "Budget exhausted" in result.stdout
+    assert "results may be partial" in result.stdout
+
+
+def test_render_market_context_prints_sources_and_truncates_highlight(make_market) -> None:
+    from kalshi_research.api.models.market import Market
+    from kalshi_research.cli.research.context import _render_market_context
+    from kalshi_research.research.context import MarketResearch, ResearchSource
+
+    market = Market.model_validate(make_market(ticker="TEST-MARKET"))
+    long_highlight = "x" * 200
+    research = MarketResearch(
+        market_ticker=market.ticker,
+        market_title=market.title,
+        news=[
+            ResearchSource(
+                url="https://example.com/a",
+                title="Example A",
+                source_domain="example.com",
+                published_date=datetime(2026, 1, 1, tzinfo=UTC),
+                relevance_score=0.9,
+                highlight=long_highlight,
+            ),
+            ResearchSource(
+                url="https://example.com/b",
+                title="Example B",
+                source_domain="example.com",
+                published_date=None,
+                relevance_score=0.8,
+                highlight="short",
+            ),
+        ],
+        research_papers=[
+            ResearchSource(
+                url="https://example.com/paper",
+                title="Example Paper",
+                source_domain="example.com",
+                published_date=None,
+                relevance_score=0.95,
+            )
+        ],
+        related_coverage=[
+            ResearchSource(
+                url="https://example.com/related",
+                title="Related",
+                source_domain="example.com",
+                published_date=None,
+                relevance_score=0.7,
+            )
+        ],
+        budget_usd=0.01,
+        budget_spent_usd=0.01,
+        budget_exhausted=True,
+    )
+
+    with patch("kalshi_research.cli.research.context.console.print") as mock_print:
+        _render_market_context(market, research)
+
+    printed = "\n".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
+    assert "Recent News" in printed
+    assert "Research Papers" in printed
+    assert "Related Coverage" in printed
+    assert "Budget exhausted" in printed
+    assert long_highlight[:150] + "..." in printed
+
+
 def test_research_topic_missing_exa_key_exits_with_error() -> None:
     exa_error = ValueError("EXA_API_KEY is required")
     with patch("kalshi_research.exa.ExaClient.from_env", side_effect=exa_error):
@@ -162,6 +267,88 @@ def test_research_topic_invalid_budget_exits_with_error() -> None:
     assert result.exit_code == 1
     assert "budget_usd must be positive" in result.stdout
     assert "must be > 0" in result.stdout
+
+
+def test_research_topic_json_output() -> None:
+    from kalshi_research.research.topic import TopicResearch
+
+    research = TopicResearch(topic="Test topic")
+
+    with patch(
+        "kalshi_research.cli.research.topic._run_topic_research",
+        AsyncMock(return_value=research),
+    ):
+        result = runner.invoke(app, ["research", "topic", "Test topic", "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["topic"] == "Test topic"
+
+
+def test_research_topic_fast_mode_prints_note() -> None:
+    from kalshi_research.research.topic import TopicResearch
+
+    research = TopicResearch(topic="Test topic")
+
+    with patch(
+        "kalshi_research.cli.research.topic._run_topic_research",
+        AsyncMock(return_value=research),
+    ):
+        result = runner.invoke(app, ["research", "topic", "Test topic", "--mode", "fast"])
+
+    assert result.exit_code == 0
+    assert "mode fast disables LLM summary" in result.stdout
+
+
+def test_render_topic_research_prints_summary_citations_articles_and_budget() -> None:
+    from kalshi_research.cli.research.topic import _render_topic_research
+    from kalshi_research.research.context import ResearchSource
+    from kalshi_research.research.topic import TopicResearch
+
+    research = TopicResearch(
+        topic="Test topic",
+        summary="Summary text",
+        summary_citations=[
+            ResearchSource(
+                url="https://example.com/cite",
+                title="Citation",
+                source_domain="example.com",
+                published_date=None,
+                relevance_score=0.9,
+            )
+        ],
+        articles=[
+            ResearchSource(
+                url="https://example.com/a",
+                title="Article A",
+                source_domain="example.com",
+                published_date=None,
+                relevance_score=0.8,
+                highlight="x" * 130,
+            ),
+            ResearchSource(
+                url="https://example.com/b",
+                title="Article B",
+                source_domain="example.com",
+                published_date=None,
+                relevance_score=0.7,
+                highlight=None,
+            ),
+        ],
+        budget_usd=0.01,
+        budget_spent_usd=0.01,
+        budget_exhausted=True,
+    )
+
+    with patch("kalshi_research.cli.research.topic.console.print") as mock_print:
+        _render_topic_research("Test topic", research)
+
+    printed = "\n".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
+    assert "Summary" in printed
+    assert "Citations" in printed
+    assert "Articles" in printed
+    assert "Budget exhausted" in printed
+    assert ("x" * 120) + "..." in printed
 
 
 def test_research_similar_missing_exa_key_exits_with_error() -> None:
@@ -1150,6 +1337,78 @@ def test_parse_backtest_dates_start_after_end_exits() -> None:
     with pytest.raises(typer.Exit) as exc_info:
         _parse_backtest_dates("2024-07-01", "2024-06-30")
     assert exc_info.value.exit_code == 1
+
+
+def test_display_backtest_results_prints_tables() -> None:
+    from kalshi_research.cli.research.backtest import _display_backtest_results
+    from kalshi_research.research.backtest import BacktestResult
+
+    start_dt = datetime(2026, 1, 1, tzinfo=UTC)
+    end_dt = datetime(2026, 1, 2, tzinfo=UTC)
+    results = [
+        BacktestResult(
+            thesis_id="thesis-aaaaaaaaaaaaaaa",
+            period_start=start_dt,
+            period_end=end_dt,
+            total_trades=10,
+            winning_trades=6,
+            total_pnl=25.0,
+            brier_score=0.1234,
+            win_rate=0.6,
+            sharpe_ratio=1.25,
+        ),
+        BacktestResult(
+            thesis_id="thesis-bbbbbbbbbbbbbbb",
+            period_start=start_dt,
+            period_end=end_dt,
+            total_trades=0,
+            winning_trades=0,
+            total_pnl=-10.0,
+            brier_score=0.4321,
+            win_rate=0.0,
+            sharpe_ratio=0.0,
+        ),
+    ]
+
+    with patch("kalshi_research.cli.research.backtest.console.print") as mock_print:
+        _display_backtest_results(results, "2026-01-01", "2026-01-02")
+
+    assert mock_print.call_count >= 2
+
+
+def test_display_backtest_results_handles_zero_total_trades() -> None:
+    from kalshi_research.cli.research.backtest import _display_backtest_results
+    from kalshi_research.research.backtest import BacktestResult
+
+    start_dt = datetime(2026, 1, 1, tzinfo=UTC)
+    end_dt = datetime(2026, 1, 2, tzinfo=UTC)
+    results = [
+        BacktestResult(
+            thesis_id="thesis-1",
+            period_start=start_dt,
+            period_end=end_dt,
+            total_trades=0,
+            winning_trades=0,
+            total_pnl=0.0,
+            brier_score=0.0,
+            win_rate=0.0,
+            sharpe_ratio=0.0,
+        )
+    ]
+
+    with patch("kalshi_research.cli.research.backtest.console.print") as mock_print:
+        _display_backtest_results(results, "2026-01-01", "2026-01-02")
+
+    assert mock_print.call_count >= 2
+
+
+def test_display_backtest_results_handles_empty_results() -> None:
+    from kalshi_research.cli.research.backtest import _display_backtest_results
+
+    with patch("kalshi_research.cli.research.backtest.console.print") as mock_print:
+        _display_backtest_results([], "2026-01-01", "2026-01-02")
+
+    assert mock_print.call_count >= 2
 
 
 def test_research_thesis_show_with_positions() -> None:

@@ -308,6 +308,19 @@ class OrderPage(BaseModel):
     orders: list[Order]
     """List of orders matching the query."""
 
+    cursor: str | None = None
+    """Cursor for next page (None if last page)."""
+
+    @field_validator("cursor", mode="before")
+    @classmethod
+    def normalize_cursor(cls, value: object) -> str | None:
+        """Normalize empty-string cursors to None (API may return \"\" for last page)."""
+        if value is None or value == "":
+            return None
+        if isinstance(value, str):
+            return value
+        return str(value)
+
 
 class CancelOrderResponse(BaseModel):
     """Response from DELETE /portfolio/orders/{id}."""

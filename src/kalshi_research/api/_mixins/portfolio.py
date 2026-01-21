@@ -42,14 +42,19 @@ class PortfolioMixin:
         self,
         ticker: str | None = None,
         status: str | None = None,
+        limit: int = 100,
+        cursor: str | None = None,
     ) -> OrderPage:
         """Get order history."""
-        params: dict[str, Any] = {}
+        params: dict[str, Any] = {"limit": max(1, min(limit, 200))}
         if ticker:
             params["ticker"] = ticker
         if status:
             params["status"] = status
-        data = await self._auth_get("/portfolio/orders", params or None)
+        if cursor:
+            params["cursor"] = cursor
+
+        data = await self._auth_get("/portfolio/orders", params)
         return OrderPage.model_validate(data)
 
     async def get_fills(
