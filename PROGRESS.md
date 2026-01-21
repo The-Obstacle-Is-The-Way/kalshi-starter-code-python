@@ -32,7 +32,7 @@
 - [x] **DEBT-043-D15**: Split `analysis/correlation.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-D16**: Split `api/models/portfolio.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-D17**: Split `research/thesis.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [ ] **DEBT-043-D18**: Split `data/fetcher.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D18**: Split `data/fetcher.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 
 ### Phase 3: Final Verification
 
@@ -42,6 +42,7 @@
 
 ## Work Log
 
+- 2026-01-21: **DEBT-043-D18** complete — split `data/fetcher.py` (418 LoC) into 2 files: `_converters.py` (93), `fetcher.py` (344). Converter functions (`api_event_to_db`, `api_market_to_db`, `api_market_to_snapshot`, `api_market_to_settlement`) extracted to `_converters.py`. `DataFetcher` remains in `fetcher.py` delegating to module-level converter functions. Updated tests to use new module-level functions. All DEBT-043 Phase D complete (no files exceed 400 lines). Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D17** complete — split `research/thesis.py` (421 LoC) into 2 files: `_thesis_models.py` (253), `thesis.py` (177). Models (`ThesisStatus`, `ThesisEvidence`, `Thesis` dataclass) extracted to `_thesis_models.py`. `ThesisTracker` remains in `thesis.py` with re-exports preserving backwards-compatible public API. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D16** complete — split `api/models/portfolio.py` (428 LoC) into 6 files: `_balance.py` (20), `_position.py` (47), `_fill.py` (81), `_settlement.py` (66), `_order.py` (234), `portfolio.py` (55). Models grouped by domain (balance, position, fill, settlement, order). Re-exports preserve backwards-compatible public API. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D15** complete — split `analysis/correlation.py` (448 LoC) into 3 files: `_correlation_models.py` (98), `_arbitrage.py` (184), `correlation.py` (274). Models (`CorrelationType`, `CorrelationResult`, `ArbitrageOpportunity`) and `_is_priced` helper extracted to `_correlation_models.py`. Arbitrage functions (`find_inverse_markets`, `find_inverse_market_groups`, `find_arbitrage_opportunities`) extracted to `_arbitrage.py`. `CorrelationAnalyzer` delegates to module functions while preserving backwards-compatible class interface. Re-exports preserve public API. Quality gates: `pre-commit`, `pytest` (1052 passed).

@@ -4,6 +4,7 @@ import pytest
 
 from kalshi_research.api.models.event import Event
 from kalshi_research.api.models.market import Market, MarketFilterStatus, MarketStatus
+from kalshi_research.data._converters import api_market_to_settlement, api_market_to_snapshot
 from kalshi_research.data.fetcher import DataFetcher
 
 
@@ -56,7 +57,7 @@ def data_fetcher(mock_db, mock_client):
     return DataFetcher(mock_db, mock_client)
 
 
-def test_api_market_to_settlement_falls_back_to_expiration_time(data_fetcher) -> None:
+def test_api_market_to_settlement_falls_back_to_expiration_time() -> None:
     """When settlement_ts is missing, use expiration_time as a documented proxy."""
     from datetime import UTC, datetime, timedelta
 
@@ -85,7 +86,7 @@ def test_api_market_to_settlement_falls_back_to_expiration_time(data_fetcher) ->
         liquidity=1000,
     )
 
-    settlement = data_fetcher._api_market_to_settlement(market)
+    settlement = api_market_to_settlement(market)
     assert settlement is not None
     assert settlement.settled_at == market.expiration_time
 
@@ -585,7 +586,7 @@ async def test_sync_settlements_creates_missing_market_event_and_settlement(tmp_
             assert settled_at == api_market.settlement_ts
 
 
-def test_api_market_to_snapshot_raises_when_dollar_fields_missing(data_fetcher) -> None:
+def test_api_market_to_snapshot_raises_when_dollar_fields_missing() -> None:
     """Snapshot conversion should raise ValueError when *_dollars fields are missing.
 
     This guards against writing NULL quote values to the database.
@@ -619,4 +620,4 @@ def test_api_market_to_snapshot_raises_when_dollar_fields_missing(data_fetcher) 
     snapshot_time = datetime.now(UTC)
 
     with pytest.raises(ValueError, match="missing dollar quote fields"):
-        data_fetcher._api_market_to_snapshot(market, snapshot_time)
+        api_market_to_snapshot(market, snapshot_time)

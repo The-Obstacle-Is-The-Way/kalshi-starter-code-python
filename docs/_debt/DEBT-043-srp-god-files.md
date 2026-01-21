@@ -28,8 +28,10 @@ find src/kalshi_research -name '*.py' -print0 | xargs -0 wc -l | sort -nr | awk 
 Current files > 400 lines (2026-01-21 audit, SSOT verified):
 
 ```text
-418 src/kalshi_research/data/fetcher.py
+(none - all files under 400 lines)
 ```
+
+Note: `data/fetcher.py` (418 LoC) was split into `_converters.py` (93), `fetcher.py` (344) (D18, 2026-01-21).
 
 Note: `research/thesis.py` (421 LoC) was split into `_thesis_models.py` (253), `thesis.py` (177) (D17, 2026-01-21).
 Note: `api/models/portfolio.py` (428 LoC) was split into `_balance.py` (20), `_position.py` (47), `_fill.py` (81), `_settlement.py` (66), `_order.py` (234), `portfolio.py` (55) (D16, 2026-01-21).
@@ -80,16 +82,16 @@ Adopt a strict size ceiling for `src/kalshi_research/**/*.py`:
 
 ## Definition of Done (Objective)
 
-- [ ] `find src/kalshi_research -name '*.py' -print0 | xargs -0 wc -l | awk '$1>400 {print}'` prints nothing (ignoring the final `total` line)
-- [ ] All tests pass: `uv run pytest`
-- [ ] All quality gates pass: `uv run pre-commit run --all-files`
+- [x] `find src/kalshi_research -name '*.py' -print0 | xargs -0 wc -l | awk '$1>400 {print}'` prints nothing (ignoring the final `total` line)
+- [x] All tests pass: `uv run pytest`
+- [x] All quality gates pass: `uv run pre-commit run --all-files`
 
 ## Acceptance Criteria (Phased)
 
 - [x] Phase A: `cli/research.py` becomes `cli/research/` package (structure split)
 - [x] Phase B: `cli/scan.py` becomes `cli/scan/` package (structure split)
 - [x] Phase C: `api/client.py` split into endpoint modules; public import path preserved; all files ≤400 lines
-- [ ] Phase D: Remaining >400-line modules reduced under the ceiling (tracked below; 16 files remain as of 2026-01-21)
+- [x] Phase D: Remaining >400-line modules reduced under the ceiling (tracked below; 0 files remain as of 2026-01-21)
 
 Phase D sub-phases (one file-family per iteration):
 
@@ -110,6 +112,6 @@ Phase D sub-phases (one file-family per iteration):
 - [x] Phase D15: `analysis/correlation.py` split into focused modules and all files ≤400 lines
 - [x] Phase D16: `api/models/portfolio.py` split into focused modules and all files ≤400 lines
 - [x] Phase D17: `research/thesis.py` split into focused modules and all files ≤400 lines
-- [ ] Phase D18: `data/fetcher.py` split into focused modules and all files ≤400 lines
+- [x] Phase D18: `data/fetcher.py` split into focused modules and all files ≤400 lines
 
-**Note (2026-01-21):** Phases A–C complete. Phase D in progress — 1 file still exceeds 400 lines (see Evidence section for the current list). D1–D17 completed (cli/market.py, cli/data.py, cli/portfolio.py, cli/alerts.py, cli/research/thesis/_commands.py, agent/research_agent.py, agent/providers/llm.py, execution/executor.py, exa/client.py, exa/websets/client.py, portfolio/pnl.py, portfolio/syncer.py, analysis/liquidity.py, analysis/scanner.py, analysis/correlation.py, api/models/portfolio.py, research/thesis.py → split modules).
+**Note (2026-01-21):** Phases A–D complete. All files under 400 lines. D1–D18 completed (cli/market.py, cli/data.py, cli/portfolio.py, cli/alerts.py, cli/research/thesis/_commands.py, agent/research_agent.py, agent/providers/llm.py, execution/executor.py, exa/client.py, exa/websets/client.py, portfolio/pnl.py, portfolio/syncer.py, analysis/liquidity.py, analysis/scanner.py, analysis/correlation.py, api/models/portfolio.py, research/thesis.py, data/fetcher.py → split modules).
