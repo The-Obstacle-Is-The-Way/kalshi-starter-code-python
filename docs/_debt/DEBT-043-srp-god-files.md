@@ -28,7 +28,6 @@ find src/kalshi_research -name '*.py' -print0 | xargs -0 wc -l | sort -nr | awk 
 Current files > 400 lines (2026-01-21 audit, SSOT verified):
 
 ```text
-736 src/kalshi_research/cli/data.py
 694 src/kalshi_research/exa/client.py
 648 src/kalshi_research/agent/research_agent.py
 637 src/kalshi_research/execution/executor.py
@@ -89,12 +88,12 @@ Adopt a strict size ceiling for `src/kalshi_research/**/*.py`:
 - [x] Phase A: `cli/research.py` becomes `cli/research/` package (structure split)
 - [x] Phase B: `cli/scan.py` becomes `cli/scan/` package (structure split)
 - [x] Phase C: `api/client.py` split into endpoint modules; public import path preserved; all files ≤400 lines
-- [ ] Phase D: Remaining >400-line modules reduced under the ceiling (tracked below; 17 files remain as of 2026-01-21)
+- [ ] Phase D: Remaining >400-line modules reduced under the ceiling (tracked below; 16 files remain as of 2026-01-21)
 
 Phase D sub-phases (one file-family per iteration):
 
 - [x] Phase D1: `cli/market.py` becomes `cli/market/` package and all files ≤400 lines
-- [ ] Phase D2: `cli/data.py` becomes `cli/data/` package and all files ≤400 lines
+- [x] Phase D2: `cli/data.py` becomes `cli/data/` package and all files ≤400 lines
 - [ ] Phase D3: `cli/portfolio.py` becomes `cli/portfolio/` package and all files ≤400 lines
 - [ ] Phase D4: `cli/alerts.py` becomes `cli/alerts/` package and all files ≤400 lines
 - [ ] Phase D5: `cli/research/thesis/_commands.py` reduced to ≤400 lines (split/move helpers as needed)
@@ -112,4 +111,4 @@ Phase D sub-phases (one file-family per iteration):
 - [ ] Phase D17: `research/thesis.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D18: `data/fetcher.py` split into focused modules and all files ≤400 lines
 
-**Note (2026-01-21):** Phases A–C complete. Phase D remains — 17 files still exceed 400 lines (see Evidence section for the current list). D1 completed (cli/market.py → cli/market/ package).
+**Note (2026-01-21):** Phases A–C complete. Phase D remains — 16 files still exceed 400 lines (see Evidence section for the current list). D1 and D2 completed (cli/market.py → cli/market/ package, cli/data.py → cli/data/ package).
