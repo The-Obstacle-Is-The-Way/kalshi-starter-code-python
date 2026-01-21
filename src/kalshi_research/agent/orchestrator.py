@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from .research_agent import ResearchAgent
     from .schemas import AgentRunResult
 
+from kalshi_research.constants import DEFAULT_AGENT_MAX_EXA_USD, DEFAULT_AGENT_MAX_LLM_USD
 from kalshi_research.exa.policy import ExaMode
 
 from .providers.kalshi import fetch_market_info, fetch_price_snapshot
@@ -49,8 +50,8 @@ class AgentKernel:
         kalshi_client: KalshiPublicClient,
         research_agent: ResearchAgent | None = None,
         synthesizer: StructuredSynthesizer,
-        max_exa_usd: float = 0.25,
-        max_llm_usd: float = 0.25,
+        max_exa_usd: float = DEFAULT_AGENT_MAX_EXA_USD,
+        max_llm_usd: float = DEFAULT_AGENT_MAX_LLM_USD,
     ):
         """Initialize agent kernel.
 

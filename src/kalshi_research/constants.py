@@ -130,3 +130,27 @@ LIQUIDITY_WARNING_SPREAD_CENTS: int = 10
 LIQUIDITY_WARNING_VOLUME_24H: int = 1000
 LIQUIDITY_WARNING_DEPTH_CONTRACTS: int = 100
 LIQUIDITY_WARNING_IMBALANCE_RATIO: float = 0.5
+
+# =============================================================================
+# Agent Budget Defaults
+# =============================================================================
+
+# Default maximum spend per analysis run for Exa API calls.
+#
+# Used by:
+# - agent/orchestrator.py: AgentKernel default budget
+# - cli/agent.py: --max-exa-usd option default
+#
+# This bounds the cost of research lookups (search, context, topic queries).
+# Set conservatively low for typical single-market analysis runs.
+DEFAULT_AGENT_MAX_EXA_USD: float = 0.25
+
+# Default maximum spend per analysis run for LLM (synthesizer) calls.
+#
+# Used by:
+# - agent/orchestrator.py: AgentKernel default budget
+# - cli/agent.py: --max-llm-usd option default
+#
+# This bounds the cost of LLM inference (probability synthesis, confidence).
+# Set conservatively low; typical single-market synthesis is well under this.
+DEFAULT_AGENT_MAX_LLM_USD: float = 0.25

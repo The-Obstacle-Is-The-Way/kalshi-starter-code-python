@@ -12,6 +12,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
+from kalshi_research.constants import DEFAULT_AGENT_MAX_EXA_USD, DEFAULT_AGENT_MAX_LLM_USD
 from kalshi_research.exa.policy import ExaMode
 
 if TYPE_CHECKING:
@@ -336,11 +337,11 @@ def analyze(
     max_exa_usd: Annotated[
         float,
         typer.Option("--max-exa-usd", help="Maximum Exa budget per run"),
-    ] = 0.25,
+    ] = DEFAULT_AGENT_MAX_EXA_USD,
     max_llm_usd: Annotated[
         float,
         typer.Option("--max-llm-usd", help="Maximum LLM budget per run (Phase 2)"),
-    ] = 0.25,
+    ] = DEFAULT_AGENT_MAX_LLM_USD,
     output_json: Annotated[
         bool,
         typer.Option("--json", help="Output as JSON (default)"),

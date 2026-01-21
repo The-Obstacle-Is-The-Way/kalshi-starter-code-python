@@ -71,5 +71,5 @@ rg -n \"max_exa_usd: float = 0\\.25|max_llm_usd: float = 0\\.25\" src/kalshi_res
 
 Phase C sub-phases:
 
-- [ ] Phase C1: Agent per-run defaults are named constants (no `0.25` duplication across CLI/orchestrator)
+- [x] Phase C1: Agent per-run defaults are named constants (no `0.25` duplication across CLI/orchestrator)
 - [ ] Phase C2: Exa cost-estimate literals are named constants (tiers, per-page adders, safety factors)
