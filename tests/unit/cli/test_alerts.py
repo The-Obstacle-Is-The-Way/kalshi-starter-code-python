@@ -166,6 +166,70 @@ def test_alerts_remove_ambiguous_prefix_exits_1_and_does_not_modify_file() -> No
         assert len(stored["conditions"]) == 2
 
 
+def test_alerts_trim_log_rejects_invalid_max_mb() -> None:
+    result = runner.invoke(app, ["alerts", "trim-log", "--max-mb", "0"])
+    assert result.exit_code == 2
+    assert "--max-mb must be > 0" in result.stdout
+
+
+def test_alerts_trim_log_no_log_file_is_ok() -> None:
+    with runner.isolated_filesystem():
+        result = runner.invoke(app, ["alerts", "trim-log", "--log", "alerts.log"])
+        assert result.exit_code == 0
+        assert "No log file found" in result.stdout
+
+
+def test_alerts_trim_log_dry_run_reports_trim_without_modifying_file() -> None:
+    with runner.isolated_filesystem():
+        log_path = Path("alerts.log")
+        log_path.write_bytes(b"x" * (1024 * 1024 + 1))
+
+        result = runner.invoke(
+            app,
+            [
+                "alerts",
+                "trim-log",
+                "--log",
+                str(log_path),
+                "--max-mb",
+                "1",
+                "--keep-mb",
+                "1",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Dry-run" in result.stdout
+        assert log_path.stat().st_size == 1024 * 1024 + 1
+
+
+def test_alerts_trim_log_apply_truncates_when_keep_mb_zero(monkeypatch) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+
+    with runner.isolated_filesystem():
+        log_path = Path("alerts.log")
+        log_path.write_bytes(b"x" * (1024 * 1024 + 1))
+
+        result = runner.invoke(
+            app,
+            [
+                "alerts",
+                "trim-log",
+                "--log",
+                str(log_path),
+                "--max-mb",
+                "1",
+                "--keep-mb",
+                "0",
+                "--apply",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Trimmed log" in result.stdout
+        assert log_path.stat().st_size == 0
+
+
 def test_alerts_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
     alerts_file = tmp_path / "alerts.json"
     alerts_file.write_text("{not json", encoding="utf-8")
