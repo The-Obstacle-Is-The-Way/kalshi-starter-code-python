@@ -88,5 +88,8 @@ async def _fetch_market(ticker: str) -> "Market":
         except KalshiAPIError as e:
             exit_kalshi_api_error(e)
         except Exception as e:
+            import structlog
+
+            structlog.get_logger().error("Failed to fetch market", ticker=ticker, exc_info=True)
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None

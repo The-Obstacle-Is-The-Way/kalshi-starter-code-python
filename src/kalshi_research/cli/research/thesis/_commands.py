@@ -172,7 +172,7 @@ def research_thesis_create(
 ) -> None:
     """Create a new research thesis."""
     thesis_id = str(uuid.uuid4())
-    market_tickers = [t.strip() for t in markets.split(",")]
+    market_tickers = [t.strip() for t in markets.split(",") if t.strip()]
     evidence: list[dict[str, Any]] = []
     final_bull, final_bear, research_summary, last_research_at = (
         bull_case,

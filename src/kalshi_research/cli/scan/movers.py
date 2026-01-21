@@ -184,7 +184,9 @@ def scan_movers(
         Path,
         typer.Option("--db", "-d", help="Path to SQLite database file."),
     ] = DEFAULT_DB_PATH,
-    period: Annotated[str, typer.Option("--period", "-p", help="Time period: 1h, 6h, 24h")] = "24h",
+    period: Annotated[
+        str, typer.Option("--period", "-p", help="Time period: 1h, 6h, 24h, 7d")
+    ] = "24h",
     top_n: Annotated[int, typer.Option("--top", "-n", help="Number of results")] = 10,
     max_pages: Annotated[
         int | None,

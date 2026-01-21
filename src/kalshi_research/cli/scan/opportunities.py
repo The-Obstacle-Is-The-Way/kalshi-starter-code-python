@@ -88,6 +88,8 @@ async def _compute_liquidity_scores(
     liquidity_depth: int,
 ) -> dict[str, int]:
     """Compute liquidity scores for scan results."""
+    import httpx
+
     from kalshi_research.analysis.liquidity import liquidity_score
     from kalshi_research.api.exceptions import KalshiAPIError
 
@@ -99,11 +101,8 @@ async def _compute_liquidity_scores(
             continue
         try:
             orderbook = await client.get_orderbook(r.ticker, depth=liquidity_depth)
-        except KalshiAPIError as e:
-            console.print(
-                f"[yellow]Warning:[/yellow] Skipping liquidity for {r.ticker}: "
-                f"API Error {e.status_code}: {e.message}"
-            )
+        except (KalshiAPIError, httpx.HTTPError) as e:
+            console.print(f"[yellow]Warning:[/yellow] Skipping liquidity for {r.ticker}: {e}")
             continue
 
         scores[r.ticker] = liquidity_score(market, orderbook).score

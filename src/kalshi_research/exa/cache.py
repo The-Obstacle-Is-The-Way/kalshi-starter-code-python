@@ -138,7 +138,7 @@ class ExaCache:
                 if now > expires_at:
                     path.unlink(missing_ok=True)
                     count += 1
-            except (json.JSONDecodeError, KeyError, ValueError, OSError):
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError, OSError):
                 # Log before deleting so we know why the cache entry was invalid
                 logger.debug(
                     "Evicting invalid cache entry",

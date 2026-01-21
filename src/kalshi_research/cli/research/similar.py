@@ -30,6 +30,10 @@ def research_similar(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
 ) -> None:
     """Find pages similar to a URL using Exa's /findSimilar endpoint."""
+    if num_results <= 0:
+        console.print("[red]Error:[/red] --num-results must be greater than 0.")
+        raise typer.Exit(2)
+
     from kalshi_research.exa import ExaClient
     from kalshi_research.exa.models.similar import FindSimilarResponse
     from kalshi_research.exa.policy import extract_exa_cost_total

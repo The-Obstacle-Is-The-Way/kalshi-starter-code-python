@@ -499,10 +499,7 @@ def data_collect(
                 except asyncio.CancelledError:
                     pass
 
-    try:
-        run_async(_collect())
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Stopped.[/yellow]")
+    run_async(_collect())
 
 
 @app.command("export")

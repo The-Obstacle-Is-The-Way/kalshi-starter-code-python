@@ -84,13 +84,17 @@ class OrdersMixin:
         if not client_order_id:
             client_order_id = str(uuid.uuid4())
 
+        side_value = side if isinstance(side, str) else side.value
+        action_value = action if isinstance(action, str) else action.value
+        price_key = "yes_price" if side_value == "yes" else "no_price"
+
         payload = {
             "ticker": ticker,
-            "action": action if isinstance(action, str) else action.value,
-            "side": side if isinstance(side, str) else side.value,
+            "action": action_value,
+            "side": side_value,
             "count": count,
             "type": "limit",
-            "yes_price": price,
+            price_key: price,
             "client_order_id": client_order_id,
         }
         optional_fields: dict[str, object] = {
@@ -109,8 +113,8 @@ class OrdersMixin:
             logger.info(
                 "DRY RUN: create_order - order validated but not executed",
                 ticker=ticker,
-                side=side if isinstance(side, str) else side.value,
-                action=action if isinstance(action, str) else action.value,
+                side=side_value,
+                action=action_value,
                 count=count,
                 price=price,
                 client_order_id=client_order_id,

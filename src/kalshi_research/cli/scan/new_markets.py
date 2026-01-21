@@ -79,6 +79,9 @@ async def _collect_new_market_candidates(
         show_progress=show_progress,
     ):
         reference_time = market.created_time or market.open_time
+        if reference_time is None:
+            missing_created_time += 1
+            continue
         if reference_time < cutoff:
             continue
 
