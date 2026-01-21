@@ -29,7 +29,7 @@
 - [x] **DEBT-043-D12**: Split `portfolio/syncer.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-D13**: Split `analysis/liquidity.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-D14**: Split `analysis/scanner.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
-- [ ] **DEBT-043-D15**: Split `analysis/correlation.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D15**: Split `analysis/correlation.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D16**: Split `api/models/portfolio.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D17**: Split `research/thesis.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D18**: Split `data/fetcher.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
@@ -42,6 +42,7 @@
 
 ## Work Log
 
+- 2026-01-21: **DEBT-043-D15** complete — split `analysis/correlation.py` (448 LoC) into 3 files: `_correlation_models.py` (98), `_arbitrage.py` (184), `correlation.py` (274). Models (`CorrelationType`, `CorrelationResult`, `ArbitrageOpportunity`) and `_is_priced` helper extracted to `_correlation_models.py`. Arbitrage functions (`find_inverse_markets`, `find_inverse_market_groups`, `find_arbitrage_opportunities`) extracted to `_arbitrage.py`. `CorrelationAnalyzer` delegates to module functions while preserving backwards-compatible class interface. Re-exports preserve public API. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D14** complete — split `analysis/scanner.py` (439 LoC) into 3 files: `_scanner_models.py` (46), `_verifier.py` (117), `scanner.py` (304). Models/types (`MarketClosedError`, `ScanFilter`, `ScanResult`) and `MarketStatusVerifier` extracted to separate modules. Re-exports preserve backwards-compatible public API. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D13** complete — split `analysis/liquidity.py` (461 LoC) into 5 files: `_liquidity_models.py` (87), `_depth.py` (67), `_slippage.py` (170), `_scoring.py` (149), `liquidity.py` (94). Re-exports preserve backwards-compatible public API. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D12** complete — split `portfolio/syncer.py` (483 LoC) into 6 files: `_sync_helpers.py` (81), `_sync_positions.py` (130), `_sync_trades.py` (116), `_sync_settlements.py` (99), `_mark_prices.py` (112), `syncer.py` (100). `PortfolioSyncer` delegates to module functions while preserving backwards-compatible class interface. Quality gates: `pre-commit`, `pytest` (1052 passed).
