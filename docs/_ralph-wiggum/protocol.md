@@ -114,7 +114,7 @@ git push -u origin kalshi-ralph
 ```
 
 **Branch hierarchy (recommended):**
-```
+```text
 main (protected, production)
   └── dev (integration, manual merges)
         └── kalshi-ralph (autonomous work)

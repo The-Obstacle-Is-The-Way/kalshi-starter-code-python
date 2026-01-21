@@ -7,6 +7,8 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 
+import structlog
+
 from kalshi_research.api.config import Environment, get_config
 from kalshi_research.api.models.order import OrderAction, OrderResponse, OrderSide
 from kalshi_research.execution._checks import (
@@ -38,6 +40,9 @@ if TYPE_CHECKING:
         OrderbookProvider,
         PositionProvider,
     )
+
+
+logger = structlog.get_logger()
 
 
 class TradeSafetyError(RuntimeError):
@@ -245,7 +250,11 @@ class TradeExecutor:
                 checks=checks,
                 error=error,
             )
-            self._audit.write(event)
+            # Best-effort audit logging: don't mask the original exception if write fails
+            try:
+                self._audit.write(event)
+            except Exception:
+                logger.exception("audit_write_failed", ticker=ticker, mode=mode)
 
     async def cancel_order(self, order_id: str, dry_run: bool | None = None) -> CancelOrderResponse:
         """Cancel an existing order through the safety harness.

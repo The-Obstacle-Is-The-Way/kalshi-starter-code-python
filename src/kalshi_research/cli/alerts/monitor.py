@@ -189,12 +189,20 @@ def alerts_monitor(
 
     # Reconstruct AlertCondition objects from stored data
     for cond_data in conditions_data:
+        # Parse expires_at if present (stored as ISO string or datetime)
+        expires_at_raw = cond_data.get("expires_at")
+        expires_at = (
+            datetime.fromisoformat(expires_at_raw)
+            if isinstance(expires_at_raw, str)
+            else expires_at_raw
+        )
         condition = AlertCondition(
             id=cond_data["id"],
             condition_type=ConditionType(cond_data["condition_type"]),
             ticker=cond_data["ticker"],
             threshold=cond_data["threshold"],
             label=cond_data.get("label", ""),
+            expires_at=expires_at,
         )
         monitor.add_condition(condition)
 

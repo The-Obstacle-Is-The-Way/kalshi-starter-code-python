@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import structlog
 from sqlalchemy import select
@@ -12,6 +12,7 @@ from kalshi_research.portfolio.models import PortfolioSettlement
 
 if TYPE_CHECKING:
     from kalshi_research.api.client import KalshiClient
+    from kalshi_research.api.models.portfolio import Settlement
     from kalshi_research.data.database import DatabaseManager
 
 logger = structlog.get_logger()
@@ -41,10 +42,10 @@ async def sync_settlements(
         Number of settlements synced.
     """
     logger.info("Syncing settlements")
-    min_ts = int(since.timestamp()) if since else None
+    min_ts = int(_normalize_utc(since).timestamp()) if since else None
 
     # Paginate through settlements
-    settlements: list[Any] = []
+    settlements: list[Settlement] = []
     cursor = None
 
     while True:

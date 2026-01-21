@@ -60,7 +60,7 @@ def optional_lower(raw: str | None) -> str | None:
         raw: String to convert.
 
     Returns:
-        Lowercase string, empty string if input was whitespace-only, or None.
+        Lowercase string, or None if input was None or whitespace-only.
     """
     if raw is None:
         return None
