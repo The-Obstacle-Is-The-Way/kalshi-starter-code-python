@@ -4,7 +4,10 @@ This directory is the staging area for **active** bug reports. Once resolved, bu
 
 ## Active Bugs
 
-_None._
+| ID | Title | Priority | Status |
+|---|---|---|---|
+| **[BUG-090](BUG-090-fts5-search-not-working.md)** | FTS5 Market Search Returns No Results | P2 | Open |
+| **[BUG-089](BUG-089-negative-liquidity-spam.md)** | Negative Liquidity Value Warnings Spam Console | P4 | Open |
 
 ### Verification Note (2026-01-12)
 
@@ -34,7 +37,7 @@ BUG-057 (FIFO fix)
 
 ## Next ID Tracker
 Use this ID for the next bug report you create:
-**BUG-089**
+**BUG-091**
 
 ---
 

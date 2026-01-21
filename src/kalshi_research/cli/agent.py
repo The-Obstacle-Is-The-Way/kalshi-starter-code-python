@@ -310,8 +310,8 @@ def research(
     Run research agent for a market ticker.
 
     Examples:
-        kalshi agent research INXD-25FEB28 --mode fast
-        kalshi agent research INXD-25FEB28 --mode deep --budget-usd 1.0 --json
+        kalshi agent research INXD-25FEB28
+        kalshi agent research INXD-25FEB28 --mode deep --budget-usd 1.0
         kalshi agent research INXD-25FEB28 --json --output report.json
     """
     research_mode = _parse_exa_mode(mode)
