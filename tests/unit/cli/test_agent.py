@@ -11,7 +11,9 @@ import typer
 
 from kalshi_research.cli import agent as agent_module
 from kalshi_research.cli.agent import (
+    _output_analysis_json,
     _parse_exa_mode,
+    _render_analysis_human,
     _render_factors_table,
     _render_research_summary,
     _write_json_output,
@@ -82,3 +84,42 @@ def test_render_research_summary_writes_file(tmp_path: Path) -> None:
     assert out_path.exists()
     written = json.loads(out_path.read_text(encoding="utf-8"))
     assert written["ticker"] == "TEST"
+
+
+def test_output_analysis_json_writes_file_and_prints_when_not_quiet(tmp_path: Path) -> None:
+    out_path = tmp_path / "analysis.json"
+    result: dict[str, object] = {"analysis": {"ticker": "TEST"}}
+
+    with patch.object(agent_module.console, "print") as mock_print:
+        _output_analysis_json(result, output_file=str(out_path), quiet=False)
+
+    assert out_path.exists()
+    assert json.loads(out_path.read_text(encoding="utf-8"))["analysis"]["ticker"] == "TEST"
+    assert any("Results written to" in str(call.args[0]) for call in mock_print.call_args_list)
+
+
+def test_render_analysis_human_renders_sections() -> None:
+    from rich.panel import Panel
+
+    result: dict[str, object] = {
+        "analysis": {
+            "ticker": "TEST",
+            "predicted_prob": 55,
+            "market_prob": 0.5,
+            "confidence": "medium",
+            "reasoning": "Because reasons.",
+            "factors": [{"description": "Factor A", "impact": "positive"}],
+        },
+        "verification": {"passed": False, "issues": ["Issue 1"]},
+        "research": {"total_cost_usd": 0.01},
+        "total_cost_usd": 0.02,
+    }
+
+    with patch.object(agent_module.console, "print") as mock_print:
+        _render_analysis_human(result)
+
+    printed_args = [call.args[0] for call in mock_print.call_args_list if call.args]
+
+    assert any(isinstance(arg, Panel) and arg.title == "Analysis Result" for arg in printed_args)
+    assert any(isinstance(arg, str) and "Reasoning" in arg for arg in printed_args)
+    assert any(isinstance(arg, str) and "Verification Issues" in arg for arg in printed_args)
