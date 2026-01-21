@@ -18,7 +18,7 @@
 - [x] **DEBT-043-D1**: Split `cli/market.py` → `cli/market/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-D2**: Split `cli/data.py` → `cli/data/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-D3**: Split `cli/portfolio.py` → `cli/portfolio/` package → `docs/_debt/DEBT-043-srp-god-files.md`
-- [ ] **DEBT-043-D4**: Split `cli/alerts.py` → `cli/alerts/` package → `docs/_debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D4**: Split `cli/alerts.py` → `cli/alerts/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D5**: Reduce `cli/research/thesis/_commands.py` to ≤400 LoC → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D6**: Split `agent/research_agent.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D7**: Split `agent/providers/llm.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
@@ -42,6 +42,7 @@
 
 ## Work Log
 
+- 2026-01-21: **DEBT-043-D4** complete — split `cli/alerts.py` (521 LoC) into `cli/alerts/` package with 7 files (largest: `monitor.py` at 218 LoC). Created `_helpers.py`, `list_cmd.py`, `add_cmd.py`, `remove.py`, `monitor.py`, `trim_log.py`, `__init__.py`. Updated tests to use new package paths. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D3** complete — split `cli/portfolio.py` (620 LoC) into `cli/portfolio/` package with 8 files (largest: `_helpers.py` at 129 LoC). Created `_helpers.py`, `sync.py`, `positions.py`, `pnl_cmd.py`, `balance.py`, `history.py`, `link.py`, `__init__.py`. Updated test to use new public `format_signed_currency` API. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D2** complete — split `cli/data.py` (737 LoC) into `cli/data/` package with 10 files (largest: `sync.py` at 225 LoC). Created `_helpers.py`, `init_cmd.py`, `migrate.py`, `sync.py`, `snapshot.py`, `collect.py`, `export_cmd.py`, `stats.py`, `maintenance.py`, `__init__.py`. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D1** complete — split `cli/market.py` (788 LoC) into `cli/market/` package with 8 files (largest: `list.py` at 276 LoC). Created `_helpers.py`, `get.py`, `orderbook.py`, `liquidity.py`, `history.py`, `list.py`, `search.py`, `__init__.py`. Quality gates: `pre-commit`, `pytest` (1052 passed).
