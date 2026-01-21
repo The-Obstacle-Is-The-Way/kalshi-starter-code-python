@@ -1,7 +1,7 @@
 # Kalshi Research Platform — Ralph Wiggum Progress Tracker
 
 **Last Updated:** 2026-01-20
-**Status:** Active (Debt Resolution Queue)
+**Status:** Complete (Debt Resolution Queue finished)
 **Purpose:** State file for the Ralph Wiggum loop (see `docs/_ralph-wiggum/protocol.md`)
 
 ---
@@ -79,6 +79,7 @@
 - 2026-01-20: Implemented DEBT-043-B: split `cli/scan.py` (1304 lines) into `cli/scan/` package (7 files, all ≤400 lines). Structure: `__init__.py` (113 lines), `_helpers.py` (152), `_opportunities_helpers.py` (198), `opportunities.py` (341), `new_markets.py` (329), `arbitrage.py` (221), `movers.py` (215). Backward-compatible re-exports via `__init__.py` preserve existing test imports. Quality gates pass (pre-commit, mypy, pytest 1014 tests, 45 scan tests).
 - 2026-01-20: Implemented DEBT-043-C: split `api/client.py` (1724 lines) into `api/_mixins/` package (11 files, all ≤300 lines). Structure: `_base.py` (134 lines - client infrastructure), `_mixins/__init__.py` (23 - re-exports), `_mixins/markets.py` (297), `_mixins/events.py` (223), `_mixins/series.py` (73), `_mixins/exchange.py` (32), `_mixins/multivariate.py` (58), `_mixins/portfolio.py` (122), `_mixins/trading.py` (286), `_mixins/orders.py` (273), `_mixins/order_groups.py` (195), `client.py` (144 - thin composition). `KalshiClient` inherits from `KalshiPublicClient` (backward-compatible). Quality gates pass (pre-commit, mypy, pytest 200+ API tests).
 - 2026-01-20: **FINAL-GATES verified**: All quality gates pass. Pre-commit (17 hooks pass), mypy (152 source files clean), pytest (1014 unit tests pass), mkdocs build --strict (documentation builds successfully). Debt resolution queue complete.
+- 2026-01-20: **Post-queue audit**: Validated all Ralph Wiggum work from first principles. Fixed documentation half-measures: marked DEBT-044 and DEBT-045 as Resolved, updated DEBT-047 DoD checkboxes (grep checks pass), added notes about deferred phases (DEBT-043 Phase D: 17 files >400 lines, DEBT-047 Phase C: Exa budgets). Quality gates pass (1059 tests).
 
 ---
 
