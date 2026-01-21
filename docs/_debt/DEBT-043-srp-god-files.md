@@ -28,7 +28,6 @@ find src/kalshi_research -name '*.py' -print0 | xargs -0 wc -l | sort -nr | awk 
 Current files > 400 lines (2026-01-21 audit, SSOT verified):
 
 ```text
-554 src/kalshi_research/portfolio/pnl.py
 483 src/kalshi_research/portfolio/syncer.py
 461 src/kalshi_research/analysis/liquidity.py
 448 src/kalshi_research/analysis/correlation.py
@@ -45,6 +44,7 @@ Note: `agent/providers/llm.py` (471 LoC) was split into `agent/providers/llm/` p
 Note: `execution/executor.py` (637 LoC) was split into `execution/` package (D8, 2026-01-21).
 Note: `exa/client.py` (694 LoC) was split into `exa/` package with mixins (D9, 2026-01-21).
 Note: `exa/websets/client.py` (442 LoC) was split into `exa/websets/` package with mixins (D10, 2026-01-21).
+Note: `portfolio/pnl.py` (554 LoC) was split into `_pnl_models.py`, `_fifo.py`, `_settlements.py`, `pnl.py` (D11, 2026-01-21).
 
 ## Solution (Concrete, No Hand-Waving)
 
@@ -102,7 +102,7 @@ Phase D sub-phases (one file-family per iteration):
 - [x] Phase D8: `execution/executor.py` split into focused modules and all files ≤400 lines
 - [x] Phase D9: `exa/client.py` split into focused modules and all files ≤400 lines
 - [x] Phase D10: `exa/websets/client.py` split into focused modules and all files ≤400 lines
-- [ ] Phase D11: `portfolio/pnl.py` split into focused modules and all files ≤400 lines
+- [x] Phase D11: `portfolio/pnl.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D12: `portfolio/syncer.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D13: `analysis/liquidity.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D14: `analysis/scanner.py` split into focused modules and all files ≤400 lines
@@ -111,4 +111,4 @@ Phase D sub-phases (one file-family per iteration):
 - [ ] Phase D17: `research/thesis.py` split into focused modules and all files ≤400 lines
 - [ ] Phase D18: `data/fetcher.py` split into focused modules and all files ≤400 lines
 
-**Note (2026-01-21):** Phases A–C complete. Phase D in progress — 8 files still exceed 400 lines (see Evidence section for the current list). D1–D10 completed (cli/market.py, cli/data.py, cli/portfolio.py, cli/alerts.py, cli/research/thesis/_commands.py, agent/research_agent.py, agent/providers/llm.py, execution/executor.py, exa/client.py, exa/websets/client.py → packages).
+**Note (2026-01-21):** Phases A–C complete. Phase D in progress — 7 files still exceed 400 lines (see Evidence section for the current list). D1–D11 completed (cli/market.py, cli/data.py, cli/portfolio.py, cli/alerts.py, cli/research/thesis/_commands.py, agent/research_agent.py, agent/providers/llm.py, execution/executor.py, exa/client.py, exa/websets/client.py, portfolio/pnl.py → split modules).
