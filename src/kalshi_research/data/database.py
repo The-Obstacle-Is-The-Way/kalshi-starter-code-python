@@ -14,6 +14,8 @@ from kalshi_research.data.models import Base
 from kalshi_research.paths import DEFAULT_DB_PATH
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from sqlalchemy.ext.asyncio import AsyncEngine
 
 
@@ -110,7 +112,7 @@ class DatabaseManager:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: Any,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit async context manager."""
         await self.close()

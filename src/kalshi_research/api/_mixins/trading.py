@@ -31,6 +31,8 @@ from kalshi_research.api.models.portfolio import (
 )
 
 if TYPE_CHECKING:
+    from tenacity import RetryCallState
+
     from kalshi_research.api.auth import KalshiAuth
     from kalshi_research.api.models.order import CreateOrderRequest
     from kalshi_research.api.rate_limiter import RateLimiter
@@ -49,7 +51,7 @@ def _parse_retry_after(header_value: str | None) -> int | None:
         return None
 
 
-def _wait_with_retry_after_trading(retry_state: Any) -> float:
+def _wait_with_retry_after_trading(retry_state: RetryCallState) -> float:
     """Wait using Retry-After header if available, else exponential backoff."""
     _retry_wait = wait_exponential(multiplier=1, min=1, max=60)
     outcome = retry_state.outcome
@@ -69,8 +71,13 @@ class TradingMixin:
     _max_retries: int
     _rate_limiter: RateLimiter
     _auth: KalshiAuth
-    _auth_get: Any  # Provided by KalshiClient
-    get_order: Any  # Provided by PortfolioMixin
+    if TYPE_CHECKING:
+        # Implemented by KalshiClient / PortfolioMixin
+        async def _auth_get(
+            self, path: str, params: dict[str, Any] | None = None
+        ) -> dict[str, Any]: ...
+
+        async def get_order(self, order_id: str) -> Order: ...
 
     async def lookup_multivariate_event_collection_tickers(
         self, collection_ticker: str, selected_markets: list[TickerPair]

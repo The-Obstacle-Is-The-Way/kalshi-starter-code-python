@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from kalshi_research.api.models.search import FiltersBySportsResponse, TagsByCategoriesResponse
 from kalshi_research.api.models.series import (
@@ -15,8 +15,9 @@ from kalshi_research.api.models.series import (
 class SeriesMixin:
     """Mixin providing series and search-related endpoints."""
 
-    # Method signature expected from composing class (not implemented here)
-    _get: Any  # Provided by ClientBase
+    if TYPE_CHECKING:
+        # Implemented by ClientBase
+        async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]: ...
 
     async def get_tags_by_categories(self) -> dict[str, list[str]]:
         """Fetch category->tags mapping for series discovery."""

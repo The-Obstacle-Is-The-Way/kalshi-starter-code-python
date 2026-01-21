@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
+import pytest
+import typer
 from typer.testing import CliRunner
 
 from kalshi_research.cli import app
@@ -171,6 +173,15 @@ def test_research_similar_missing_exa_key_exits_with_error() -> None:
     assert "EXA_API_KEY" in result.stdout
     assert "Check EXA_API_KEY" in result.stdout
     assert "--budget-usd" in result.stdout
+
+
+def test_research_similar_invalid_num_results_exits_with_error() -> None:
+    result = runner.invoke(
+        app, ["research", "similar", "https://example.com", "--num-results", "0"]
+    )
+
+    assert result.exit_code == 2
+    assert "--num-results must be greater than 0" in result.stdout
 
 
 def test_research_deep_missing_exa_key_exits_with_error() -> None:
@@ -757,6 +768,34 @@ def test_research_thesis_resolve() -> None:
     assert "resolved" in result.stdout.lower()
 
 
+def test_research_thesis_resolve_invalid_outcome_exits_with_error() -> None:
+    with runner.isolated_filesystem():
+        thesis_file = Path("theses.json")
+        thesis_file.write_text(
+            json.dumps(
+                {
+                    "theses": [
+                        {
+                            "id": "thesis-12345678",
+                            "title": "Test Thesis",
+                            "status": "active",
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch(
+            "kalshi_research.cli.research._shared._get_thesis_file", return_value=thesis_file
+        ):
+            result = runner.invoke(
+                app, ["research", "thesis", "resolve", "thesis-1", "--outcome", "maybe"]
+            )
+
+    assert result.exit_code == 2
+    assert "Invalid outcome" in result.stdout
+
+
 def test_research_thesis_resolve_missing_thesis_exits_with_not_found() -> None:
     with runner.isolated_filesystem():
         thesis_file = Path("theses.json")
@@ -1036,6 +1075,22 @@ def test_parse_backtest_dates_includes_end_date() -> None:
 
     assert start_dt == datetime(2024, 6, 30, 0, 0, tzinfo=UTC)
     assert end_dt_exclusive == datetime(2024, 7, 1, 0, 0, tzinfo=UTC)
+
+
+def test_parse_backtest_dates_invalid_date_format_exits() -> None:
+    from kalshi_research.cli.research.backtest import _parse_backtest_dates
+
+    with pytest.raises(typer.Exit) as exc_info:
+        _parse_backtest_dates("bad", "2024-06-30")
+    assert exc_info.value.exit_code == 1
+
+
+def test_parse_backtest_dates_start_after_end_exits() -> None:
+    from kalshi_research.cli.research.backtest import _parse_backtest_dates
+
+    with pytest.raises(typer.Exit) as exc_info:
+        _parse_backtest_dates("2024-07-01", "2024-06-30")
+    assert exc_info.value.exit_code == 1
 
 
 def test_research_thesis_show_with_positions() -> None:

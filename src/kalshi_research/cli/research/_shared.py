@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import structlog
 import typer
 
 from kalshi_research.cli.utils import (
@@ -17,6 +18,9 @@ if TYPE_CHECKING:
     from kalshi_research.api.models.market import Market
     from kalshi_research.research.thesis import Thesis as ThesisModel
     from kalshi_research.research.thesis import ThesisEvidence, ThesisTracker
+
+
+logger = structlog.get_logger()
 
 
 def _get_thesis_file() -> Path:
@@ -88,8 +92,6 @@ async def _fetch_market(ticker: str) -> "Market":
         except KalshiAPIError as e:
             exit_kalshi_api_error(e)
         except Exception as e:
-            import structlog
-
-            structlog.get_logger().error("Failed to fetch market", ticker=ticker, exc_info=True)
+            logger.exception("Failed to fetch market", ticker=ticker)
             console.print(f"[red]Error:[/red] {e}")
-            raise typer.Exit(1) from None
+            raise typer.Exit(1) from e

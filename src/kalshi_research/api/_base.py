@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -18,6 +19,8 @@ from kalshi_research.api.exceptions import KalshiAPIError, RateLimitError
 from kalshi_research.api.rate_limiter import RateLimiter, RateTier
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from tenacity import RetryCallState
 
 
@@ -77,7 +80,7 @@ class ClientBase:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: Any,
+        exc_tb: TracebackType | None,
     ) -> None:
         await self.aclose()
 
@@ -128,7 +131,13 @@ class ClientBase:
                         status_code=response.status_code,
                         message=response.text,
                     )
-                result: dict[str, Any] = response.json()
-                return result
+                try:
+                    result: dict[str, Any] = response.json()
+                    return result
+                except json.JSONDecodeError as e:
+                    raise KalshiAPIError(
+                        status_code=response.status_code,
+                        message=f"Invalid JSON response: {e}",
+                    ) from e
 
         raise AssertionError("AsyncRetrying should have returned or raised")  # pragma: no cover

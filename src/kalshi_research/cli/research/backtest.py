@@ -2,7 +2,7 @@
 
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -10,6 +10,9 @@ from rich.table import Table
 
 from kalshi_research.cli.utils import console, run_async
 from kalshi_research.paths import DEFAULT_DB_PATH
+
+if TYPE_CHECKING:
+    from kalshi_research.research.backtest import BacktestResult
 
 
 def _parse_backtest_dates(start: str, end: str) -> tuple[datetime, datetime]:
@@ -37,7 +40,7 @@ def _parse_backtest_dates(start: str, end: str) -> tuple[datetime, datetime]:
     return start_dt, end_dt_exclusive
 
 
-def _display_backtest_results(results: list[Any], start: str, end: str) -> None:
+def _display_backtest_results(results: "list[BacktestResult]", start: str, end: str) -> None:
     """Helper to display backtest results."""
     # Calculate aggregate statistics
     total_trades = sum(r.total_trades for r in results)

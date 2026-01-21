@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from kalshi_research.api.models.multivariate import (
     GetMultivariateEventCollectionResponse,
@@ -14,8 +14,9 @@ from kalshi_research.api.models.multivariate import (
 class MultivariateMixin:
     """Mixin providing multivariate event collection endpoints (public)."""
 
-    # Method signature expected from composing class (not implemented here)
-    _get: Any  # Provided by ClientBase
+    if TYPE_CHECKING:
+        # Implemented by ClientBase
+        async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]: ...
 
     async def get_multivariate_event_collections(
         self,

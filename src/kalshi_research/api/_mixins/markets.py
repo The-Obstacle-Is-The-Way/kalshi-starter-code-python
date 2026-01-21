@@ -25,8 +25,9 @@ logger = structlog.get_logger()
 class MarketsMixin:
     """Mixin providing market-related endpoints."""
 
-    # Method signature expected from composing class (not implemented here)
-    _get: Any  # Provided by ClientBase
+    if TYPE_CHECKING:
+        # Implemented by ClientBase
+        async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]: ...
 
     async def get_markets_page(
         self,
@@ -89,7 +90,7 @@ class MarketsMixin:
             )
 
         # 1000 is Kalshi API max limit per page (see docs/_vendor-docs/kalshi-api-reference.md)
-        params: dict[str, Any] = {"limit": min(limit, 1000)}
+        params: dict[str, Any] = {"limit": max(1, min(limit, 1000))}
         if status:
             params["status"] = status.value if isinstance(status, MarketFilterStatus) else status
         if event_ticker:

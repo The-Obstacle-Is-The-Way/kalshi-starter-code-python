@@ -20,8 +20,9 @@ logger = structlog.get_logger()
 class EventsMixin:
     """Mixin providing event-related endpoints."""
 
-    # Method signature expected from composing class (not implemented here)
-    _get: Any  # Provided by ClientBase
+    if TYPE_CHECKING:
+        # Implemented by ClientBase
+        async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]: ...
 
     async def get_events_page(
         self,
@@ -34,7 +35,7 @@ class EventsMixin:
     ) -> tuple[list[Event], str | None]:
         """Fetch a single page of events and return the next cursor (if any)."""
         # Events endpoint max limit is 200 (not 1000 like markets)
-        params: dict[str, Any] = {"limit": min(limit, 200)}
+        params: dict[str, Any] = {"limit": max(1, min(limit, 200))}
         if status:
             params["status"] = status.value if isinstance(status, MarketFilterStatus) else status
         if series_ticker:

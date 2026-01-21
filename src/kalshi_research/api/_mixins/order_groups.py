@@ -23,6 +23,8 @@ from kalshi_research.api.models.order_group import (
 )
 
 if TYPE_CHECKING:
+    from tenacity import RetryCallState
+
     from kalshi_research.api.auth import KalshiAuth
     from kalshi_research.api.rate_limiter import RateLimiter
 
@@ -30,7 +32,7 @@ if TYPE_CHECKING:
 logger = structlog.get_logger()
 
 
-def _wait_with_retry_after_order_groups(retry_state: Any) -> float:
+def _wait_with_retry_after_order_groups(retry_state: RetryCallState) -> float:
     """Wait using Retry-After header if available, else exponential backoff."""
     _retry_wait = wait_exponential(multiplier=1, min=1, max=60)
     outcome = retry_state.outcome
@@ -50,7 +52,11 @@ class OrderGroupsMixin:
     _max_retries: int
     _rate_limiter: RateLimiter
     _auth: KalshiAuth
-    _auth_get: Any  # Provided by KalshiClient
+    if TYPE_CHECKING:
+        # Implemented by KalshiClient
+        async def _auth_get(
+            self, path: str, params: dict[str, Any] | None = None
+        ) -> dict[str, Any]: ...
 
     async def get_order_groups(self) -> list[OrderGroup]:
         """List order groups for the authenticated user."""

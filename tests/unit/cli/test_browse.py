@@ -160,7 +160,7 @@ def test_browse_categories_invalid_json_exits_1() -> None:
         result = runner.invoke(app, ["browse", "categories"])
 
     assert result.exit_code == 1
-    assert "Error:" in result.stdout
+    assert "Invalid JSON response" in result.stdout
 
 
 def test_browse_series_api_error_exits_1() -> None:

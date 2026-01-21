@@ -80,4 +80,4 @@ def test_series_get_invalid_json_exits_1() -> None:
         result = runner.invoke(app, ["series", "get", ticker])
 
     assert result.exit_code == 1
-    assert "Error:" in result.stdout
+    assert "Invalid JSON response" in result.stdout

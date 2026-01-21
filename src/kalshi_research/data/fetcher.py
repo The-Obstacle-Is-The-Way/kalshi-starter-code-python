@@ -23,6 +23,8 @@ from kalshi_research.data.repositories import (
 )
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from kalshi_research.api.models.event import Event as APIEvent
     from kalshi_research.api.models.market import Market as APIMarket
     from kalshi_research.data.database import DatabaseManager
@@ -64,7 +66,7 @@ class DataFetcher:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: object,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit async context manager."""
         if self._owns_client and self._client is not None:

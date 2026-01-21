@@ -70,6 +70,22 @@ class TestKalshiPublicClient:
 
     @pytest.mark.asyncio
     @respx.mock
+    async def test_get_market_invalid_json_raises_api_error(self) -> None:
+        """2xx with malformed JSON should raise a KalshiAPIError with context."""
+        ticker = "KXBTC-25JAN-T100000"
+        respx.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}").mock(
+            return_value=Response(200, content=b"not-json")
+        )
+
+        async with KalshiPublicClient() as client:
+            with pytest.raises(KalshiAPIError) as exc_info:
+                await client.get_market(ticker)
+
+        assert exc_info.value.status_code == 200
+        assert "Invalid JSON response" in exc_info.value.message
+
+    @pytest.mark.asyncio
+    @respx.mock
     async def test_get_market_not_found(self) -> None:
         """Test 404 handling."""
         ticker = "NONEXISTENT"

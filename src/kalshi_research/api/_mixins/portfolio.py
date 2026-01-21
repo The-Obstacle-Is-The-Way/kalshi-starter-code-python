@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from kalshi_research.api.models.portfolio import (
     FillPage,
@@ -18,8 +18,11 @@ from kalshi_research.api.models.portfolio import (
 class PortfolioMixin:
     """Mixin providing portfolio read endpoints (authenticated)."""
 
-    # Method signature expected from composing class (not implemented here)
-    _auth_get: Any  # Provided by KalshiClient
+    if TYPE_CHECKING:
+        # Implemented by KalshiClient
+        async def _auth_get(
+            self, path: str, params: dict[str, Any] | None = None
+        ) -> dict[str, Any]: ...
 
     async def get_balance(self) -> PortfolioBalance:
         """Get account balance."""
@@ -67,7 +70,7 @@ class PortfolioMixin:
             limit: Number of results per page (max 200)
             cursor: Pagination cursor
         """
-        params: dict[str, Any] = {"limit": min(limit, 200)}
+        params: dict[str, Any] = {"limit": max(1, min(limit, 200))}
         if ticker:
             params["ticker"] = ticker
         if min_ts is not None:
@@ -100,7 +103,7 @@ class PortfolioMixin:
             limit: Number of results per page (max 200)
             cursor: Pagination cursor
         """
-        params: dict[str, Any] = {"limit": min(limit, 200)}
+        params: dict[str, Any] = {"limit": max(1, min(limit, 200))}
         if ticker:
             params["ticker"] = ticker
         if event_ticker:

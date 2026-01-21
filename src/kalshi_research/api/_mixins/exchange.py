@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from kalshi_research.api.models.exchange import (
     ExchangeAnnouncementsResponse,
@@ -13,8 +13,9 @@ from kalshi_research.api.models.exchange import (
 class ExchangeMixin:
     """Mixin providing exchange-related endpoints."""
 
-    # Method signature expected from composing class (not implemented here)
-    _get: Any  # Provided by ClientBase
+    if TYPE_CHECKING:
+        # Implemented by ClientBase
+        async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]: ...
 
     async def get_exchange_status(self) -> dict[str, Any]:
         """Check if exchange is operational."""

@@ -326,6 +326,15 @@ def research_thesis_resolve(
     outcome: Annotated[str, typer.Option("--outcome", help="Outcome: yes, no, void")],
 ) -> None:
     """Resolve a thesis with an outcome."""
+    normalized_outcome = outcome.strip().lower()
+    valid_outcomes = {"yes", "no", "void"}
+    if normalized_outcome not in valid_outcomes:
+        console.print(
+            f"[red]Error:[/red] Invalid outcome: {outcome}. Use yes, no, or void.",
+        )
+        raise typer.Exit(2)
+
+    outcome = normalized_outcome
     data = _load_theses()
     theses = data.get("theses", [])
 
