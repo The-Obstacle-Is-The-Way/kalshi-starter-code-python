@@ -15,7 +15,7 @@
 
 ### Phase 2: P1 Debt (Large, refactors to ≤400 LoC)
 
-- [ ] **DEBT-043-D1**: Split `cli/market.py` → `cli/market/` package → `docs/_debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D1**: Split `cli/market.py` → `cli/market/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D2**: Split `cli/data.py` → `cli/data/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D3**: Split `cli/portfolio.py` → `cli/portfolio/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D4**: Split `cli/alerts.py` → `cli/alerts/` package → `docs/_debt/DEBT-043-srp-god-files.md`
@@ -42,6 +42,7 @@
 
 ## Work Log
 
+- 2026-01-21: **DEBT-043-D1** complete — split `cli/market.py` (788 LoC) into `cli/market/` package with 8 files (largest: `list.py` at 276 LoC). Created `_helpers.py`, `get.py`, `orderbook.py`, `liquidity.py`, `history.py`, `list.py`, `search.py`, `__init__.py`. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-047-C2** complete — added Exa cost-estimate constants (`EXA_SEARCH_TIER_SMALL_MAX`, `EXA_NEURAL_SEARCH_COST_*`, `EXA_DEEP_SEARCH_COST_*`, `EXA_PER_RESULT_*`, `EXA_ANSWER_*`, `EXA_COST_ESTIMATE_SAFETY_FACTOR`) to `constants.py`. Updated `exa/policy.py` to use them. DEBT-047 fully resolved. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-047-C1** complete — added `DEFAULT_AGENT_MAX_EXA_USD` and `DEFAULT_AGENT_MAX_LLM_USD` to `constants.py`, updated `agent/orchestrator.py` and `cli/agent.py` to use them. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: Reset queue post-branch-cleanup. Remaining active debt: DEBT-043 (Phase D) + DEBT-047 (Phase C).
