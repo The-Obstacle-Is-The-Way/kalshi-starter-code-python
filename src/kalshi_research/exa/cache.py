@@ -72,7 +72,7 @@ class ExaCache:
                 raise TypeError("Cached 'data' must be a dict")
             return data
 
-        except Exception as e:
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError, OSError) as e:
             logger.warning(
                 "Exa cache read failed; evicting entry",
                 operation=operation,
@@ -138,7 +138,13 @@ class ExaCache:
                 if now > expires_at:
                     path.unlink(missing_ok=True)
                     count += 1
-            except Exception:
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError, OSError):
+                # Log before deleting so we know why the cache entry was invalid
+                logger.debug(
+                    "Evicting invalid cache entry",
+                    path=str(path),
+                    exc_info=True,
+                )
                 path.unlink(missing_ok=True)
                 count += 1
 

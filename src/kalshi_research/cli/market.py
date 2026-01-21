@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
+from kalshi_research.constants import DEFAULT_PAGINATION_LIMIT
 
 app = typer.Typer(help="Market lookup commands.")
 
@@ -54,17 +54,16 @@ def market_get(
     ticker: Annotated[str, typer.Argument(help="Market ticker to fetch.")],
 ) -> None:
     """Fetch a single market by ticker."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _get() -> None:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 market = await client.get_market(ticker)
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -97,7 +96,7 @@ def market_get(
 
         console.print(table)
 
-    asyncio.run(_get())
+    run_async(_get())
 
 
 @app.command("orderbook")
@@ -106,17 +105,16 @@ def market_orderbook(
     depth: Annotated[int, typer.Option("--depth", "-d", help="Orderbook depth.")] = 5,
 ) -> None:
     """Fetch orderbook for a market."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _orderbook() -> None:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 orderbook = await client.get_orderbook(ticker, depth=depth)
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -141,7 +139,7 @@ def market_orderbook(
         if orderbook.midpoint is not None:
             console.print(f"Midpoint: {orderbook.midpoint:.1f}¢")
 
-    asyncio.run(_orderbook())
+    run_async(_orderbook())
 
 
 @app.command("liquidity")
@@ -157,7 +155,7 @@ def market_liquidity(
     ] = 3,
 ) -> None:
     """Analyze market liquidity using orderbook depth and slippage estimates."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _liquidity() -> None:
         from kalshi_research.analysis.liquidity import (
@@ -168,13 +166,12 @@ def market_liquidity(
         )
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 market = await client.get_market(ticker)
                 orderbook = await client.get_orderbook(ticker, depth=depth)
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -251,7 +248,7 @@ def market_liquidity(
             for w in analysis.warnings:
                 console.print(f"- {w}")
 
-    asyncio.run(_liquidity())
+    run_async(_liquidity())
 
 
 @app.command("history")
@@ -289,7 +286,7 @@ def market_history(
     import json
     from datetime import UTC, datetime
 
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     interval_map = {"1m": 1, "1h": 60, "1d": 1440}
     if interval not in interval_map:
@@ -314,7 +311,7 @@ def market_history(
     async def _history() -> None:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 if series_ticker is not None:
                     candles = await client.get_series_candlesticks(
@@ -333,8 +330,7 @@ def market_history(
                     )
                     candles = responses[0].candlesticks if responses else []
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
@@ -366,7 +362,7 @@ def market_history(
 
         console.print(table)
 
-    asyncio.run(_history())
+    run_async(_history())
 
 
 def _optional_lower(raw: str | None) -> str | None:
@@ -401,7 +397,7 @@ async def _fetch_markets_for_market_list_from_events(
     markets: list[Market] = []
     async for api_event in client.get_all_events(
         status=status_filter,
-        limit=200,
+        limit=DEFAULT_PAGINATION_LIMIT,
         with_nested_markets=True,
     ):
         if prefix_upper and not api_event.event_ticker.upper().startswith(prefix_upper):
@@ -494,8 +490,8 @@ async def _market_list_async(
     full: bool,
 ) -> None:
     from kalshi_research.analysis.categories import normalize_category
-    from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import public_client
 
     status_filter = _normalize_market_list_status(status)
 
@@ -509,7 +505,7 @@ async def _market_list_async(
     use_events = can_use_events and event is None and (category or exclude_category or event_prefix)
 
     try:
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             if use_events:
                 markets = await _fetch_markets_for_market_list_from_events(
                     client,
@@ -537,8 +533,7 @@ async def _market_list_async(
                         prefix_upper=prefix_upper,
                     )
     except KalshiAPIError as exc:
-        console.print(f"[red]API Error {exc.status_code}:[/red] {exc.message}")
-        raise typer.Exit(1) from None
+        exit_kalshi_api_error(exc)
     except Exception as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(1) from None
@@ -605,7 +600,7 @@ def market_list(
     ] = False,
 ) -> None:
     """List markets with optional filters."""
-    asyncio.run(
+    run_async(
         _market_list_async(
             status=status,
             event=event,
@@ -675,7 +670,7 @@ def market_search(
 
     Run 'kalshi data sync-markets' first to populate/update the database.
     """
-    asyncio.run(
+    run_async(
         _market_search_async(
             query=query,
             db=db,
@@ -708,7 +703,7 @@ async def _market_search_async(
     import json
     from pathlib import Path
 
-    from kalshi_research.data.database import DatabaseManager
+    from kalshi_research.cli.db import open_db_session
     from kalshi_research.data.repositories.search import SearchRepository
     from kalshi_research.data.search_utils import has_fts5_support
 
@@ -721,10 +716,7 @@ async def _market_search_async(
         )
         raise typer.Exit(1)
 
-    db_manager = DatabaseManager(str(db_path))
-    session = await db_manager.get_session()
-
-    try:
+    async with open_db_session(db_path) as session:
         # Check FTS5 support and warn if unavailable
         has_fts5 = await has_fts5_support(session)
         if not has_fts5:
@@ -743,9 +735,6 @@ async def _market_search_async(
             max_spread=max_spread,
             limit=top,
         )
-    finally:
-        await session.close()
-        await db_manager.close()
 
     if not results:
         console.print("[yellow]No markets found.[/yellow]")

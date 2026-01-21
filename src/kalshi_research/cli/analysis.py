@@ -1,6 +1,5 @@
 """Typer CLI commands for market analysis."""
 
-import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -10,7 +9,7 @@ import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, run_async
 from kalshi_research.paths import DEFAULT_DB_PATH
 
 app = typer.Typer(help="Market analysis commands.")
@@ -30,7 +29,7 @@ def analysis_calibration(
 ) -> None:
     """Analyze market calibration and Brier scores."""
     from kalshi_research.analysis import CalibrationAnalyzer
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db_session
 
     if not db_path.exists():
         console.print(f"[red]Error:[/red] Database not found at {db_path}")
@@ -39,7 +38,7 @@ def analysis_calibration(
     async def _analyze() -> None:
         from kalshi_research.data.repositories import PriceRepository
 
-        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+        async with open_db_session(db_path) as session:
             price_repo = PriceRepository(session)
             from kalshi_research.data.repositories import SettlementRepository
 
@@ -104,7 +103,7 @@ def analysis_calibration(
                 json.dump(output_data, f, indent=2)
             console.print(f"\n[dim]Saved to {output}[/dim]")
 
-    asyncio.run(_analyze())
+    run_async(_analyze())
 
 
 @app.command("metrics")
@@ -116,7 +115,7 @@ def analysis_metrics(
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """Calculate market metrics for a ticker."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db_session
 
     if not db_path.exists():
         console.print(f"[red]Error:[/red] Database not found at {db_path}")
@@ -126,7 +125,7 @@ def analysis_metrics(
         from kalshi_research.data.repositories import PriceRepository
 
         price = None
-        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+        async with open_db_session(db_path) as session:
             price_repo = PriceRepository(session)
             # Get latest price
             price = await price_repo.get_latest(ticker)
@@ -149,7 +148,7 @@ def analysis_metrics(
 
         console.print(table)
 
-    asyncio.run(_metrics())
+    run_async(_metrics())
 
 
 @app.command("correlation")
@@ -173,7 +172,7 @@ def analysis_correlation(
 ) -> None:
     """Analyze correlations between markets."""
     from kalshi_research.analysis.correlation import CorrelationAnalyzer
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db_session
 
     if not db_path.exists():
         console.print(f"[red]Error:[/red] Database not found at {db_path}")
@@ -182,7 +181,7 @@ def analysis_correlation(
     async def _analyze() -> None:
         from kalshi_research.data.repositories import PriceRepository
 
-        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+        async with open_db_session(db_path) as session:
             price_repo = PriceRepository(session)
 
             # Fetch price snapshots
@@ -254,4 +253,4 @@ def analysis_correlation(
             console.print(table)
             console.print(f"\n[dim]Found {len(results)} correlated pairs[/dim]")
 
-    asyncio.run(_analyze())
+    run_async(_analyze())

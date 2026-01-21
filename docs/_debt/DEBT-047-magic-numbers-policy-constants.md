@@ -55,15 +55,17 @@ rg -n \"\\(0\\.40, 0\\.60\\)\" src/kalshi_research
 
 ## Definition of Done (Objective)
 
-- [ ] All documented policy literals removed from function bodies (grep checks below return nothing):
-  - `rg -n \"\\blimit=200\\b\" src/kalshi_research`
-  - `rg -n \"depth: int = 10|depth=10\" src/kalshi_research`
-  - `rg -n \"\\(0\\.40, 0\\.60\\)\" src/kalshi_research`
-- [ ] All tests pass: `uv run pytest`
-- [ ] All quality gates pass: `uv run pre-commit run --all-files`
+- [x] All documented policy literals removed from function bodies (grep checks below return nothing):
+  - `rg -n \"\\blimit=200\\b\" src/kalshi_research` ✓
+  - `rg -n \"depth: int = 10|depth=10\" src/kalshi_research` ✓
+  - `rg -n \"\\(0\\.40, 0\\.60\\)\" src/kalshi_research` (only in constants.py definition) ✓
+- [x] All tests pass: `uv run pytest`
+- [x] All quality gates pass: `uv run pre-commit run --all-files`
+
+**Note:** Phase A/B complete. Phase C (Exa budget defaults) remains for future iteration.
 
 ## Acceptance Criteria (Phased)
 
-- [ ] Phase A: Introduce constants module and migrate pagination/depth defaults
-- [ ] Phase B: Migrate scanner/liquidity threshold literals
+- [x] Phase A: Introduce constants module and migrate pagination/depth defaults
+- [x] Phase B: Migrate scanner/liquidity threshold literals
 - [ ] Phase C: Migrate Exa budget defaults and any other cost policy literals

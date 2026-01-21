@@ -17,6 +17,7 @@ from kalshi_research.cli.utils import (
     atomic_write_json,
     console,
     load_json_storage_file,
+    run_async,
 )
 from kalshi_research.paths import DEFAULT_ALERT_LOG, DEFAULT_ALERTS_PATH
 
@@ -128,12 +129,12 @@ async def _compute_sentiment_shifts(
     *,
     db_path: Path,
 ) -> dict[str, float]:
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db
     from kalshi_research.news import SentimentAggregator
 
     shifts: dict[str, float] = {}
     try:
-        async with DatabaseManager(db_path) as db:
+        async with open_db(db_path) as db:
             aggregator = SentimentAggregator(db)
             for ticker in tickers:
                 summary = await aggregator.get_market_summary(ticker, days=7, compare_previous=True)
@@ -165,10 +166,10 @@ async def _run_alert_monitor_loop(
         monitor: Alert monitor containing configured conditions.
     """
     from kalshi_research.alerts.conditions import ConditionType
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
     from kalshi_research.paths import DEFAULT_DB_PATH
 
-    async with KalshiPublicClient() as client:
+    async with public_client() as client:
         try:
             while True:
                 console.print("[dim]Fetching markets...[/dim]", end="")
@@ -424,7 +425,7 @@ def alerts_monitor(
         )
         console.print("[dim]Press Ctrl+C to stop[/dim]\n")
 
-    asyncio.run(
+    run_async(
         _run_alert_monitor_loop(
             interval=interval,
             once=once,

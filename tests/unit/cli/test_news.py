@@ -68,7 +68,7 @@ def test_news_track_market_creates_tracked_item_and_upserts_targets(tmp_path) ->
     mock_kalshi.get_market = AsyncMock(return_value=market)
     mock_kalshi.get_event = AsyncMock(return_value=event)
 
-    with patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi):
+    with patch("kalshi_research.cli.client_factory.public_client", return_value=mock_kalshi):
         result = runner.invoke(app, ["news", "track", market.ticker, "--db", str(db_path)])
 
     assert result.exit_code == 0
@@ -108,7 +108,7 @@ def test_news_track_event_with_custom_queries(tmp_path) -> None:
     mock_kalshi.__aexit__.return_value = None
     mock_kalshi.get_event = AsyncMock(return_value=event)
 
-    with patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi):
+    with patch("kalshi_research.cli.client_factory.public_client", return_value=mock_kalshi):
         result = runner.invoke(
             app,
             [
@@ -138,7 +138,7 @@ def test_news_track_ticker_not_found_exits(tmp_path) -> None:
     mock_kalshi.__aexit__.return_value = None
     mock_kalshi.get_market = AsyncMock(side_effect=KalshiAPIError(404, "nope"))
 
-    with patch("kalshi_research.api.KalshiPublicClient", return_value=mock_kalshi):
+    with patch("kalshi_research.cli.client_factory.public_client", return_value=mock_kalshi):
         result = runner.invoke(app, ["news", "track", "MISSING", "--db", str(db_path)])
 
     assert result.exit_code == 2

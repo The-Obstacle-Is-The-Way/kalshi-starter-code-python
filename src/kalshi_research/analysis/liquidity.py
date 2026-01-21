@@ -18,6 +18,20 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Literal
 
+from kalshi_research.constants import (
+    DEFAULT_DEPTH_RADIUS_CENTS,
+    DEFAULT_MAX_SLIPPAGE_CENTS,
+    LIQUIDITY_GRADE_LIQUID_THRESHOLD,
+    LIQUIDITY_GRADE_MODERATE_THRESHOLD,
+    LIQUIDITY_GRADE_THIN_THRESHOLD,
+    LIQUIDITY_WARNING_DEPTH_CONTRACTS,
+    LIQUIDITY_WARNING_IMBALANCE_RATIO,
+    LIQUIDITY_WARNING_SPREAD_CENTS,
+    LIQUIDITY_WARNING_VOLUME_24H,
+    SPREAD_SCORE_BEST_CENTS,
+    SPREAD_SCORE_WORST_CENTS,
+)
+
 if TYPE_CHECKING:
     from decimal import Decimal
 
@@ -49,7 +63,9 @@ class DepthAnalysis:
     imbalance_ratio: float
 
 
-def orderbook_depth_score(orderbook: Orderbook, *, radius_cents: int = 10) -> DepthAnalysis:
+def orderbook_depth_score(
+    orderbook: Orderbook, *, radius_cents: int = DEFAULT_DEPTH_RADIUS_CENTS
+) -> DepthAnalysis:
     """Calculate a distance-weighted depth score around the YES midpoint.
 
     Notes:
@@ -232,7 +248,7 @@ def max_safe_order_size(
     orderbook: Orderbook,
     side: Literal["yes", "no"],
     *,
-    max_slippage_cents: int = 3,
+    max_slippage_cents: int = DEFAULT_MAX_SLIPPAGE_CENTS,
 ) -> int:
     """Calculate largest BUY order within a slippage tolerance."""
     if max_slippage_cents < 0:
@@ -315,12 +331,15 @@ class LiquidityAnalysis:
 
 def _spread_score(spread_cents: int) -> float:
     """Map spread (cents) to a 0-100 score (1c->100, 20c+->0)."""
-    if spread_cents <= 1:
+    if spread_cents <= SPREAD_SCORE_BEST_CENTS:
         return 100.0
-    if spread_cents >= 20:
+    if spread_cents >= SPREAD_SCORE_WORST_CENTS:
         return 0.0
-    # Linear interpolation from (1,100) to (20,0)
-    return max(0.0, 100.0 - ((spread_cents - 1) * (100.0 / 19.0)))
+    # Linear interpolation from (best,100) to (worst,0)
+    interpolation_range = SPREAD_SCORE_WORST_CENTS - SPREAD_SCORE_BEST_CENTS
+    return max(
+        0.0, 100.0 - ((spread_cents - SPREAD_SCORE_BEST_CENTS) * (100.0 / interpolation_range))
+    )
 
 
 def liquidity_score(
@@ -334,51 +353,51 @@ def liquidity_score(
     warnings: list[str] = []
 
     spread = orderbook.spread if orderbook.spread is not None else 100
-    spread_score = _spread_score(spread)
-    if spread > 10:
+    spread_sc = _spread_score(spread)
+    if spread > LIQUIDITY_WARNING_SPREAD_CENTS:
         warnings.append(f"Wide spread ({spread}c) will eat edge")
 
-    depth = orderbook_depth_score(orderbook, radius_cents=10)
+    depth = orderbook_depth_score(orderbook, radius_cents=DEFAULT_DEPTH_RADIUS_CENTS)
     depth_score = min(100.0, depth.weighted_score / 10.0)
-    if depth.total_contracts < 100:
+    if depth.total_contracts < LIQUIDITY_WARNING_DEPTH_CONTRACTS:
         warnings.append(f"Thin book ({depth.total_contracts} contracts near mid)")
 
-    if abs(depth.imbalance_ratio) > 0.5:
+    if abs(depth.imbalance_ratio) > LIQUIDITY_WARNING_IMBALANCE_RATIO:
         side = "YES" if depth.imbalance_ratio > 0 else "NO"
         warnings.append(f"Orderbook imbalance: {side} side has more near-mid depth")
 
     volume_score = min(100.0, market.volume_24h / 100.0)
-    if market.volume_24h < 1000:
+    if market.volume_24h < LIQUIDITY_WARNING_VOLUME_24H:
         warnings.append(f"Low volume ({market.volume_24h}/24h)")
 
     oi_score = min(100.0, market.open_interest / 50.0)
 
     score_float = (
-        spread_score * w.spread
+        spread_sc * w.spread
         + depth_score * w.depth
         + volume_score * w.volume
         + oi_score * w.open_interest
     )
     score = int(max(0.0, min(100.0, score_float)))
 
-    if score >= 76:
+    if score >= LIQUIDITY_GRADE_LIQUID_THRESHOLD:
         grade = LiquidityGrade.LIQUID
-    elif score >= 51:
+    elif score >= LIQUIDITY_GRADE_MODERATE_THRESHOLD:
         grade = LiquidityGrade.MODERATE
-    elif score >= 26:
+    elif score >= LIQUIDITY_GRADE_THIN_THRESHOLD:
         grade = LiquidityGrade.THIN
     else:
         grade = LiquidityGrade.ILLIQUID
         warnings.append("ILLIQUID: consider skipping or sizing down significantly")
 
-    max_yes = max_safe_order_size(orderbook, "yes", max_slippage_cents=3)
-    max_no = max_safe_order_size(orderbook, "no", max_slippage_cents=3)
+    max_yes = max_safe_order_size(orderbook, "yes", max_slippage_cents=DEFAULT_MAX_SLIPPAGE_CENTS)
+    max_no = max_safe_order_size(orderbook, "no", max_slippage_cents=DEFAULT_MAX_SLIPPAGE_CENTS)
 
     return LiquidityAnalysis(
         score=score,
         grade=grade,
         components={
-            "spread": spread_score,
+            "spread": spread_sc,
             "depth": depth_score,
             "volume": volume_score,
             "open_interest": oi_score,
@@ -416,7 +435,7 @@ class OrderbookAnalyzer:
     def __init__(
         self,
         *,
-        radius_cents: int = 10,
+        radius_cents: int = DEFAULT_DEPTH_RADIUS_CENTS,
         weights: LiquidityWeights | None = None,
     ) -> None:
         self._radius_cents = radius_cents

@@ -14,6 +14,11 @@ if TYPE_CHECKING:
     from kalshi_research.api.models.market import Market
 
 from kalshi_research.api.models.market import MarketStatus
+from kalshi_research.constants import (
+    DEFAULT_CLOSE_RACE_RANGE,
+    DEFAULT_HIGH_VOLUME_THRESHOLD,
+    DEFAULT_WIDE_SPREAD_THRESHOLD,
+)
 
 
 class MarketClosedError(Exception):
@@ -171,9 +176,9 @@ class MarketScanner:
 
     def __init__(
         self,
-        close_race_range: tuple[float, float] = (0.40, 0.60),
-        high_volume_threshold: int = 10000,
-        wide_spread_threshold: int = 5,
+        close_race_range: tuple[float, float] = DEFAULT_CLOSE_RACE_RANGE,
+        high_volume_threshold: int = DEFAULT_HIGH_VOLUME_THRESHOLD,
+        wide_spread_threshold: int = DEFAULT_WIDE_SPREAD_THRESHOLD,
         verifier: MarketStatusVerifier | None = None,
     ) -> None:
         """

@@ -6,7 +6,7 @@
 - **Effort:** M (0.5–1 day)
 - **Blocking:** No (but it reduces future refactor pain)
 - **Target Date:** 2026-02-12
-- **Status:** Active
+- **Status:** ✅ Resolved (2026-01-20)
 
 ## Problem
 
@@ -26,10 +26,10 @@ rg -n \"KalshiPublicClient\\(\" src/kalshi_research/cli | wc -l
 rg -n \"KalshiClient\\(\" src/kalshi_research/cli | wc -l
 ```
 
-Current counts (2026-01-19 audit, SSOT verified):
+Current counts (2026-01-20 audit, SSOT verified):
 
-- `KalshiPublicClient(` in CLI: **29** (not counting client_factory.py)
-- `KalshiClient(` in CLI: **2** (not counting client_factory.py)
+- `KalshiPublicClient(` in CLI: **0** (excluding `client_factory.py` and `TYPE_CHECKING`)
+- `KalshiClient(` in CLI: **0** (excluding `client_factory.py` and `TYPE_CHECKING`)
 
 ## Solution (Minimal, Not Framework DI)
 
@@ -53,15 +53,17 @@ async with public_client(environment=environment) as client:
 
 ## Definition of Done (Objective)
 
-- [ ] `rg -n \"KalshiPublicClient\\(\" src/kalshi_research/cli` returns **0** (excluding client_factory.py and TYPE_CHECKING)
-- [ ] `rg -n \"KalshiClient\\(\" src/kalshi_research/cli` returns **0** (excluding client_factory.py)
+- [x] `rg -n \"KalshiPublicClient\\(\" src/kalshi_research/cli` returns **0** (excluding `client_factory.py` and `TYPE_CHECKING`)
+- [x] `rg -n \"KalshiClient\\(\" src/kalshi_research/cli` returns **0** (excluding `client_factory.py` and `TYPE_CHECKING`)
 - [x] All tests pass: `uv run pytest`
 - [x] All quality gates pass: `uv run pre-commit run --all-files`
 
 ## Acceptance Criteria
 
 - [x] Implement `cli/client_factory.py` (single SSOT for client construction) - **DONE (salvaged from ralph-wiggum-loop)**
-- [ ] Migrate all CLI modules to use the factory functions (0/29 KalshiPublicClient, 0/2 KalshiClient migrated)
-- [ ] Update unit tests to patch factory instead of constructors
+- [x] Migrate all CLI modules to use the factory functions (**0** direct `KalshiPublicClient()` / `KalshiClient()` instantiations remain)
+- [x] Update unit tests to patch factory functions (avoid constructor patch leakage)
 
-**Note (2026-01-19):** The `client_factory.py` module and its tests were salvaged from the defunct `ralph-wiggum-loop` branch. The CLI module migration work was lost and needs to be redone.
+**Note (2026-01-20):** Some CLI tests were order-dependent after introducing `client_factory` because patching
+`kalshi_research.api.KalshiPublicClient` can be captured at import-time. Tests now patch
+`kalshi_research.cli.client_factory.public_client` / `authed_client` directly to avoid leakage.

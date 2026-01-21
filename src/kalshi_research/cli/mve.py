@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
 
 app = typer.Typer(help="Multivariate event (MVE) discovery commands.")
 
@@ -109,7 +108,7 @@ def mve_list(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """List multivariate events (MVEs)."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     if limit <= 0:
         console.print("[red]Error:[/red] --limit must be positive.")
@@ -118,17 +117,16 @@ def mve_list(
     async def _fetch() -> list[Event]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await client.get_multivariate_events(limit=limit)
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    events = asyncio.run(_fetch())
+    events = run_async(_fetch())
 
     if output_json:
         payload = [e.model_dump(mode="json") for e in events]
@@ -158,7 +156,7 @@ def mve_collections(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """List multivariate event collections (single page)."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     if limit <= 0:
         console.print("[red]Error:[/red] --limit must be positive.")
@@ -167,7 +165,7 @@ def mve_collections(
     async def _fetch() -> GetMultivariateEventCollectionsResponse:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await client.get_multivariate_event_collections(
                     status=status,
@@ -176,13 +174,12 @@ def mve_collections(
                     limit=limit,
                 )
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    page = asyncio.run(_fetch())
+    page = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(page.model_dump(mode="json"), indent=2, default=str))
@@ -197,22 +194,21 @@ def mve_collection(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """Get a single MVE collection by ticker."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _fetch() -> MultivariateEventCollection:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await client.get_multivariate_event_collection(ticker)
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    collection = asyncio.run(_fetch())
+    collection = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(collection.model_dump(mode="json"), indent=2, default=str))

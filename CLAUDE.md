@@ -23,7 +23,7 @@ This repository includes Agent Skills for enhanced CLI navigation and documentat
 | `kalshi-ralph-wiggum` | `.claude/skills/kalshi-ralph-wiggum/` | Ralph Wiggum autonomous loop operation |
 | `kalshi-doc-audit` | `.claude/skills/kalshi-doc-audit/` | Documentation auditing against SSOT |
 
-Skills are also mirrored to `.codex/skills/` and `.gemini/skills/` for other agents.
+Skills are also mirrored to `.codex/skills/` for other agents.
 
 ## CRITICAL: Commit Safety Protocol
 
@@ -276,3 +276,9 @@ When you find drift, bugs, or technical debt, record them in the appropriate tra
 - Active specs: `docs/_specs/README.md`
 - Backlog (blocked/deferred): `docs/_future/README.md`
 - Technical debt: `docs/_debt/README.md`
+
+## Ralph Wiggum Loop (Optional)
+
+- State files: `PROGRESS.md`, `PROMPT.md`
+- Operator script: `./scripts/ralph-loop.sh start` (default tmux session: `kalshi-ralph`; override via `RALPH_TMUX_SESSION=...`)
+- Reference: `docs/_ralph-wiggum/protocol.md`

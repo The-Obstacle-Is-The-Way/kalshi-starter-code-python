@@ -621,3 +621,211 @@ async def test_executor_amend_order_respects_production_gate(tmp_path: Path) -> 
 
     assert "production_trading_disabled" in str(exc_info.value)
     client.amend_order.assert_not_awaited()
+
+
+# DEBT-039: Exception handling tests
+
+
+@pytest.mark.asyncio
+async def test_executor_orderbook_provider_api_error_blocks_trade(tmp_path: Path) -> None:
+    """Test that KalshiAPIError from orderbook provider blocks the trade (fail closed)."""
+    from kalshi_research.api.exceptions import KalshiAPIError
+
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    orderbook_provider = AsyncMock()
+    orderbook_provider.get_orderbook = AsyncMock(
+        side_effect=KalshiAPIError(500, "Internal server error")
+    )
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+        orderbook_provider=orderbook_provider,
+    )
+
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=1,
+            yes_price_cents=50,
+        )
+
+    client.create_order.assert_not_awaited()
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "orderbook_provider_failed" in event["checks"]["failures"]
+
+
+@pytest.mark.asyncio
+async def test_executor_orderbook_provider_network_error_blocks_trade(tmp_path: Path) -> None:
+    """Test that httpx.HTTPError from orderbook provider blocks the trade (fail closed)."""
+    import httpx
+
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    orderbook_provider = AsyncMock()
+    orderbook_provider.get_orderbook = AsyncMock(
+        side_effect=httpx.ConnectError("Connection refused")
+    )
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+        orderbook_provider=orderbook_provider,
+    )
+
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=1,
+            yes_price_cents=50,
+        )
+
+    client.create_order.assert_not_awaited()
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "orderbook_provider_failed" in event["checks"]["failures"]
+
+
+@pytest.mark.asyncio
+async def test_executor_orderbook_provider_timeout_blocks_trade(tmp_path: Path) -> None:
+    """Test that httpx.TimeoutException from orderbook provider blocks the trade."""
+    import httpx
+
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    orderbook_provider = AsyncMock()
+    orderbook_provider.get_orderbook = AsyncMock(side_effect=httpx.ReadTimeout("Timeout"))
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+        orderbook_provider=orderbook_provider,
+    )
+
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=1,
+            yes_price_cents=50,
+        )
+
+    client.create_order.assert_not_awaited()
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "orderbook_provider_failed" in event["checks"]["failures"]
+
+
+@pytest.mark.asyncio
+async def test_executor_liquidity_check_api_error_blocks_trade(tmp_path: Path) -> None:
+    """Test that KalshiAPIError from market provider blocks the trade (fail closed)."""
+    from kalshi_research.analysis.liquidity import LiquidityGrade
+    from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.api.models.orderbook import Orderbook
+
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    # Orderbook provider works fine
+    orderbook_provider = AsyncMock()
+    orderbook = Orderbook(yes=[(50, 100)], no=[(50, 100)])
+    orderbook_provider.get_orderbook = AsyncMock(return_value=orderbook)
+
+    # Market provider fails
+    market_provider = AsyncMock()
+    market_provider.get_market = AsyncMock(side_effect=KalshiAPIError(404, "Market not found"))
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+        orderbook_provider=orderbook_provider,
+        market_provider=market_provider,
+        min_liquidity_grade=LiquidityGrade.MODERATE,
+    )
+
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=1,
+            yes_price_cents=50,
+        )
+
+    client.create_order.assert_not_awaited()
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "liquidity_check_failed" in event["checks"]["failures"]
+
+
+@pytest.mark.asyncio
+async def test_executor_liquidity_check_timeout_blocks_trade(tmp_path: Path) -> None:
+    """Test that httpx.TimeoutException from market provider blocks the trade."""
+    import httpx
+
+    from kalshi_research.analysis.liquidity import LiquidityGrade
+    from kalshi_research.api.models.orderbook import Orderbook
+
+    audit_path = tmp_path / "trade_audit.jsonl"
+
+    client = AsyncMock()
+    client.create_order = AsyncMock()
+
+    # Orderbook provider works fine
+    orderbook_provider = AsyncMock()
+    orderbook = Orderbook(yes=[(50, 100)], no=[(50, 100)])
+    orderbook_provider.get_orderbook = AsyncMock(return_value=orderbook)
+
+    # Market provider times out
+    market_provider = AsyncMock()
+    market_provider.get_market = AsyncMock(side_effect=httpx.ReadTimeout("Timeout"))
+
+    executor = TradeExecutor(
+        client,
+        live=True,
+        environment=Environment.DEMO,
+        require_confirmation=False,
+        audit_log_path=audit_path,
+        orderbook_provider=orderbook_provider,
+        market_provider=market_provider,
+        min_liquidity_grade=LiquidityGrade.MODERATE,
+    )
+
+    with pytest.raises(TradeSafetyError):
+        await executor.create_order(
+            ticker="TEST-TICKER",
+            side="yes",
+            action="buy",
+            count=1,
+            yes_price_cents=50,
+        )
+
+    client.create_order.assert_not_awaited()
+    event = json.loads(audit_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert "liquidity_check_failed" in event["checks"]["failures"]

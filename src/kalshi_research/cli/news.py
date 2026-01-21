@@ -1,13 +1,12 @@
 """News monitoring and sentiment analysis CLI commands."""
 
-import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console, print_budget_exhausted
+from kalshi_research.cli.utils import console, print_budget_exhausted, run_async
 from kalshi_research.exa.policy import ExaMode
 from kalshi_research.paths import DEFAULT_DB_PATH
 
@@ -49,10 +48,10 @@ async def _fetch_tracking_targets(
     Raises:
         ValueError: If the ticker cannot be resolved via the Kalshi public API.
     """
-    from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import public_client
 
-    async with KalshiPublicClient() as kalshi:
+    async with public_client() as kalshi:
         try:
             if event:
                 event_obj = await kalshi.get_event(ticker)
@@ -146,7 +145,7 @@ def news_track(
 ) -> None:
     """Start tracking news for a market or event."""
     try:
-        tracked_ticker, item_type, search_queries = asyncio.run(
+        tracked_ticker, item_type, search_queries = run_async(
             _news_track_async(
                 ticker=ticker,
                 event=event,
@@ -183,7 +182,7 @@ def news_untrack(
             raise typer.Exit(2)
         console.print(f"[green]✓[/green] Untracked: {ticker}")
 
-    asyncio.run(_untrack())
+    run_async(_untrack())
 
 
 @app.command("list-tracked")
@@ -220,7 +219,7 @@ def news_list_tracked(
 
         console.print(table)
 
-    asyncio.run(_list())
+    run_async(_list())
 
 
 @app.command("collect")
@@ -307,7 +306,7 @@ def news_collect(
                 console.print(f"[green]✓[/green] {key}: {count} new article(s)")
             print_budget_exhausted(collector)
 
-    asyncio.run(_collect())
+    run_async(_collect())
 
 
 @app.command("sentiment")
@@ -355,4 +354,4 @@ def news_sentiment(
             for kw, count in summary.top_keywords[:8]:
                 console.print(f"• {kw} ({count})")
 
-    asyncio.run(_report())
+    run_async(_report())

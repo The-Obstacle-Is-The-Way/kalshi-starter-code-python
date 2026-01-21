@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, NoReturn, TypeVar, cast
 
 import typer
 from rich.console import Console
@@ -13,6 +13,8 @@ from rich.console import Console
 if TYPE_CHECKING:
     from collections.abc import Coroutine
     from pathlib import Path
+
+    from kalshi_research.api.exceptions import KalshiAPIError
 
 console = Console()
 
@@ -33,6 +35,27 @@ def run_async(coro: Coroutine[object, object, T]) -> T:
     except KeyboardInterrupt:
         console.print("\n[yellow]Interrupted.[/yellow]")
         raise typer.Exit(130) from None
+
+
+def exit_kalshi_api_error(e: KalshiAPIError, *, context: str | None = None) -> NoReturn:
+    """Print a Kalshi API error and exit with an appropriate code.
+
+    Centralizes KalshiAPIError handling across CLI modules to ensure consistent
+    formatting and exit codes.
+
+    Args:
+        e: The KalshiAPIError exception.
+        context: Optional context string (e.g., "fetching market data") for improved
+            error messages. If provided, the message will include "while {context}".
+
+    Raises:
+        typer.Exit: With code 2 for 404 (not found), code 1 for all other API errors.
+    """
+    if context:
+        console.print(f"[red]API Error {e.status_code} while {context}:[/red] {e.message}")
+    else:
+        console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
+    raise typer.Exit(2 if e.status_code == 404 else 1) from None
 
 
 def atomic_write_json(path: Path, data: dict[str, Any]) -> None:

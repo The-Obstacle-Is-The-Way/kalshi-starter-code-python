@@ -23,6 +23,23 @@ Key insight: "Deterministically bad in an undeterministic world" - failures are 
 | `PROMPT.md` | Loop prompt - instructions for each iteration |
 | `docs/_ralph-wiggum/protocol.md` | Full reference protocol |
 
+## CRITICAL: Use Subscription, Not API Credits
+
+**Before running Ralph loops, ensure `ANTHROPIC_API_KEY` is NOT in your shell environment:**
+
+```bash
+# Check if it's set
+env | grep ANTHROPIC_API_KEY
+
+# If found, remove from ~/.zshrc or ~/.sparc.config
+# Keep it ONLY in project .env files for Python apps
+```
+
+| `ANTHROPIC_API_KEY` in shell? | Claude Code uses... | Cost |
+|-------------------------------|---------------------|------|
+| **YES** | API credits | ~$6/day (pay-per-use) |
+| **NO** | Subscription | **FREE with Pro/Max** |
+
 ## Loop Execution (Operator Commands)
 
 ### Standard Loop (with state-based completion)
@@ -44,7 +61,21 @@ MAX=50; for i in $(seq 1 $MAX); do
 done
 ```
 
-### Quick Start Checklist
+### Quick Start: Use the Script (Recommended)
+
+This repo includes a ready-to-use script:
+
+```bash
+# Starts (or re-attaches) a repo-scoped tmux session named "kalshi-ralph"
+./scripts/ralph-loop.sh start
+
+# If you have another repo running Ralph, override the session name:
+RALPH_TMUX_SESSION=some-other-session ./scripts/ralph-loop.sh start
+```
+
+**Script location:** `scripts/ralph-loop.sh`
+
+### Quick Start Checklist (Manual)
 
 ```bash
 # 1. Create sandbox branch (if not already)
@@ -53,10 +84,8 @@ git checkout dev && git checkout -b ralph-wiggum-specs
 # 2. Verify state files exist
 ls PROGRESS.md PROMPT.md
 
-# 3. Start tmux
-tmux new -s ralph
-
-# 4. Run the loop (command above)
+# 3. Start the loop (creates/attaches tmux session: kalshi-ralph)
+./scripts/ralph-loop.sh start
 
 # 5. Monitor in another pane
 watch -n 5 'git log --oneline -10'
@@ -158,5 +187,5 @@ fi
 
 ## Maintenance Note
 
-This repository keeps `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/` in sync.
-If you update this skill, apply the same change to all three copies.
+This repository keeps `.claude/skills/` and `.codex/skills/` in sync.
+If you update this skill, apply the same change to both copies.

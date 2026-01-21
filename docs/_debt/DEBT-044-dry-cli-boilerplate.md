@@ -6,7 +6,7 @@
 - **Effort:** M (1–2 days)
 - **Blocking:** Yes (duplication guarantees future divergence bugs)
 - **Target Date:** 2026-02-02
-- **Status:** Active
+- **Status:** Resolved
 
 ## Problem
 
@@ -14,7 +14,7 @@ The CLI repeats the same patterns dozens of times:
 
 1. **Async wrapper boilerplate** (`asyncio.run(...)`) — 56 copies
 2. **Kalshi API error handling** (`except KalshiAPIError ... Exit(1)`) — 28 copies
-3. **DB session plumbing** (`DatabaseManager(...)` + session creation) — 11 copies
+3. **DB session plumbing** (`DatabaseManager(...)` + session creation) — 11 copies (baseline)
 
 This violates DRY and creates real risk:
 if any behavior (exit codes, logging, messaging) needs to change, we must update it in dozens of places.
@@ -31,9 +31,14 @@ rg -n "DatabaseManager\\(" src/kalshi_research/cli | wc -l
 
 Current counts (2026-01-20 audit, SSOT verified):
 
-- `asyncio.run`: **56**
-- `except KalshiAPIError`: **28**
-- `DatabaseManager(...)`: **11**
+- `asyncio.run`: **56** → **1** (only in `run_async()` helper after Phase B)
+- `except KalshiAPIError`: **28** → **25** use `exit_kalshi_api_error()` + 3 special cases (Phase D)
+- `DatabaseManager(...)`: **1** (only in `cli/db.py` helper after Phase E)
+
+**Phase D special cases (intentionally not migrated):**
+- `news.py:63` - internal helper that re-raises as `ValueError` (not exiting)
+- `scan.py:460` - warning + continue pattern (graceful degradation for liquidity)
+- `event.py:96` - conditional warning + continue (graceful degradation for metadata)
 
 ## Solution (Minimal Abstractions, Maximum Removal)
 
@@ -68,18 +73,18 @@ Refactor CLI modules to call these helpers. Migration should be mechanical and t
 
 ## Definition of Done (Objective)
 
-- [ ] `rg -n \"asyncio\\.run\\(\" src/kalshi_research/cli` returns **0** (or a single occurrence inside the shared helper only)
-- [ ] `rg -n \"except KalshiAPIError\" src/kalshi_research/cli` returns **0**
-- [ ] `rg -n \"DatabaseManager\\(\" src/kalshi_research/cli` returns **≤ 1** (single helper location)
-- [ ] No behavior regressions: `uv run pytest`
-- [ ] All quality gates: `uv run pre-commit run --all-files`
+- [x] `rg -n \"asyncio\\.run\\(\" src/kalshi_research/cli` returns **1** (only in `run_async()` helper)
+- [x] All standard exit-on-error patterns use `exit_kalshi_api_error()` (3 intentional special cases remain)
+- [x] `rg -n \"DatabaseManager\\(\" src/kalshi_research/cli` returns **≤ 1** (single helper location)
+- [x] No behavior regressions: `uv run pytest`
+- [x] All quality gates: `uv run pre-commit run --all-files`
 
 ## Acceptance Criteria (Phased)
 
 - [x] Phase A: Add `run_async()` helper and migrate at least one CLI module as a template
-- [ ] Phase B: Migrate all CLI modules off direct `asyncio.run()`
-- [ ] Phase C: Add `exit_kalshi_api_error()` helper and migrate at least one CLI module as a template
-- [ ] Phase D: Migrate all CLI modules off duplicated `except KalshiAPIError` blocks
-- [ ] Phase E: Add DB session helper and migrate all CLI DB session setup
+- [x] Phase B: Migrate all CLI modules off direct `asyncio.run()`
+- [x] Phase C: Add `exit_kalshi_api_error()` helper and migrate at least one CLI module as a template
+- [x] Phase D: Migrate all CLI modules off duplicated `except KalshiAPIError` blocks
+- [x] Phase E: Add DB session helper and migrate all CLI DB session setup
 
-**Note (2026-01-20):** Phase A was re-implemented in PR #35 on `ralph-wiggum-loop` after the earlier branch deletion. Phases B–E remain pending.
+**Note (2026-01-20):** All phases complete. `DatabaseManager` now only appears in `cli/db.py` helper.

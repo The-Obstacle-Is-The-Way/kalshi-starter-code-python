@@ -6,7 +6,7 @@
 - **Effort:** M (1–3 days)
 - **Blocking:** Yes (these functions are change magnets)
 - **Target Date:** 2026-02-05
-- **Status:** Active
+- **Status:** Resolved
 
 ## Problem
 
@@ -54,17 +54,18 @@ src/kalshi_research/cli/scan.py:scan_movers 1156-1304 (149 lines)
 
 ## Definition of Done (Objective)
 
-- [ ] `rg -n \"noqa: PLR091\" src/kalshi_research` returns nothing
-- [ ] `uv run ruff check .` passes without needing those noqs
-- [ ] `uv run pytest` passes
+- [x] `rg -n \"noqa: PLR091\" src/kalshi_research` returns nothing
+- [x] `uv run ruff check .` passes without needing those noqs
+- [x] `uv run pytest` passes
 
 ## Acceptance Criteria (One-by-One)
 
-- [ ] Refactor `src/kalshi_research/agent/research_agent.py:_execute_research_task` (remove noqa, keep behavior)
-- [ ] Refactor `src/kalshi_research/execution/executor.py:_run_live_checks` (remove noqa, keep behavior)
-- [ ] Refactor `src/kalshi_research/cli/agent.py:research` (remove noqa, keep CLI UX)
-- [ ] Refactor `src/kalshi_research/cli/agent.py:analyze` (remove noqa, keep CLI UX)
-- [ ] Refactor `src/kalshi_research/cli/research.py:research_thesis_show` (remove noqa, keep CLI UX)
-- [ ] Refactor `src/kalshi_research/cli/scan.py:scan_movers` (remove noqa, keep CLI UX)
+- [x] Refactor `src/kalshi_research/agent/research_agent.py:_execute_research_task` (remove noqa, keep behavior)
+- [x] Refactor `src/kalshi_research/execution/executor.py:_run_live_checks` (remove noqa, keep behavior)
+- [x] Refactor `src/kalshi_research/cli/agent.py:research` (remove noqa, keep CLI UX)
+- [x] Refactor `src/kalshi_research/cli/agent.py:analyze` (remove noqa, keep CLI UX)
+- [x] Refactor `src/kalshi_research/cli/research.py:research_thesis_show` (remove noqa, keep CLI UX)
+- [x] Refactor `src/kalshi_research/cli/scan.py:scan_movers` (remove noqa, keep CLI UX)
 
-**Note (2026-01-19):** This work was implemented on `ralph-wiggum-loop` branch but LOST when that branch was deleted due to conflicts with SPEC-043. Must be redone from scratch.
+**Note (2026-01-20):** Implemented on `ralph-wiggum-loop`. All `# noqa: PLR0912/PLR0915` suppressions were removed from
+`src/kalshi_research/`, with behavior preserved via unit tests.

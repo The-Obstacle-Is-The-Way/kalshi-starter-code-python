@@ -65,6 +65,59 @@ class TestTrading:
         assert payload["client_order_id"] == "cid-1"
 
     @pytest.mark.asyncio
+    async def test_create_order_normalizes_side_and_action(self, mock_client):
+        """Verify create_order normalizes side/action casing for string inputs."""
+        create_order_response = _load_golden_fixture("create_order_response.json")
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: create_order_response,
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST",
+            side="YES",
+            action="BUY",
+            count=10,
+            price=50,
+            client_order_id="cid-case",
+        )
+
+        mock_client._client.post.assert_called_once()
+        _, kwargs = mock_client._client.post.call_args
+        payload = kwargs["json"]
+
+        assert payload["side"] == "yes"
+        assert payload["action"] == "buy"
+        assert payload["yes_price"] == 50
+        assert payload["client_order_id"] == "cid-case"
+
+    @pytest.mark.asyncio
+    async def test_create_order_no_side_uses_no_price(self, mock_client):
+        """Verify create_order uses no_price for NO-side orders (not yes_price)."""
+        create_order_response = _load_golden_fixture("create_order_response.json")
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: create_order_response,
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST", side="no", action="buy", count=10, price=30, client_order_id="cid-no"
+        )
+
+        mock_client._client.post.assert_called_once()
+        _, kwargs = mock_client._client.post.call_args
+        payload = kwargs["json"]
+
+        assert payload["ticker"] == "KXTEST"
+        assert payload["side"] == "no"
+        assert payload["action"] == "buy"
+        assert payload["count"] == 10
+        # Critical: NO-side orders must use no_price, not yes_price
+        assert "no_price" in payload
+        assert payload["no_price"] == 30
+        assert "yes_price" not in payload
+
+    @pytest.mark.asyncio
     async def test_create_order_with_reduce_only(self, mock_client):
         """Verify reduce_only is passed to API when provided."""
         create_order_response = _load_golden_fixture("create_order_response.json")
@@ -169,6 +222,12 @@ class TestTrading:
 
         with pytest.raises(ValueError, match="Count must be positive"):
             await mock_client.create_order("KX", "yes", "buy", 0, 50)
+
+        with pytest.raises(ValueError, match="side must be"):
+            await mock_client.create_order("KX", "maybe", "buy", 1, 50)
+
+        with pytest.raises(ValueError, match="action must be"):
+            await mock_client.create_order("KX", "yes", "hold", 1, 50)
 
     @pytest.mark.asyncio
     async def test_cancel_order_rate_limit(self, mock_client):

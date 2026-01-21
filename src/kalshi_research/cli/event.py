@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
 
 app = typer.Typer(help="Event discovery and analysis commands.")
 
@@ -232,7 +231,7 @@ def event_list(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """List events (single page) with optional filters."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     status_filter = _normalize_event_status(status)
 
@@ -243,7 +242,7 @@ def event_list(
     async def _fetch() -> list[dict[str, object]]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 events = await client.get_events(
                     status=status_filter,
@@ -252,15 +251,14 @@ def event_list(
                     with_nested_markets=with_markets,
                 )
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
         return [e.model_dump(mode="json") for e in events]
 
-    events_payload = asyncio.run(_fetch())
+    events_payload = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(events_payload, indent=2, default=str))
@@ -304,22 +302,21 @@ def event_get(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """Get event fundamentals plus best-effort metadata enrichment."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _fetch() -> tuple[Event, EventMetadataResponse | None]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await _fetch_event_with_metadata(client, ticker=ticker, warn=not output_json)
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    event, metadata = asyncio.run(_fetch())
+    event, metadata = run_async(_fetch())
 
     if output_json:
         payload: dict[str, object] = {"event": event.model_dump(mode="json")}
@@ -356,7 +353,7 @@ def event_candlesticks(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """Fetch event-level candlesticks (OHLC aligned across markets)."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     period_interval = _interval_minutes(interval)
     resolved_start_ts, resolved_end_ts = _resolve_time_window(
@@ -366,7 +363,7 @@ def event_candlesticks(
     async def _fetch() -> tuple[str, EventCandlesticksResponse]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await _fetch_event_candlesticks(
                     client,
@@ -377,13 +374,12 @@ def event_candlesticks(
                     period_interval=period_interval,
                 )
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(2 if e.status_code == 404 else 1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    resolved_series, response = asyncio.run(_fetch())
+    resolved_series, response = run_async(_fetch())
 
     if output_json:
         payload = response.model_dump(mode="json")

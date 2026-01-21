@@ -1,9 +1,9 @@
 # DEBT-039: Broad Exception Catches Throughout Codebase
 
-**Status:** Active
+**Status:** Resolved
 **Priority:** P3 (Low - Resilience vs. specificity tradeoff)
 **Created:** 2026-01-19
-**Audit Date:** 2026-01-19 (updated post-ralph-wiggum-loop cleanup)
+**Audit Date:** 2026-01-20 (DEBT-039-B completed)
 
 ---
 
@@ -42,10 +42,39 @@ src/kalshi_research/cli/event.py:104, 257, 318, 382 (SPEC-043)
 src/kalshi_research/cli/mve.py (multiple) (SPEC-043)
 ```
 
-### Execution (Safety-critical)
+### Execution (Safety-critical) ✅ AUDITED 2026-01-20
 ```text
-src/kalshi_research/execution/executor.py:309, 333, 431
+src/kalshi_research/execution/executor.py:319, 349, 522 (line numbers updated after refactoring)
 ```
+
+**Audit Results (DEBT-039-A, 2026-01-20):**
+1. `_check_orderbook_safety` (line 319): Narrowed to `(KalshiAPIError, httpx.HTTPError, httpx.TimeoutException)`. Fails closed (blocks trade). Logs exception type. ✅
+2. `_check_liquidity_grade` (line 349): Narrowed to same exceptions. Fails closed. Logs exception type. ✅
+3. `create_order` audit logging (line 522): **INTENTIONALLY BROAD** - This catch exists solely for audit logging; the exception is ALWAYS re-raised. Narrowing would miss unexpected failures in the audit trail. Safety analysis: No silent failure risk because the exception propagates.
+
+**DEBT-039-B Changes (2026-01-20):**
+
+Exception type logging added:
+- `exa/cache.py:141` (clear_expired): Added `logger.debug()` with `exc_info=True`
+- `research/invalidation.py:128`: Added `exc_info=True` to existing warning
+- `research/thesis_research.py:313`: Added `exc_info=True` to existing error log
+- `api/websocket/client.py:275`: Converted f-string log to structured log with `exc_info=True`
+
+Narrowed exception types:
+- `exa/cache.py:75` (get): Narrowed from `Exception` to `(json.JSONDecodeError, KeyError, ValueError, TypeError, OSError)`
+- `exa/cache.py:141` (clear_expired): Narrowed from `Exception` to `(json.JSONDecodeError, KeyError, ValueError, OSError)`
+
+Already using `exc_info=True` or `logger.exception()` (no changes needed):
+- All CLI top-level catches (acceptable per analysis)
+- `data/scheduler.py` (uses `logger.exception()`)
+- `news/collector.py` (has `exc_info=True`)
+- `cli/alerts.py` (has `exc_info=True`)
+- `portfolio/syncer.py` (has `exc_info=True`)
+- `research/context.py` (has `exc_info=True`)
+- `research/thesis_research.py:85,107` (has `exc_info=True`)
+- `research/topic.py` (has `exc_info=True`)
+- `api/websocket/client.py:212,251,262` (uses `logger.exception()`)
+- `agent/research_agent.py` (uses `logger.exception()`)
 
 ### Other
 ```text
@@ -94,10 +123,10 @@ Replace `except Exception` with specific exception types where the failure modes
 
 ## Acceptance Criteria
 
-- [ ] `executor.py` broad catches reviewed for safety
-- [ ] All broad catches log the exception type (not just message)
-- [ ] Obvious narrowing opportunities addressed (e.g., `httpx.HTTPError`)
-- [ ] Document any broad catches that are intentionally kept
+- [x] `executor.py` broad catches reviewed for safety (DEBT-039-A, 2026-01-20)
+- [x] All broad catches log the exception type (not just message) (DEBT-039-B, 2026-01-20)
+- [x] Obvious narrowing opportunities addressed (e.g., `httpx.HTTPError`) (DEBT-039-B, 2026-01-20)
+- [x] Document any broad catches that are intentionally kept (see "Audit Results" above)
 
 ---
 

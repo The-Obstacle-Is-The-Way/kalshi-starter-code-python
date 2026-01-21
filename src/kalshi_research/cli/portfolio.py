@@ -1,6 +1,5 @@
 """Typer CLI commands for portfolio tracking and P&L reporting."""
 
-import asyncio
 import os
 from pathlib import Path
 from typing import Annotated, Any
@@ -9,7 +8,12 @@ import typer
 from rich.table import Table
 from sqlalchemy import select
 
-from kalshi_research.cli.utils import console, load_json_storage_file
+from kalshi_research.cli.utils import (
+    console,
+    exit_kalshi_api_error,
+    load_json_storage_file,
+    run_async,
+)
 from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_THESES_PATH
 
 app = typer.Typer(help="Portfolio tracking and P&L commands.")
@@ -131,8 +135,8 @@ def portfolio_sync(
 
     Syncs positions, fills, settlements, cost basis (FIFO), mark prices, and unrealized P&L.
     """
-    from kalshi_research.api import KalshiClient, KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import authed_client, public_client
     from kalshi_research.cli.db import open_db
     from kalshi_research.portfolio.syncer import PortfolioSyncer
 
@@ -145,7 +149,7 @@ def portfolio_sync(
     async def _sync() -> None:
         try:
             async with (
-                KalshiClient(
+                authed_client(
                     key_id=key_id,
                     private_key_path=private_key_path,
                     private_key_b64=private_key_b64,
@@ -175,10 +179,8 @@ def portfolio_sync(
                 if not skip_mark_prices and positions_count > 0:
                     console.print("[dim]Fetching mark prices...[/dim]")
                     # Use same environment override for public client
-                    async with KalshiPublicClient(
-                        environment=environment_override
-                    ) as public_client:
-                        updated = await syncer.update_mark_prices(public_client)
+                    async with public_client(environment=environment_override) as pub_client:
+                        updated = await syncer.update_mark_prices(pub_client)
                         console.print(
                             f"[green]✓[/green] Updated mark prices for {updated} positions"
                         )
@@ -190,13 +192,12 @@ def portfolio_sync(
                 )
 
         except KalshiAPIError as e:
-            console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-            raise typer.Exit(1) from None
+            exit_kalshi_api_error(e)
         except (OSError, ValueError) as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None
 
-    asyncio.run(_sync())
+    run_async(_sync())
 
 
 @app.command("positions")
@@ -285,7 +286,7 @@ def portfolio_positions(
                     "(missing cost basis or mark prices).[/yellow]"
                 )
 
-    asyncio.run(_positions())
+    run_async(_positions())
 
 
 @app.command("pnl")
@@ -377,7 +378,7 @@ def portfolio_pnl(
             # Display summary
             output_console.print(_build_summary_table(summary))
 
-    asyncio.run(_pnl())
+    run_async(_pnl())
 
 
 @app.command("balance")
@@ -399,8 +400,8 @@ def portfolio_balance(
     ] = None,
 ) -> None:
     """View account balance."""
-    from kalshi_research.api import KalshiClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import authed_client
 
     environment_override = _validate_environment_override(environment)
     key_id, private_key_path, private_key_b64 = _require_auth_env(
@@ -415,7 +416,7 @@ def portfolio_balance(
 
         balance: PortfolioBalance | None = None
         try:
-            async with KalshiClient(
+            async with authed_client(
                 key_id=key_id,
                 private_key_path=private_key_path,
                 private_key_b64=private_key_b64,
@@ -425,8 +426,7 @@ def portfolio_balance(
                 try:
                     balance = await client.get_balance()
                 except KalshiAPIError as e:
-                    console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                    raise typer.Exit(1) from None
+                    exit_kalshi_api_error(e)
         except (OSError, ValueError) as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None
@@ -444,7 +444,7 @@ def portfolio_balance(
             table.add_row(str(k), str(v))
         console.print(table)
 
-    asyncio.run(_balance())
+    run_async(_balance())
 
 
 @app.command("history")
@@ -508,7 +508,7 @@ def portfolio_history(
 
             console.print(table)
 
-    asyncio.run(_history())
+    run_async(_history())
 
 
 @app.command("link")
@@ -546,7 +546,7 @@ def portfolio_link(
 
             console.print(f"[green]✓[/green] Position {ticker} linked to thesis {thesis}")
 
-    asyncio.run(_link())
+    run_async(_link())
 
 
 @app.command("suggest-links")
@@ -617,4 +617,4 @@ def portfolio_suggest_links(
             console.print(table)
             console.print("\n[dim]To link: kalshi portfolio link TICKER --thesis THESIS_ID[/dim]")
 
-    asyncio.run(_suggest())
+    run_async(_suggest())

@@ -668,7 +668,9 @@ def test_portfolio_commands_smoke(runner: CliRunner) -> None:
             "KALSHI_PRIVATE_KEY_PATH": "dummy.pem",
             "KALSHI_ENVIRONMENT": "demo",
         }
-        with patch("kalshi_research.api.KalshiClient", _FakeKalshiClient):
+        with patch(
+            "kalshi_research.cli.client_factory.authed_client", return_value=_FakeKalshiClient()
+        ):
             sync = runner.invoke(app, ["portfolio", "sync", "--db", str(db_path)], env=env)
             assert sync.exit_code == 0
             assert "Synced" in sync.stdout
@@ -685,7 +687,9 @@ def test_portfolio_commands_smoke(runner: CliRunner) -> None:
         assert history.exit_code == 0
         assert "No trades found" in history.stdout
 
-        with patch("kalshi_research.api.KalshiClient", _FakeKalshiClient):
+        with patch(
+            "kalshi_research.cli.client_factory.authed_client", return_value=_FakeKalshiClient()
+        ):
             balance = runner.invoke(app, ["portfolio", "balance"], env=env)
             assert balance.exit_code == 0
             assert "Account Balance" in balance.stdout

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Annotated
 
 import typer
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
 
 app = typer.Typer(help="Discovery browsing commands (categories, series, sports).")
 
@@ -19,22 +18,21 @@ def browse_categories(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """List series categories and their tags (browse pattern step 1)."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _fetch() -> dict[str, list[str]]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 return await client.get_tags_by_categories()
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
-    tags_by_category = asyncio.run(_fetch())
+    tags_by_category = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(tags_by_category, indent=2, default=str))
@@ -82,12 +80,12 @@ def browse_series(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """List series with optional filters (browse pattern step 2)."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _fetch() -> list[dict[str, object]]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 series = await client.get_series_list(
                     category=category,
@@ -96,15 +94,14 @@ def browse_series(
                     include_volume=include_volume,
                 )
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
         return [s.model_dump(mode="json") for s in series]
 
-    series_payload = asyncio.run(_fetch())
+    series_payload = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(series_payload, indent=2, default=str))
@@ -153,24 +150,23 @@ def browse_sports(
     output_json: Annotated[bool, typer.Option("--json", help="Output as JSON.")] = False,
 ) -> None:
     """List sport-specific discovery filters (scopes + competitions)."""
-    from kalshi_research.api import KalshiPublicClient
+    from kalshi_research.cli.client_factory import public_client
 
     async def _fetch() -> dict[str, object]:
         from kalshi_research.api.exceptions import KalshiAPIError
 
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 filters = await client.get_filters_by_sport()
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
         return filters.model_dump(mode="json")
 
-    payload = asyncio.run(_fetch())
+    payload = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(payload, indent=2, default=str))

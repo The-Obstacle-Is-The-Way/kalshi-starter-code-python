@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-This file provides guidance to AI coding agents (Claude Code, OpenAI Codex, Gemini CLI, etc.) when working with this repository.
+This file provides guidance to AI coding agents (Claude Code, OpenAI Codex, etc.) when working with this repository.
 
 ## Project Intent (Avoid Over-Engineering)
 
@@ -26,7 +26,6 @@ This repository includes Agent Skills for enhanced CLI navigation and documentat
 Skills are located in agent-specific directories (all identical content):
 - `.claude/skills/` - Claude Code
 - `.codex/skills/` - OpenAI Codex CLI
-- `.gemini/skills/` - Gemini CLI
 
 ## CRITICAL: Commit Safety Protocol
 
@@ -216,3 +215,8 @@ This repo supports the Ralph Wiggum autonomous loop via the root state files:
 - `PROGRESS.md` — loop state (task queue + work log)
 - `PROMPT.md` — iteration prompt
 - Reference: `docs/_ralph-wiggum/protocol.md`
+
+Operator script (recommended):
+
+- Start/attach: `./scripts/ralph-loop.sh start` (default tmux session: `kalshi-ralph`)
+- Avoid collisions with other repos: `RALPH_TMUX_SESSION=kalshi-ralph ./scripts/ralph-loop.sh start`

@@ -10,6 +10,7 @@ from sqlalchemy import select, update
 
 from kalshi_research.api import KalshiPublicClient
 from kalshi_research.api.models.market import MarketFilterStatus
+from kalshi_research.constants import DEFAULT_PAGINATION_LIMIT
 from kalshi_research.data.models import Event as DBEvent
 from kalshi_research.data.models import Market as DBMarket
 from kalshi_research.data.models import PriceSnapshot
@@ -22,6 +23,8 @@ from kalshi_research.data.repositories import (
 )
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from kalshi_research.api.models.event import Event as APIEvent
     from kalshi_research.api.models.market import Market as APIMarket
     from kalshi_research.data.database import DatabaseManager
@@ -63,7 +66,7 @@ class DataFetcher:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: object,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit async context manager."""
         if self._owns_client and self._client is not None:
@@ -174,7 +177,9 @@ class DataFetcher:
         async with self._db.session_factory() as session, session.begin():
             repo = EventRepository(session)
 
-            async for api_event in self.client.get_all_events(limit=200, max_pages=max_pages):
+            async for api_event in self.client.get_all_events(
+                limit=DEFAULT_PAGINATION_LIMIT, max_pages=max_pages
+            ):
                 db_event = self._api_event_to_db(api_event)
                 await repo.upsert(db_event)
                 count += 1
@@ -185,7 +190,7 @@ class DataFetcher:
 
             if include_multivariate:
                 async for api_event in self.client.get_all_multivariate_events(
-                    limit=200,
+                    limit=DEFAULT_PAGINATION_LIMIT,
                     max_pages=max_pages,
                 ):
                     db_event = self._api_event_to_db(api_event)

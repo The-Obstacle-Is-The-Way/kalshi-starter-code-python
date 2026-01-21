@@ -126,7 +126,12 @@ class InvalidationDetector:
                 )
                 self._budget.record_spend(extract_exa_cost_total(response))
             except Exception as e:
-                logger.warning("Invalidation search failed", query=query, error=str(e))
+                logger.warning(
+                    "Invalidation search failed",
+                    query=query,
+                    error=str(e),
+                    exc_info=True,
+                )
                 continue
 
             for result in response.results:

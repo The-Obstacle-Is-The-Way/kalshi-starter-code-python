@@ -87,9 +87,10 @@ def _exa_search_response() -> dict[str, Any]:
 
 
 @respx.mock
-def test_agent_research_invalid_ticker_exits_1(
+def test_agent_research_invalid_ticker_exits_2(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """404 errors exit with code 2 (not found convention)."""
     with runner.isolated_filesystem():
         monkeypatch.setenv("EXA_API_KEY", "test-key")
         ticker = "BADTICKER"
@@ -99,8 +100,8 @@ def test_agent_research_invalid_ticker_exits_1(
         )
 
         result = runner.invoke(app, ["agent", "research", ticker, "--mode", "fast", "--json"])
-        assert result.exit_code == 1
-        assert "Kalshi API Error 404" in result.stdout
+        assert result.exit_code == 2  # 404 uses exit code 2 per CLI convention
+        assert "API Error 404" in result.stdout
 
 
 @respx.mock
@@ -127,9 +128,10 @@ def test_agent_research_happy_path_json(runner: CliRunner, monkeypatch: pytest.M
 
 
 @respx.mock
-def test_agent_analyze_invalid_ticker_exits_1(
+def test_agent_analyze_invalid_ticker_exits_2(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """404 errors exit with code 2 (not found convention)."""
     with runner.isolated_filesystem():
         monkeypatch.setenv("EXA_API_KEY", "test-key")
         monkeypatch.setenv("KALSHI_SYNTHESIZER_BACKEND", "mock")
@@ -141,8 +143,8 @@ def test_agent_analyze_invalid_ticker_exits_1(
         )
 
         result = runner.invoke(app, ["agent", "analyze", ticker, "--mode", "fast"])
-        assert result.exit_code == 1
-        assert "Kalshi API Error 404" in result.stdout
+        assert result.exit_code == 2  # 404 uses exit code 2 per CLI convention
+        assert "API Error 404" in result.stdout
 
 
 @respx.mock

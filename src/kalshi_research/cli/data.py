@@ -8,7 +8,7 @@ import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from kalshi_research.cli.utils import console
+from kalshi_research.cli.utils import console, exit_kalshi_api_error, run_async
 from kalshi_research.paths import DEFAULT_DB_PATH, DEFAULT_EXPORTS_DIR
 
 app = typer.Typer(help="Data management commands.")
@@ -79,7 +79,7 @@ def data_init(
         async with open_db(db_path):
             console.print(f"[green]✓[/green] Database initialized at {db_path}")
 
-    asyncio.run(_init())
+    run_async(_init())
 
 
 @app.command("migrate")
@@ -218,7 +218,7 @@ def data_sync_markets(
 
         console.print(f"[green]✓[/green] Synced {events} events and {markets} markets")
 
-    asyncio.run(_sync())
+    run_async(_sync())
 
 
 @app.command("sync-settlements")
@@ -257,7 +257,7 @@ def data_sync_settlements(
 
         console.print(f"[green]✓[/green] Synced {settlements} settlements")
 
-    asyncio.run(_sync())
+    run_async(_sync())
 
 
 @app.command("sync-trades")
@@ -291,15 +291,15 @@ def data_sync_trades(
     import csv
     import json
 
-    from kalshi_research.api import KalshiPublicClient
     from kalshi_research.api.exceptions import KalshiAPIError
+    from kalshi_research.cli.client_factory import public_client
 
     if output is not None and output_json:
         console.print("[red]Error:[/red] Choose one of --output or --json (not both).")
         raise typer.Exit(2)
 
     async def _fetch() -> list[dict[str, object]]:
-        async with KalshiPublicClient() as client:
+        async with public_client() as client:
             try:
                 trades = await client.get_trades(
                     ticker=ticker,
@@ -308,15 +308,14 @@ def data_sync_trades(
                     max_ts=max_ts,
                 )
             except KalshiAPIError as e:
-                console.print(f"[red]API Error {e.status_code}:[/red] {e.message}")
-                raise typer.Exit(1) from None
+                exit_kalshi_api_error(e)
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}")
                 raise typer.Exit(1) from None
 
         return [t.model_dump(mode="json") for t in trades]
 
-    trade_rows = asyncio.run(_fetch())
+    trade_rows = run_async(_fetch())
 
     if output_json:
         typer.echo(json.dumps(trade_rows, indent=2, default=str))
@@ -404,7 +403,7 @@ def data_snapshot(
 
         console.print(f"[green]✓[/green] Took {count} price snapshots")
 
-    asyncio.run(_snapshot())
+    run_async(_snapshot())
 
 
 @app.command("collect")
@@ -500,10 +499,7 @@ def data_collect(
                 except asyncio.CancelledError:
                     pass
 
-    try:
-        asyncio.run(_collect())
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Stopped.[/yellow]")
+    run_async(_collect())
 
 
 @app.command("export")
@@ -554,7 +550,7 @@ def data_stats(
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """Show database statistics."""
-    from kalshi_research.data import DatabaseManager
+    from kalshi_research.cli.db import open_db_session
     from kalshi_research.data.repositories import (
         EventRepository,
         MarketRepository,
@@ -566,7 +562,7 @@ def data_stats(
         raise typer.Exit(1)
 
     async def _stats() -> None:
-        async with DatabaseManager(db_path) as db, db.session_factory() as session:
+        async with open_db_session(db_path) as session:
             event_repo = EventRepository(session)
             market_repo = MarketRepository(session)
             price_repo = PriceRepository(session)
@@ -599,7 +595,7 @@ def data_stats(
 
         console.print(table)
 
-    asyncio.run(_stats())
+    run_async(_stats())
 
 
 @app.command("prune")
@@ -687,7 +683,7 @@ def data_prune(
                 )
             return (now, counts)
 
-    pruned_at, counts = asyncio.run(_prune())
+    pruned_at, counts = run_async(_prune())
 
     table = Table(title="Prune Summary")
     table.add_column("Category", style="cyan")
