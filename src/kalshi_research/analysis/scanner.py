@@ -3,164 +3,32 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from enum import Enum
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from kalshi_research.api.models.market import Market
 
-from kalshi_research.api.models.market import MarketStatus
+# Re-export public API for backwards compatibility
+from kalshi_research.analysis._scanner_models import (
+    MarketClosedError,
+    ScanFilter,
+    ScanResult,
+)
+from kalshi_research.analysis._verifier import MarketStatusVerifier
 from kalshi_research.constants import (
     DEFAULT_CLOSE_RACE_RANGE,
     DEFAULT_HIGH_VOLUME_THRESHOLD,
     DEFAULT_WIDE_SPREAD_THRESHOLD,
 )
 
-
-class MarketClosedError(Exception):
-    """Raised when attempting to operate on a closed market."""
-
-    pass
-
-
-class MarketStatusVerifier:
-    """
-    Centralized market timing and status verification.
-
-    Checks if markets are:
-    - Still open for trading (not closed)
-    - Active (not settled, finalized, etc.)
-    - Valid for current operations
-    """
-
-    def __init__(self, *, exchange_status: Mapping[str, object] | None = None) -> None:
-        self._exchange_status = exchange_status
-
-    def _is_exchange_tradeable(self) -> bool:
-        if self._exchange_status is None:
-            return True
-
-        exchange_active = self._exchange_status.get("exchange_active")
-        trading_active = self._exchange_status.get("trading_active")
-
-        if not isinstance(exchange_active, bool) or not isinstance(trading_active, bool):
-            return False
-
-        return exchange_active and trading_active
-
-    def is_market_tradeable(self, market: Market) -> bool:
-        """
-        Check if a market is currently tradeable.
-
-        A market is tradeable if:
-        1. Status is 'active'
-        2. Current time < close_time
-
-        Args:
-            market: Market to check
-
-        Returns:
-            True if market is tradeable, False otherwise
-        """
-        if not self._is_exchange_tradeable():
-            return False
-
-        now = datetime.now(UTC)
-
-        # Check status
-        if market.status != MarketStatus.ACTIVE:
-            return False
-
-        # Check timing - market must not be past close_time
-        return now < market.close_time
-
-    def verify_market_open(self, market: Market) -> None:
-        """
-        Verify market is open for trading, raise if not.
-
-        Args:
-            market: Market to verify
-
-        Raises:
-            MarketClosedError: If market is closed or not tradeable
-        """
-        if not self._is_exchange_tradeable():
-            exchange_active = (
-                self._exchange_status.get("exchange_active")
-                if self._exchange_status is not None
-                else None
-            )
-            trading_active = (
-                self._exchange_status.get("trading_active")
-                if self._exchange_status is not None
-                else None
-            )
-            raise MarketClosedError(
-                "Exchange trading is currently halted "
-                f"(exchange_active={exchange_active}, trading_active={trading_active})"
-            )
-
-        if not self.is_market_tradeable(market):
-            now = datetime.now(UTC)
-            if market.status != MarketStatus.ACTIVE:
-                raise MarketClosedError(
-                    f"Market {market.ticker} has status {market.status.value}, "
-                    f"expected {MarketStatus.ACTIVE.value}"
-                )
-            if now >= market.close_time:
-                raise MarketClosedError(
-                    f"Market {market.ticker} closed at {market.close_time.isoformat()}, "
-                    f"current time is {now.isoformat()}"
-                )
-
-    def filter_tradeable_markets(self, markets: list[Market]) -> list[Market]:
-        """
-        Filter a list of markets to only tradeable ones.
-
-        Args:
-            markets: List of markets to filter
-
-        Returns:
-            List of tradeable markets
-        """
-        return [m for m in markets if self.is_market_tradeable(m)]
-
-
-class ScanFilter(str, Enum):
-    """Types of market scans."""
-
-    CLOSE_RACE = "close_race"  # Markets near 50%
-    HIGH_VOLUME = "high_volume"  # High trading activity
-    WIDE_SPREAD = "wide_spread"  # Wide bid-ask spread
-    EXPIRING_SOON = "expiring_soon"  # Close to expiration
-    PRICE_MOVER = "price_mover"  # Recent large moves
-
-
-@dataclass
-class ScanResult:
-    """Result from a market scan."""
-
-    ticker: str
-    title: str
-    filter_type: ScanFilter
-    score: float  # 0-1 relevance score
-    market_prob: float
-    volume_24h: int
-    spread: int
-
-    details: dict[str, object] = field(default_factory=dict)
-    scanned_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-
-    def __str__(self) -> str:
-        return (
-            f"[{self.filter_type.value.upper()}] {self.ticker}\n"
-            f"  {self.title[:50]}...\n"
-            f"  Prob: {self.market_prob:.0%} | Vol: {self.volume_24h:,} | Spread: {self.spread}c"
-        )
+__all__ = [
+    "MarketClosedError",
+    "MarketScanner",
+    "MarketStatusVerifier",
+    "ScanFilter",
+    "ScanResult",
+]
 
 
 class MarketScanner:
@@ -292,7 +160,6 @@ class MarketScanner:
         for m in tradeable_markets:
             if m.volume_24h >= self.high_volume_threshold:
                 # Midpoint probability: convert cents to probability [0-1]
-                # See scan_close_races:199-201 for binary market math derivation
                 spread = m.spread
                 midpoint = m.midpoint
                 if spread is None or midpoint is None:
@@ -349,7 +216,6 @@ class MarketScanner:
 
             if spread >= self.wide_spread_threshold:
                 # Midpoint probability: convert cents to probability [0-1]
-                # See scan_close_races:199-201 for binary market math derivation
                 midpoint = cast("float", m.midpoint)
                 prob = midpoint / 100.0
 
@@ -402,7 +268,6 @@ class MarketScanner:
         for m in tradeable_markets:
             if m.close_time <= cutoff:
                 # Midpoint probability: convert cents to probability [0-1]
-                # See scan_close_races:199-201 for binary market math derivation
                 spread = m.spread
                 midpoint = m.midpoint
                 if spread is None or midpoint is None:

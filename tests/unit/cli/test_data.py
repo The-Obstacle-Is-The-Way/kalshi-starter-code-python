@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -262,6 +263,133 @@ def test_data_sync_trades_api_error_exits_with_error(mock_public_client_fn: Magi
 
     assert result.exit_code == 1
     assert "API Error 400" in result.stdout
+
+
+def test_data_prune_requires_db_exists() -> None:
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            app,
+            [
+                "data",
+                "prune",
+                "--db",
+                "missing.db",
+                "--snapshots-older-than-days",
+                "1",
+            ],
+        )
+    assert result.exit_code == 1
+    assert "Database not found" in result.stdout
+
+
+def test_data_prune_rejects_negative_days() -> None:
+    with runner.isolated_filesystem():
+        Path("db.sqlite").touch()
+        result = runner.invoke(
+            app,
+            [
+                "data",
+                "prune",
+                "--db",
+                "db.sqlite",
+                "--snapshots-older-than-days",
+                "-1",
+            ],
+        )
+    assert result.exit_code == 2
+    assert "--snapshots-older-than-days must be >= 0" in result.stdout
+
+
+def test_data_prune_requires_at_least_one_target() -> None:
+    with runner.isolated_filesystem():
+        Path("db.sqlite").touch()
+        result = runner.invoke(app, ["data", "prune", "--db", "db.sqlite"])
+    assert result.exit_code == 2
+    assert "No prune targets specified" in result.stdout
+
+
+def test_data_prune_dry_run_prints_summary_without_applying() -> None:
+    from kalshi_research.data.maintenance import PruneCounts
+
+    with runner.isolated_filesystem():
+        Path("db.sqlite").touch()
+
+        @asynccontextmanager
+        async def fake_open_db_session(_path: Path):
+            yield AsyncMock()
+
+        with (
+            patch("kalshi_research.cli.db.open_db_session", fake_open_db_session),
+            patch(
+                "kalshi_research.data.maintenance.compute_prune_counts",
+                AsyncMock(return_value=PruneCounts(price_snapshots=3)),
+            ),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "data",
+                    "prune",
+                    "--db",
+                    "db.sqlite",
+                    "--snapshots-older-than-days",
+                    "7",
+                ],
+            )
+
+    assert result.exit_code == 0
+    assert "Prune Summary" in result.stdout
+    assert "price_snapshots" in result.stdout
+    assert "Prune dry-run" in result.stdout
+
+
+def test_data_prune_apply_prints_summary() -> None:
+    from kalshi_research.data.maintenance import PruneCounts
+
+    with runner.isolated_filesystem():
+        Path("db.sqlite").touch()
+
+        @asynccontextmanager
+        async def fake_open_db_session(_path: Path):
+            session = AsyncMock()
+            begin_cm = AsyncMock()
+            begin_cm.__aenter__.return_value = None
+            begin_cm.__aexit__.return_value = None
+            session.begin = MagicMock(return_value=begin_cm)
+            yield session
+
+        with (
+            patch("kalshi_research.cli.db.open_db_session", fake_open_db_session),
+            patch(
+                "kalshi_research.data.maintenance.apply_prune",
+                AsyncMock(return_value=PruneCounts(price_snapshots=1)),
+            ),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "data",
+                    "prune",
+                    "--db",
+                    "db.sqlite",
+                    "--snapshots-older-than-days",
+                    "7",
+                    "--apply",
+                ],
+            )
+
+    assert result.exit_code == 0
+    assert "Prune Summary" in result.stdout
+    assert "Prune applied" in result.stdout
+
+
+def test_data_vacuum_smoke() -> None:
+    with runner.isolated_filesystem():
+        Path("db.sqlite").touch()
+        result = runner.invoke(app, ["data", "vacuum", "--db", "db.sqlite"])
+
+    assert result.exit_code == 0
+    assert "Vacuum complete" in result.stdout
 
 
 @patch("kalshi_research.cli.client_factory.public_client")

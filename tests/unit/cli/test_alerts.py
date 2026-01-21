@@ -18,7 +18,7 @@ runner = CliRunner()
 def test_alerts_list_empty() -> None:
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "list"])
 
     assert result.exit_code == 0
@@ -28,7 +28,7 @@ def test_alerts_list_empty() -> None:
 def test_alerts_add_price() -> None:
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "add", "price", "TEST-TICKER", "--above", "60"])
 
         assert result.exit_code == 0
@@ -40,7 +40,7 @@ def test_alerts_add_price() -> None:
 def test_alerts_add_price_above_zero_is_above() -> None:
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "add", "price", "TEST-TICKER", "--above", "0"])
 
         assert result.exit_code == 0
@@ -60,7 +60,7 @@ def test_alerts_add_rejects_both_above_and_below() -> None:
 def test_alerts_add_volume() -> None:
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
             result = runner.invoke(
                 app, ["alerts", "add", "volume", "TEST-TICKER", "--above", "10000"]
             )
@@ -74,7 +74,7 @@ def test_alerts_add_volume() -> None:
 def test_alerts_add_spread() -> None:
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "add", "spread", "TEST-TICKER", "--above", "5"])
 
         assert result.exit_code == 0
@@ -86,7 +86,7 @@ def test_alerts_add_spread() -> None:
 def test_alerts_add_sentiment() -> None:
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
             result = runner.invoke(
                 app, ["alerts", "add", "sentiment", "TEST-TICKER", "--above", "0.2"]
             )
@@ -123,7 +123,7 @@ def test_alerts_remove() -> None:
             json.dumps({"conditions": [{"id": "alert-12345678", "label": "test alert"}]}),
             encoding="utf-8",
         )
-        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "remove", "alert-123"])
 
         assert result.exit_code == 0
@@ -136,25 +136,112 @@ def test_alerts_remove_not_found() -> None:
     """Removing a non-existent alert should return exit code 2 (not found)."""
     with runner.isolated_filesystem():
         alerts_file = Path("alerts.json")
-        with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+        with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
             result = runner.invoke(app, ["alerts", "remove", "nonexistent"])
 
     assert result.exit_code == 2  # Unix convention: 2 = not found / usage error
     assert "not found" in result.stdout.lower()
 
 
+def test_alerts_remove_ambiguous_prefix_exits_1_and_does_not_modify_file() -> None:
+    with runner.isolated_filesystem():
+        alerts_file = Path("alerts.json")
+        alerts_file.write_text(
+            json.dumps(
+                {
+                    "conditions": [
+                        {"id": "alert-12345678", "label": "a"},
+                        {"id": "alert-12399999", "label": "b"},
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
+            result = runner.invoke(app, ["alerts", "remove", "alert-123"])
+
+        assert result.exit_code == 1
+        assert "ambiguous" in result.stdout.lower()
+        stored = json.loads(alerts_file.read_text(encoding="utf-8"))
+        assert len(stored["conditions"]) == 2
+
+
+def test_alerts_trim_log_rejects_invalid_max_mb() -> None:
+    result = runner.invoke(app, ["alerts", "trim-log", "--max-mb", "0"])
+    assert result.exit_code == 2
+    assert "--max-mb must be > 0" in result.stdout
+
+
+def test_alerts_trim_log_no_log_file_is_ok() -> None:
+    with runner.isolated_filesystem():
+        result = runner.invoke(app, ["alerts", "trim-log", "--log", "alerts.log"])
+        assert result.exit_code == 0
+        assert "No log file found" in result.stdout
+
+
+def test_alerts_trim_log_dry_run_reports_trim_without_modifying_file() -> None:
+    with runner.isolated_filesystem():
+        log_path = Path("alerts.log")
+        log_path.write_bytes(b"x" * (1024 * 1024 + 1))
+
+        result = runner.invoke(
+            app,
+            [
+                "alerts",
+                "trim-log",
+                "--log",
+                str(log_path),
+                "--max-mb",
+                "1",
+                "--keep-mb",
+                "1",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Dry-run" in result.stdout
+        assert log_path.stat().st_size == 1024 * 1024 + 1
+
+
+def test_alerts_trim_log_apply_truncates_when_keep_mb_zero(monkeypatch) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+
+    with runner.isolated_filesystem():
+        log_path = Path("alerts.log")
+        log_path.write_bytes(b"x" * (1024 * 1024 + 1))
+
+        result = runner.invoke(
+            app,
+            [
+                "alerts",
+                "trim-log",
+                "--log",
+                str(log_path),
+                "--max-mb",
+                "1",
+                "--keep-mb",
+                "0",
+                "--apply",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Trimmed log" in result.stdout
+        assert log_path.stat().st_size == 0
+
+
 def test_alerts_list_invalid_json_exits_with_error(tmp_path: Path) -> None:
     alerts_file = tmp_path / "alerts.json"
     alerts_file.write_text("{not json", encoding="utf-8")
 
-    with patch("kalshi_research.cli.alerts._get_alerts_file", return_value=alerts_file):
+    with patch("kalshi_research.cli.alerts._helpers.get_alerts_file", return_value=alerts_file):
         result = runner.invoke(app, ["alerts", "list"])
 
     assert result.exit_code == 1
     assert "Alerts file is not valid JSON" in result.stdout
 
 
-@patch("kalshi_research.cli.alerts._load_alerts")
+@patch("kalshi_research.cli.alerts.monitor.load_alerts")
 @patch("kalshi_research.cli.client_factory.public_client")
 def test_alerts_monitor_once_exits(
     mock_public_client_fn: MagicMock,
@@ -201,8 +288,8 @@ def test_alerts_monitor_once_exits(
 @pytest.mark.asyncio
 async def test_alert_monitor_loop_prints_utc_timestamp_when_alerts_trigger(monkeypatch) -> None:
     """Triggered alerts should display a timezone-aware UTC timestamp."""
-    from kalshi_research.cli import alerts as alerts_cli
     from kalshi_research.cli import client_factory
+    from kalshi_research.cli.alerts import monitor as alerts_monitor_module
 
     printed: list[str] = []
 
@@ -211,7 +298,7 @@ async def test_alert_monitor_loop_prints_utc_timestamp_when_alerts_trigger(monke
         if args:
             printed.append(str(args[0]))
 
-    monkeypatch.setattr(alerts_cli.console, "print", fake_print)
+    monkeypatch.setattr(alerts_monitor_module.console, "print", fake_print)
 
     class DummyClient:
         def __init__(self, *args, **kwargs) -> None:
@@ -238,7 +325,7 @@ async def test_alert_monitor_loop_prints_utc_timestamp_when_alerts_trigger(monke
             del args, kwargs
             return [object()]
 
-    await alerts_cli._run_alert_monitor_loop(
+    await alerts_monitor_module._run_alert_monitor_loop(
         interval=1,
         once=True,
         max_pages=None,
@@ -250,7 +337,7 @@ async def test_alert_monitor_loop_prints_utc_timestamp_when_alerts_trigger(monke
     assert "+00:00" in triggered_lines[0]
 
 
-@patch("kalshi_research.cli.alerts._load_alerts")
+@patch("kalshi_research.cli.alerts.monitor.load_alerts")
 @patch("kalshi_research.cli.client_factory.public_client")
 def test_alerts_monitor_continuous_shows_ctrl_c(
     mock_public_client_fn: MagicMock,
@@ -286,7 +373,8 @@ def test_alerts_monitor_continuous_shows_ctrl_c(
     mock_client.get_all_markets = MagicMock(side_effect=market_gen)
 
     with patch(
-        "kalshi_research.cli.alerts.asyncio.sleep", new=AsyncMock(side_effect=KeyboardInterrupt)
+        "kalshi_research.cli.alerts.monitor.asyncio.sleep",
+        new=AsyncMock(side_effect=KeyboardInterrupt),
     ):
         result = runner.invoke(app, ["alerts", "monitor", "--interval", "1"])
 
@@ -296,9 +384,9 @@ def test_alerts_monitor_continuous_shows_ctrl_c(
 
 def test_alerts_monitor_daemon_calls_spawn() -> None:
     with (
-        patch("kalshi_research.cli.alerts._load_alerts", return_value={"conditions": [{}]}),
+        patch("kalshi_research.cli.alerts.monitor.load_alerts", return_value={"conditions": [{}]}),
         patch(
-            "kalshi_research.cli.alerts._spawn_alert_monitor_daemon",
+            "kalshi_research.cli.alerts.monitor.spawn_alert_monitor_daemon",
             return_value=(12345, Path("data/alert_monitor.log")),
         ) as mock_spawn,
     ):
@@ -313,7 +401,7 @@ def test_alerts_monitor_daemon_calls_spawn() -> None:
     assert mock_spawn.call_args.kwargs["interval"] == 5
 
 
-@patch("kalshi_research.cli.alerts._load_alerts")
+@patch("kalshi_research.cli.alerts.monitor.load_alerts")
 def test_alerts_monitor_adds_optional_notifiers(mock_load_alerts: MagicMock) -> None:
     mock_load_alerts.return_value = {
         "conditions": [
@@ -332,7 +420,7 @@ def test_alerts_monitor_adds_optional_notifiers(mock_load_alerts: MagicMock) -> 
     with (
         patch("kalshi_research.alerts.AlertMonitor", return_value=monitor),
         patch(
-            "kalshi_research.cli.alerts._run_alert_monitor_loop",
+            "kalshi_research.cli.alerts.monitor._run_alert_monitor_loop",
             new=AsyncMock(return_value=None),
         ),
         patch("kalshi_research.alerts.notifiers.ConsoleNotifier") as mock_console_notifier,
@@ -362,8 +450,8 @@ def test_alerts_monitor_adds_optional_notifiers(mock_load_alerts: MagicMock) -> 
     monitor.add_notifier.assert_any_call(mock_webhook_notifier.return_value)
 
 
-@patch("kalshi_research.cli.alerts._load_alerts")
-@patch("kalshi_research.cli.alerts.subprocess.Popen")
+@patch("kalshi_research.cli.alerts.monitor.load_alerts")
+@patch("kalshi_research.cli.alerts._helpers.subprocess.Popen")
 def test_alerts_monitor_daemon_spawns_background_process(
     mock_popen: MagicMock,
     mock_load_alerts: MagicMock,
@@ -386,7 +474,7 @@ def test_alerts_monitor_daemon_spawns_background_process(
 
     with (
         runner.isolated_filesystem(),
-        patch("kalshi_research.cli.alerts.sys.executable", "/usr/bin/python"),
+        patch("kalshi_research.cli.alerts._helpers.sys.executable", "/usr/bin/python"),
     ):
         result = runner.invoke(
             app,
@@ -426,8 +514,8 @@ def test_alerts_monitor_daemon_spawns_background_process(
     assert kwargs.get("start_new_session") is True or kwargs.get("creationflags", 0) != 0
 
 
-@patch("kalshi_research.cli.alerts._load_alerts")
-@patch("kalshi_research.cli.alerts.subprocess.Popen")
+@patch("kalshi_research.cli.alerts.monitor.load_alerts")
+@patch("kalshi_research.cli.alerts._helpers.subprocess.Popen")
 def test_alerts_monitor_daemon_does_not_spawn_without_alerts(
     mock_popen: MagicMock,
     mock_load_alerts: MagicMock,
@@ -448,10 +536,10 @@ def test_alert_monitor_daemon_log_lock_inherited(tmp_path: Path, monkeypatch) ->
     import errno
     import fcntl
 
-    import kalshi_research.cli.alerts as alerts_cli
+    from kalshi_research.cli.alerts import _helpers as alerts_helpers
 
     log_path = tmp_path / "alert_monitor.log"
-    monkeypatch.setattr(alerts_cli, "_ALERT_MONITOR_LOG_PATH", log_path)
+    monkeypatch.setattr(alerts_helpers, "_ALERT_MONITOR_LOG_PATH", log_path)
 
     real_popen = subprocess.Popen
     spawned: list[subprocess.Popen] = []
@@ -462,10 +550,10 @@ def test_alert_monitor_daemon_log_lock_inherited(tmp_path: Path, monkeypatch) ->
         spawned.append(proc)
         return proc
 
-    monkeypatch.setattr(alerts_cli.subprocess, "Popen", _popen_stub)
+    monkeypatch.setattr(alerts_helpers.subprocess, "Popen", _popen_stub)
 
     try:
-        pid, _ = alerts_cli._spawn_alert_monitor_daemon(
+        pid, _ = alerts_helpers.spawn_alert_monitor_daemon(
             interval=60,
             once=False,
             max_pages=None,
@@ -476,7 +564,7 @@ def test_alert_monitor_daemon_log_lock_inherited(tmp_path: Path, monkeypatch) ->
         assert spawned and pid == spawned[0].pid
 
         with pytest.raises(RuntimeError, match="already be running"):
-            alerts_cli._spawn_alert_monitor_daemon(
+            alerts_helpers.spawn_alert_monitor_daemon(
                 interval=60,
                 once=False,
                 max_pages=None,

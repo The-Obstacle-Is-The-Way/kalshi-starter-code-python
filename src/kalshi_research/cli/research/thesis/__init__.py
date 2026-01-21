@@ -13,8 +13,6 @@ This subpackage provides thesis-related CLI commands:
 import typer
 
 from kalshi_research.cli.research.thesis._commands import (
-    _check_thesis_invalidation,
-    _gather_thesis_research_data,
     research_thesis_check_invalidation,
     research_thesis_create,
     research_thesis_edit,
@@ -23,8 +21,10 @@ from kalshi_research.cli.research.thesis._commands import (
     research_thesis_show,
 )
 from kalshi_research.cli.research.thesis._helpers import (
+    _check_thesis_invalidation,
     _fetch_and_render_linked_positions,
     _find_thesis_by_id,
+    _gather_thesis_research_data,
     _print_invalidation_signals,
     _render_thesis_cases_and_updates,
     _render_thesis_evidence,

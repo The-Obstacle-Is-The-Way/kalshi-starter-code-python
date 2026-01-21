@@ -12,6 +12,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from kalshi_research.constants import (
+    EXA_ANSWER_WITH_TEXT_COST_USD,
+    EXA_ANSWER_WITHOUT_TEXT_COST_USD,
+    EXA_COST_ESTIMATE_SAFETY_FACTOR,
+    EXA_DEEP_SEARCH_COST_LARGE_USD,
+    EXA_DEEP_SEARCH_COST_SMALL_USD,
+    EXA_NEURAL_SEARCH_COST_LARGE_USD,
+    EXA_NEURAL_SEARCH_COST_SMALL_USD,
+    EXA_PER_RESULT_HIGHLIGHTS_COST_USD,
+    EXA_PER_RESULT_TEXT_COST_USD,
+    EXA_SEARCH_TIER_SMALL_MAX,
+)
+
 
 class ExaMode(str, Enum):
     """Cost/quality preset for Exa-powered research."""
@@ -85,29 +98,32 @@ class ExaPolicy:
             return 0.0
 
         effective_type = search_type or self.exa_search_type
-        # Pricing tiers per Exa vendor docs:
-        # - neuralSearch_1_25_results: $0.005
-        # - neuralSearch_26_100_results: $0.025
-        # - deepSearch_1_25_results: $0.015
-        # - deepSearch_26_100_results: $0.075
+        # Pricing tiers per Exa vendor docs (see constants.py for values):
+        # - neuralSearch_1_25_results / neuralSearch_26_100_results
+        # - deepSearch_1_25_results / deepSearch_26_100_results
         #
         # For `type="auto"`, we assume the more expensive deep tier to avoid budget overruns.
-        results_tier = 25 if num_results <= 25 else 100
+        is_small_tier = num_results <= EXA_SEARCH_TIER_SMALL_MAX
         if effective_type in {"deep", "auto"}:
-            base_cost = 0.015 if results_tier == 25 else 0.075
+            base_cost = (
+                EXA_DEEP_SEARCH_COST_SMALL_USD if is_small_tier else EXA_DEEP_SEARCH_COST_LARGE_USD
+            )
         else:
-            base_cost = 0.005 if results_tier == 25 else 0.025
+            base_cost = (
+                EXA_NEURAL_SEARCH_COST_SMALL_USD
+                if is_small_tier
+                else EXA_NEURAL_SEARCH_COST_LARGE_USD
+            )
 
         per_page_cost = 0.0
         if include_text:
-            per_page_cost += 0.001
+            per_page_cost += EXA_PER_RESULT_TEXT_COST_USD
         if include_highlights:
-            per_page_cost += 0.001
+            per_page_cost += EXA_PER_RESULT_HIGHLIGHTS_COST_USD
 
-        # Multiply by a small safety factor to reduce the chance of overruns if Exa pricing
+        # Multiply by a safety factor to reduce the chance of overruns if Exa pricing
         # drifts slightly or the "auto" type chooses a more expensive backend.
-        safety_factor = 1.2
-        return (base_cost + (float(num_results) * per_page_cost)) * safety_factor
+        return (base_cost + (float(num_results) * per_page_cost)) * EXA_COST_ESTIMATE_SAFETY_FACTOR
 
     def estimate_answer_cost_usd(self, *, include_text: bool) -> float:
         """Estimate a conservative cost for an `/answer` request.
@@ -116,7 +132,7 @@ class ExaPolicy:
         We use a conservative constant to keep budgets meaningful.
         """
         # Text answers with citations are the common case in this repo.
-        return 0.05 if include_text else 0.03
+        return EXA_ANSWER_WITH_TEXT_COST_USD if include_text else EXA_ANSWER_WITHOUT_TEXT_COST_USD
 
     def estimate_find_similar_cost_usd(
         self,
@@ -134,17 +150,18 @@ class ExaPolicy:
         if num_results <= 0:
             return 0.0
 
-        results_tier = 25 if num_results <= 25 else 100
-        base_cost = 0.005 if results_tier == 25 else 0.025
+        is_small_tier = num_results <= EXA_SEARCH_TIER_SMALL_MAX
+        base_cost = (
+            EXA_NEURAL_SEARCH_COST_SMALL_USD if is_small_tier else EXA_NEURAL_SEARCH_COST_LARGE_USD
+        )
 
         per_page_cost = 0.0
         if include_text:
-            per_page_cost += 0.001
+            per_page_cost += EXA_PER_RESULT_TEXT_COST_USD
         if include_highlights:
-            per_page_cost += 0.001
+            per_page_cost += EXA_PER_RESULT_HIGHLIGHTS_COST_USD
 
-        safety_factor = 1.2
-        return (base_cost + (float(num_results) * per_page_cost)) * safety_factor
+        return (base_cost + (float(num_results) * per_page_cost)) * EXA_COST_ESTIMATE_SAFETY_FACTOR
 
     def normalize_cache_params(self, params: dict[str, object]) -> dict[str, object]:
         """Return a stable cache params mapping for ExaCache keys.

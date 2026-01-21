@@ -426,7 +426,7 @@ async def test_wait_for_research_times_out() -> None:
         )
     )
 
-    with patch("kalshi_research.exa.client.time.monotonic", side_effect=[0.0, 2.0]):
+    with patch("kalshi_research.exa._research.time.monotonic", side_effect=[0.0, 2.0]):
         async with _client() as exa:
             with pytest.raises(TimeoutError):
                 await exa.wait_for_research("r2", poll_interval=0.0, timeout=1.0)
@@ -451,22 +451,22 @@ def test_parse_retry_after_missing_header_returns_default_delay() -> None:
 def test_parse_retry_after_invalid_http_date_returns_default_delay() -> None:
     response = Response(429, headers={"retry-after": "not-a-number"})
     with patch(
-        "kalshi_research.exa.client.parsedate_to_datetime", side_effect=ValueError("bad date")
+        "kalshi_research.exa._http.parsedate_to_datetime", side_effect=ValueError("bad date")
     ):
         assert _client()._parse_retry_after(response) == 1
 
 
 def test_parse_retry_after_handles_naive_datetime() -> None:
     response = Response(429, headers={"retry-after": "not-a-number"})
-    with patch("kalshi_research.exa.client.parsedate_to_datetime", return_value=datetime.now()):
+    with patch("kalshi_research.exa._http.parsedate_to_datetime", return_value=datetime.now()):
         assert _client()._parse_retry_after(response) == 0
 
 
 def test_parse_retry_after_overflow_returns_default_delay() -> None:
     response = Response(429, headers={"retry-after": "not-a-number"})
     with (
-        patch("kalshi_research.exa.client.parsedate_to_datetime", return_value=datetime.now(UTC)),
-        patch("kalshi_research.exa.client.math.ceil", side_effect=OverflowError),
+        patch("kalshi_research.exa._http.parsedate_to_datetime", return_value=datetime.now(UTC)),
+        patch("kalshi_research.exa._http.math.ceil", side_effect=OverflowError),
     ):
         assert _client()._parse_retry_after(response) == 1
 

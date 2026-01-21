@@ -1095,7 +1095,7 @@ def test_research_thesis_check_invalidation_no_signals(tmp_path: Path) -> None:
 
     with (
         patch(
-            "kalshi_research.cli.research.thesis._commands._get_thesis_file",
+            "kalshi_research.cli.research._shared._get_thesis_file",
             return_value=thesis_file,
         ),
         patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa),
@@ -1173,7 +1173,7 @@ def test_research_thesis_check_invalidation_with_signals(tmp_path: Path) -> None
 
     with (
         patch(
-            "kalshi_research.cli.research.thesis._commands._get_thesis_file",
+            "kalshi_research.cli.research._shared._get_thesis_file",
             return_value=thesis_file,
         ),
         patch("kalshi_research.exa.ExaClient.from_env", return_value=mock_exa),

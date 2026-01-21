@@ -6,7 +6,7 @@
 - **Effort:** L (multi-day mechanical refactor)
 - **Blocking:** No (but it prevents subtle divergence bugs)
 - **Target Date:** 2026-02-23
-- **Status:** Active
+- **Status:** ✅ Resolved (Archived 2026-01-21)
 
 ## Problem
 
@@ -17,22 +17,19 @@ Clean Code standard: policy decisions should be named, centralized, and easy to 
 
 ## Evidence
 
-Examples (2026-01-19 audit):
+Examples (2026-01-21 audit):
 
-- Default pagination limit appears in multiple locations:
-  - `src/kalshi_research/data/fetcher.py:177` (`limit=200`)
-  - `src/kalshi_research/data/fetcher.py:188` (`limit=200`)
-  - `src/kalshi_research/cli/scan.py:95` (`limit=200`)
-  - `src/kalshi_research/cli/market.py:404` (`limit=200`)
+- **Already migrated to named constants** (Phase A/B complete):
+  - Pagination limit: `DEFAULT_PAGINATION_LIMIT = 200` in `src/kalshi_research/constants.py`
+  - Orderbook depth: `DEFAULT_ORDERBOOK_DEPTH = 10` in `src/kalshi_research/constants.py`
+  - Scanner thresholds: `DEFAULT_CLOSE_RACE_RANGE = (0.40, 0.60)` and related constants
 
-- Default orderbook depth is a literal:
-  - `src/kalshi_research/api/client.py:373` (`depth: int = 10`)
-
-- Scanner close-race range is a literal:
-  - `src/kalshi_research/analysis/scanner.py:174` (`(0.40, 0.60)`)
-
-- Exa default budgets are literals:
-  - `src/kalshi_research/exa/policy.py:25-27` (`0.05`, `0.25`, `1.00`)
+- Remaining policy literals worth consolidating (Phase C):
+  - Agent per-run defaults:
+    - `src/kalshi_research/agent/orchestrator.py` (`max_exa_usd=0.25`, `max_llm_usd=0.25`)
+    - `src/kalshi_research/cli/agent.py` (`--max-exa-usd=0.25`, `--max-llm-usd=0.25`)
+  - Exa pricing estimates (vendor-pricing-sensitive, should be centralized/documented as such):
+    - `src/kalshi_research/exa/policy.py` (search tier costs, answer costs, safety_factor)
 
 Reproduce quickly:
 
@@ -40,6 +37,7 @@ Reproduce quickly:
 rg -n \"\\blimit=200\\b\" src/kalshi_research
 rg -n \"depth: int = 10|depth=10\" src/kalshi_research
 rg -n \"\\(0\\.40, 0\\.60\\)\" src/kalshi_research
+rg -n \"max_exa_usd: float = 0\\.25|max_llm_usd: float = 0\\.25\" src/kalshi_research
 ```
 
 ## Solution (Concrete)
@@ -55,17 +53,23 @@ rg -n \"\\(0\\.40, 0\\.60\\)\" src/kalshi_research
 
 ## Definition of Done (Objective)
 
-- [x] All documented policy literals removed from function bodies (grep checks below return nothing):
+- [x] Phase A/B policy literals removed from function bodies (grep checks below return nothing):
   - `rg -n \"\\blimit=200\\b\" src/kalshi_research` ✓
   - `rg -n \"depth: int = 10|depth=10\" src/kalshi_research` ✓
   - `rg -n \"\\(0\\.40, 0\\.60\\)\" src/kalshi_research` (only in constants.py definition) ✓
+- [x] Phase C policy literals reduced: agent default budgets + Exa pricing estimate constants are named/centralized
 - [x] All tests pass: `uv run pytest`
 - [x] All quality gates pass: `uv run pre-commit run --all-files`
 
-**Note:** Phase A/B complete. Phase C (Exa budget defaults) remains for future iteration.
+**Note:** All phases (A/B/C) complete. DEBT-047 is fully resolved.
 
 ## Acceptance Criteria (Phased)
 
 - [x] Phase A: Introduce constants module and migrate pagination/depth defaults
 - [x] Phase B: Migrate scanner/liquidity threshold literals
-- [ ] Phase C: Migrate Exa budget defaults and any other cost policy literals
+- [x] Phase C: Migrate remaining cost/budget policy literals (tracked below)
+
+Phase C sub-phases:
+
+- [x] Phase C1: Agent per-run defaults are named constants (no `0.25` duplication across CLI/orchestrator)
+- [x] Phase C2: Exa cost-estimate literals are named constants (tiers, per-page adders, safety factors)

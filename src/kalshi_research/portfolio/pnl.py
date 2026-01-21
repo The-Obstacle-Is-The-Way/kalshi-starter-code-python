@@ -16,37 +16,31 @@ Note on fees:
 
 from __future__ import annotations
 
-from collections import deque
-from dataclasses import dataclass
-from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from datetime import datetime
+from kalshi_research.portfolio._fifo import get_closed_trade_pnls_fifo, normalize_trade_for_fifo
+from kalshi_research.portfolio._pnl_models import EffectiveTrade, FifoResult, Lot, PnLSummary
+from kalshi_research.portfolio._settlements import (
+    get_settlement_prices_cents,
+    parse_settlement_fee_cents,
+    process_synthetic_fills,
+    synthesize_settlement_closes,
+)
 
+if TYPE_CHECKING:
     from kalshi_research.portfolio.models import PortfolioSettlement, Position, Trade
 
-
-@dataclass
-class PnLSummary:
-    """Summary of portfolio profit and loss."""
-
-    unrealized_pnl_cents: int
-    realized_pnl_cents: int
-    total_pnl_cents: int
-    total_trades: int
-    winning_trades: int
-    losing_trades: int
-    win_rate: float
-    avg_win_cents: int
-    avg_loss_cents: int
-    profit_factor: float
-    unrealized_positions_unknown: int = 0
-    orphan_sell_qty_skipped: int = 0
+# Re-export for backwards compatibility
+__all__ = ["PnLCalculator", "PnLSummary"]
 
 
 class PnLCalculator:
     """Calculate profit/loss on positions and trades."""
+
+    # Re-expose internal types for backwards compatibility with tests
+    _Lot = Lot
+    _EffectiveTrade = EffectiveTrade
+    _FifoResult = FifoResult
 
     @staticmethod
     def _round_div_half_up(numerator: int, denominator: int) -> int:
@@ -58,231 +52,60 @@ class PnLCalculator:
             return (numerator + (denominator // 2)) // denominator
         return -((-numerator + (denominator // 2)) // denominator)
 
-    @dataclass
-    class _Lot:
-        qty_remaining: int
-        cost_remaining_cents: int
+    @staticmethod
+    def _normalize_trade_for_fifo(trade: Trade) -> EffectiveTrade:
+        """Normalize fills into a consistent (ticker, side) stream for FIFO.
 
-    @dataclass(frozen=True)
-    class _EffectiveTrade:
-        ticker: str
-        side: str
-        action: str
-        quantity: int
-        price_cents: int
-        total_cost_cents: int
-        fee_cents: int
-        executed_at: datetime
+        Delegates to the module-level function for the actual implementation.
+        """
+        return normalize_trade_for_fifo(trade)
 
-    @dataclass
-    class _FifoResult:
-        closed_pnls: list[int]
-        orphan_sell_qty_skipped: int
-        open_lots: dict[tuple[str, str], PnLCalculator._Lot]
+    def _get_closed_trade_pnls_fifo(self, trades: list[Trade]) -> FifoResult:
+        """Compute per-sell realized P&L in cents using FIFO lots (integer arithmetic).
+
+        Delegates to the module-level function for the actual implementation.
+        """
+        return get_closed_trade_pnls_fifo(trades)
+
+    def _synthesize_settlement_closes(
+        self,
+        settlements: list[PortfolioSettlement],
+        open_lots: dict[tuple[str, str], Lot],
+    ) -> list[EffectiveTrade]:
+        """Convert settlements to synthetic closing fills for remaining open lots.
+
+        Delegates to the module-level function for the actual implementation.
+        """
+        return synthesize_settlement_closes(settlements, open_lots)
+
+    def _process_synthetic_fills(
+        self,
+        synthetic_fills: list[EffectiveTrade],
+        open_lots: dict[tuple[str, str], Lot],
+    ) -> list[int]:
+        """Process synthetic settlement fills against open lots to compute P&L.
+
+        Delegates to the module-level function for the actual implementation.
+        """
+        return process_synthetic_fills(synthetic_fills, open_lots)
 
     @staticmethod
     def _get_settlement_prices_cents(
         market_result: str, settlement_value: int | None
     ) -> tuple[int, int] | None:
-        """
-        Get (yes_price_cents, no_price_cents) at settlement, or None if not supported.
+        """Get (yes_price_cents, no_price_cents) at settlement, or None if not supported.
 
-        Per Kalshi docs, binary settlements are at 100c/0c. For scalar markets, the API
-        provides `settlement_value` as the YES payout in cents, and NO pays (100 - value).
+        Delegates to the settlements module for the actual implementation.
         """
-        if market_result == "yes":
-            return 100, 0
-        if market_result == "no":
-            return 0, 100
-        if market_result != "scalar":
-            return None
-        if settlement_value is None or settlement_value < 0 or settlement_value > 100:
-            return None
-        return settlement_value, 100 - settlement_value
+        return get_settlement_prices_cents(market_result, settlement_value)
 
     @staticmethod
     def _parse_settlement_fee_cents(fee_cost_dollars: str) -> int:
-        """Parse trading fees from settlement `fee_cost_dollars` into integer cents."""
-        try:
-            return int(
-                (Decimal(fee_cost_dollars) * 100).to_integral_value(rounding=ROUND_HALF_EVEN)
-            )
-        except (InvalidOperation, ValueError):
-            return 0
+        """Parse trading fees from settlement `fee_cost_dollars` into integer cents.
 
-    @staticmethod
-    def _normalize_trade_for_fifo(trade: Trade) -> _EffectiveTrade:
+        Delegates to the settlements module for the actual implementation.
         """
-        Normalize fills into a consistent (ticker, side) stream for FIFO.
-
-        Kalshi's fills are "literal side" and can represent closing trades on the opposite side.
-        In practice, this codebase observes that:
-        - BUY trades open/increase the literal `trade.side` at `trade.price_cents`.
-        - SELL trades close/decrease the *opposite* side at the *inverted* price.
-
-        Example:
-        - BUY YES at 51 is stored as (side=yes, action=buy, price=51)
-        - Closing that position may appear as (side=no, action=sell, price=88), which is
-          economically a SELL YES at (100 - 88) = 12.
-        """
-        side = trade.side.lower()
-        if side not in {"yes", "no"}:
-            raise ValueError(f"Trade side must be 'yes' or 'no' (got {trade.side!r})")
-
-        action = trade.action.lower()
-        if action not in {"buy", "sell"}:
-            raise ValueError(f"Trade action must be 'buy' or 'sell' (got {trade.action!r})")
-
-        if trade.price_cents < 0 or trade.price_cents > 100:
-            raise ValueError(f"Trade price_cents must be in [0, 100] (got {trade.price_cents})")
-
-        if action == "buy":
-            effective_side = side
-            effective_price_cents = trade.price_cents
-        else:
-            effective_side = "no" if side == "yes" else "yes"
-            effective_price_cents = 100 - trade.price_cents
-
-        return PnLCalculator._EffectiveTrade(
-            ticker=trade.ticker,
-            side=effective_side,
-            action=action,
-            quantity=trade.quantity,
-            price_cents=effective_price_cents,
-            total_cost_cents=effective_price_cents * trade.quantity,
-            fee_cents=trade.fee_cents,
-            executed_at=trade.executed_at,
-        )
-
-    def _synthesize_settlement_closes(
-        self,
-        settlements: list[PortfolioSettlement],
-        open_lots: dict[tuple[str, str], _Lot],
-    ) -> list[_EffectiveTrade]:
-        """
-        Convert settlements to synthetic closing fills for remaining open lots.
-
-        Per Kalshi docs (kalshi-api-reference.md:917):
-            "Settlements act as 'sells' at the settlement price (100c if won, 0c if lost)"
-
-        This treats settlements as synthetic sells at the binary outcome price:
-        - market_result='yes' -> YES contracts sell at 100c, NO contracts sell at 0c
-        - market_result='no'  -> YES contracts sell at 0c, NO contracts sell at 100c
-        - market_result='void' -> No P&L impact (positions refunded at cost)
-
-        Args:
-            settlements: List of portfolio settlements from Kalshi API
-            open_lots: Dict of (ticker, side) -> Lot with remaining open positions
-
-        Returns:
-            List of synthetic closing fills.
-        """
-        synthetic_fills: list[PnLCalculator._EffectiveTrade] = []
-
-        for settlement in settlements:
-            prices = self._get_settlement_prices_cents(settlement.market_result, settlement.value)
-            if prices is None:
-                continue
-            yes_settlement_price, no_settlement_price = prices
-
-            yes_key = (settlement.ticker, "yes")
-            yes_qty = (
-                open_lots[yes_key].qty_remaining
-                if yes_key in open_lots and open_lots[yes_key].qty_remaining > 0
-                else 0
-            )
-            no_key = (settlement.ticker, "no")
-            no_qty = (
-                open_lots[no_key].qty_remaining
-                if no_key in open_lots and open_lots[no_key].qty_remaining > 0
-                else 0
-            )
-
-            total_qty = yes_qty + no_qty
-            if total_qty <= 0:
-                continue
-
-            # Synthesize YES fill if open YES lots exist for this ticker
-            if yes_qty > 0:
-                synthetic_fills.append(
-                    PnLCalculator._EffectiveTrade(
-                        ticker=settlement.ticker,
-                        side="yes",
-                        action="sell",
-                        quantity=yes_qty,
-                        price_cents=yes_settlement_price,
-                        total_cost_cents=yes_settlement_price * yes_qty,
-                        fee_cents=0,
-                        executed_at=settlement.settled_at,
-                    )
-                )
-
-            # Synthesize NO fill if open NO lots exist for this ticker
-            if no_qty > 0:
-                synthetic_fills.append(
-                    PnLCalculator._EffectiveTrade(
-                        ticker=settlement.ticker,
-                        side="no",
-                        action="sell",
-                        quantity=no_qty,
-                        price_cents=no_settlement_price,
-                        total_cost_cents=no_settlement_price * no_qty,
-                        fee_cents=0,
-                        executed_at=settlement.settled_at,
-                    )
-                )
-
-        return synthetic_fills
-
-    def _process_synthetic_fills(
-        self,
-        synthetic_fills: list[_EffectiveTrade],
-        open_lots: dict[tuple[str, str], _Lot],
-    ) -> list[int]:
-        """
-        Process synthetic settlement fills against open lots to compute P&L.
-
-        Uses the same FIFO logic as regular trades but operates on the mutable
-        open_lots dict from the initial trade processing.
-
-        Args:
-            synthetic_fills: Synthetic closing fills from settlements
-            open_lots: Mutable dict of open lots (will be consumed)
-
-        Returns:
-            List of P&L values for each synthetic close
-        """
-        closed_pnls: list[int] = []
-
-        for fill in synthetic_fills:
-            key = (fill.ticker, fill.side)
-            if key not in open_lots:
-                continue
-
-            lot = open_lots[key]
-            if lot.qty_remaining <= 0:
-                continue
-
-            # Consume from the lot (settlement closes all remaining)
-            consume_qty = min(lot.qty_remaining, fill.quantity)
-            if consume_qty == 0:
-                continue
-
-            # Pro-rata cost basis
-            consume_cost_cents = round(lot.cost_remaining_cents * consume_qty / lot.qty_remaining)
-
-            # Calculate P&L: proceeds - cost - fees
-            # Fee is prorated to consumed quantity
-            matched_fee_cents = round(fill.fee_cents * consume_qty / fill.quantity)
-            net_proceeds_cents = (fill.price_cents * consume_qty) - matched_fee_cents
-            pnl = net_proceeds_cents - consume_cost_cents
-            closed_pnls.append(pnl)
-
-            # Update lot
-            lot.cost_remaining_cents -= consume_cost_cents
-            lot.qty_remaining -= consume_qty
-
-        return closed_pnls
+        return parse_settlement_fee_cents(fee_cost_dollars)
 
     def calculate_unrealized(self, position: Position, current_price_cents: int) -> int:
         """
@@ -294,107 +117,6 @@ class PnLCalculator:
             (current_price - avg_price) * quantity
         """
         return (current_price_cents - position.avg_price_cents) * position.quantity
-
-    def _get_closed_trade_pnls_fifo(self, trades: list[Trade]) -> _FifoResult:
-        """
-        Compute per-sell realized P&L in cents using FIFO lots (integer arithmetic).
-
-        Trades are normalized (to handle Kalshi cross-side closing), then grouped by (ticker, side)
-        and processed in executed_at order.
-
-        Normalization rules:
-        - BUY trades affect the literal side at the literal price.
-        - SELL trades affect the opposite side at the inverted price (100 - price).
-
-        This prevents "orphan sells" when a position opened on YES is closed via a NO sell (and
-        vice versa), which is observed in real fill history.
-
-        Fees are handled as:
-        - Buy fees are included in cost basis by storing lot-level total cost (price * qty + fee).
-        - Sell fees reduce proceeds directly.
-        """
-        ticker_side_trades: dict[tuple[str, str], list[PnLCalculator._EffectiveTrade]] = {}
-        for raw_trade in trades:
-            effective_trade = self._normalize_trade_for_fifo(raw_trade)
-            key = (effective_trade.ticker, effective_trade.side)
-            ticker_side_trades.setdefault(key, []).append(effective_trade)
-
-        closed_pnls: list[int] = []
-        orphan_sell_qty_skipped = 0
-
-        open_lots: dict[tuple[str, str], PnLCalculator._Lot] = {}
-
-        for key, group_trades in ticker_side_trades.items():
-            sorted_trades = sorted(group_trades, key=lambda t: t.executed_at)
-            lots: deque[PnLCalculator._Lot] = deque()
-
-            for trade in sorted_trades:
-                if trade.quantity <= 0:
-                    raise ValueError("Trade quantity must be positive")
-
-                if trade.action == "buy":
-                    lots.append(
-                        PnLCalculator._Lot(
-                            qty_remaining=trade.quantity,
-                            cost_remaining_cents=trade.total_cost_cents + trade.fee_cents,
-                        )
-                    )
-                    continue
-
-                if trade.action == "sell":
-                    remaining_to_sell = trade.quantity
-                    matched_qty = 0
-                    cost_basis_cents = 0
-
-                    while remaining_to_sell > 0:
-                        if not lots:
-                            orphan_sell_qty_skipped += remaining_to_sell
-                            break
-
-                        lot = lots[0]
-                        consume_qty = min(lot.qty_remaining, remaining_to_sell)
-                        matched_qty += consume_qty
-                        # Use round() to avoid systematic downward bias from floor division
-                        # This matches the pattern in syncer.py:compute_fifo_cost_basis
-                        consume_cost_cents = round(
-                            lot.cost_remaining_cents * consume_qty / lot.qty_remaining
-                        )
-                        cost_basis_cents += consume_cost_cents
-
-                        lot.cost_remaining_cents -= consume_cost_cents
-                        lot.qty_remaining -= consume_qty
-                        remaining_to_sell -= consume_qty
-
-                        if lot.qty_remaining == 0:
-                            lots.popleft()
-
-                    if matched_qty == 0:
-                        continue
-
-                    # Only count proceeds for the portion we could match against FIFO lots.
-                    # Fee is prorated to the matched quantity.
-                    matched_fee_cents = round(trade.fee_cents * matched_qty / trade.quantity)
-                    net_proceeds_cents = (trade.price_cents * matched_qty) - matched_fee_cents
-                    closed_pnls.append(net_proceeds_cents - cost_basis_cents)
-                    continue
-
-            if not lots:
-                continue
-
-            qty_remaining = sum(lot.qty_remaining for lot in lots)
-            cost_remaining = sum(lot.cost_remaining_cents for lot in lots)
-            if qty_remaining <= 0:
-                continue
-
-            open_lots[key] = PnLCalculator._Lot(
-                qty_remaining=qty_remaining, cost_remaining_cents=cost_remaining
-            )
-
-        return PnLCalculator._FifoResult(
-            closed_pnls=closed_pnls,
-            orphan_sell_qty_skipped=orphan_sell_qty_skipped,
-            open_lots=open_lots,
-        )
 
     def calculate_realized(self, trades: list[Trade]) -> int:
         """
@@ -498,12 +220,12 @@ class PnLCalculator:
                     # No trades for this ticker - create implicit lots from settlement
                     # This handles the case where fills weren't synced but settlements were
                     if settlement.yes_count > 0:
-                        effective_open_lots[(settlement.ticker, "yes")] = PnLCalculator._Lot(
+                        effective_open_lots[(settlement.ticker, "yes")] = Lot(
                             qty_remaining=settlement.yes_count,
                             cost_remaining_cents=settlement.yes_total_cost,
                         )
                     if settlement.no_count > 0:
-                        effective_open_lots[(settlement.ticker, "no")] = PnLCalculator._Lot(
+                        effective_open_lots[(settlement.ticker, "no")] = Lot(
                             qty_remaining=settlement.no_count,
                             cost_remaining_cents=settlement.no_total_cost,
                         )

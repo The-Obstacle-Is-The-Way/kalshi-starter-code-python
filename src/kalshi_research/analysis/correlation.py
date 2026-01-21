@@ -9,101 +9,36 @@ Analyzes how related markets move together to identify:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
-from typing import cast
+from typing import TYPE_CHECKING
 
 import numpy as np
 from scipy import stats
 
-from kalshi_research.api.models import Market  # noqa: TC001
-from kalshi_research.data.models import PriceSnapshot  # noqa: TC001
+# Re-export models for backwards compatibility
+from kalshi_research.analysis._arbitrage import (
+    find_arbitrage_opportunities,
+    find_inverse_market_groups,
+    find_inverse_markets,
+)
+from kalshi_research.analysis._correlation_models import (
+    ArbitrageOpportunity,
+    CorrelationResult,
+    CorrelationType,
+    _is_priced,
+)
 
+if TYPE_CHECKING:
+    from kalshi_research.api.models import Market
+    from kalshi_research.data.models import PriceSnapshot
 
-def _is_priced(market: Market) -> bool:
-    """
-    Check if a market has meaningful price discovery.
-
-    A market is considered "priced" if it has quotes on both sides.
-
-    This module relies on bid/ask midpoints. If either side is missing
-    (commonly represented as `yes_bid == 0` or `yes_ask == 100`), the midpoint
-    is not meaningful and can create noisy signals. Kalshi prices are quoted in
-    cents of a $1 payout (0-100), so `100` represents $1.00, not $100.00.
-
-    Args:
-        market: Market to check
-
-    Returns:
-        True if market has meaningful quotes
-    """
-    yes_bid = market.yes_bid_cents
-    yes_ask = market.yes_ask_cents
-    if yes_bid is None or yes_ask is None:
-        return False
-    return yes_bid not in {0, 100} and yes_ask not in {0, 100}
-
-
-class CorrelationType(str, Enum):
-    """Types of correlation relationships."""
-
-    POSITIVE = "positive"  # Move together
-    NEGATIVE = "negative"  # Move opposite
-    LEAD_LAG = "lead_lag"  # One predicts other
-    NONE = "none"  # No relationship
-
-
-@dataclass
-class CorrelationResult:
-    """Result of correlation analysis between two markets."""
-
-    ticker_a: str
-    ticker_b: str
-    correlation_type: CorrelationType
-
-    # Correlation metrics
-    pearson: float  # Pearson correlation coefficient
-    pearson_pvalue: float  # Statistical significance
-    spearman: float  # Spearman rank correlation
-    spearman_pvalue: float
-
-    # Time window
-    start_time: datetime
-    end_time: datetime
-    n_samples: int
-
-    # Lead-lag analysis (if applicable)
-    lead_lag_days: int = 0  # Positive = A leads B
-    lead_lag_correlation: float = 0.0
-
-    def is_significant(self, alpha: float = 0.05) -> bool:
-        """Check if correlation is statistically significant."""
-        return self.pearson_pvalue < alpha
-
-    @property
-    def strength(self) -> str:
-        """Describe correlation strength."""
-        r = abs(self.pearson)
-        if r < 0.3:
-            return "weak"
-        elif r < 0.7:
-            return "moderate"
-        else:
-            return "strong"
-
-
-@dataclass
-class ArbitrageOpportunity:
-    """A potential arbitrage between correlated markets."""
-
-    tickers: list[str]
-    opportunity_type: str  # "divergence", "inverse_sum", "cluster_outlier"
-    expected_relationship: str  # What we expect
-    actual_values: dict[str, float]
-    divergence: float  # Size of mispricing
-    confidence: float  # 0-1
-    detected_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+__all__ = [
+    "ArbitrageOpportunity",
+    "CorrelationAnalyzer",
+    "CorrelationResult",
+    "CorrelationType",
+    "_is_priced",
+]
 
 
 class CorrelationAnalyzer:
@@ -261,9 +196,7 @@ class CorrelationAnalyzer:
         """
         Find market pairs that should sum to ~100% (inverse relationship).
 
-        Common examples:
-        - Trump vs Biden (should sum to ~100%)
-        - BTC above X vs below X
+        Delegates to module-level function for implementation.
 
         Args:
             markets: List of markets to analyze
@@ -272,34 +205,7 @@ class CorrelationAnalyzer:
         Returns:
             List of (market_a, market_b, sum_deviation) tuples
         """
-        results: list[tuple[Market, Market, float]] = []
-
-        # Group by event, filtering out unpriced markets
-        by_event: dict[str, list[Market]] = {}
-        for m in markets:
-            # SKIP: Unpriced markets (0/0, 0/100 placeholder quotes)
-            if not _is_priced(m):
-                continue
-
-            event_ticker = m.event_ticker
-            if event_ticker not in by_event:
-                by_event[event_ticker] = []
-            by_event[event_ticker].append(m)
-
-        # Check pairs within same event
-        for event_markets in by_event.values():
-            if len(event_markets) == 2:
-                m1, m2 = event_markets
-                # Use midpoint of bid/ask as price
-                midpoint1 = cast("float", m1.midpoint)
-                midpoint2 = cast("float", m2.midpoint)
-                prob_sum = (midpoint1 + midpoint2) / 100.0
-
-                if abs(prob_sum - 1.0) > tolerance:
-                    deviation = prob_sum - 1.0
-                    results.append((m1, m2, deviation))
-
-        return results
+        return find_inverse_markets(markets, tolerance)
 
     def find_inverse_market_groups(
         self,
@@ -309,42 +215,16 @@ class CorrelationAnalyzer:
         """
         Find event market groups that should sum to ~100%.
 
-        This is most useful for events with 2+ mutually exclusive outcomes (multi-choice events).
-        For each event, it checks whether the sum of YES midpoints is close to 1.0.
-
-        Notes:
-            - This method skips events where *any* market is unpriced/placeholder, since a partial
-              sum is not meaningful.
+        Delegates to module-level function for implementation.
 
         Args:
             markets: List of markets to analyze
             tolerance: Allowed deviation from 100%
 
         Returns:
-            List of (event_markets, sum_deviation) tuples where sum_deviation = sum(prob) - 1.0
+            List of (event_markets, sum_deviation) tuples
         """
-        results: list[tuple[list[Market], float]] = []
-
-        by_event_all: dict[str, list[Market]] = {}
-        for market in markets:
-            by_event_all.setdefault(market.event_ticker, []).append(market)
-
-        for event_markets in by_event_all.values():
-            priced = [m for m in event_markets if _is_priced(m)]
-            if len(priced) != len(event_markets):
-                continue
-            if len(priced) < 2:
-                continue
-
-            priced.sort(key=lambda m: m.ticker)
-            midpoints = [cast("float", m.midpoint) for m in priced]
-            prob_sum = sum(midpoints) / 100.0
-            deviation = prob_sum - 1.0
-
-            if abs(deviation) > tolerance:
-                results.append((priced, deviation))
-
-        return results
+        return find_inverse_market_groups(markets, tolerance)
 
     def find_arbitrage_opportunities(
         self,
@@ -355,6 +235,8 @@ class CorrelationAnalyzer:
         """
         Find potential arbitrage from correlated markets diverging.
 
+        Delegates to module-level function for implementation.
+
         Args:
             markets: Current market data
             correlated_pairs: Known correlated pairs
@@ -363,63 +245,7 @@ class CorrelationAnalyzer:
         Returns:
             List of arbitrage opportunities
         """
-        opportunities: list[ArbitrageOpportunity] = []
-        # Use midpoint of bid/ask as price
-        market_prices: dict[str, float] = {}
-        for m in markets:
-            if not _is_priced(m):
-                continue
-            midpoint = cast("float", m.midpoint)
-            market_prices[m.ticker] = midpoint / 100.0
-
-        for pair in correlated_pairs:
-            if pair.ticker_a not in market_prices:
-                continue
-            if pair.ticker_b not in market_prices:
-                continue
-
-            price_a = market_prices[pair.ticker_a]
-            price_b = market_prices[pair.ticker_b]
-
-            # Check for divergence from expected relationship
-            if pair.correlation_type == CorrelationType.POSITIVE:
-                # Should move together
-                divergence = abs(price_a - price_b)
-                if divergence > divergence_threshold:
-                    opportunities.append(
-                        ArbitrageOpportunity(
-                            tickers=[pair.ticker_a, pair.ticker_b],
-                            opportunity_type="divergence",
-                            expected_relationship=f"Move together (r={pair.pearson:.2f})",
-                            actual_values={
-                                pair.ticker_a: price_a,
-                                pair.ticker_b: price_b,
-                            },
-                            divergence=divergence,
-                            confidence=min(abs(pair.pearson), 1.0),
-                        )
-                    )
-
-            elif pair.correlation_type == CorrelationType.NEGATIVE:
-                # Should sum to ~100%
-                prob_sum = price_a + price_b
-                if abs(prob_sum - 1.0) > divergence_threshold:
-                    opportunities.append(
-                        ArbitrageOpportunity(
-                            tickers=[pair.ticker_a, pair.ticker_b],
-                            opportunity_type="inverse_sum",
-                            expected_relationship=f"Sum to ~100% (r={pair.pearson:.2f})",
-                            actual_values={
-                                pair.ticker_a: price_a,
-                                pair.ticker_b: price_b,
-                                "sum": prob_sum,
-                            },
-                            divergence=abs(prob_sum - 1.0),
-                            confidence=min(abs(pair.pearson), 1.0),
-                        )
-                    )
-
-        return opportunities
+        return find_arbitrage_opportunities(markets, correlated_pairs, divergence_threshold)
 
     def _align_timeseries(
         self,

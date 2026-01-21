@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -16,7 +16,7 @@ from kalshi_research.api.rate_limiter import RateTier
 from kalshi_research.cli.client_factory import authed_client, public_client
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Callable, Generator
 
 
 def create_test_key_file() -> tuple[Path, str]:
@@ -98,7 +98,8 @@ class TestAuthedClient:
     def test_authed_client_requires_key_id(self) -> None:
         """Factory requires key_id parameter (no default)."""
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument: 'key_id'"):
-            authed_client()  # type: ignore[call-arg]
+            authed_client_noargs = cast("Callable[[], object]", authed_client)
+            authed_client_noargs()
 
     def test_authed_client_custom_timeout(self, test_key: tuple[Path, str]) -> None:
         """Factory accepts custom timeout."""

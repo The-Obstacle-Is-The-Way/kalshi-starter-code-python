@@ -76,11 +76,11 @@ KALSHI_RUN_LIVE_API=1 uv run pytest tests/integration/api/test_public_api_live.p
 There is also an opt-in demo “smoke” E2E test:
 
 ```bash
-uv run pytest tests/e2e/test_live_demo.py -q
+KALSHI_RUN_LIVE_API=1 uv run pytest tests/e2e/test_live_demo.py -q
 ```
 
-It runs only when `KALSHI_ENVIRONMENT` is set to `demo` or `prod` and valid credentials are configured for that
-environment:
+It additionally requires `KALSHI_ENVIRONMENT` is set to `demo` or `prod` and valid credentials are configured for that
+environment (see the skip messages in `tests/e2e/test_live_demo.py` for the exact env var names):
 
 - `prod`: `KALSHI_KEY_ID` + (`KALSHI_PRIVATE_KEY_PATH` or `KALSHI_PRIVATE_KEY_B64`)
 - `demo`: `KALSHI_DEMO_KEY_ID` + (`KALSHI_DEMO_PRIVATE_KEY_PATH` or `KALSHI_DEMO_PRIVATE_KEY_B64`)
@@ -113,6 +113,17 @@ EXA_API_KEY="your-exa-api-key" uv run pytest tests/integration/exa/test_exa_rese
 ```
 
 **Exa cost note:** this test will make a real Exa request and will incur API cost.
+
+## LLM live tests (disabled by default)
+
+Some integration tests call the real Anthropic API for `kalshi agent analyze` and are skipped unless explicitly
+enabled:
+
+```bash
+KALSHI_RUN_LIVE_LLM=1 ANTHROPIC_API_KEY="your-api-key" uv run pytest tests/integration/agent/test_llm_real.py -q
+```
+
+**LLM cost note:** this test will make a real LLM request and will incur API cost.
 
 ## Recommended cadence (A+ practice)
 

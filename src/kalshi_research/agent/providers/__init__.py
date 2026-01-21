@@ -9,6 +9,8 @@ from .llm import (
     get_synthesizer,
 )
 
+# Note: llm.py was split into llm/ package (DEBT-043-D7, 2026-01-21)
+
 __all__ = [
     "ClaudeSynthesizer",
     "MockSynthesizer",

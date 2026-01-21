@@ -1,89 +1,66 @@
 # Kalshi Research Platform — Ralph Wiggum Progress Tracker
 
-**Last Updated:** 2026-01-20
-**Status:** Complete (Debt Resolution Queue finished)
+**Last Updated:** 2026-01-21
+**Status:** Active (kalshi-ralph sandbox)
 **Purpose:** State file for the Ralph Wiggum loop (see `docs/_ralph-wiggum/protocol.md`)
 
 ---
 
 ## Active Queue
 
-### Phase 1: P1 Debt (Critical)
+### Phase 1: P3 Debt (Small, mechanical)
 
-- [x] **DEBT-044-A**: Add `run_async()` helper to `cli/utils.py` → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
-- [x] **DEBT-044-B**: Migrate all CLI modules off direct `asyncio.run()` → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
-- [x] **DEBT-044-C**: Add `exit_kalshi_api_error()` helper → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
-- [x] **DEBT-044-D**: Migrate all CLI modules off duplicated `except KalshiAPIError` → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
-- [x] **DEBT-044-E**: Add DB session helper + migrate CLI DB plumbing → `docs/_debt/DEBT-044-dry-cli-boilerplate.md`
+- [x] **DEBT-047-C1**: Centralize agent default budgets (`max_exa_usd` / `max_llm_usd`) → `docs/_archive/debt/DEBT-047-magic-numbers-policy-constants.md`
+- [x] **DEBT-047-C2**: Centralize Exa cost-estimate literals (tiers/per-page/safety factors) → `docs/_archive/debt/DEBT-047-magic-numbers-policy-constants.md`
 
-### Phase 2: P2 Debt (High)
+### Phase 2: P1 Debt (Large, refactors to ≤400 LoC)
 
-- [x] **DEBT-045-A**: Refactor `agent/research_agent.py:_execute_research_task` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
-- [x] **DEBT-045-B**: Refactor `execution/executor.py:_run_live_checks` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
-- [x] **DEBT-045-C**: Refactor `cli/agent.py:research` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
-- [x] **DEBT-045-D**: Refactor `cli/agent.py:analyze` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
-- [x] **DEBT-045-E**: Refactor `cli/research.py:research_thesis_show` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
-- [x] **DEBT-045-F**: Refactor `cli/scan.py:scan_movers` (remove noqa) → `docs/_debt/DEBT-045-complexity-noqa-methods.md`
+- [x] **DEBT-043-D1**: Split `cli/market.py` → `cli/market/` package → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D2**: Split `cli/data.py` → `cli/data/` package → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D3**: Split `cli/portfolio.py` → `cli/portfolio/` package → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D4**: Split `cli/alerts.py` → `cli/alerts/` package → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D5**: Reduce `cli/research/thesis/_commands.py` to ≤400 LoC → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D6**: Split `agent/research_agent.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D7**: Split `agent/providers/llm.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D8**: Split `execution/executor.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D9**: Split `exa/client.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D10**: Split `exa/websets/client.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D11**: Split `portfolio/pnl.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D12**: Split `portfolio/syncer.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D13**: Split `analysis/liquidity.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D14**: Split `analysis/scanner.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D15**: Split `analysis/correlation.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D16**: Split `api/models/portfolio.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D17**: Split `research/thesis.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D18**: Split `data/fetcher.py` into focused modules → `docs/_archive/debt/DEBT-043-srp-god-files.md`
 
-### Phase 3: P3 Debt (Medium)
-
-- [x] **DEBT-046-B**: Migrate CLI modules to use `client_factory` (factory already exists) → `docs/_debt/DEBT-046-dependency-inversion-client-factory.md`
-- [x] **DEBT-039-A**: Audit `executor.py` broad catches for safety → `docs/_debt/DEBT-039-broad-exception-catches.md`
-- [x] **DEBT-039-B**: Add exception type logging to all broad catches → `docs/_debt/DEBT-039-broad-exception-catches.md`
-- [x] **DEBT-047-A**: Introduce constants module + migrate pagination/depth defaults → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
-- [x] **DEBT-047-B**: Migrate scanner/liquidity threshold literals → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
-
-### Phase 4: P1 Debt (Large - After Phases 1-3)
-
-- [x] **DEBT-043-A**: Split `cli/research.py` into `cli/research/` package → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-B**: Split `cli/scan.py` into `cli/scan/` package → `docs/_debt/DEBT-043-srp-god-files.md`
-- [x] **DEBT-043-C**: Split `api/client.py` into endpoint modules → `docs/_debt/DEBT-043-srp-god-files.md`
-
-### Phase 5: Final Verification
+### Phase 3: Final Verification
 
 - [x] **FINAL-GATES**: All quality gates pass (`pre-commit`, `mypy`, `pytest`, `mkdocs build --strict`)
 
 ---
 
-**Guidelines:**
-
-- Read [`AGENTS.md`](AGENTS.md) first (project intent + safety constraints).
-- One task per iteration; if a DEBT item is too large for a single safe change, it's already split (e.g., `DEBT-044-A`, `DEBT-044-B`).
-- Avoid cost-incurring or irreversible operations during the loop (paid Exa calls, live trading, live LLM). Prefer unit tests + fixtures.
-- Preserve public API/CLI surfaces; refactors should be mechanical, test-backed, and easy to review/revert.
-- Update the corresponding DEBT-XXX.md acceptance criteria as you complete each sub-task.
-
----
-
 ## Work Log
 
-- 2026-01-19: Reset PROGRESS.md for debt resolution queue (DEBT-039, 043, 044, 045, 046, 047). Debt docs verified against SSOT. client_factory.py salvaged from prior branch. Starting fresh on all migrations.
-- 2026-01-20: Implemented DEBT-044-A: added `kalshi_research.cli.utils.run_async()` (centralized `asyncio.run` + Ctrl+C exit 130), migrated `cli/status.py` as the template (3 call sites), added unit tests. Quality gates pass (`uv run pre-commit run --all-files`, `uv run pytest`).
-- 2026-01-20: Documentation cleanup: removed Gemini references (no longer used), added ANTHROPIC_API_KEY billing docs to Ralph Wiggum protocol (shell export = API credits, .env only = subscription).
-- 2026-01-20: Implemented DEBT-044-B: migrated all CLI modules (13 files, 55 call sites) from direct `asyncio.run()` to centralized `run_async()` helper. Only `utils.py:run_async()` now contains `asyncio.run`. Quality gates pass (pre-commit, mypy, pytest 1003 tests).
-- 2026-01-20: Implemented DEBT-044-C: added `exit_kalshi_api_error()` helper to `cli/utils.py` (centralized error formatting + exit codes: 404→2, others→1). Migrated `cli/status.py` as template (3 call sites). Added 6 unit tests. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
-- 2026-01-20: Implemented DEBT-044-D: migrated all CLI modules (12 files, 25 call sites) to use `exit_kalshi_api_error()` helper. 3 special cases intentionally preserved (news.py ValueError re-raise, scan.py and event.py warning+continue patterns). Quality gates pass (pre-commit, mypy, pytest 1009 tests).
-- 2026-01-20: Implemented DEBT-044-E: migrated all CLI modules (6 files, 11 call sites) off direct `DatabaseManager()` to use `open_db()`/`open_db_session()` helpers from `cli/db.py`. Helpers already existed; migration was mechanical. Now only `cli/db.py` contains `DatabaseManager`. Quality gates pass (pre-commit, mypy, pytest 1009 tests). DEBT-044 complete.
-- 2026-01-20: Implemented DEBT-045-A: refactored `_execute_research_task` (147 lines → 32 lines main + 6 helper methods). Extracted `_recover_or_create_research_task()`, `_try_recover_from_saved_state()`, `_try_recover_by_id()`, `_try_recover_by_list()`, `_create_new_research_task()`, `_is_terminal_status()`, `_wait_for_research_task()`, `_finalize_research_task()`. Removed noqa comment. All 27 research_agent tests pass. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
-- 2026-01-20: Implemented DEBT-045-B: refactored `_run_live_checks` (121 lines → 32 lines main + 8 helper methods). Extracted `_check_kill_switch()`, `_check_production_gating()`, `_check_daily_order_limit()`, `_check_budget_limits()`, `_check_position_cap()`, `_check_orderbook_safety()`, `_check_liquidity_grade()`, `_check_confirmation()`. Removed noqa comment. All 18 executor tests pass. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
-- 2026-01-20: Implemented DEBT-045-C: refactored `cli/agent.py:research` (157 lines → 28 lines main + 5 helper functions). Extracted `_parse_exa_mode()`, `_write_json_output()`, `_render_research_summary()`, `_render_factors_table()`, `_execute_research()`. Removed noqa comment. Updated integration tests to expect exit code 2 for 404 errors (per CLI convention). Quality gates pass (pre-commit, mypy, pytest).
-- 2026-01-20: Implemented DEBT-045-D: refactored `cli/agent.py:analyze` (192 lines → 60 lines main + 4 helper functions). Extracted `_execute_analysis()`, `_render_analysis_human()`, `_render_analysis_factors_table()`, `_output_analysis_json()`. Removed noqa comment. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
-- 2026-01-20: Implemented DEBT-045-E: refactored `cli/research.py:research_thesis_show` (124 lines → 24 lines main + 6 helper functions). Extracted `_find_thesis_by_id()`, `_render_thesis_header()`, `_render_thesis_fields_table()`, `_render_thesis_cases_and_updates()`, `_render_thesis_evidence()`, `_fetch_and_render_linked_positions()`. Removed noqa comment. Quality gates pass (pre-commit, mypy, pytest 1009 tests).
-- 2026-01-20: Implemented DEBT-045-F: refactored `cli/scan.py:scan_movers` (149 lines → 47 lines main + 4 helper functions). Extracted `_parse_movers_period()`, `_fetch_movers_market_lookup()`, `_compute_movers()`, `_render_movers_table()`. Removed noqa comment. DEBT-045 now complete (all noqa: PLR091 removed from src/). Quality gates pass (pre-commit, mypy, pytest 1009 tests).
-- 2026-01-20: Implemented DEBT-046-B: migrated CLI modules to `client_factory.public_client()` / `authed_client()`, updated CLI unit/integration tests to patch factory functions. Fixed order-dependent CLI tests caused by constructor patch leakage. Quality gates pass (pre-commit, mypy, pytest).
-- 2026-01-20: Implemented DEBT-039-A: audited `executor.py` broad exception catches for safety. Narrowed `_check_orderbook_safety` and `_check_liquidity_grade` to `(KalshiAPIError, httpx.HTTPError, httpx.TimeoutException)` with exception type logging. Documented `create_order` audit catch as intentionally broad (re-raises, audit-only). Added 5 new tests for narrowed exception handling. Quality gates pass (pre-commit, mypy, pytest 1014 tests).
-- 2026-01-20: Implemented DEBT-039-B: added `exc_info=True` to broad exception catches (`research/invalidation.py:128`, `research/thesis_research.py:313`, `api/websocket/client.py:275`, `exa/cache.py:141`). Narrowed cache exception catches from `Exception` to `(json.JSONDecodeError, KeyError, ValueError, TypeError, OSError)`. DEBT-039 now complete. Quality gates pass (pre-commit, mypy, pytest).
-- 2026-01-20: Implemented DEBT-047-A: created `src/kalshi_research/constants.py` with `DEFAULT_PAGINATION_LIMIT=200` and `DEFAULT_ORDERBOOK_DEPTH=10`. Migrated 4 files (data/fetcher.py, cli/scan.py, cli/market.py, api/client.py) to use constants. Grep checks confirm no `limit=200` or `depth: int = 10` literals remain. Quality gates pass (pre-commit, mypy, pytest 1014 tests).
-- 2026-01-20: Implemented DEBT-047-B: added 13 scanner/liquidity constants to `constants.py` (close_race_range, high_volume_threshold, wide_spread_threshold, depth_radius, max_slippage, grade thresholds, spread score bounds, warning thresholds). Migrated `analysis/scanner.py` (3 defaults) and `analysis/liquidity.py` (10+ references). Grep confirms `(0.40, 0.60)` only in constants.py. Quality gates pass (pre-commit, mypy, pytest 1014 tests).
-- 2026-01-20: Implemented DEBT-043-A: split `cli/research.py` (1367 lines) into `cli/research/` package (12 files, all ≤400 lines). Structure: `__init__.py` (111 lines), `_shared.py` (92), `context.py` (186), `topic.py` (123), `similar.py` (84), `deep.py` (181), `backtest.py` (202), `cache.py` (37), `thesis/__init__.py` (60), `thesis/_commands.py` (395), `thesis/_helpers.py` (154), `thesis/_suggest.py` (58). Updated test patch paths. Quality gates pass (pre-commit, mypy, pytest 42 research tests).
-- 2026-01-20: Implemented DEBT-043-B: split `cli/scan.py` (1304 lines) into `cli/scan/` package (7 files, all ≤400 lines). Structure: `__init__.py` (113 lines), `_helpers.py` (152), `_opportunities_helpers.py` (198), `opportunities.py` (341), `new_markets.py` (329), `arbitrage.py` (221), `movers.py` (215). Backward-compatible re-exports via `__init__.py` preserve existing test imports. Quality gates pass (pre-commit, mypy, pytest 1014 tests, 45 scan tests).
-- 2026-01-20: Implemented DEBT-043-C: split `api/client.py` (1724 lines) into `api/_mixins/` package (11 files, all ≤300 lines). Structure: `_base.py` (134 lines - client infrastructure), `_mixins/__init__.py` (23 - re-exports), `_mixins/markets.py` (297), `_mixins/events.py` (223), `_mixins/series.py` (73), `_mixins/exchange.py` (32), `_mixins/multivariate.py` (58), `_mixins/portfolio.py` (122), `_mixins/trading.py` (286), `_mixins/orders.py` (273), `_mixins/order_groups.py` (195), `client.py` (144 - thin composition). `KalshiClient` inherits from `KalshiPublicClient` (backward-compatible). Quality gates pass (pre-commit, mypy, pytest 200+ API tests).
-- 2026-01-20: **FINAL-GATES verified**: All quality gates pass. Pre-commit (17 hooks pass), mypy (152 source files clean), pytest (1014 unit tests pass), mkdocs build --strict (documentation builds successfully). Debt resolution queue complete.
-- 2026-01-20: **Post-queue audit**: Validated all Ralph Wiggum work from first principles. Fixed documentation half-measures: marked DEBT-044 and DEBT-045 as Resolved, updated DEBT-047 DoD checkboxes (grep checks pass), added notes about deferred phases (DEBT-043 Phase D: 17 files >400 lines, DEBT-047 Phase C: Exa budgets). Quality gates pass (1059 tests).
-
----
-
-## Completion Criteria
-
-The queue is complete when there are no unchecked items (no lines matching the unchecked-task pattern at column 0).
-The loop operator should verify completion via this file's state, not by parsing model output.
+- 2026-01-21: **FINAL-GATES** verified — all quality gates pass: `pre-commit` (17/17 checks), `ruff check` (all passed), `ruff format` (367 files formatted), `mypy` (227 source files, no issues), `pytest` (1098 passed, 10 skipped), `mkdocs build --strict` (success). DEBT-043 and DEBT-047 complete. Ralph Wiggum loop queue exhausted (all tasks complete).
+- 2026-01-21: **DEBT-043-D18** complete — split `data/fetcher.py` (418 LoC) into 2 files: `_converters.py` (93), `fetcher.py` (344). Converter functions (`api_event_to_db`, `api_market_to_db`, `api_market_to_snapshot`, `api_market_to_settlement`) extracted to `_converters.py`. `DataFetcher` remains in `fetcher.py` delegating to module-level converter functions. Updated tests to use new module-level functions. All DEBT-043 Phase D complete (no files exceed 400 lines). Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D17** complete — split `research/thesis.py` (421 LoC) into 2 files: `_thesis_models.py` (253), `thesis.py` (177). Models (`ThesisStatus`, `ThesisEvidence`, `Thesis` dataclass) extracted to `_thesis_models.py`. `ThesisTracker` remains in `thesis.py` with re-exports preserving backwards-compatible public API. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D16** complete — split `api/models/portfolio.py` (428 LoC) into 6 files: `_balance.py` (20), `_position.py` (47), `_fill.py` (81), `_settlement.py` (66), `_order.py` (234), `portfolio.py` (55). Models grouped by domain (balance, position, fill, settlement, order). Re-exports preserve backwards-compatible public API. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D15** complete — split `analysis/correlation.py` (448 LoC) into 3 files: `_correlation_models.py` (98), `_arbitrage.py` (184), `correlation.py` (274). Models (`CorrelationType`, `CorrelationResult`, `ArbitrageOpportunity`) and `_is_priced` helper extracted to `_correlation_models.py`. Arbitrage functions (`find_inverse_markets`, `find_inverse_market_groups`, `find_arbitrage_opportunities`) extracted to `_arbitrage.py`. `CorrelationAnalyzer` delegates to module functions while preserving backwards-compatible class interface. Re-exports preserve public API. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D14** complete — split `analysis/scanner.py` (439 LoC) into 3 files: `_scanner_models.py` (46), `_verifier.py` (117), `scanner.py` (304). Models/types (`MarketClosedError`, `ScanFilter`, `ScanResult`) and `MarketStatusVerifier` extracted to separate modules. Re-exports preserve backwards-compatible public API. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D13** complete — split `analysis/liquidity.py` (461 LoC) into 5 files: `_liquidity_models.py` (87), `_depth.py` (67), `_slippage.py` (170), `_scoring.py` (149), `liquidity.py` (94). Re-exports preserve backwards-compatible public API. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D12** complete — split `portfolio/syncer.py` (483 LoC) into 6 files: `_sync_helpers.py` (81), `_sync_positions.py` (130), `_sync_trades.py` (116), `_sync_settlements.py` (99), `_mark_prices.py` (112), `syncer.py` (100). `PortfolioSyncer` delegates to module functions while preserving backwards-compatible class interface. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D11** complete — split `portfolio/pnl.py` (554 LoC) into 4 files: `_pnl_models.py` (80), `_fifo.py` (174), `_settlements.py` (191), `pnl.py` (276). `PnLCalculator` delegates to module functions while preserving backwards-compatible class interface. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D10** complete — split `exa/websets/client.py` (442 LoC) into mixins: `_http.py` (219), `_websets.py` (117), `_items.py` (80), `_searches.py` (100), `client.py` (54). Used mixin composition via multiple inheritance. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D9** complete — split `exa/client.py` (694 LoC) into mixins: `_http.py` (228), `_normalization.py` (50), `_search.py` (262), `_contents.py` (100), `_answer.py` (52), `_research.py` (178), `client.py` (54). Updated test patches to use new module paths. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D8** complete — split `execution/executor.py` (637 LoC) into `execution/` package with 4 new files: `_protocols.py` (49), `_checks.py` (307), `_orchestration.py` (189), `_executor.py` (340). Updated `__init__.py` to re-export from new modules. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D7** complete — split `agent/providers/llm.py` (471 LoC) into `agent/providers/llm/` package with 6 files: `__init__.py` (22), `_pricing.py` (69), `_prompts.py` (43), `_schemas.py` (74), `_claude.py` (244), `_mock.py` (68), `_factory.py` (40). Added TC001 exemption for Pydantic model. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D6** complete — split `agent/research_agent.py` (648 LoC) into `agent/research_agent/` package with 5 files: `__init__.py` (9), `_agent.py` (236), `_executor.py` (166), `_plan_builder.py` (152), `_recovery.py` (233). Updated test fixture to propagate state to executor/recovery. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D5** complete — reduced `cli/research/thesis/_commands.py` from 404 LoC to 355 LoC by moving `_check_thesis_invalidation` and `_gather_thesis_research_data` async helpers to `_helpers.py` (now 205 LoC). Updated `__init__.py` re-exports and test patches. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D4** complete — split `cli/alerts.py` (521 LoC) into `cli/alerts/` package with 7 files (largest: `monitor.py` at 218 LoC). Created `_helpers.py`, `list_cmd.py`, `add_cmd.py`, `remove.py`, `monitor.py`, `trim_log.py`, `__init__.py`. Updated tests to use new package paths. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D3** complete — split `cli/portfolio.py` (620 LoC) into `cli/portfolio/` package with 8 files (largest: `_helpers.py` at 129 LoC). Created `_helpers.py`, `sync.py`, `positions.py`, `pnl_cmd.py`, `balance.py`, `history.py`, `link.py`, `__init__.py`. Updated test to use new public `format_signed_currency` API. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D2** complete — split `cli/data.py` (737 LoC) into `cli/data/` package with 10 files (largest: `sync.py` at 225 LoC). Created `_helpers.py`, `init_cmd.py`, `migrate.py`, `sync.py`, `snapshot.py`, `collect.py`, `export_cmd.py`, `stats.py`, `maintenance.py`, `__init__.py`. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-043-D1** complete — split `cli/market.py` (788 LoC) into `cli/market/` package with 8 files (largest: `list.py` at 276 LoC). Created `_helpers.py`, `get.py`, `orderbook.py`, `liquidity.py`, `history.py`, `list.py`, `search.py`, `__init__.py`. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-047-C2** complete — added Exa cost-estimate constants (`EXA_SEARCH_TIER_SMALL_MAX`, `EXA_NEURAL_SEARCH_COST_*`, `EXA_DEEP_SEARCH_COST_*`, `EXA_PER_RESULT_*`, `EXA_ANSWER_*`, `EXA_COST_ESTIMATE_SAFETY_FACTOR`) to `constants.py`. Updated `exa/policy.py` to use them. DEBT-047 fully resolved. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **DEBT-047-C1** complete — added `DEFAULT_AGENT_MAX_EXA_USD` and `DEFAULT_AGENT_MAX_LLM_USD` to `constants.py`, updated `agent/orchestrator.py` and `cli/agent.py` to use them. Quality gates: `pre-commit`, `pytest` (passed).
+- 2026-01-21: **[START]** Reset queue post-branch-cleanup. Initial active debt: DEBT-043 (Phase D) + DEBT-047 (Phase C). All items completed above.

@@ -6,9 +6,16 @@ from typing import TYPE_CHECKING, Any
 from rich.table import Table
 
 from kalshi_research.cli.utils import console
+from kalshi_research.exa.policy import ExaMode, ExaPolicy
 
 if TYPE_CHECKING:
-    from kalshi_research.research.invalidation import InvalidationSeverity, InvalidationSignal
+    from kalshi_research.research.invalidation import (
+        InvalidationReport,
+        InvalidationSeverity,
+        InvalidationSignal,
+    )
+    from kalshi_research.research.thesis import Thesis as ThesisModel
+    from kalshi_research.research.thesis_research import ResearchedThesisData
 
 
 def _print_invalidation_signals(
@@ -152,3 +159,47 @@ async def _fetch_and_render_linked_positions(thesis_id: str, db_path: Path) -> N
             )
 
         console.print(pos_table)
+
+
+async def _check_thesis_invalidation(
+    thesis_id: str,
+    *,
+    hours: int,
+    mode: ExaMode,
+    budget_usd: float | None,
+) -> tuple["ThesisModel", "InvalidationReport", object]:
+    """Check a thesis for invalidation signals via Exa research."""
+    from kalshi_research.cli.research._shared import _get_thesis_file, _resolve_thesis
+    from kalshi_research.exa import ExaClient
+    from kalshi_research.research.invalidation import InvalidationDetector
+    from kalshi_research.research.thesis import ThesisTracker
+
+    tracker = ThesisTracker(_get_thesis_file())
+    thesis = _resolve_thesis(tracker, thesis_id)
+    if thesis is None:
+        raise KeyError(thesis_id)
+
+    policy = ExaPolicy.from_mode(mode=mode, budget_usd=budget_usd)
+    async with ExaClient.from_env() as exa:
+        detector = InvalidationDetector(exa, lookback_hours=hours, policy=policy)
+        report = await detector.check_thesis(thesis)
+    return thesis, report, detector
+
+
+async def _gather_thesis_research_data(
+    market_ticker: str,
+    *,
+    thesis_direction: str,
+    mode: ExaMode,
+    budget_usd: float | None,
+) -> "ResearchedThesisData":
+    """Gather research data for a new thesis via Exa."""
+    from kalshi_research.cli.research._shared import _fetch_market
+    from kalshi_research.exa import ExaClient
+    from kalshi_research.research.thesis_research import ThesisResearcher
+
+    market = await _fetch_market(market_ticker)
+    async with ExaClient.from_env() as exa:
+        policy = ExaPolicy.from_mode(mode=mode, budget_usd=budget_usd)
+        researcher = ThesisResearcher(exa, policy=policy)
+        return await researcher.research_for_thesis(market, thesis_direction=thesis_direction)
