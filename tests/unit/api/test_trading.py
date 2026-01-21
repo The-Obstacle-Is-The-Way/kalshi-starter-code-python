@@ -223,6 +223,12 @@ class TestTrading:
         with pytest.raises(ValueError, match="Count must be positive"):
             await mock_client.create_order("KX", "yes", "buy", 0, 50)
 
+        with pytest.raises(ValueError, match="side must be"):
+            await mock_client.create_order("KX", "maybe", "buy", 1, 50)
+
+        with pytest.raises(ValueError, match="action must be"):
+            await mock_client.create_order("KX", "yes", "hold", 1, 50)
+
     @pytest.mark.asyncio
     async def test_cancel_order_rate_limit(self, mock_client):
         """Verify cancel_order uses DELETE and rate limiter."""

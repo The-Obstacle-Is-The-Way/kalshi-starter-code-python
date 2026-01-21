@@ -1068,6 +1068,65 @@ def test_research_backtest(mock_db_cls: MagicMock) -> None:
     assert "No resolved theses to backtest" in result.stdout
 
 
+def test_research_backtest_missing_db_exits_with_error() -> None:
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            app,
+            [
+                "research",
+                "backtest",
+                "--start",
+                "2024-01-01",
+                "--end",
+                "2024-12-31",
+                "--db",
+                "missing.db",
+            ],
+        )
+
+    assert result.exit_code == 1
+    assert "Database not found" in result.stdout
+
+
+def test_research_backtest_thesis_not_found_exits_with_error() -> None:
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def mock_open_db(_db_path: Path):
+        yield AsyncMock()
+
+    mock_thesis_mgr = MagicMock()
+    mock_thesis_mgr.get.return_value = None
+
+    with runner.isolated_filesystem():
+        db_path = Path("data/kalshi.db")
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        db_path.touch()
+
+        with (
+            patch("kalshi_research.cli.db.open_db", mock_open_db),
+            patch("kalshi_research.research.thesis.ThesisManager", return_value=mock_thesis_mgr),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "research",
+                    "backtest",
+                    "--start",
+                    "2024-01-01",
+                    "--end",
+                    "2024-12-31",
+                    "--thesis",
+                    "missing",
+                    "--db",
+                    str(db_path),
+                ],
+            )
+
+    assert result.exit_code == 1
+    assert "not found" in result.stdout.lower()
+
+
 def test_parse_backtest_dates_includes_end_date() -> None:
     from kalshi_research.cli.research.backtest import _parse_backtest_dates
 
