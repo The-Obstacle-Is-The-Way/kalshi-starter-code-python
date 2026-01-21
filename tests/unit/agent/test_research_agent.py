@@ -73,7 +73,11 @@ def sample_market() -> Market:
 def agent(mock_exa_client: AsyncMock, tmp_path: Path) -> ResearchAgent:
     """Create a ResearchAgent with isolated state dir."""
     agent = ResearchAgent(mock_exa_client)
-    agent._state = ResearchTaskState(state_dir=tmp_path / "agent_state")
+    isolated_state = ResearchTaskState(state_dir=tmp_path / "agent_state")
+    agent._state = isolated_state
+    # Also update the executor's state reference
+    agent._executor._state = isolated_state
+    agent._executor._recovery._state = isolated_state
     return agent
 
 
@@ -230,7 +234,7 @@ async def test_budget_enforcement_stops_early(
             factors=[],
         )
 
-    monkeypatch.setattr(agent, "_execute_step", mock_execute_step)
+    monkeypatch.setattr(agent._executor, "execute_step", mock_execute_step)
 
     summary = await agent.execute_plan(plan, sample_market, budget=budget)
 
@@ -258,7 +262,7 @@ async def test_budget_tracks_actual_cost(
             factors=[],
         )
 
-    monkeypatch.setattr(agent, "_execute_step", mock_execute_step)
+    monkeypatch.setattr(agent._executor, "execute_step", mock_execute_step)
 
     summary = await agent.execute_plan(plan, sample_market, budget=budget)
 
@@ -313,7 +317,7 @@ async def test_execute_plan_records_failed_step_on_exa_error(
         _ = market
         raise ExaAPIError("boom", status_code=500)
 
-    monkeypatch.setattr(agent, "_execute_step", mock_execute_step)
+    monkeypatch.setattr(agent._executor, "execute_step", mock_execute_step)
 
     summary = await agent.execute_plan(plan, sample_market, budget=budget)
 
@@ -356,7 +360,7 @@ async def test_execute_plan_reraises_unexpected_exception(
         _ = market
         raise RuntimeError("kaboom")
 
-    monkeypatch.setattr(agent, "_execute_step", mock_execute_step)
+    monkeypatch.setattr(agent._executor, "execute_step", mock_execute_step)
 
     with pytest.raises(RuntimeError, match="kaboom"):
         await agent.execute_plan(plan, sample_market, budget=budget)

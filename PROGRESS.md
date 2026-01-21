@@ -20,7 +20,7 @@
 - [x] **DEBT-043-D3**: Split `cli/portfolio.py` → `cli/portfolio/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-D4**: Split `cli/alerts.py` → `cli/alerts/` package → `docs/_debt/DEBT-043-srp-god-files.md`
 - [x] **DEBT-043-D5**: Reduce `cli/research/thesis/_commands.py` to ≤400 LoC → `docs/_debt/DEBT-043-srp-god-files.md`
-- [ ] **DEBT-043-D6**: Split `agent/research_agent.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
+- [x] **DEBT-043-D6**: Split `agent/research_agent.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D7**: Split `agent/providers/llm.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D8**: Split `execution/executor.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
 - [ ] **DEBT-043-D9**: Split `exa/client.py` into focused modules → `docs/_debt/DEBT-043-srp-god-files.md`
@@ -42,6 +42,7 @@
 
 ## Work Log
 
+- 2026-01-21: **DEBT-043-D6** complete — split `agent/research_agent.py` (648 LoC) into `agent/research_agent/` package with 5 files: `__init__.py` (9), `_agent.py` (236), `_executor.py` (166), `_plan_builder.py` (152), `_recovery.py` (233). Updated test fixture to propagate state to executor/recovery. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D5** complete — reduced `cli/research/thesis/_commands.py` from 404 LoC to 355 LoC by moving `_check_thesis_invalidation` and `_gather_thesis_research_data` async helpers to `_helpers.py` (now 205 LoC). Updated `__init__.py` re-exports and test patches. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D4** complete — split `cli/alerts.py` (521 LoC) into `cli/alerts/` package with 7 files (largest: `monitor.py` at 218 LoC). Created `_helpers.py`, `list_cmd.py`, `add_cmd.py`, `remove.py`, `monitor.py`, `trim_log.py`, `__init__.py`. Updated tests to use new package paths. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-043-D3** complete — split `cli/portfolio.py` (620 LoC) into `cli/portfolio/` package with 8 files (largest: `_helpers.py` at 129 LoC). Created `_helpers.py`, `sync.py`, `positions.py`, `pnl_cmd.py`, `balance.py`, `history.py`, `link.py`, `__init__.py`. Updated test to use new public `format_signed_currency` API. Quality gates: `pre-commit`, `pytest` (1052 passed).
