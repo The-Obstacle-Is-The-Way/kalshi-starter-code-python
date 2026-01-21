@@ -6,7 +6,7 @@
 - **Effort:** M (1–3 days)
 - **Blocking:** Yes (these functions are change magnets)
 - **Target Date:** 2026-02-05
-- **Status:** Active
+- **Status:** Resolved
 
 ## Problem
 

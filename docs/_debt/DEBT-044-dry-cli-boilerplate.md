@@ -6,7 +6,7 @@
 - **Effort:** M (1–2 days)
 - **Blocking:** Yes (duplication guarantees future divergence bugs)
 - **Target Date:** 2026-02-02
-- **Status:** Active
+- **Status:** Resolved
 
 ## Problem
 
