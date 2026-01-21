@@ -67,4 +67,9 @@ rg -n \"max_exa_usd: float = 0\\.25|max_llm_usd: float = 0\\.25\" src/kalshi_res
 
 - [x] Phase A: Introduce constants module and migrate pagination/depth defaults
 - [x] Phase B: Migrate scanner/liquidity threshold literals
-- [ ] Phase C: Migrate remaining cost/budget policy literals (agent defaults + Exa pricing estimates)
+- [ ] Phase C: Migrate remaining cost/budget policy literals (tracked below)
+
+Phase C sub-phases:
+
+- [ ] Phase C1: Agent per-run defaults are named constants (no `0.25` duplication across CLI/orchestrator)
+- [ ] Phase C2: Exa cost-estimate literals are named constants (tiers, per-page adders, safety factors)

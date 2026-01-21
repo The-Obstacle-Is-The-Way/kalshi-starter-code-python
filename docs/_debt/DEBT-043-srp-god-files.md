@@ -87,9 +87,30 @@ Adopt a strict size ceiling for `src/kalshi_research/**/*.py`:
 
 ## Acceptance Criteria (Phased)
 
-- [x] Phase A: `cli/research.py` becomes `cli/research/` package and all files ≤400 lines
-- [x] Phase B: `cli/scan.py` becomes `cli/scan/` package and all files ≤400 lines
+- [x] Phase A: `cli/research.py` becomes `cli/research/` package (structure split)
+- [x] Phase B: `cli/scan.py` becomes `cli/scan/` package (structure split)
 - [x] Phase C: `api/client.py` split into endpoint modules; public import path preserved; all files ≤400 lines
-- [ ] Phase D: Remaining >400-line modules reduced under the ceiling (18 files remain as of 2026-01-21)
+- [ ] Phase D: Remaining >400-line modules reduced under the ceiling (tracked below; 18 files remain as of 2026-01-21)
+
+Phase D sub-phases (one file-family per iteration):
+
+- [ ] Phase D1: `cli/market.py` becomes `cli/market/` package and all files ≤400 lines
+- [ ] Phase D2: `cli/data.py` becomes `cli/data/` package and all files ≤400 lines
+- [ ] Phase D3: `cli/portfolio.py` becomes `cli/portfolio/` package and all files ≤400 lines
+- [ ] Phase D4: `cli/alerts.py` becomes `cli/alerts/` package and all files ≤400 lines
+- [ ] Phase D5: `cli/research/thesis/_commands.py` reduced to ≤400 lines (split/move helpers as needed)
+- [ ] Phase D6: `agent/research_agent.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D7: `agent/providers/llm.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D8: `execution/executor.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D9: `exa/client.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D10: `exa/websets/client.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D11: `portfolio/pnl.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D12: `portfolio/syncer.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D13: `analysis/liquidity.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D14: `analysis/scanner.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D15: `analysis/correlation.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D16: `api/models/portfolio.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D17: `research/thesis.py` split into focused modules and all files ≤400 lines
+- [ ] Phase D18: `data/fetcher.py` split into focused modules and all files ≤400 lines
 
 **Note (2026-01-21):** Phases A–C complete. Phase D remains — 18 files still exceed 400 lines (see Evidence section for the current list).

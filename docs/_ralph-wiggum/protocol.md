@@ -1,7 +1,7 @@
 # Ralph Wiggum Loop Protocol
 
 **Created:** 2026-01-06
-**Updated:** 2026-01-10
+**Updated:** 2026-01-21
 **Author:** Ray + Claude
 **Status:** Tested & Working
 
@@ -105,21 +105,22 @@ git pull origin main
 git checkout -b dev  # optional
 
 # Create Ralph branch (all autonomous work happens here)
-git checkout -b ralph-wiggum-loop  # if you skipped dev, create this off main
+# Use a repo-scoped name to avoid collisions across repos (recommended: kalshi-ralph).
+git checkout -b kalshi-ralph  # if you skipped dev, create this off main
 
 # Push branches to remote for backup
 git push -u origin dev  # optional
-git push -u origin ralph-wiggum-loop
+git push -u origin kalshi-ralph
 ```
 
 **Branch hierarchy (recommended):**
 ```
 main (protected, production)
   └── dev (integration, manual merges)
-        └── ralph-wiggum-loop (autonomous work)
+        └── kalshi-ralph (autonomous work)
 ```
 
-If you don't use a `dev` branch, use `ralph-wiggum-loop` directly off `main` and merge via PR.
+If you don't use a `dev` branch, use `kalshi-ralph` directly off `main` and merge via PR.
 
 ### Step 1.5: File Placement (Permanent Root Pattern)
 
@@ -332,7 +333,7 @@ The original Huntley approach - simple, effective, works anywhere:
 ```bash
 # Navigate to project
 cd /path/to/project
-git checkout ralph-wiggum-loop
+git checkout kalshi-ralph
 
 # THE CLASSIC RALPH LOOP
 while true; do
@@ -389,7 +390,7 @@ If you prefer the official plugin approach:
 
 ```bash
 cd /path/to/project
-git checkout ralph-wiggum-loop
+git checkout kalshi-ralph
 claude  # Start interactive session
 ```
 
@@ -478,9 +479,9 @@ This verifies actual progress (checked boxes) rather than trusting model output.
 ### Safety Philosophy
 
 **Your real safety net is the sandboxed branch:**
-- All work happens on `ralph-wiggum-loop` (or similar)
+- All work happens on `kalshi-ralph` (or similar)
 - Main branch is untouched
-- You can always `git checkout main && git branch -D ralph-wiggum-loop`
+- You can always `git checkout main && git branch -D kalshi-ralph`
 - Audit commits before merging
 
 **Tool restrictions are optional paranoia.** If you're in a sandboxed branch:
@@ -536,10 +537,10 @@ uv run pytest tests/ -v --tb=short
 
 ```bash
 # See all commits from Ralph
-git log main..ralph-wiggum-loop --oneline
+git log main..kalshi-ralph --oneline
 
 # See full diff
-git diff main..ralph-wiggum-loop
+git diff main..kalshi-ralph
 
 # Review specific commit
 git show <commit-hash>
@@ -559,20 +560,20 @@ uv run pytest tests/ -v
 ```bash
 # If everything looks good
 git checkout dev
-git merge ralph-wiggum-loop
+git merge kalshi-ralph
 git checkout main
 git merge dev
 git push origin main
 ```
 
-If you skipped `dev`, open a PR from `ralph-wiggum-loop` → `main`, or merge directly after review.
+If you skipped `dev`, open a PR from `kalshi-ralph` → `main`, or merge directly after review.
 
 ### Revert if Bad
 
 ```bash
 # Nuclear option - delete branch entirely
 git checkout main
-git branch -D ralph-wiggum-loop
+git branch -D kalshi-ralph
 
 # Or revert specific commits
 git revert <bad-commit-hash>
@@ -726,7 +727,7 @@ git rebase --continue
 ```bash
 # 1. Create sandbox branch
 git checkout dev && git pull
-git checkout -b ralph-wiggum-cleanup
+git checkout -b kalshi-ralph
 
 # 2. Ensure PROGRESS.md and PROMPT.md exist in root
 # (They should already be there - permanent location)
@@ -741,10 +742,10 @@ ls PROGRESS.md PROMPT.md
 watch -n 5 'git log --oneline -10'
 
 # 6. Audit when done
-git log dev..ralph-wiggum-cleanup --oneline
-git diff dev..ralph-wiggum-cleanup --stat
+git log dev..kalshi-ralph --oneline
+git diff dev..kalshi-ralph --stat
 
 # 7. Merge if good (after review)
-git checkout dev && git merge ralph-wiggum-cleanup
+git checkout dev && git merge kalshi-ralph
 # Or open PR for review
 ```
