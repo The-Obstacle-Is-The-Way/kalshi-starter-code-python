@@ -154,3 +154,71 @@ DEFAULT_AGENT_MAX_EXA_USD: float = 0.25
 # This bounds the cost of LLM inference (probability synthesis, confidence).
 # Set conservatively low; typical single-market synthesis is well under this.
 DEFAULT_AGENT_MAX_LLM_USD: float = 0.25
+
+# =============================================================================
+# Exa API Cost Estimates (Vendor Pricing)
+# =============================================================================
+#
+# These constants encode Exa's pricing tiers as documented in
+# `docs/_vendor-docs/exa-api-reference.md`. They are used to estimate API
+# call costs before execution, enabling budget enforcement.
+#
+# IMPORTANT: If Exa changes their pricing, update these values. The safety
+# factor provides a buffer for minor pricing drift.
+
+# Search tier boundaries (number of results).
+#
+# Used by:
+# - exa/policy.py: estimate_search_cost_usd(), estimate_find_similar_cost_usd()
+#
+# Exa prices searches in two tiers: 1-25 results and 26-100 results.
+EXA_SEARCH_TIER_SMALL_MAX: int = 25
+EXA_SEARCH_TIER_LARGE_MAX: int = 100
+
+# Neural search base costs (per request, not per result).
+#
+# Used by:
+# - exa/policy.py: estimate_search_cost_usd(), estimate_find_similar_cost_usd()
+#
+# neuralSearch_1_25_results: $0.005
+# neuralSearch_26_100_results: $0.025
+EXA_NEURAL_SEARCH_COST_SMALL_USD: float = 0.005
+EXA_NEURAL_SEARCH_COST_LARGE_USD: float = 0.025
+
+# Deep search base costs (per request, not per result).
+#
+# Used by:
+# - exa/policy.py: estimate_search_cost_usd()
+#
+# deepSearch_1_25_results: $0.015
+# deepSearch_26_100_results: $0.075
+EXA_DEEP_SEARCH_COST_SMALL_USD: float = 0.015
+EXA_DEEP_SEARCH_COST_LARGE_USD: float = 0.075
+
+# Per-result add-on costs for text/highlights.
+#
+# Used by:
+# - exa/policy.py: estimate_search_cost_usd(), estimate_find_similar_cost_usd()
+#
+# Each result with full text adds $0.001; highlights adds $0.001.
+EXA_PER_RESULT_TEXT_COST_USD: float = 0.001
+EXA_PER_RESULT_HIGHLIGHTS_COST_USD: float = 0.001
+
+# Answer endpoint cost estimates.
+#
+# Used by:
+# - exa/policy.py: estimate_answer_cost_usd()
+#
+# Exa's /answer pricing is not as granular as /search. These are conservative
+# estimates for budget enforcement.
+EXA_ANSWER_WITH_TEXT_COST_USD: float = 0.05
+EXA_ANSWER_WITHOUT_TEXT_COST_USD: float = 0.03
+
+# Safety factor for cost estimates.
+#
+# Used by:
+# - exa/policy.py: estimate_search_cost_usd(), estimate_find_similar_cost_usd()
+#
+# Multiplier applied to estimates to account for minor pricing drift or
+# unexpected backend choices (e.g., "auto" type choosing deep search).
+EXA_COST_ESTIMATE_SAFETY_FACTOR: float = 1.2

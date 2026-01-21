@@ -57,19 +57,19 @@ rg -n \"max_exa_usd: float = 0\\.25|max_llm_usd: float = 0\\.25\" src/kalshi_res
   - `rg -n \"\\blimit=200\\b\" src/kalshi_research` ✓
   - `rg -n \"depth: int = 10|depth=10\" src/kalshi_research` ✓
   - `rg -n \"\\(0\\.40, 0\\.60\\)\" src/kalshi_research` (only in constants.py definition) ✓
-- [ ] Phase C policy literals reduced: agent default budgets + Exa pricing estimate constants are named/centralized
+- [x] Phase C policy literals reduced: agent default budgets + Exa pricing estimate constants are named/centralized
 - [x] All tests pass: `uv run pytest`
 - [x] All quality gates pass: `uv run pre-commit run --all-files`
 
-**Note:** Phase A/B complete. Phase C (cost/budget policy literals) remains for future iteration.
+**Note:** All phases (A/B/C) complete. DEBT-047 is fully resolved.
 
 ## Acceptance Criteria (Phased)
 
 - [x] Phase A: Introduce constants module and migrate pagination/depth defaults
 - [x] Phase B: Migrate scanner/liquidity threshold literals
-- [ ] Phase C: Migrate remaining cost/budget policy literals (tracked below)
+- [x] Phase C: Migrate remaining cost/budget policy literals (tracked below)
 
 Phase C sub-phases:
 
 - [x] Phase C1: Agent per-run defaults are named constants (no `0.25` duplication across CLI/orchestrator)
-- [ ] Phase C2: Exa cost-estimate literals are named constants (tiers, per-page adders, safety factors)
+- [x] Phase C2: Exa cost-estimate literals are named constants (tiers, per-page adders, safety factors)

@@ -11,7 +11,7 @@
 ### Phase 1: P3 Debt (Small, mechanical)
 
 - [x] **DEBT-047-C1**: Centralize agent default budgets (`max_exa_usd` / `max_llm_usd`) → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
-- [ ] **DEBT-047-C2**: Centralize Exa cost-estimate literals (tiers/per-page/safety factors) → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
+- [x] **DEBT-047-C2**: Centralize Exa cost-estimate literals (tiers/per-page/safety factors) → `docs/_debt/DEBT-047-magic-numbers-policy-constants.md`
 
 ### Phase 2: P1 Debt (Large, refactors to ≤400 LoC)
 
@@ -42,5 +42,6 @@
 
 ## Work Log
 
+- 2026-01-21: **DEBT-047-C2** complete — added Exa cost-estimate constants (`EXA_SEARCH_TIER_SMALL_MAX`, `EXA_NEURAL_SEARCH_COST_*`, `EXA_DEEP_SEARCH_COST_*`, `EXA_PER_RESULT_*`, `EXA_ANSWER_*`, `EXA_COST_ESTIMATE_SAFETY_FACTOR`) to `constants.py`. Updated `exa/policy.py` to use them. DEBT-047 fully resolved. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: **DEBT-047-C1** complete — added `DEFAULT_AGENT_MAX_EXA_USD` and `DEFAULT_AGENT_MAX_LLM_USD` to `constants.py`, updated `agent/orchestrator.py` and `cli/agent.py` to use them. Quality gates: `pre-commit`, `pytest` (1052 passed).
 - 2026-01-21: Reset queue post-branch-cleanup. Remaining active debt: DEBT-043 (Phase D) + DEBT-047 (Phase C).
