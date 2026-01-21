@@ -65,6 +65,33 @@ class TestTrading:
         assert payload["client_order_id"] == "cid-1"
 
     @pytest.mark.asyncio
+    async def test_create_order_normalizes_side_and_action(self, mock_client):
+        """Verify create_order normalizes side/action casing for string inputs."""
+        create_order_response = _load_golden_fixture("create_order_response.json")
+        mock_client._client.post.return_value = MagicMock(
+            status_code=201,
+            json=lambda: create_order_response,
+        )
+
+        await mock_client.create_order(
+            ticker="KXTEST",
+            side="YES",
+            action="BUY",
+            count=10,
+            price=50,
+            client_order_id="cid-case",
+        )
+
+        mock_client._client.post.assert_called_once()
+        _, kwargs = mock_client._client.post.call_args
+        payload = kwargs["json"]
+
+        assert payload["side"] == "yes"
+        assert payload["action"] == "buy"
+        assert payload["yes_price"] == 50
+        assert payload["client_order_id"] == "cid-case"
+
+    @pytest.mark.asyncio
     async def test_create_order_no_side_uses_no_price(self, mock_client):
         """Verify create_order uses no_price for NO-side orders (not yes_price)."""
         create_order_response = _load_golden_fixture("create_order_response.json")

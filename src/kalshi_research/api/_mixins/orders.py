@@ -84,8 +84,16 @@ class OrdersMixin:
         if not client_order_id:
             client_order_id = str(uuid.uuid4())
 
-        side_value = side if isinstance(side, str) else side.value
-        action_value = action if isinstance(action, str) else action.value
+        side_raw = side if isinstance(side, str) else side.value
+        side_value = side_raw.strip().lower()
+        if side_value not in {"yes", "no"}:
+            raise ValueError("side must be 'yes' or 'no'")
+
+        action_raw = action if isinstance(action, str) else action.value
+        action_value = action_raw.strip().lower()
+        if action_value not in {"buy", "sell"}:
+            raise ValueError("action must be 'buy' or 'sell'")
+
         price_key = "yes_price" if side_value == "yes" else "no_price"
 
         payload = {

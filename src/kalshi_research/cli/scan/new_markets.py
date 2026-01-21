@@ -151,7 +151,10 @@ async def _build_new_markets_results(
             market.event_ticker,
             category_by_event=category_by_event,
         )
-        if categories is not None and category.lower() not in categories:
+        from kalshi_research.analysis.categories import normalize_category
+
+        normalized_category = normalize_category(category).strip()
+        if categories is not None and normalized_category.lower() not in categories:
             continue
 
         yes_display = market_yes_price_display(market)
@@ -167,7 +170,7 @@ async def _build_new_markets_results(
                 "yes_bid_cents": market.yes_bid_cents,
                 "yes_ask_cents": market.yes_ask_cents,
                 "yes_price_display": yes_display,
-                "category": category,
+                "category": normalized_category,
                 "created_time": reference_time.isoformat(),
                 "age": format_relative_age(now=now, timestamp=reference_time),
             }
