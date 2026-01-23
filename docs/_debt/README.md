@@ -4,7 +4,12 @@ This directory tracks **known debt** and **audit checklists** for the repository
 
 ## Current Status
 
-**0 active debt items.**
+**2 active debt items.**
+
+| ID | Title | Priority | Status |
+|---|---|---|---|
+| **[DEBT-049](DEBT-049-pnl-unsettled-market-display.md)** | P&L Display for Unsettled Markets (settlement sync clarity) | P2 | Open |
+| **[DEBT-048](DEBT-048-cli-option-naming-inconsistency.md)** | CLI Option Naming Inconsistency (`--top` vs `--limit`) | P3 | Open |
 
 ---
 
@@ -68,7 +73,7 @@ All resolved debt items live in `docs/_archive/debt/`.
 ## Next ID Tracker
 
 Use this ID for the next debt item:
-**DEBT-048**
+**DEBT-050**
 
 ---
 

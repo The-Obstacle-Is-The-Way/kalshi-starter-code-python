@@ -16,13 +16,19 @@ This is the “where to find it in code” map for CLI commands:
 ```text
 kalshi
 ├─ (status, version) -> src/kalshi_research/cli/__init__.py
-├─ data       -> src/kalshi_research/cli/data.py
-├─ market     -> src/kalshi_research/cli/market.py
-├─ scan       -> src/kalshi_research/cli/scan.py
-├─ alerts     -> src/kalshi_research/cli/alerts.py
+├─ agent      -> src/kalshi_research/cli/agent.py
+├─ data       -> src/kalshi_research/cli/data/
+├─ market     -> src/kalshi_research/cli/market/
+├─ scan       -> src/kalshi_research/cli/scan/
+├─ browse     -> src/kalshi_research/cli/browse.py
+├─ series     -> src/kalshi_research/cli/series.py
+├─ event      -> src/kalshi_research/cli/event.py
+├─ mve        -> src/kalshi_research/cli/mve.py
+├─ status     -> src/kalshi_research/cli/status.py
+├─ alerts     -> src/kalshi_research/cli/alerts/
 ├─ analysis   -> src/kalshi_research/cli/analysis.py
-├─ research   -> src/kalshi_research/cli/research.py
-├─ portfolio  -> src/kalshi_research/cli/portfolio.py
+├─ research   -> src/kalshi_research/cli/research/
+├─ portfolio  -> src/kalshi_research/cli/portfolio/
 └─ news       -> src/kalshi_research/cli/news.py
 ```
 
@@ -34,10 +40,15 @@ Notes:
 
 - Global option: `--env/-e` (defaults to `KALSHI_ENVIRONMENT` or `prod`; invalid values exit with an error)
 - `kalshi version`
-- `kalshi status [--json]`
+- `kalshi status [--json]` (`schedule`, `announcements`)
+- `kalshi agent ...`
 - `kalshi data ...`
 - `kalshi market ...`
 - `kalshi scan ...`
+- `kalshi browse ...`
+- `kalshi series ...`
+- `kalshi event ...`
+- `kalshi mve ...`
 - `kalshi alerts ...`
 - `kalshi analysis ...`
 - `kalshi research ...`
@@ -49,6 +60,19 @@ Notes:
 - DB-backed commands default to `data/kalshi.db` and accept `--db/-d PATH`.
 - Public API iterators support `--max-pages N` as a safety cap (omit for full iteration).
   - If the cap is reached with a next cursor present, the client logs a warning (data may be incomplete).
+
+## `kalshi status`
+
+- `kalshi status [--json]`
+- `kalshi status schedule [--json]`
+- `kalshi status announcements [--json]`
+
+## `kalshi agent` (Exa + LLM)
+
+- `kalshi agent research <TICKER> [--mode fast|standard|deep] [--budget-usd FLOAT] [--json] [--output FILE]`
+- `kalshi agent analyze <TICKER> [--mode fast|standard|deep] [--max-exa-usd FLOAT] [--max-llm-usd FLOAT] [--human] [--json] [--output FILE]`
+
+Note: `--mode fast` exists but is not recommended for internal use (quality tradeoff).
 
 ## `kalshi data`
 
@@ -71,6 +95,7 @@ Notes:
 - `kalshi market orderbook <TICKER> [--depth N]`
 - `kalshi market liquidity <TICKER> [--depth N] [--max-slippage-cents N]`
 - `kalshi market history <TICKER> [--series SERIES] [--interval 1m|1h|1d] [--days N] [--start-ts TS] [--end-ts TS] [--json]`
+- `kalshi market search <QUERY> [--db PATH] [--status TEXT] [--category TEXT] [--event EVT] [--series SERIES] [--min-volume N] [--max-spread N] [--top N] [--format table|json]`
 
 Note: Kalshi's **response** `status` values (e.g. `active`) differ from the `/markets` **filter** values. The CLI maps `--status active` → `open` with a warning.
 
@@ -102,23 +127,46 @@ Alerts are stored locally at `data/alerts.json`.
 - `kalshi analysis calibration [--db PATH] [--days N] [--output FILE]`
 - `kalshi analysis correlation [--db PATH] (--event EVT | --tickers T1,T2,...) [--min FLOAT] [--top N]`
 
+## `kalshi browse` (discovery)
+
+- `kalshi browse categories [--json]`
+- `kalshi browse series [--category TEXT] [--tags TAG1,TAG2] [--include-product-metadata] [--include-volume] [--json]`
+- `kalshi browse sports [--json]`
+
+## `kalshi series` (discovery)
+
+- `kalshi series get <TICKER> [--include-volume] [--json]`
+
+## `kalshi event` (discovery)
+
+- `kalshi event list [--status TEXT] [--series SERIES_TICKER] [--limit N] [--with-markets] [--json]`
+- `kalshi event get <EVENT_TICKER> [--json]`
+- `kalshi event candlesticks <EVENT_TICKER> [--series SERIES_TICKER] [--interval 1m|1h|1d] [--days N] [--start-ts TS] [--end-ts TS] [--json]`
+
+## `kalshi mve` (discovery)
+
+- `kalshi mve list [--limit N] [--json]`
+- `kalshi mve collections [--limit N] [--json]`
+- `kalshi mve collection <COLLECTION_TICKER> [--json]`
+
 ## `kalshi research`
 
 - `kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH] [--thesis THESIS_ID_PREFIX]` (`--end` is inclusive)
 - `kalshi research context <TICKER> [--max-news N] [--max-papers N] [--days N] [--mode fast|standard|deep] [--budget-usd FLOAT] [--json]`
 - `kalshi research topic <TOPIC> [--no-summary] [--mode fast|standard|deep] [--budget-usd FLOAT] [--json]`
-- `kalshi research similar <URL> [--num-results N] [--json]`
-- `kalshi research deep <TOPIC> [--model exa-research-fast|exa-research|exa-research-pro] [--wait] [--poll-interval SEC] [--timeout SEC] [--schema FILE] [--json]`
+- `kalshi research similar <URL> [--num-results N] [--mode fast|standard|deep] [--budget-usd FLOAT] [--json]`
+- `kalshi research deep <TOPIC> [--model exa-research-fast|exa-research|exa-research-pro] [--budget-usd FLOAT] [--wait] [--poll-interval SEC] [--timeout SEC] [--schema FILE] [--json]`
 - `kalshi research cache clear [--all] [--cache-dir DIR]`
 - `kalshi research thesis create <TITLE> --markets T1,T2 --your-prob P --market-prob P --confidence P [--bull TEXT] [--bear TEXT]`
   - optional: `--with-research` (requires `EXA_API_KEY`)
+  - Exa controls (when `--with-research`): `--mode fast|standard|deep`, `--budget-usd FLOAT`
   - optional: `--yes/-y` (accept research suggestions without prompting; only relevant with `--with-research`)
 - `kalshi research thesis list [--full]`
 - `kalshi research thesis show <THESIS_ID_PREFIX> [--with-positions] [--db PATH]`
 - `kalshi research thesis edit <THESIS_ID_PREFIX> [--title TEXT] [--bull TEXT] [--bear TEXT]`
 - `kalshi research thesis resolve <THESIS_ID_PREFIX> --outcome yes|no|void`
-- `kalshi research thesis check-invalidation <THESIS_ID_PREFIX> [--hours N]`
-- `kalshi research thesis suggest [--category TEXT]`
+- `kalshi research thesis check-invalidation <THESIS_ID_PREFIX> [--hours N] [--mode fast|standard|deep] [--budget-usd FLOAT]`
+- `kalshi research thesis suggest [--category TEXT] [--mode fast|standard|deep] [--budget-usd FLOAT]`
 
 Theses are stored locally at `data/theses.json`.
 
@@ -129,7 +177,7 @@ News data is stored in SQLite (default: `data/kalshi.db`).
 - `kalshi news track <TICKER> [--event] [--queries Q1,Q2,...] [--db PATH]`
 - `kalshi news untrack <TICKER> [--db PATH]`
 - `kalshi news list-tracked [--all] [--db PATH]`
-- `kalshi news collect [--ticker TICKER] [--lookback-days N] [--max-per-query N] [--db PATH]`
+- `kalshi news collect [--ticker TICKER] [--mode fast|standard|deep] [--budget-usd FLOAT] [--lookback-days N] [--max-per-query N] [--db PATH]`
 - `kalshi news sentiment <TICKER> [--event] [--days N] [--db PATH]`
 
 ## `kalshi portfolio` (authenticated)

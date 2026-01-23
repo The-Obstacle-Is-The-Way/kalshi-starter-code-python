@@ -33,6 +33,8 @@ uv run kalshi --help
 | `EXA_TIMEOUT` | Exa-powered research/news | Exa request timeout seconds (default: 30) |
 | `EXA_MAX_RETRIES` | Exa-powered research/news | Exa max retries (default: 3) |
 | `EXA_RETRY_DELAY` | Exa-powered research/news | Exa base retry delay seconds (default: 1) |
+| `KALSHI_SYNTHESIZER_BACKEND` | Agent analysis | LLM backend for `kalshi agent analyze` (`anthropic` default, `mock` for tests) |
+| `ANTHROPIC_API_KEY` | Agent analysis (Anthropic) | Anthropic API key (required when backend is `anthropic`) |
 
 ## File Locations
 
@@ -49,10 +51,37 @@ uv run kalshi --help
 
 ## CLI Command Groups
 
+### agent - Research Agent (Exa + LLM)
+```bash
+uv run kalshi agent research TICKER [--mode fast|standard|deep] [--budget-usd FLOAT] [--json]
+uv run kalshi agent analyze TICKER [--mode fast|standard|deep] [--max-exa-usd FLOAT] [--max-llm-usd FLOAT] [--human] [--json]
+
+# Note: avoid --mode fast for internal use (quality tradeoff).
+```
+
 ### status/version - Utilities
 ```bash
 uv run kalshi status [--json]             # Exchange status
+uv run kalshi status schedule [--json]    # Maintenance windows
+uv run kalshi status announcements [--json]
 uv run kalshi version                     # CLI version info
+```
+
+### browse/series/event/mve - Discovery
+```bash
+uv run kalshi browse categories [--json]
+uv run kalshi browse series [--category TEXT] [--tags TAG1,TAG2] [--json]
+uv run kalshi browse sports [--json]
+
+uv run kalshi series get SERIES_TICKER [--include-volume] [--json]
+
+uv run kalshi event list [--limit N] [--with-markets] [--json]
+uv run kalshi event get EVENT_TICKER [--json]
+uv run kalshi event candlesticks EVENT_TICKER [--interval 1m|1h|1d] [--days N] [--json]
+
+uv run kalshi mve list [--limit N] [--json]
+uv run kalshi mve collections [--limit N] [--json]
+uv run kalshi mve collection COLLECTION_TICKER [--json]
 ```
 
 ### data - Data Management
@@ -77,6 +106,7 @@ uv run kalshi market get TICKER                                    # Fetch singl
 uv run kalshi market orderbook TICKER [--depth 5]                  # Get orderbook
 uv run kalshi market liquidity TICKER [--depth 25] [--max-slippage-cents 3]
 uv run kalshi market history TICKER [--series SERIES] [--interval 1h] [--days 7] [--start-ts TS] [--end-ts TS] [--json]
+uv run kalshi market search "keyword" [--top 20] [--format table|json]         # Local DB search (see BUG-090 re: status filter)
 ```
 
 ### scan - Opportunity Scanning
@@ -101,25 +131,25 @@ uv run kalshi portfolio suggest-links [--db PATH]
 ### research - Research & Thesis Tracking
 ```bash
 uv run kalshi research backtest --start YYYY-MM-DD --end YYYY-MM-DD [--db PATH]  # End date is inclusive
-uv run kalshi research context TICKER [--max-news 10] [--max-papers 5] [--days 30] [--json]
-uv run kalshi research topic "TOPIC" [--no-summary] [--json]
-uv run kalshi research similar URL [-n 10] [--json]
-uv run kalshi research deep "TOPIC" [--model exa-research-fast|exa-research|exa-research-pro] [--wait] [--schema FILE] [--json]  # Paid API
+uv run kalshi research context TICKER [--max-news 10] [--max-papers 5] [--days 30] [--mode fast|standard|deep] [--budget-usd FLOAT] [--json]
+uv run kalshi research topic "TOPIC" [--no-summary] [--mode fast|standard|deep] [--budget-usd FLOAT] [--json]
+uv run kalshi research similar URL [--num-results 10] [--mode fast|standard|deep] [--budget-usd FLOAT] [--json]
+uv run kalshi research deep "TOPIC" [--model exa-research-fast|exa-research|exa-research-pro] [--budget-usd FLOAT] [--wait] [--schema FILE] [--json]  # Paid API
 uv run kalshi research cache clear [--all] [--cache-dir DIR]
 uv run kalshi research thesis create "TITLE" -m T1,T2 --your-prob 0.7 --market-prob 0.5 --confidence 0.8 [--with-research] [-y]
 uv run kalshi research thesis list [--full/-F]
 uv run kalshi research thesis show ID [--with-positions] [--db PATH]
 uv run kalshi research thesis edit ID [--title TEXT] [--bull TEXT] [--bear TEXT]
 uv run kalshi research thesis resolve ID --outcome yes|no|void
-uv run kalshi research thesis check-invalidation ID [--hours 48]
-uv run kalshi research thesis suggest [--category TEXT]
+uv run kalshi research thesis check-invalidation ID [--hours 48] [--mode fast|standard|deep] [--budget-usd FLOAT]
+uv run kalshi research thesis suggest [--category TEXT] [--mode fast|standard|deep] [--budget-usd FLOAT]
 ```
 
 ### news - News Monitoring & Sentiment (Exa-Powered)
 ```bash
 uv run kalshi news track TICKER [--event] [--queries "a, b"]   # Start tracking
 uv run kalshi news list-tracked [--all]                        # Show tracked items
-uv run kalshi news collect [--ticker TICKER]                   # Collect news + sentiment
+uv run kalshi news collect [--ticker TICKER] [--mode fast|standard|deep] [--budget-usd FLOAT]  # Collect news + sentiment
 uv run kalshi news sentiment TICKER [--event] [--days 7]       # Sentiment summary
 uv run kalshi news untrack TICKER                              # Stop tracking
 ```
@@ -144,7 +174,7 @@ uv run kalshi analysis correlation [--db PATH] [--event EVT] [--tickers T1,T2] [
 
 ## Critical Rules
 
-1. **NO `--search` option exists** on any command. Query database directly instead.
+1. **NO `--search` option exists** on any command. Use `kalshi market search` (local DB) or query SQLite directly.
 2. **Use `--full/-F`** to disable CLI truncation; if you still need exact tickers, query the database.
 3. **Always use `uv run kalshi`** prefix - commands require virtual environment.
 4. **Check `--help`** before assuming options exist.
@@ -157,6 +187,7 @@ uv run kalshi analysis correlation [--db PATH] [--event EVT] [--tickers T1,T2] [
 
 For complete documentation, see:
 - **[CLI-REFERENCE.md](CLI-REFERENCE.md)** - Every command with ALL options
+- **[CLI-REFERENCE.md](CLI-REFERENCE.md)** - CLI reference (SSOT is always `uv run kalshi --help`)
 - **[DATABASE.md](DATABASE.md)** - Schema and SQL queries
 - **[WORKFLOWS.md](WORKFLOWS.md)** - Step-by-step guides
 - **[GOTCHAS.md](GOTCHAS.md)** - Edge cases and pitfalls
@@ -168,8 +199,12 @@ For complete documentation, see:
 When CLI options are insufficient, query SQLite directly:
 
 ```bash
-# Find markets by keyword (since no --search exists)
-sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE title LIKE '%keyword%' AND status = 'active'"
+# Find markets by keyword
+uv run kalshi market search "keyword" --top 20 --format table
+# Note: BUG-090 - pass a response status explicitly if needed (e.g., --status active).
+
+# Or query the database directly
+sqlite3 data/kalshi.db "SELECT ticker, title FROM markets WHERE title LIKE '%keyword%' LIMIT 20;"
 
 # Get full ticker from partial match
 sqlite3 data/kalshi.db "SELECT ticker FROM markets WHERE ticker LIKE 'KXFED%'"

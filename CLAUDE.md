@@ -268,6 +268,27 @@ uv run kalshi agent analyze TICKER --mode standard
 
 See [SPEC-042](docs/_specs/SPEC-042-llm-synthesizer-implementation.md) for implementation details.
 
+### Agent Research Modes
+
+The agent commands support three research modes via `--mode`:
+
+| Mode | Budget | Use Case |
+|------|--------|----------|
+| `standard` | $0.25 | **Default. Always use this.** Balanced research quality. |
+| `deep` | $1.00 | Comprehensive analysis with async deep research tasks. |
+| `fast` | $0.05 | **Do not use.** Sacrifices quality for speed - misses important context. |
+
+**Decision (2026-01-21):** This is a single-user research CLI, not a multi-user service. There is no use case for fast mode - it produces lower-quality research that can miss critical context (e.g., missing that Trump mentioned a topic in a speech). The code remains for optionality, but fast mode should never be invoked.
+
+```bash
+# Correct usage
+uv run kalshi agent analyze TICKER                    # standard (default)
+uv run kalshi agent analyze TICKER --mode deep        # deep research
+
+# Do NOT use fast mode
+# uv run kalshi agent analyze TICKER --mode fast      # <- Don't do this
+```
+
 ## Documentation Tracking
 
 When you find drift, bugs, or technical debt, record them in the appropriate tracker:

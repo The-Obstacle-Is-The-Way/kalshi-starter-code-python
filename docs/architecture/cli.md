@@ -11,13 +11,20 @@ src/kalshi_research/cli/
 ├── __init__.py   # app, global callback, sub-app registration
 ├── __main__.py   # enables `python -m kalshi_research.cli ...`
 ├── utils.py      # shared Rich console + JSON helpers
-├── data.py
-├── market.py
-├── scan.py
-├── alerts.py
+├── client_factory.py  # KalshiPublicClient/KalshiClient factories
+├── agent.py
+├── browse.py
+├── series.py
+├── event.py
+├── mve.py
+├── status.py
+├── data/
+├── market/
+├── scan/
+├── alerts/
 ├── analysis.py
-├── research.py
-├── portfolio.py
+├── research/
+├── portfolio/
 └── news.py
 ```
 
@@ -36,8 +43,8 @@ Invalid values exit with an error (no silent fallback).
 
 ## Async boundary
 
-Most commands are implemented as a small sync wrapper that calls `asyncio.run(...)` internally.
-This keeps the CLI ergonomic while allowing the underlying clients/DB to stay async.
+Most commands are implemented as a small sync wrapper that calls `run_async(...)` (which uses `asyncio.run(...)`)
+internally. This keeps the CLI ergonomic while allowing the underlying clients/DB to stay async.
 
 ## Alerts daemon mode
 
